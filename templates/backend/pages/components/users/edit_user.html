@@ -1,0 +1,171 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Edit User | {{ user.fullname }}{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Users</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.add_user') }}">Users</a></li>
+            <li class="breadcrumb-item">Edit</li>
+            <li class="breadcrumb-item">{{ user.username }}</li>
+        </ul>
+    </div>
+</div>
+<div class="main-content">
+    <div class="row">
+        <div class="col-lg-12">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="card border-top-0">
+                    <div class="card-header p-0">
+                        <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs" id="myTab" role="tablist">
+                            <li class="nav-item flex-fill border-top" role="presentation">
+                                <a href="javascript:void(0);" class="nav-link active" data-bs-toggle="tab" data-bs-target="#profileTab" role="tab">Profile</a>
+                            </li>
+                            <li class="nav-item flex-fill border-top" role="presentation">
+                                <a href="javascript:void(0);" class="nav-link" data-bs-toggle="tab" data-bs-target="#passwordTab" role="tab">Password</a>
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="profileTab" role="tabpanel">
+                            <div class="card-body personal-info">
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">Avatar: </label></div>
+                                    <div class="col-lg-8">
+                                        <div class="mb-4 d-flex gap-4 your-brand">
+                                            <div class="wd-100 ht-100 position-relative overflow-hidden border border-gray-2 rounded">
+                                                <img src="{{ url_for('static', filename='backend/uploads/images/' + user.photo) if user.photo else url_for('static', filename='backend/uploads/images/no_image.jpg') }}" class="upload-pic img-fluid rounded h-100 w-100" alt="Avatar">
+                                                <div class="position-absolute start-50 top-50 end-0 bottom-0 translate-middle h-100 w-100 hstack align-items-center justify-content-center c-pointer upload-button">
+                                                    <i class="feather feather-camera"></i>
+                                                </div>
+                                                <input class="file-upload" type="file" name="photo" accept="image/*">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label for="fullnameInput" class="fw-semibold">Full Name: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="text" class="form-control" name="fullname" value="{{ user.fullname }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label for="usernameInput" class="fw-semibold">Username: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="text" class="form-control" name="username" value="{{ user.username }}" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label for="mailInput" class="fw-semibold">Email: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="email" class="form-control" name="email" value="{{ user.email }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label for="mailInput" class="fw-semibold">Phone: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="phone" class="form-control" name="phone" value="{{ user.phone }}" required>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">Role: </label></div>
+                                    <div class="col-lg-8">
+                                        <select class="form-control" name="role">
+                                            <option value="superadmin" {% if user.role == 'superadmin' %}selected{% endif %}>Superadmin</option>
+                                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                            <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">Country: </label></div>
+                                    <div class="col-lg-8">
+                                       <select class="form-control select2-flag" name="country">
+                                            {% for country in countries %}
+                                                <option value="{{ country.code }}" data-flag="{{ country.flag_url }}" {% if user.country == country.code %}selected{% endif %}>
+                                                    {{ country.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">Status: </label></div>
+                                    <div class="col-lg-8">
+                                        <select class="form-control" name="status">
+                                            <option value="1" {% if user.status == True %}selected{% endif %}>Active</option>
+                                            <option value="0" {% if user.status == False %}selected{% endif %}>Inactive</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="passwordTab" role="tabpanel">
+                            <div class="card-body">
+                                <p class="text-muted">Faaruq daa haddii aadan rabin inaad beddesho password-ka.</p>
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">New Password: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="password" class="form-control" name="password" placeholder="New Password">
+                                    </div>
+                                </div>
+                                <div class="row mb-4 align-items-center">
+                                    <div class="col-lg-4"><label class="fw-semibold">Confirm Password: </label></div>
+                                    <div class="col-lg-8">
+                                        <input type="password" class="form-control" name="confirm_password" placeholder="Confirm Password">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center m-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="feather-save me-1"></i> Update User
+                    </button>
+                    <a href="{{ url_for('main.add_user') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+function formatFlag (state) {
+    if (!state.id) return state.text;
+    var flagUrl = $(state.element).data('flag');
+    if(flagUrl){
+        return $('<span><img src="' + flagUrl + '" style="height:14px; margin-right:5px;" /> ' + state.text + '</span>');
+    }
+    return state.text;
+}
+
+$(document).ready(function() {
+    $('.select2-flag').select2({
+        templateResult: formatFlag,
+        templateSelection: formatFlag,
+        minimumResultsForSearch: Infinity
+    });
+});
+</script>
+
+{% endblock %}

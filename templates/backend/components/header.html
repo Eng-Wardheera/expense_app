@@ -1,0 +1,327 @@
+ <header class="nxl-header">
+        <div class="header-wrapper">
+            <!--! [Start] Header Left !-->
+            <div class="header-left d-flex align-items-center gap-4">
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <a href="javascript:void(0);" class="nxl-head-mobile-toggler" id="mobile-collapse">
+                    <div class="hamburger hamburger--arrowturn">
+                        <div class="hamburger-box">
+                            <div class="hamburger-inner"></div>
+                        </div>
+                    </div>
+                </a>
+                <!--! [Start] nxl-head-mobile-toggler !-->
+                <!--! [Start] nxl-navigation-toggle !-->
+                <div class="nxl-navigation-toggle">
+                    <a href="javascript:void(0);" id="menu-mini-button">
+                        <i class="feather-align-left"></i>
+                    </a>
+                    <a href="javascript:void(0);" id="menu-expend-button" style="display: none">
+                        <i class="feather-arrow-right"></i>
+                    </a>
+                </div>
+                <!--! [End] nxl-navigation-toggle !-->
+                <!--! [Start] nxl-lavel-mega-menu-toggle !-->
+                <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
+                    <a href="javascript:void(0);" id="nxl-lavel-mega-menu-open">
+                        <i class="feather-align-left"></i>
+                    </a>
+                </div>
+                <!--! [End] nxl-lavel-mega-menu-toggle !-->
+                <!--! [Start] nxl-lavel-mega-menu !-->
+                <div class="nxl-drp-link nxl-lavel-mega-menu">
+                    <div class="nxl-lavel-mega-menu-toggle d-flex d-lg-none">
+                        <a href="javascript:void(0)" id="nxl-lavel-mega-menu-hide">
+                            <i class="feather-arrow-left me-2"></i>
+                            <span>Back</span>
+                        </a>
+                    </div>
+                    <!--! [Start] nxl-lavel-mega-menu-wrapper !-->
+                   
+                    <!--! [End] nxl-lavel-mega-menu-wrapper !-->
+                </div>
+                <!--! [End] nxl-lavel-mega-menu !-->
+            </div>
+            <!--! [End] Header Left !-->
+            <!--! [Start] Header Right !-->
+            <div class="header-right ms-auto">
+                <div class="d-flex align-items-center">
+                    <div class="dropdown nxl-h-item nxl-header-search">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <i class="feather-search"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-search-dropdown">
+                            <div class="input-group search-form">
+                                <span class="input-group-text">
+                                    <i class="feather-search fs-6 text-muted"></i>
+                                </span>
+                                <input type="text" class="form-control search-input-field" placeholder="Search...." />
+                                <span class="input-group-text">
+                                    <button type="button" class="btn-close"></button>
+                                </span>
+                            </div>
+                            <div class="dropdown-divider mt-0"></div>
+                            <div class="search-items-wrapper">
+                               
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dropdown nxl-h-item nxl-header-language d-none d-sm-flex">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 nxl-language-link" data-bs-toggle="dropdown" data-bs-auto-close="outside">
+                            <img src="assets/vendors/img/flags/4x3/us.svg" alt="" class="img-fluid wd-20" />
+                        </a>
+                     
+                    </div>
+                    <div class="nxl-h-item d-none d-sm-flex">
+                        <div class="full-screen-switcher">
+                            <!-- <a href="javascript:void(0);" class="nxl-head-link me-0" onclick="$('body').fullScreenHelper('toggle');">
+                                <i class="feather-maximize maximize"></i>
+                                <i class="feather-minimize minimize"></i>
+                            </a> -->
+                        </div>
+                    </div>
+
+                    <div class="nxl-h-item dark-light-theme">
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 dark-button">
+                            <i class="feather-moon"></i>
+                        </a>
+                        <a href="javascript:void(0);" class="nxl-head-link me-0 light-button" style="display: none">
+                            <i class="feather-sun"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="dropdown nxl-h-item">
+                    <a href="javascript:void(0);" class="nxl-head-link me-0" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                        <i class="feather-clock"></i>
+                        {% if today_flights|length > 0 %}
+                        <span class="badge bg-success nxl-h-badge">{{ today_flights|length }}</span>
+                        {% endif %}
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-timesheets-menu {% if 'dark-mode' in request.cookies %}dark-dropdown{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center timesheets-head px-3 py-2">
+                            <h6 class="fw-bold mb-0 {% if 'dark-mode' in request.cookies %}text-light{% else %}text-dark{% endif %}">Today's Flights</h6>
+                            {% if today_flights|length > 0 %}
+                            <a href="javascript:void(0);" class="fs-11 text-success ms-auto">
+                                <i class="feather-clock"></i>
+                                <span>{{ today_flights|length }} Scheduled</span>
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex flex-column timesheets-body p-2" style="max-height: 300px; overflow-y: auto;">
+                            {% if today_flights %}
+                                {% for s in today_flights %}
+                                <div class="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2 {% if 'dark-mode' in request.cookies %}border-secondary{% endif %}">
+                                    <div>
+                                       <strong class="{% if 'dark-mode' in request.cookies %}text-light{% else %}text-dark{% endif %}">
+                                             {{ s.flight_number }} 
+                                            ({{ s.departure_code }} → {{ s.arrival_code }})
+                                        </strong> <br>
+                                        <small class="text-muted">{{ s.departure_city }} → {{ s.arrival_city }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-muted">{{ s.departure_time }} - {{ s.arrival_time }}</small><br>
+                                        <span class="badge bg-info">{{ s.status }}</span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-3">
+                                    <i class="feather-clock fs-1 mb-2"></i>
+                                    <p class="text-muted mb-1">No flights scheduled for today!</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="text-center timesheets-footer mt-2">
+                            <a href="" class="fs-13 fw-semibold {% if 'dark-mode' in request.cookies %}text-light{% else %}text-dark{% endif %}">View All Schedules</a>
+                        </div>
+                    </div>
+                </div>
+
+                {% if current_user.role == 'superadmin' %}
+                    <div class="dropdown nxl-h-item">
+                        <a class="nxl-head-link me-3" data-bs-toggle="dropdown" href="#" role="button" data-bs-auto-close="outside">
+                            <i class="feather-bell"></i>
+                            {% if notifications|length > 0 %}
+                            <span class="badge bg-danger nxl-h-badge" id="notification-badge">{{ notifications|length }}</span>
+                            {% endif %}
+                        </a>
+
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-notifications-menu">
+                            <div class="d-flex justify-content-between align-items-center notifications-head px-3 py-2">
+                                <h6 class="fw-bold text-dark mb-0">Notifications</h6>
+                                <a href="javascript:void(0);" class="fs-11 text-success ms-auto" id="mark-all-read">
+                                    <i class="feather-check"></i>
+                                    <span>Mark all as read</span>
+                                </a>
+                            </div>
+
+                            <div id="notifications-list">
+                                {% if notifications %}
+                                    {% for n in notifications %}
+                                    <div class="notifications-item d-flex align-items-start justify-content-between py-2 px-3 border-bottom {% if 'dark-mode' in request.cookies %}border-secondary{% endif %}" id="notification-{{ n.id }}">
+                                        <!-- User photo + text -->
+                                        <div class="d-flex align-items-start">
+                                            <img src="{{ n.photo if n.photo else url_for('static', filename='backend/uploads/images/no_image.jpg') }}" 
+                                                alt="user-photo" class="rounded me-3 border" style="width:40px; height:40px; object-fit:cover;" />
+                                            <div class="notifications-desc">
+                                                <a href="javascript:void(0);" class="font-body text-truncate-2-line d-block">
+                                                    <span class="fw-semibold text-dark">{{ n.name }}</span> {{ n.subject }}
+                                                </a>
+                                                <div class="notifications-date text-muted fs-12 mt-1">{{ n.timestamp }}</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Buttons aligned vertically -->
+                                        <div class="d-flex flex-column align-items-center justify-content-start gap-2">
+                                            <!-- Mark as Read -->
+                                            <a href="javascript:void(0);" 
+                                            class="mark-read d-block wd-8 ht-8 rounded-circle bg-gray-300 {% if 'dark-mode' in request.cookies %}text-white{% else %}text-dark{% endif %}" 
+                                            data-id="{{ n.id }}" data-bs-toggle="tooltip" title="Mark as read">
+                                            <i class="feather-eye"></i>
+                                            </a>
+
+                                            <!-- Delete -->
+                                            <a href="javascript:void(0);" 
+                                            class="delete-contact text-danger wd-8 ht-8 {% if 'dark-mode' in request.cookies %}text-white{% endif %}" 
+                                            data-id="{{ n.id }}" data-bs-toggle="tooltip" title="Remove">
+                                            <i class="feather-trash fs-12"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-3">
+                                        <i class="feather-bell fs-1 mb-2"></i>
+                                        <p class="text-muted mb-1">No new notifications!</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <div class="text-center notifications-footer mt-2">
+                                <a href="" class="fs-13 fw-semibold text-dark">All Notifications</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+
+
+
+
+                    <div class="dropdown nxl-h-item">
+                        <a href="javascript:void(0);" data-bs-toggle="dropdown" role="button" data-bs-auto-close="outside">
+                            {% if current_user.photo %}
+                                <img src="{{ url_for('static', filename=current_user.photo) }}" alt="user-image" class="img-fluid user-avtar me-0" />
+                            {% else %}
+                                <img src="{{ url_for('static', filename='backend/uploads/images/no_image.jpg') }}" alt="user-image" class="img-fluid user-avtar me-0" />
+                            {% endif %}
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
+                            <div class="dropdown-header">
+                                <div class="d-flex align-items-center">
+                                    {% if current_user.photo %}
+                                        <img src="{{ url_for('static', filename=current_user.photo) }}" alt="user-image" class="img-fluid user-avtar" />
+                                    {% else %}
+                                        <img src="{{ url_for('static', filename='backend/uploads/images/no_image.jpg') }}" alt="user-image" class="img-fluid user-avtar" />
+                                    {% endif %}
+                                    <div>
+                                        <h6 class="text-dark mb-0">{{ current_user.fullname }} 
+                                        {% if current_user.status == 1 %}
+                                            <span class="badge bg-soft-success text-success ms-1">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-soft-danger text-danger ms-1">Inactive</span>
+                                        {% endif %}                                        
+                                        </h6>
+                                        <span class="fs-12 fw-medium text-muted">{{ current_user.email }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                           
+                           
+                            <a href="" class="dropdown-item">
+                                <i class="feather-user"></i>
+                                <span>Profile Details</span>
+                            </a>
+                          
+                            <a href="" class="dropdown-item">
+                                <i class="feather-settings"></i>
+                                <span>Account Settings</span>
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="{{ url_for('main.logout') }}" class="dropdown-item">
+                                <i class="feather-log-out"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!--! [End] Header Right !-->
+        </div>
+    </header>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const badge = document.getElementById("notification-badge");
+    const list = document.getElementById("notifications-list");
+
+    // Function to decrease badge count
+    function updateBadge() {
+        if (badge) {
+            let count = parseInt(badge.textContent) - 1;
+            badge.textContent = count > 0 ? count : 0;
+        }
+    }
+
+    // MARK AS READ
+    list.addEventListener("click", function(e) {
+        if (e.target.closest(".mark-read")) {
+            const btn = e.target.closest(".mark-read");
+            const contactId = btn.dataset.id;
+            fetch(`/mark_contact_read/${contactId}`, { method: "POST", headers: {"X-Requested-With": "XMLHttpRequest"} })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById(`notification-${contactId}`);
+                    if (el) el.remove();
+                    updateBadge();
+                }
+            });
+        }
+    });
+
+    // DELETE CONTACT
+    list.addEventListener("click", function(e) {
+        if (e.target.closest(".delete-contact")) {
+            if(!confirm("Are you sure you want to delete this notification?")) return;
+            const btn = e.target.closest(".delete-contact");
+            const contactId = btn.dataset.id;
+            fetch(`/delete_contact/${contactId}`, { method: "POST", headers: {"X-Requested-With": "XMLHttpRequest"} })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    const el = document.getElementById(`notification-${contactId}`);
+                    if (el) el.remove();
+                    updateBadge();
+                }
+            });
+        }
+    });
+
+    // MARK ALL AS READ
+    document.getElementById("mark-all-read")?.addEventListener("click", function() {
+        fetch(`/mark_all_contacts_read`, { method: "POST", headers: {"X-Requested-With": "XMLHttpRequest"} })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                list.innerHTML = '<div class="text-center py-3"><i class="feather-bell fs-1 mb-2"></i><p class="text-muted mb-1">No new notifications!</p></div>';
+                if(badge) badge.textContent = 0;
+            }
+        });
+    });
+});
+</script>

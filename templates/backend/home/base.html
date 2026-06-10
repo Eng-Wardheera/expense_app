@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zxx">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="keyword" content="" />
+    <meta name="author" content="flexilecode" />
+    <!--! BEGIN: Apps Title-->
+    <title>{% block title %} Dashboard | Logistics {% endblock %}</title>
+    <!--! END:  Apps Title-->
+   
+    <!--! BEGIN: Favicon-->
+    <link rel="shortcut icon" type="image/x-icon"
+        href="{{ url_for('static', filename='frontend/images/logo-upper.png') }}" />
+    <!--! END: Favicon-->
+
+    <!--! BEGIN: Bootstrap CSS-->
+    <link rel="stylesheet" type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/bootstrap.min.css') }}" />
+    <!--! END: Bootstrap CSS-->
+
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet" type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/vendors.min.css') }}" />
+    <link rel="stylesheet" type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/daterangepicker.min.css') }}" />
+    <!--! END: Vendors CSS-->
+
+     <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/dataTables.bs5.min.css') }} ">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/select2.min.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/select2-theme.min.css') }}">
+    <!--! END: Vendors CSS-->
+    <!--! BEGIN: Custom CSS-->
+    <link rel="stylesheet" type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/theme.min.css') }}" />
+
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/datepicker.min.css') }}">
+
+
+</head>
+
+<body>
+    {% include "backend/pages/partials/customizer.html" %}
+    {% include "backend/components/nav.html" %}
+    {% include "backend/components/header.html" %}
+
+    <main class="nxl-container">
+        <div class="nxl-content">
+        {% block content %}{% endblock %}
+        </div>
+        {% include "backend/components/footer.html" %}
+    </main>
+
+    {% include "backend/components/theme-customizer.html" %}
+
+
+    
+
+    <!--! BEGIN: Vendors JS !-->
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/vendors.min.js') }}"></script>
+    <!-- vendors.min.js {always must need to be top} -->
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/daterangepicker.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/apexcharts.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/circle-progress.min.js') }}"></script>
+    <!--! END: Vendors JS !-->
+
+    <!--! BEGIN: Apps Init !-->
+    <script src="{{ url_for('static', filename='backend/assets/js/common-init.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='backend/assets/js/dashboard-init.min.js') }}"></script>
+    <!--! END: Apps Init !-->
+
+    <!--! BEGIN: Theme Customizer !-->
+    <script src="{{ url_for('static', filename='backend/assets/js/theme-customizer-init.min.js') }}"></script>
+    <!--! END: Theme Customizer !-->
+
+
+  
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.min.js') }} "></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.bs5.min.js') }} "></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2.min.js') }} "></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2-active.min.js') }} "></script>
+    <!--! END: Vendors JS !-->
+    <script src="{{ url_for('static', filename='backend/assets/js/leads-init.min.js') }} "></script>
+    <!--! END: Apps Init !-->
+  
+       <!-- vendors.min.js {always must need to be top} -->
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/datepicker.min.js') }} "></script>
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/lslstrength.min.js') }} "></script>
+    <!--! END: Vendors JS !-->
+    <!--! BEGIN: Apps Init  !-->
+    <script src="{{ url_for('static', filename='backend/assets/js/customers-create-init.min.js') }} "></script>
+    <!--! END: Apps Init !-->
+
+    <script src="{{ url_for('static', filename='backend/assets/js/invoice-view-init.min.js') }} "></script>
+
+      <!-- vendors.min.js {always must need to be top} -->
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/jquery.print.min.js') }} "></script>
+
+
+    <!-- vendors.min.js {always must need to be top} -->
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/cleave.min.js') }}"></script>
+    <!--! END: Vendors JS !-->
+    <script src="{{ url_for('static', filename='backend/assets/js/invoice-create-init.min.js') }} "></script>
+    <!--! END: Apps Init !-->
+ 
+    <script>
+        $(document).ready(function() {
+            var i = 1;
+            $("#add_row").click(function() {
+                b = i - 1;
+                $("#addr" + i)
+                    .html($("#addr" + b).html())
+                    .find("td:first-child")
+                    .html(i + 1);
+                $("#tab_logic").append('<tr id="addr' + (i + 1) + '"></tr>');
+                i++;
+            });
+            $("#delete_row").click(function() {
+                if (i > 1) {
+                    $("#addr" + (i - 1)).html("");
+                    i--;
+                }
+                calc();
+            });
+            $("#tab_logic tbody").on("keyup change", function() {
+                calc();
+            });
+            $("#tax").on("keyup change", function() {
+                calc_total();
+            });
+        });
+
+        function calc() {
+            $("#tab_logic tbody tr").each(function(i, element) {
+                var html = $(this).html();
+                if (html != "") {
+                    var qty = $(this).find(".qty").val();
+                    var price = $(this).find(".price").val();
+                    $(this)
+                        .find(".total")
+                        .val(qty * price);
+                    calc_total();
+                }
+            });
+        }
+
+        function calc_total() {
+            total = 0;
+            $(".total").each(function() {
+                total += parseInt($(this).val());
+            });
+            $("#sub_total").val(total.toFixed(2));
+            tax_sum = (total / 100) * $("#tax").val();
+            $("#tax_amount").val(tax_sum.toFixed(2));
+            $("#total_amount").val((tax_sum + total).toFixed(2));
+        }
+    </script>
+
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Flash message handling with SweetAlert2 -->
+<script>
+   // Flash message handling with SweetAlert2
+   const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
+   
+   if (flashMessages.length > 0) {
+       const [category, message] = flashMessages[0];
+   
+       const Toast = Swal.mixin({
+           toast: true,
+           position: 'top-end',
+           showConfirmButton: false,
+           timer: 3000,
+           timerProgressBar: true,
+           background: '#fff',
+           color: '#333',
+           didOpen: (toast) => {
+               toast.addEventListener('mouseenter', Swal.stopTimer)
+               toast.addEventListener('mouseleave', Swal.resumeTimer)
+           }
+       });
+   
+       Toast.fire({
+           icon: category === "success" ? "success" : "info",
+           title: message
+       });
+   }
+</script>
+
+
+
+</body>
+
+</html>

@@ -1,0 +1,76 @@
+  <nav class="nxl-navigation">
+        <div class="navbar-wrapper">
+            <div class="m-header">
+                 <a href="{{ url_for('main.index') }}" class="b-brand">
+                    <img src=" {{ url_for('static', filename=settings.logo) if settings and settings.logo else  url_for('static', filename='frontend/images/logo-frontend.png') }}" width="200" height="75" class="logo logo-lg" />
+                    <img src="{{ url_for('static', filename=settings.logo2) if settings and settings.logo2 else  url_for('static', filename='frontend/images/logo-frontend.png') }}" width="200" height="75" class="logo logo-sm" />
+                </a>
+            </div>
+            <div class="navbar-content">
+
+
+                <ul class="nxl-navbar">
+                    <li class="nxl-item nxl-caption">
+                        <label>Navigation</label>
+                    </li>
+
+                    {% if current_user.is_authenticated %}
+                   
+
+                    <!-- ================= ADMIN ================= -->
+                     {% if current_user.role in ['superadmin'] %}
+                        <li class="nxl-item nxl-hasmenu">
+                            <a href="{{ url_for('main.dashboard') }}" class="nxl-link">
+                                <span class="nxl-micon"><i class="feather-airplay"></i></span>
+                                <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"></span>
+                            </a>
+                        
+                        </li>
+
+                         <li class="nxl-item nxl-hasmenu">
+                            <a href="javascript:void(0);" class="nxl-link">
+                                <span class="nxl-micon"><i class="feather-users"></i></span>
+                                <span class="nxl-mtext">Manage Users</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            </a>
+                            <ul class="nxl-submenu">
+                                <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.all_users') }}">All Users</a></li>
+                                <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_user') }}">Add New User </a></li>
+                            </ul>
+                        </li>
+
+                        <li class="nxl-item nxl-hasmenu">
+                            <a href="javascript:void(0);" class="nxl-link">
+                                <span class="nxl-micon"><i class="feather-cast"></i></span>
+                                <span class="nxl-mtext">Projects</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            </a>
+                            <ul class="nxl-submenu">
+                                <li class="nxl-item"><a class="nxl-link" href="">All Projects</a></li>
+                                <li class="nxl-item"><a class="nxl-link" href="">Add Project </a></li>
+                            </ul>
+                        </li>
+
+                       
+
+
+                     {% elif current_user.role in ['user'] %}
+                        <!-- ================= USER ================= -->
+                     
+
+                    {% elif current_user.role in 'customer' %}
+                  
+                    {% endif %}
+
+                {% else %}
+                <!-- NOT LOGGED IN -->
+                    <li class="nxl-item">
+                        <a href="{{ url_for('main.login') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-log-in"></i></span>
+                            <span class="nxl-mtext">Login</span>
+                        </a>
+                    </li>
+                {% endif %}
+                </ul>
+              
+            </div>
+        </div>
+    </nav>

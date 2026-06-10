@@ -1,0 +1,422 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Profile Update | Logistics System{% endblock %}
+
+{% block content %}
+
+
+
+<!-- [ page-header ] start -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Users</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+            <li class="breadcrumb-item">Create</li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="page-header-right-items">
+            <div class="d-flex d-md-none">
+                <a href="javascript:void(0)" class="page-header-right-close-toggle">
+                    <i class="feather-arrow-left me-2"></i>
+                    <span>Back</span>
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage">
+                    <i class="feather-layers me-2"></i>
+                    <span>Save as Draft</span>
+                </a>
+                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
+                    <i class="feather-user-plus me-2"></i>
+                    <span>Create Customer</span>
+                </a>
+            </div>
+        </div>
+        <div class="d-md-none d-flex align-items-center">
+            <a href="javascript:void(0)" class="page-header-right-open-toggle">
+                <i class="feather-align-right fs-20"></i>
+            </a>
+        </div>
+    </div>
+</div>
+<!-- [ page-header ] end -->
+<!-- [ Main Content ] start -->
+
+<!-- [ Main Content ] start -->
+<div class="main-content">
+    <div class="row">
+   <div class="col-md-4">
+  <div class="card shadow-sm rounded-3 text-center p-3">
+
+    <!-- Profile Photo with Hover Actions -->
+    <div class="position-relative mb-3" id="photoWrapper" style="cursor:pointer;">
+      <img id="profile-photo" src="{{ url_for('static', filename=current_user.photo or 'backend/uploads/images/no_image.jpg') }}"
+           class="rounded-circle mx-auto d-block" height="120" width="120" style="object-fit: cover;" alt="Profile Photo">
+
+      {% if current_user.photo %}
+      <div id="photoActions" class="position-absolute top-50 start-50 translate-middle d-none">
+        <button id="viewPhotoBtn" class="btn btn-light p-2 rounded-circle me-2" title="View">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="black" viewBox="0 0 24 24">
+            <path d="M12 5c-7.633 0-11 7-11 7s3.367 7 11 7 11-7 11-7-3.367-7-11-7zm0 12c-2.761 0-5-2.239-5-5s2.239-5 
+                     5-5 5 2.239 5 5-2.239 5-5 5zm0-8c-1.657 0-3 1.343-3 3s1.343 3 
+                     3 3 3-1.343 3-3-1.343-3-3-3z"/>
+          </svg>
+        </button>
+        <form id="removePhotoForm" action="{{ url_for('main.remove_photo') }}" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-danger p-2 rounded-circle" title="Remove">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="white" viewBox="0 0 24 24">
+              <path d="M3 6h18v2H3V6zm2 3h14l-1.5 12.5a1 1 0 01-1 1H8.5a1 1 0 01-1-1L6 9zm5-5h2v2h-2V4z"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Name & Role -->
+    <h5 class="fw-bold mb-0">{{ current_user.fullname }}</h5>
+    <small class="text-muted">Role: {{ current_user.role }}</small>
+
+    <!-- User Info Table -->
+    <table class="table table-borderless mt-3 mb-0">
+      <tbody>
+        <tr><td class="text-start">Username</td><td class="text-end">{{ current_user.username }}</td></tr>
+        <tr><td class="text-start">Phone</td><td class="text-end">{{ current_user.phone }}</td></tr>
+        <tr><td class="text-start">Country</td><td class="text-end">{{ current_user.country }}</td></tr>
+      </tbody>
+    </table>
+
+    <!-- Delete Account -->
+    <form id="deleteAccountForm" action="{{ url_for('main.delete_my_account') }}" method="POST">
+      <div class="mt-3">
+        <button type="submit" class="btn btn-danger w-100">Delete My Account</button>
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- Fullscreen Modal -->
+<div id="photoModal" class="modal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content bg-transparent border-0 position-relative">
+      <div class="modal-header border-0">
+        <button id="closeModalBtn" aria-label="Close" class="btn position-absolute top-0 end-0 m-3 p-2 rounded-circle bg-dark text-white">
+          &times;
+        </button>
+      </div>
+      <div class="modal-body d-flex justify-content-center align-items-center position-relative">
+        <img id="modalImage" src="" alt="Full Profile Photo" style="max-width: 100%; max-height: 100vh; object-fit: contain;">
+        <a id="downloadBtn" href="#" download class="position-absolute bottom-3 end-3 p-2 rounded-circle bg-dark text-white" title="Download Image">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="white" viewBox="0 0 24 24">
+            <path d="M5 20h14v-2H5v2zm7-18v12l5-5h-3V4h-4v5H7l5 5z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const photoWrapper = document.getElementById('photoWrapper');
+  const photoActions = document.getElementById('photoActions');
+  const profilePhoto = document.getElementById('profile-photo');
+  const photoModal = document.getElementById('photoModal');
+  const modalImage = document.getElementById('modalImage');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+
+  photoWrapper.addEventListener('mouseenter', () => photoActions?.classList.remove('d-none'));
+  photoWrapper.addEventListener('mouseleave', () => photoActions?.classList.add('d-none'));
+
+  document.getElementById('viewPhotoBtn')?.addEventListener('click', () => {
+    modalImage.src = profilePhoto.src;
+    photoModal.style.display = 'block';
+    downloadBtn.href = profilePhoto.src;
+  });
+
+  closeModalBtn.addEventListener('click', () => photoModal.style.display = 'none');
+</script>
+
+
+
+    <!-- Form Card with Tabs -->
+      <!-- Right Change Password Form -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="card-title">Change Password</h4>
+            </div>
+            <div class="card-body">
+                <form  method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-12">
+                     
+
+                        <div class="form-group position-relative">
+                            <label for="current_password">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" placeholder="Enter current password" name="current_password" required>
+                            <span class="position-absolute password-toggle" onclick="togglePassword('current_password', this)" style="top: 48px; right: 16px; cursor: pointer;"> <i class="fas fa-eye"></i></span>
+                        </div>
+
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <!-- <div class="form-group">
+                                <label for="new_password">New Password</label>
+                                <input type="password" class="form-control" id="new_password" name="new_password" required>
+                            </div> -->
+                            <!-- Password Field -->
+                            <div class="form-group position-relative">
+                            <label for="new_password">New Password</label>
+                            <input type="password" name="new_password" id="new_password" class="form-control" placeholder="Enter a strong password" required oninput="validatePassword()">
+                            <span class="position-absolute password-toggle" onclick="togglePassword('new_password', this)" style="top: 48px; right: 16px; cursor: pointer;">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                            <ul id="passwordRequirements" class="text-danger small mt-2 pl-3"></ul>
+                            </div>
+
+                        </div>
+
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <!-- <div class="form-group">
+                                <label for="confirm_password">Confirm New Password</label>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            </div> -->
+                               <!-- Confirm Password Field -->
+                                <div class="form-group position-relative">
+                                <label for="confirm_password">Confirm Password</label>
+                                <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Confirm password" required oninput="validatePassword()">
+                                <span class="position-absolute password-toggle" onclick="togglePassword('confirm_password', this)" style="top: 48px; right: 16px; cursor: pointer;">
+                                    <i class="fas fa-eye"></i>
+                                </span>
+                                <div id="confirmFeedback" class="mt-1 small"></div>
+                                </div>
+
+                        </div>
+                    </div>
+                  <div class="d-flex justify-content-center mt-4 gap-2">
+                        <button type="submit" class="btn btn-success">Change Password</button>
+                        <a href="{{ url_for('main.dashboard') }}" class="btn btn-danger">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+    </div>
+
+
+
+<!-- password Validation -->
+<script>
+function togglePassword(fieldId, iconContainer) {
+  const input = document.getElementById(fieldId);
+  const icon = iconContainer.querySelector('i');
+
+  if (input.type === "password") {
+    input.type = "text";
+    icon.classList.remove('fa-eye');
+    icon.classList.add('fa-eye-slash');
+  } else {
+    input.type = "password";
+    icon.classList.remove('fa-eye-slash');
+    icon.classList.add('fa-eye');
+  }
+}
+
+function validatePassword() {
+  const password = document.getElementById("new_password").value;
+  const confirmPassword = document.getElementById("confirm_password").value;
+  const requirementsContainer = document.getElementById("passwordRequirements");
+
+  const requirements = [
+    { regex: /.{8,}/, message: "At least 8 characters" },
+    { regex: /[A-Z]/, message: "At least one uppercase letter" },
+    { regex: /[a-z]/, message: "At least one lowercase letter" },
+    { regex: /[0-9]/, message: "At least one number" },
+    { regex: /[!@#$%^&*(),.?\":{}|<>]/, message: "At least one special character" }
+  ];
+
+  if (password.length === 0) {
+    // Hide requirements list if password is empty
+    requirementsContainer.style.display = 'none';
+  } else {
+    // Check if all requirements met
+    const allPassed = requirements.every(req => req.regex.test(password));
+
+    if (allPassed) {
+      // Show strong password message
+      requirementsContainer.style.display = 'block';
+      requirementsContainer.innerHTML = `<li style="color: green; font-weight: bold;">✅ Strong Password</li>`;
+    } else {
+      // Show list with individual checks
+      requirementsContainer.style.display = 'block';
+
+      const listItems = requirements.map(req => {
+        const passed = req.regex.test(password);
+        return `<li style="color:${passed ? 'green' : 'red'};">${passed ? '✅ ' : '❌ '}${req.message}</li>`;
+      });
+      requirementsContainer.innerHTML = listItems.join("");
+    }
+  }
+
+  const feedback = document.getElementById("confirmFeedback");
+  if (confirmPassword && password !== confirmPassword) {
+    feedback.textContent = "Passwords do not match";
+    feedback.classList.add("text-danger");
+    feedback.classList.remove("text-success");
+  } else if (confirmPassword) {
+    feedback.textContent = "Passwords match";
+    feedback.classList.add("text-success");
+    feedback.classList.remove("text-danger");
+  } else {
+    feedback.textContent = "";
+  }
+
+  return requirements.every(req => req.regex.test(password)) && password === confirmPassword;
+}
+
+document.querySelector("form").addEventListener("submit", function (e) {
+  if (!validatePassword()) {
+    e.preventDefault();
+    Swal.fire({
+      icon: "error",
+      title: "Invalid Password",
+      text: "Please fix password errors before submitting."
+    });
+  }
+});
+</script>
+
+<!-- JavaScript Preview Image for dynamic form behavior -->
+ <!-- and  -->
+<!-- Remove Photo Button -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const photoWrapper = document.getElementById('photoWrapper');
+  const photoActions = document.getElementById('photoActions');
+  const viewPhotoBtn = document.getElementById('viewPhotoBtn');
+  const profilePhoto = document.getElementById('profile-photo');
+  const modal = document.getElementById('photoModal');
+  const modalImage = document.getElementById('modalImage');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const removeForm = document.getElementById('removePhotoForm');
+
+  // Toggle overlay buttons on photo click
+  photoWrapper.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if(photoActions.classList.contains('d-none')) {
+      photoActions.classList.remove('d-none');
+    } else {
+      photoActions.classList.add('d-none');
+    }
+  });
+
+  // Hide overlay buttons if clicked outside
+  document.addEventListener('click', function() {
+    if(!photoActions.classList.contains('d-none')) {
+      photoActions.classList.add('d-none');
+    }
+  });
+
+  // View button click - open modal with profile image
+  viewPhotoBtn.addEventListener('click', function(e) {
+    e.preventDefault();
+    modalImage.src = profilePhoto.src;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+
+    // Update download button href and filename
+    downloadBtn.href = profilePhoto.src;
+    let filename = profilePhoto.src.split('/').pop().split('?')[0] || 'profile_image.jpg';
+    downloadBtn.setAttribute('download', filename);
+
+    photoActions.classList.add('d-none');
+  });
+
+  // Close modal button
+  closeModalBtn.addEventListener('click', function() {
+    modal.classList.remove('show');
+    modalImage.src = '';
+    modal.setAttribute('aria-hidden', 'true');
+    downloadBtn.href = '#';
+  });
+
+  // Close modal on click outside image
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.classList.remove('show');
+      modalImage.src = '';
+      modal.setAttribute('aria-hidden', 'true');
+      downloadBtn.href = '#';
+    }
+  });
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === "Escape" && modal.classList.contains('show')) {
+      modal.classList.remove('show');
+      modalImage.src = '';
+      modal.setAttribute('aria-hidden', 'true');
+      downloadBtn.href = '#';
+    }
+  });
+
+  // SweetAlert confirmation before removing photo
+  if(removeForm){
+    removeForm.addEventListener('submit', function(event){
+      event.preventDefault();
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "This will permanently remove your profile photo.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, remove it!',
+        cancelButtonText: 'Cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          event.target.submit();
+        }
+      });
+    });
+  }
+});
+</script>
+
+
+<!-- Delete Account SweetAlert2 Script for Confirmation -->
+<script>
+    document.getElementById('deleteAccountForm').addEventListener('submit', function (event) {
+        event.preventDefault(); // Prevent the form from being submitted immediately
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This action cannot be undone.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If confirmed, submit the form
+                this.submit();
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}
