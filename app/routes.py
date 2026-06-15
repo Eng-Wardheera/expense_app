@@ -253,6 +253,7 @@ def profile():
         user=current_user
     )
 
+
 @bp.route("/account-settings", methods=["GET", "POST"])
 @login_required
 def account_settings():
@@ -271,19 +272,14 @@ def account_settings():
             "updated_at": datetime.utcnow()
         }
 
-        # ================= PHOTO UPLOAD (CLOUDINARY FIX) =================
         file = request.files.get("photo")
 
         if file and file.filename:
 
-            result = cloudinary.uploader.upload(file)
+            upload_result = cloudinary.uploader.upload(file, folder="users")
 
-            # 🔥 get online image URL
-            photo_url = result.get("secure_url")
+            data["photo"] = upload_result["secure_url"]  # 🔥 IMPORTANT
 
-            data["photo"] = photo_url
-
-        # ================= UPDATE USER =================
         mongo.db.users.update_one(
             {"_id": ObjectId(current_user.id)},
             {"$set": data}
@@ -318,15 +314,19 @@ def add_user():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
-        role = request.form.get('role')
+        role = request.form.get('role') or "user"
         country = request.form.get('country')
         phone = request.form.get('phone')
         state = request.form.get('state')
         city = request.form.get('city')
-        status = True if request.form.get('status') == '1' else False
         address = request.form.get('address')
+        status = True if request.form.get('status') == '1' else False
 
         # ================= VALIDATION =================
+        if not email or not username or not fullname:
+            flash("Fadlan buuxi fields-ka muhiimka ah!", "danger")
+            return redirect(url_for('main.add_user'))
+
         if password != confirm_password:
             flash("Passwords-ka isma laha!", "danger")
             return redirect(url_for('main.add_user'))
@@ -335,14 +335,17 @@ def add_user():
             flash("Email-kan horey ayaa loo isticmaalay!", "danger")
             return redirect(url_for('main.add_user'))
 
+        if mongo.db.users.find_one({"username": username}):
+            flash("Username-kan horey ayaa loo isticmaalay!", "danger")
+            return redirect(url_for('main.add_user'))
+
         # ================= PHOTO UPLOAD =================
-        photo_path = ""
+        photo_path = None
 
         file = request.files.get('photo')
 
         if file and file.filename:
 
-            # ✔ PROJECT ROOT (NOT APP INTERNAL)
             project_root = os.path.abspath(os.getcwd())
 
             upload_dir = os.path.join(
@@ -360,7 +363,6 @@ def add_user():
 
             file.save(file_path)
 
-            # DB stores PUBLIC path
             photo_path = f"backend/uploads/users/{filename}"
 
         # ================= CREATE USER =================
@@ -374,10 +376,11 @@ def add_user():
             "phone": phone,
             "state": state,
             "city": city,
-            "status": status,
             "address": address,
+            "status": status,
             "photo": photo_path,
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
         }
 
         mongo.db.users.insert_one(new_user)
@@ -390,15 +393,19 @@ def add_user():
         countries=countries
     )
 
-
-
 @bp.route('/edit-user/<user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
+
     if current_user.role not in ['superadmin', 'admin']:
         return abort(403)
 
-    raw_user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    try:
+        raw_user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        flash("Invalid user ID!", "danger")
+        return redirect(url_for('main.index'))
+
     if not raw_user:
         flash("User-ka lama helin!", "danger")
         return redirect(url_for('main.index'))
@@ -407,23 +414,48 @@ def edit_user(user_id):
 
     if request.method == 'POST':
 
+        fullname = request.form.get('fullname')
+        username = request.form.get('username')
+        email = request.form.get('email')
+        role = request.form.get('role')
+        country = request.form.get('country')
+        phone = request.form.get('phone')
+        address = request.form.get('address')
+        bio = request.form.get('bio')
+        status = True if request.form.get('status') == '1' else False
+
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
 
+        # ================= VALIDATION =================
+        if mongo.db.users.find_one({
+            "username": username,
+            "_id": {"$ne": ObjectId(user_id)}
+        }):
+            flash("Username-kan horey ayaa loo isticmaalay!", "danger")
+            return redirect(url_for('main.edit_user', user_id=user_id))
+
+        if mongo.db.users.find_one({
+            "email": email,
+            "_id": {"$ne": ObjectId(user_id)}
+        }):
+            flash("Email-kan horey ayaa loo isticmaalay!", "danger")
+            return redirect(url_for('main.edit_user', user_id=user_id))
+
         updated_data = {
-            "fullname": request.form.get('fullname'),
-            "username": request.form.get('username'),
-            "email": request.form.get('email'),
-            "role": request.form.get('role'),
-            "country": request.form.get('country'),
-            "phone": request.form.get('phone'),
-            "address": request.form.get('address'),
-            "bio": request.form.get('bio'),
-            "status": True if request.form.get('status') == '1' else False,
+            "fullname": fullname,
+            "username": username,
+            "email": email,
+            "role": role,
+            "country": country,
+            "phone": phone,
+            "address": address,
+            "bio": bio,
+            "status": status,
             "updated_at": datetime.utcnow()
         }
 
-        # ================= PASSWORD FIX =================
+        # ================= PASSWORD =================
         if password:
             if password != confirm_password:
                 flash("Passwords-ka isma laha!", "danger")
@@ -431,35 +463,36 @@ def edit_user(user_id):
 
             updated_data["password"] = generate_password_hash(password)
 
+        # ================= PHOTO =================
         file = request.files.get('photo')
 
         if file and file.filename:
 
-            # ================= DELETE OLD IMAGE =================
+            project_root = os.path.abspath(os.getcwd())
+
+            # delete old image
             old_photo = raw_user.get("photo")
 
             if old_photo:
                 old_path = os.path.join(
-                    os.path.abspath(os.getcwd()),
-                    'static',
+                    project_root,
+                    "static",
                     old_photo
                 )
 
                 if os.path.exists(old_path):
                     try:
                         os.remove(old_path)
-                    except Exception as e:
-                        print(f"Error deleting old image: {e}")
+                    except Exception:
+                        pass
 
-            # ================= SAVE NEW IMAGE =================
-            project_root = os.path.abspath(os.getcwd())
-
+            # save new image
             upload_dir = os.path.join(
                 project_root,
-                'static',
-                'backend',
-                'uploads',
-                'users'
+                "static",
+                "backend",
+                "uploads",
+                "users"
             )
 
             os.makedirs(upload_dir, exist_ok=True)
@@ -469,15 +502,15 @@ def edit_user(user_id):
 
             file.save(file_path)
 
-            # DB PATH
             updated_data["photo"] = f"backend/uploads/users/{filename}"
 
+        # ================= UPDATE DB =================
         mongo.db.users.update_one(
             {"_id": ObjectId(user_id)},
             {"$set": updated_data}
         )
 
-        flash("Macluumaadka si guul leh ayaa loo cusbooneysiiyey!", "success")
+        flash("User si guul leh ayaa loo cusbooneysiiyey!", "success")
         return redirect(url_for('main.edit_user', user_id=user_id))
 
     return render_template(
@@ -486,36 +519,40 @@ def edit_user(user_id):
     )
 
 
-
 @bp.route('/delete-user/<user_id>', methods=['POST'])
 @login_required
 def delete_user(user_id):
+
     if current_user.role not in ['superadmin', 'admin']:
         return abort(403)
 
-    # 1. Get user
-    user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    try:
+        user = mongo.db.users.find_one({"_id": ObjectId(user_id)})
+    except Exception:
+        flash("Invalid user ID!", "danger")
+        return redirect(url_for('main.all_users'))
 
-    # 2. Delete image file if exists
-    if user and user.get('photo'):
+    if not user:
+        flash("User-ka lama helin!", "danger")
+        return redirect(url_for('main.all_users'))
 
-        # correct project root
-        project_root = os.path.abspath(os.getcwd())
+    # ================= DELETE PHOTO (CLOUDINARY) =================
+    photo_public_id = user.get("photo_public_id")
 
-        file_path = os.path.join(
-            project_root,
-            'static',
-            user['photo']  # example: backend/uploads/users/xxx.jpg
-        )
+    if photo_public_id:
+        try:
+            cloudinary.uploader.destroy(photo_public_id)
+        except Exception:
+            pass
 
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
-    # 3. Delete user from DB
-    mongo.db.users.delete_one({"_id": ObjectId(user_id)})
+    # ================= DELETE USER =================
+    mongo.db.users.delete_one({
+        "_id": ObjectId(user_id)
+    })
 
     flash("User-ka si guul leh ayaa loo tirtiray!", "success")
     return redirect(url_for('main.all_users'))
+
 
 
 @bp.route('/all-users', methods=['GET'])
@@ -567,36 +604,24 @@ def add_category():
             flash("Category-kan hore ayuu u jiraa!", "danger")
             return redirect(url_for('main.add_category'))
 
-        # ================= IMAGE UPLOAD =================
-        image_path = ""
+        # ================= IMAGE UPLOAD (CLOUDINARY) =================
+        image_url = ""
 
         file = request.files.get('image')
 
         if file and file.filename:
 
-            project_root = os.path.abspath(os.getcwd())
-
-            upload_dir = os.path.join(
-                project_root,
-                'static',
-                'backend',
-                'uploads',
-                'categories'
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="categories"
             )
 
-            os.makedirs(upload_dir, exist_ok=True)
-
-            filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
-            file_path = os.path.join(upload_dir, filename)
-
-            file.save(file_path)
-
-            image_path = f"backend/uploads/categories/{filename}"
+            image_url = upload_result["secure_url"]  # 🔥 CLOUDINARY URL
 
         # ================= CREATE CATEGORY =================
         new_category = {
             "name": name,
-            "image": image_path,
+            "image": image_url,
             "created_at": datetime.utcnow()
         }
 
@@ -608,6 +633,7 @@ def add_category():
     return render_template(
         "backend/pages/components/categories/add_category.html"
     )
+
 
 
 @bp.route('/all/categories')
@@ -655,59 +681,32 @@ def edit_category(category_id):
 
         file = request.files.get('image')
 
+        # ================= CLOUDINARY IMAGE UPDATE =================
         if file and file.filename:
 
-            project_root = os.path.abspath(os.getcwd())
-
-            upload_dir = os.path.join(
-                project_root,
-                'static',
-                'backend',
-                'uploads',
-                'categories'
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="categories"
             )
 
-            os.makedirs(upload_dir, exist_ok=True)
+            new_image_url = upload_result["secure_url"]
 
-            filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
+            update_data["image"] = new_image_url
 
-            file_path = os.path.join(upload_dir, filename)
-
-            file.save(file_path)
-
-            image_path = f"backend/uploads/categories/{filename}"
-
-            # delete old image
-            old_image = category.get("image")
-
-            if old_image:
-                old_file = os.path.join(
-                    project_root,
-                    'static',
-                    old_image
-                )
-
-                if os.path.exists(old_file):
-                    try:
-                        os.remove(old_file)
-                    except:
-                        pass
-
-            update_data["image"] = image_path
-
+        # ================= UPDATE DB =================
         mongo.db.categories.update_one(
             {"_id": ObjectId(category_id)},
             {"$set": update_data}
         )
 
         flash("Category si guul leh ayaa loo cusboonaysiiyay!", "success")
-
         return redirect(url_for('main.all_categories'))
 
     return render_template(
         "backend/pages/components/categories/edit_category.html",
         category=Category(category)
     )
+
 
 
 
@@ -718,41 +717,34 @@ def delete_category(category_id):
     if current_user.role not in ['superadmin', 'admin']:
         return abort(403)
 
-    category = mongo.db.categories.find_one({
-        "_id": ObjectId(category_id)
-    })
+    try:
+        category = mongo.db.categories.find_one({
+            "_id": ObjectId(category_id)
+        })
+    except Exception:
+        flash("Invalid category ID!", "danger")
+        return redirect(url_for('main.all_categories'))
 
     if not category:
         flash("Category lama helin!", "danger")
         return redirect(url_for('main.all_categories'))
 
-    # delete image
-    image_path = category.get("image")
+    # ================= DELETE CLOUDINARY IMAGE =================
+    public_id = category.get("public_id")
 
-    if image_path:
+    if public_id:
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print("Cloudinary delete error:", e)
 
-        project_root = os.path.abspath(os.getcwd())
-
-        full_path = os.path.join(
-            project_root,
-            'static',
-            image_path
-        )
-
-        if os.path.exists(full_path):
-            try:
-                os.remove(full_path)
-            except:
-                pass
-
+    # ================= DELETE FROM DB =================
     mongo.db.categories.delete_one({
         "_id": ObjectId(category_id)
     })
 
     flash("Category si guul leh ayaa loo tirtiray!", "success")
-
     return redirect(url_for('main.all_categories'))
-
 
 
 
@@ -779,14 +771,9 @@ def add_product():
         brand = request.form.get('brand')
         sku = request.form.get('sku')
 
-        status = (
-            True
-            if request.form.get('status') == '1'
-            else False
-        )
+        status = True if request.form.get('status') == '1' else False
 
         # ================= VALIDATION =================
-
         if not category_id:
             flash("Category dooro!", "danger")
             return redirect(url_for('main.add_product'))
@@ -795,54 +782,30 @@ def add_product():
             flash("Product name waa required!", "danger")
             return redirect(url_for('main.add_product'))
 
-        existing = mongo.db.products.find_one({
-            "name": name
-        })
+        existing = mongo.db.products.find_one({"name": name})
 
         if existing:
             flash("Product-kan hore ayuu u jiraa!", "danger")
             return redirect(url_for('main.add_product'))
 
-        # ================= IMAGE UPLOAD =================
-
-        image_path = ""
+        # ================= CLOUDINARY IMAGE UPLOAD =================
+        image_url = ""
+        public_id = ""
 
         file = request.files.get('image')
 
         if file and file.filename:
 
-            project_root = os.path.abspath(os.getcwd())
-
-            upload_dir = os.path.join(
-                project_root,
-                'static',
-                'backend',
-                'uploads',
-                'products'
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="products"
             )
 
-            os.makedirs(upload_dir, exist_ok=True)
-
-            filename = (
-                f"{uuid.uuid4().hex}_"
-                f"{secure_filename(file.filename)}"
-            )
-
-            file_path = os.path.join(
-                upload_dir,
-                filename
-            )
-
-            file.save(file_path)
-
-            image_path = (
-                f"backend/uploads/products/{filename}"
-            )
+            image_url = upload_result["secure_url"]
+            public_id = upload_result["public_id"]
 
         # ================= SAVE PRODUCT =================
-
         product = {
-
             "category_id": ObjectId(category_id),
 
             "name": name,
@@ -851,7 +814,8 @@ def add_product():
             "price": price,
             "stock": stock,
 
-            "image": image_path,
+            "image": image_url,
+            "public_id": public_id,
 
             "brand": brand,
             "sku": sku,
@@ -864,19 +828,13 @@ def add_product():
 
         mongo.db.products.insert_one(product)
 
-        flash(
-            f"{name} si guul leh ayaa loo daray!",
-            "success"
-        )
-
+        flash(f"{name} si guul leh ayaa loo daray!", "success")
         return redirect(url_for('main.all_products'))
 
     return render_template(
         "backend/pages/components/products/add_product.html",
         categories=categories
     )
-
-
 
 @bp.route('/all/products')
 @login_required
@@ -906,7 +864,6 @@ def all_products():
         "backend/pages/components/products/all_products.html",
         products=products
     )
-
 
 
 
@@ -941,11 +898,7 @@ def edit_product(product_id):
         brand = request.form.get('brand')
         sku = request.form.get('sku')
 
-        status = (
-            True
-            if request.form.get('status') == '1'
-            else False
-        )
+        status = True if request.form.get('status') == '1' else False
 
         update_data = {
             "category_id": ObjectId(category_id),
@@ -959,66 +912,37 @@ def edit_product(product_id):
             "updated_at": datetime.utcnow()
         }
 
+        # ================= CLOUDINARY IMAGE UPDATE =================
         file = request.files.get("image")
 
         if file and file.filename:
 
-            project_root = os.path.abspath(os.getcwd())
-
-            upload_dir = os.path.join(
-                project_root,
-                "static",
-                "backend",
-                "uploads",
-                "products"
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="products"
             )
 
-            os.makedirs(upload_dir, exist_ok=True)
+            new_image_url = upload_result["secure_url"]
+            new_public_id = upload_result["public_id"]
 
-            filename = (
-                f"{uuid.uuid4().hex}_"
-                f"{secure_filename(file.filename)}"
-            )
+            # optional: delete old image from cloudinary
+            old_public_id = product.get("public_id")
 
-            file_path = os.path.join(
-                upload_dir,
-                filename
-            )
+            if old_public_id:
+                try:
+                    cloudinary.uploader.destroy(old_public_id)
+                except Exception as e:
+                    print("Cloudinary delete error:", e)
 
-            file.save(file_path)
-
-            image_path = (
-                f"backend/uploads/products/{filename}"
-            )
-
-            old_image = product.get("image")
-
-            if old_image:
-
-                old_file = os.path.join(
-                    project_root,
-                    "static",
-                    old_image
-                )
-
-                if os.path.exists(old_file):
-                    try:
-                        os.remove(old_file)
-                    except:
-                        pass
-
-            update_data["image"] = image_path
+            update_data["image"] = new_image_url
+            update_data["public_id"] = new_public_id
 
         mongo.db.products.update_one(
             {"_id": ObjectId(product_id)},
             {"$set": update_data}
         )
 
-        flash(
-            "Product si guul leh ayaa loo cusboonaysiiyay!",
-            "success"
-        )
-
+        flash("Product si guul leh ayaa loo cusboonaysiiyay!", "success")
         return redirect(url_for('main.all_products'))
 
     return render_template(
@@ -1028,6 +952,7 @@ def edit_product(product_id):
     )
 
 
+
 @bp.route('/delete-product/<product_id>', methods=['POST'])
 @login_required
 def delete_product(product_id):
@@ -1035,44 +960,34 @@ def delete_product(product_id):
     if current_user.role not in ['superadmin', 'admin']:
         return abort(403)
 
-    product = mongo.db.products.find_one({
-        "_id": ObjectId(product_id)
-    })
+    try:
+        product = mongo.db.products.find_one({
+            "_id": ObjectId(product_id)
+        })
+    except Exception:
+        flash("Invalid product ID!", "danger")
+        return redirect(url_for('main.all_products'))
 
     if not product:
         flash("Product lama helin!", "danger")
         return redirect(url_for('main.all_products'))
 
-    image = product.get("image")
+    # ================= DELETE CLOUDINARY IMAGE =================
+    public_id = product.get("public_id")
 
-    if image:
+    if public_id:
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print("Cloudinary delete error:", e)
 
-        project_root = os.path.abspath(os.getcwd())
-
-        image_path = os.path.join(
-            project_root,
-            "static",
-            image
-        )
-
-        if os.path.exists(image_path):
-            try:
-                os.remove(image_path)
-            except:
-                pass
-
+    # ================= DELETE PRODUCT =================
     mongo.db.products.delete_one({
         "_id": ObjectId(product_id)
     })
 
-    flash(
-        "Product si guul leh ayaa loo tirtiray!",
-        "success"
-    )
-
+    flash("Product si guul leh ayaa loo tirtiray!", "success")
     return redirect(url_for('main.all_products'))
-
-
 
 
 
