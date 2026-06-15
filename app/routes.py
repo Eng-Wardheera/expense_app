@@ -180,10 +180,16 @@ def login():
     return render_template("backend/auth/auth-login.html")
 
 
+@bp.app_errorhandler(403)
+def forbidden(error):
+    return render_template('frontend/errors/403.html'), 403
+
+
+
 @bp.route("/dashboard")
 @login_required
 def dashboard():
-    if current_user.role != 'superadmin':
+    if current_user.role not in ['superadmin']:
         return abort(403) # ama redirect(url_for('login'))
         
     return render_template("backend/home/dashbaord.html", user=current_user)
@@ -411,19 +417,26 @@ def delete_user(user_id):
 @bp.route('/all-users', methods=['GET'])
 @login_required
 def all_users():
-    if current_user.role != 'superadmin':
-        return abort(403) # ama redirect(url_for('login'))
-        
-    # 1. Ka soo saar dhammaan users-ka database-ka
-    # .sort('-created_at') waxaa loola jeedaa inuu ku kala sooco taariikhda (ugu dambeeyay ugu horreeya)
-    users_cursor = mongo.db.users.find().sort('created_at', -1)
-    
-    # 2. U beddel document kasta (dictionary) inuu noqdo User object
-    # Tani waxay isticmaaleysaa fasalkaaga User ee aan horey uga soo hadalnay
+
+    if current_user.role not in ['superadmin', 'admin']:
+        return abort(403)
+
+    if current_user.role == 'superadmin':
+        # Superadmin sees everyone
+        users_cursor = mongo.db.users.find().sort('created_at', -1)
+
+    else:  # admin
+        # Admin cannot see superadmins
+        users_cursor = mongo.db.users.find(
+            {"role": {"$ne": "superadmin"}}
+        ).sort('created_at', -1)
+
     users = [User(user_data) for user_data in users_cursor]
-    
-    # 3. U dir template-ka
-    return render_template('backend/pages/components/users/all_users.html', users=users)
+
+    return render_template(
+        'backend/pages/components/users/all_users.html',
+        users=users
+    )
 
 
 
