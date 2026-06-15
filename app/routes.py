@@ -8,6 +8,7 @@ import traceback
 import uuid
 
 from bson import ObjectId
+import cloudinary
 from flask import Blueprint, abort, current_app, flash, make_response, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -270,31 +271,17 @@ def account_settings():
             "updated_at": datetime.utcnow()
         }
 
-        # ================= PHOTO UPLOAD =================
+        # ================= PHOTO UPLOAD (CLOUDINARY FIX) =================
         file = request.files.get("photo")
 
         if file and file.filename:
 
-            project_root = os.path.abspath(os.getcwd())
+            result = cloudinary.uploader.upload(file)
 
-            upload_dir = os.path.join(
-                project_root,
-                "static",
-                "backend",
-                "uploads",
-                "users"
-            )
+            # 🔥 get online image URL
+            photo_url = result.get("secure_url")
 
-            os.makedirs(upload_dir, exist_ok=True)
-
-            filename = f"{uuid.uuid4().hex}_{secure_filename(file.filename)}"
-            file_path = os.path.join(upload_dir, filename)
-
-            file.save(file_path)
-
-            photo_path = f"backend/uploads/users/{filename}"
-
-            data["photo"] = photo_path
+            data["photo"] = photo_url
 
         # ================= UPDATE USER =================
         mongo.db.users.update_one(
@@ -309,7 +296,6 @@ def account_settings():
         "backend/pages/components/users/account_settings.html",
         user=current_user
     )
-
 
 
 

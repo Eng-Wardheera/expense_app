@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from app.tracker import init_tracker
 from app.extensions import mongo, mail
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
 
 
 
@@ -51,6 +53,12 @@ def now_eat():
 # Load environment variables from .env file
 load_dotenv()
 
+
+cloudinary.config(
+    cloud_name="kulmiye",
+    api_key="597738172555213",
+    api_secret="x4UXHFVqzH4Oq_MeBV4VGYoZHns"
+)
 
 #-------------------------------------------------------------
 # Function: 29 create_app()
