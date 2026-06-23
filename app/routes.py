@@ -1050,6 +1050,7 @@ def edit_product(product_id):
 
 
 
+
 @bp.route('/delete-product/<product_id>', methods=['POST'])
 @login_required
 def delete_product(product_id):
@@ -1057,53 +1058,58 @@ def delete_product(product_id):
     if current_user.role not in ['superadmin', 'admin']:
         return abort(403)
 
-    try:
-        product = mongo.db.products.find_one({
-            "_id": ObjectId(product_id)
-        })
-    except Exception:
-        flash("Invalid product ID!", "danger")
-        return redirect(url_for('main.all_products'))
+    # =========================
+    # FIND PRODUCT
+    # =========================
+    product = mongo.db.products.find_one({
+        "_id": ObjectId(product_id)
+    })
 
     if not product:
         flash("Product lama helin!", "danger")
         return redirect(url_for('main.all_products'))
 
-    # Product-kan ma ku jiraa orders?
+    # =========================
+    # CHECK IF USED IN ORDERS
+    # =========================
     used_in_orders = mongo.db.orders.count_documents({
         "items.product_id": ObjectId(product_id)
     })
 
     if used_in_orders > 0:
 
-        # Soft delete
+        # SOFT DELETE (SAFE OPTION)
         mongo.db.products.update_one(
             {"_id": ObjectId(product_id)},
             {
                 "$set": {
                     "deleted": True,
-                    "status": False
+                    "status": False,
+                    "deleted_at": datetime.utcnow()
                 }
             }
         )
 
         flash(
-            "Product-kan wuxuu ku jiraa orders hore. Waa la qariyay laakiin lama tirtirin.",
+            "Product-kan orders hore ayuu ku jiraa. Waa la qariyay (archive).",
             "warning"
         )
-
         return redirect(url_for('main.all_products'))
 
-    # Cloudinary image delete
+    # =========================
+    # DELETE IMAGE FIRST
+    # =========================
     public_id = product.get("public_id")
 
     if public_id:
         try:
             cloudinary.uploader.destroy(public_id)
         except Exception as e:
-            print(e)
+            print("Cloudinary Error:", e)
 
-    # Hard delete
+    # =========================
+    # HARD DELETE PRODUCT
+    # =========================
     mongo.db.products.delete_one({
         "_id": ObjectId(product_id)
     })
@@ -1111,7 +1117,6 @@ def delete_product(product_id):
     flash("Product si guul leh ayaa loo tirtiray!", "success")
 
     return redirect(url_for('main.all_products'))
-
 
 
 
@@ -1367,36 +1372,52 @@ def delete_order(order_id):
         flash("Order not found!", "danger")
         return redirect(url_for('main.all_orders'))
 
-    # Haddii lacag laga bixiyay ha la tirtirin
-    if float(order.get("paid_amount", 0)) > 0:
-        flash(
-            "Order-kan lacag ayaa laga bixiyay. Lama tirtiri karo si payment history-ga uusan u lumin.",
-            "warning"
+    paid_amount = float(order.get("paid_amount", 0))
+
+    # ==============================
+    # CASE 1: ORDER HAS PAYMENTS
+    # ==============================
+    if paid_amount > 0:
+
+        # 1. Delete payment history first
+        mongo.db.orders.update_one(
+            {"_id": ObjectId(order_id)},
+            {
+                "$set": {
+                    "payment_history": [],
+                    "paid_amount": 0,
+                    "remaining_balance": order.get("total", 0),
+                    "payment_status": "voided"
+                }
+            }
         )
+
+        # 2. Then delete order (hard delete)
+        mongo.db.orders.delete_one({
+            "_id": ObjectId(order_id)
+        })
+
+        flash("Order + Payment history si guul leh ayaa loo tirtiray!", "success")
         return redirect(url_for('main.all_orders'))
 
-    # Stock dib ugu celi
+    # ==============================
+    # CASE 2: NO PAYMENTS (SAFE DELETE)
+    # ==============================
+
+    # RESTOCK products
     for item in order.get("items", []):
         mongo.db.products.update_one(
             {"_id": ObjectId(item["product_id"])},
             {"$inc": {"stock": int(item["qty"])}}
         )
 
-    # Soft Delete
-    mongo.db.orders.update_one(
-        {"_id": ObjectId(order_id)},
-        {
-            "$set": {
-                "deleted": True,
-                "deleted_at": datetime.utcnow(),
-                "deleted_by": str(current_user.id)
-            }
-        }
-    )
+    # DELETE ORDER
+    mongo.db.orders.delete_one({
+        "_id": ObjectId(order_id)
+    })
 
-    flash("Order archived successfully.", "success")
+    flash("Order si guul leh ayaa loo tirtiray (stock dib loo celiyay).", "success")
     return redirect(url_for('main.all_orders'))
-
 
 
 
