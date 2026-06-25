@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Invoice</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 13px;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .wrapper {
+            padding: 25px;
+        }
+
+        /* ================= HEADER ================= */
+        .header {
+            width: 100%;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header-table {
+            width: 100%;
+        }
+
+        .logo {
+            width: 80px;
+            height: auto;
+        }
+
+        .company-name {
+            font-size: 22px;
+            font-weight: bold;
+            color: #0d6efd;
+            margin: 0;
+        }
+
+        .tagline {
+            font-size: 12px;
+            color: #666;
+            margin: 2px 0;
+        }
+
+        .phone {
+            font-size: 12px;
+            color: #000;
+            font-weight: bold;
+        }
+
+        .invoice-title {
+            text-align: right;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        /* ================= INFO ================= */
+        .info-box {
+            margin-top: 15px;
+        }
+
+        .info-table {
+            width: 100%;
+        }
+
+        .info-table td {
+            padding: 5px 0;
+        }
+
+        /* ================= SECTION ================= */
+        .section-title {
+            margin-top: 25px;
+            font-weight: bold;
+            font-size: 14px;
+            color: #0d6efd;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        /* ================= TABLE ================= */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th {
+            background: #0d6efd;
+            color: white;
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+
+        /* ================= TOTALS ================= */
+        .totals {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .totals-box {
+            width: 300px;
+            float: right;
+        }
+
+        .totals-box table {
+            width: 100%;
+        }
+
+        .totals-box td {
+            border: none;
+            text-align: left;
+            padding: 6px;
+        }
+
+        .grand {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .paid {
+            color: green;
+            font-weight: bold;
+        }
+
+        .unpaid {
+            color: red;
+            font-weight: bold;
+        }
+
+        /* ================= FOOTER ================= */
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 11px;
+            color: #777;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <!-- ================= HEADER ================= -->
+    <div class="header">
+
+        <table class="header-table">
+
+            <tr>
+
+                <!-- LEFT: LOGO + COMPANY -->
+                <td style="width: 60%; vertical-align: middle;">
+
+                    <table>
+                        <tr>
+                            <td style="vertical-align: middle;">
+                                <img src="{{ url_for('static', filename='frontend/images/logo.png') }}" class="logo">
+                            </td>
+
+                            <td style="padding-left: 10px; vertical-align: middle;">
+                                <h2 class="company-name">TRUST TECHNOLOGY</h2>
+                                <p class="tagline">A Perfect Experience For Tech Parts Store</p>
+                                <p class="phone">Tel: 614172200</p>
+                            </td>
+                        </tr>
+                    </table>
+
+                </td>
+
+                <!-- RIGHT: INVOICE -->
+                <td style="width: 40%; text-align: right; vertical-align: middle;">
+                    <div class="invoice-title">INVOICE</div>
+                    <div style="font-size:12px; margin-top:5px;">
+                        <strong>Order ID:</strong> {{ order._id }}
+                    </div>
+                </td>
+
+            </tr>
+
+        </table>
+
+    </div>
+
+    <!-- ================= INFO ================= -->
+    <div class="info-box">
+        <table class="info-table">
+            <tr>
+                <td>
+                    <strong>Customer:</strong> {{ order.customer_name or 'Unknown' }} <br>
+                    <strong>Status:</strong> {{ order.status|capitalize }}
+                </td>
+
+                <td style="text-align:right;">
+                    <strong>Date:</strong>
+                    {% if order.created_at %}
+                        {{ order.created_at.strftime('%Y-%m-%d') }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ================= ITEMS ================= -->
+    <div class="section-title">Order Items</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for item in order.items_list or order.items or [] %}
+            <tr>
+                <td>{{ item.name }}</td>
+                <td>{{ item.qty }}</td>
+                <td>${{ "{:,.2f}".format(item.price) }}</td>
+                <td>
+                    ${{ "{:,.2f}".format(item.total) if item.total else "{:,.2f}".format(item.price * item.qty) }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ================= TOTALS ================= -->
+    <div class="totals">
+
+        <div class="totals-box">
+
+            <table>
+
+                <tr>
+                    <td>Total:</td>
+                    <td class="grand">${{ "{:,.2f}".format(order.total or 0) }}</td>
+                </tr>
+
+                <tr>
+                    <td>Paid:</td>
+                    <td>${{ "{:,.2f}".format(order.paid_amount or 0) }}</td>
+                </tr>
+
+                <tr>
+                    <td>Remaining:</td>
+                    <td class="{% if (order.remaining_amount or 0) <= 0 %}paid{% else %}unpaid{% endif %}">
+                        ${{ "{:,.2f}".format(order.remaining_amount or 0) }}
+                    </td>
+                </tr>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <div style="clear: both;"></div>
+
+    <!-- ================= FOOTER ================= -->
+    <div class="footer">
+        Thank you for your business — TRUST TECHNOLOGY
+    </div>
+
+</div>
+
+</body>
+</html>

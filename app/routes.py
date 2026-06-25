@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+import io
 import math
 import os
 import random
@@ -16,6 +17,7 @@ from werkzeug.utils import secure_filename
 from app import ALLOWED_EXTENSIONS, google
 from app.extensions import mongo
 from datetime import datetime, timedelta
+from xhtml2pdf import pisa
 
 from app.modal import Category, Order, Product, User, UserRole
 
@@ -1148,6 +1150,50 @@ def add_customer_ajax():
     })
 
 
+@bp.route('/add-payment/<order_id>', methods=['POST'])
+@login_required
+def add_payment(order_id):
+
+    data = request.get_json()
+    amount = float(data.get("amount", 0))
+    note = data.get("note", "")
+
+    order = mongo.db.orders.find_one({"_id": ObjectId(order_id)})
+
+    if not order:
+        return jsonify({"success": False, "message": "Order not found"}), 404
+
+    payment = {
+        "id": str(ObjectId()),
+        "amount": amount,
+        "note": note,
+        "date": datetime.utcnow()
+    }
+
+    mongo.db.orders.update_one(
+        {"_id": ObjectId(order_id)},
+        {
+            "$push": {"payment_history": payment},
+            "$inc": {"paid_amount": amount}
+        }
+    )
+
+    updated = mongo.db.orders.find_one({"_id": ObjectId(order_id)})
+
+    remaining = float(updated["total"]) - float(updated["paid_amount"])
+
+    mongo.db.orders.update_one(
+        {"_id": ObjectId(order_id)},
+        {
+            "$set": {
+                "remaining_amount": remaining,
+                "payment_status": "paid" if remaining <= 0 else "partial"
+            }
+        }
+    )
+
+    return jsonify({"success": True, "message": "Payment added"})
+
 
 
 @bp.route('/add-order', methods=['GET', 'POST'])
@@ -1163,40 +1209,28 @@ def add_order():
         payment_method = data.get('payment_method', 'cash')
 
         if not user_id:
-            return jsonify({
-                "success": False,
-                "message": "Customer lama dooran"
-            }), 400
+            return jsonify({"success": False, "message": "Customer lama dooran"}), 400
 
         if not items_data:
-            return jsonify({
-                "success": False,
-                "message": "Product lama dooran"
-            }), 400
+            return jsonify({"success": False, "message": "Product lama dooran"}), 400
 
         total = 0
         items_list = []
 
-        # Validation + Stock Check
+        # =========================
+        # VALIDATION + STOCK CHECK
+        # =========================
         for item in items_data:
 
-            product = mongo.db.products.find_one({
-                "_id": ObjectId(item['product_id'])
-            })
+            product = mongo.db.products.find_one({"_id": ObjectId(item['product_id'])})
+
+            if not product:
+                return jsonify({"success": False, "message": "Product ma jiro"}), 400
 
             qty = int(item['qty'])
 
-            if not product:
-                return jsonify({
-                    "success": False,
-                    "message": "Product ma jiro"
-                }), 400
-
             if qty > int(product.get('stock', 0)):
-                return jsonify({
-                    "success": False,
-                    "message": f"Stock kuma filna {product['name']}"
-                }), 400
+                return jsonify({"success": False, "message": f"Stock kuma filna {product['name']}"}), 400
 
             line_total = float(product['price']) * qty
             total += line_total
@@ -1209,7 +1243,9 @@ def add_order():
                 "total": line_total
             })
 
-        # Save Order
+        # =========================
+        # SAVE ORDER
+        # =========================
         new_order = {
             "user_id": ObjectId(user_id),
             "items": items_list,
@@ -1220,17 +1256,33 @@ def add_order():
             "status": "pending",
             "payment_method": payment_method,
             "payment_history": [],
-            "created_at": datetime.utcnow()
+            "created_at": datetime.utcnow(),
+            "deleted": False
         }
 
         order_result = mongo.db.orders.insert_one(new_order)
 
-        # Update Stock
+        # =========================
+        # UPDATE STOCK (SAFE)
+        # =========================
         for item in items_data:
-            mongo.db.products.update_one(
-                {"_id": ObjectId(item['product_id'])},
-                {"$inc": {"stock": -int(item['qty'])}}
-            )
+
+            product_id = ObjectId(item['product_id'])
+            qty = int(item['qty'])
+
+            product = mongo.db.products.find_one({"_id": product_id})
+
+            if product:
+
+                new_stock = int(product.get("stock", 0)) - qty
+
+                if new_stock <= 0:
+                    new_stock = 0
+
+                mongo.db.products.update_one(
+                    {"_id": product_id},
+                    {"$set": {"stock": new_stock}}
+                )
 
         return jsonify({
             "success": True,
@@ -1441,6 +1493,67 @@ def delete_order(order_id):
     flash("Order si guul leh ayaa loo tirtiray (stock dib loo celiyay).", "success")
     return redirect(url_for('main.all_orders'))
 
+
+
+
+@bp.route('/invoice/<order_id>')
+@login_required
+def invoice(order_id):
+
+    # =========================
+    # GET ORDER SAFE
+    # =========================
+    order = mongo.db.orders.find_one({"_id": ObjectId(order_id)})
+
+    if not order:
+        return "Order not found", 404
+
+    # =========================
+    # GET USER SAFE
+    # =========================
+    user = None
+
+    try:
+        user = mongo.db.users.find_one({
+            "_id": ObjectId(order.get("user_id"))
+        })
+    except Exception:
+        user = None
+
+    order["customer_name"] = user.get("username") if user else "Unknown"
+
+    # =========================
+    # SAFE ITEMS (IMPORTANT FIX)
+    # =========================
+    order["items_list"] = order.get("items", [])
+
+    # =========================
+    # SAFE CALCULATION FIELDS
+    # =========================
+    order["remaining_amount"] = float(order.get("remaining_amount", 0))
+
+    # =========================
+    # RENDER HTML
+    # =========================
+    html = render_template(
+        "backend/pages/components/orders/invoice.html",
+        order=order
+    )
+
+    # =========================
+    # PDF GENERATION
+    # =========================
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(io.BytesIO(html.encode("UTF-8")), result)
+
+    if pdf.err:
+        return "Error generating PDF", 500
+
+    response = make_response(result.getvalue())
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"attachment; filename=invoice_{order_id}.pdf"
+
+    return response
 
 
 #---------------------------------------------------
