@@ -1,187 +1,149 @@
 {% extends 'backend/home/base.html' %}
 
-{% block title %}Edit Category | Management System{% endblock %}
+{% block title %}Edit Category | Expense Tracker{% endblock %}
 
 {% block content %}
 
 <div class="main-content mt-4">
 
-    <form method="POST" enctype="multipart/form-data">
+<form method="POST">
 
-        <div class="card border-top-0">
+<div class="card shadow-sm">
 
-            <div class="card-header p-0">
-                <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs">
+    <!-- HEADER -->
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Edit Category</h5>
+    </div>
 
-                    <li class="nav-item flex-fill border-top">
-                        <a href="#infoTab"
-                           class="nav-link active"
-                           data-bs-toggle="tab">
-                            Category Info
-                        </a>
-                    </li>
+    <div class="card-body">
 
-                    <li class="nav-item flex-fill border-top">
-                        <a href="#imageTab"
-                           class="nav-link"
-                           data-bs-toggle="tab">
-                            Category Image
-                        </a>
-                    </li>
+        <!-- CATEGORY NAME -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Category Name</label>
 
-                </ul>
+            <div class="col-lg-9">
+                <input type="text"
+                       name="name"
+                       class="form-control"
+                       value="{{ category.name }}"
+                       required>
             </div>
-
-            <div class="tab-content">
-
-                <!-- CATEGORY INFO -->
-                <div class="tab-pane fade show active" id="infoTab">
-
-                    <div class="card-body">
-
-                        <div class="row mb-4">
-
-                            <div class="col-lg-4">
-                                <label class="fw-bold">
-                                    Category Name:
-                                </label>
-                            </div>
-
-                            <div class="col-lg-8">
-
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    name="name"
-                                    value="{{ category.name }}"
-                                    required>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <!-- CATEGORY IMAGE -->
-                <div class="tab-pane fade" id="imageTab">
-
-                    <div class="card-body">
-
-                        <div class="row mb-4">
-
-                            <div class="col-lg-4">
-                                <label class="fw-bold">
-                                    Current Image:
-                                </label>
-                            </div>
-
-                            <div class="col-lg-8">
-
-                                {% if category.image %}
-
-                                <img
-                                    src="{{ category.image }}"
-                                    alt="{{ category.name }}"
-                                    id="imagePreview"
-                                    class="img-thumbnail mb-3"
-                                    style="max-width:200px;">
-
-                                {% else %}
-
-                                <img
-                                    src="#"
-                                    id="imagePreview"
-                                    class="img-thumbnail mb-3"
-                                    style="max-width:200px; display:none;">
-
-                                {% endif %}
-
-                            </div>
-
-                        </div>
-
-                        <div class="row mb-4">
-
-                            <div class="col-lg-4">
-                                <label class="fw-bold">
-                                    New Image:
-                                </label>
-                            </div>
-
-                            <div class="col-lg-8">
-
-                                <input
-                                    type="file"
-                                    class="form-control"
-                                    name="image"
-                                    id="imageInput"
-                                    accept="image/*">
-
-                                <small class="text-muted">
-                                    Haddii aad image cusub doorato, kii hore waa la beddeli doonaa.
-                                </small>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="card-footer d-flex justify-content-between">
-
-                <a href="{{ url_for('main.all_categories') }}"
-                   class="btn btn-light">
-
-                    <i class="feather-arrow-left me-1"></i>
-                    Back
-
-                </a>
-
-                <button type="submit"
-                        class="btn btn-primary">
-
-                    <i class="feather-save me-1"></i>
-                    Update Category
-
-                </button>
-
-            </div>
-
         </div>
 
-    </form>
+        <!-- TYPE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Type</label>
+
+            <div class="col-lg-9">
+                <select name="type" class="form-select">
+                    <option value="income" {% if category.type == 'income' %}selected{% endif %}>Income</option>
+                    <option value="expense" {% if category.type == 'expense' %}selected{% endif %}>Expense</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ITEMS -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Items</label>
+
+            <div class="col-lg-9">
+
+                <div class="input-group mb-2">
+                    <input type="text" id="itemInput" class="form-control" placeholder="Add or edit item...">
+                    <button type="button" class="btn btn-success" onclick="addItem()">
+                        Add
+                    </button>
+                </div>
+
+                <div id="itemList" class="d-flex flex-wrap gap-2"></div>
+
+                <input type="hidden" name="items" id="itemsHidden">
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card-footer text-center">
+        <button class="btn btn-primary px-4">
+            Update Category
+        </button>
+    </div>
 
 </div>
 
+</form>
+
+</div>
+
+<!-- JS -->
 <script>
 
-document.getElementById("imageInput").addEventListener("change", function(){
 
-    const file = this.files[0];
-    const preview = document.getElementById("imagePreview");
+// SAFE LOAD FROM BACKEND
+let items = {{ category["items"] | default([]) | tojson }};
 
-    if(file){
+// RENDER
+renderItems();
 
-        const reader = new FileReader();
+// ADD ITEM
+function addItem() {
 
-        reader.onload = function(e){
+    let input = document.getElementById("itemInput");
+    let value = input.value.trim();
 
-            preview.src = e.target.result;
-            preview.style.display = "block";
+    if (value === "") return;
 
-        };
-
-        reader.readAsDataURL(file);
-
+    if (!items.includes(value)) {
+        items.push(value);
     }
 
-});
+    input.value = "";
+    renderItems();
+}
+
+// DELETE ITEM
+function removeItem(index) {
+    items.splice(index, 1);
+    renderItems();
+}
+
+// EDIT ITEM (CLICK BADGE TO EDIT)
+function editItem(index) {
+    let newValue = prompt("Edit item:", items[index]);
+
+    if (newValue && newValue.trim() !== "") {
+        items[index] = newValue.trim();
+        renderItems();
+    }
+}
+
+// RENDER ITEMS
+function renderItems() {
+
+    let list = document.getElementById("itemList");
+    let hidden = document.getElementById("itemsHidden");
+
+    list.innerHTML = "";
+
+    items.forEach((item, index) => {
+        list.innerHTML += `
+            <span class="badge bg-primary d-flex align-items-center gap-2 p-2"
+                  style="cursor:pointer"
+                  onclick="editItem(${index})">
+
+                ${item}
+
+                <button type="button" class="btn-close btn-close-white"
+                        onclick="event.stopPropagation(); removeItem(${index})"></button>
+
+            </span>
+        `;
+    });
+
+    hidden.value = JSON.stringify(items);
+}
 
 </script>
 

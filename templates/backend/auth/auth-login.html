@@ -1,120 +1,119 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>K-WD Dashboard | Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='backend/assets/build/css/tailwind.css') }}" />
-    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.7.3/dist/alpine.min.js" defer></script>
-  </head>
-  <body>
-    <div class="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-100 dark:bg-dark">
-      <main class="w-full max-w-sm">
-        <div class="px-4 py-6 space-y-6 bg-white rounded-md dark:bg-darker">
-          <h1 class="text-xl font-semibold text-center">Login</h1>
+    <title>Login Secure Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .dark .glass { background: rgba(30, 41, 59, 0.8); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex items-center justify-center p-4">
 
-          {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-              {% for category, message in messages %}
-                <div class="p-3 text-sm text-center text-white rounded {{ 'bg-green-500' if category == 'success' else 'bg-red-500' }}">
-                  {{ message }}
-                </div>
-              {% endfor %}
-            {% endif %}
-          {% endwith %}
-
-          <form action="{{ url_for('main.login') }}" method="POST" class="space-y-6">
-            <input
-              class="w-full px-4 py-2 border rounded-md dark:bg-darker dark:border-gray-700"
-              type="email" name="email" placeholder="Email address" required
-            />
-            <input
-              class="w-full px-4 py-2 border rounded-md dark:bg-darker dark:border-gray-700"
-              type="password" name="password" placeholder="Password" required
-            />
+    <main class="w-full max-w-md">
+        <div class="glass p-8 rounded-3xl shadow-2xl space-y-6">
             
-            <div class="flex items-center justify-between">
-              <label class="flex items-center">
-                <input type="checkbox" name="remembr_me" class="toggle" />
-                <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">Remember me</span>
-              </label>
-              <a href="#" class="text-sm text-blue-600 hover:underline">Forgot Password?</a>
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white" id="title">Welcome Back</h1>
+                <p class="text-gray-500 dark:text-gray-300 mt-2" id="subtitle">Sign in to your dashboard</p>
             </div>
 
-            <button type="submit" class="w-full px-4 py-2 font-medium text-white rounded-md bg-primary hover:bg-primary-dark">
-              Login
-            </button>
-          </form>
+            <form id="authForm" action="{{ url_for('main.login') }}" method="POST" class="space-y-5">
+                <div>
+                    <input class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:text-white"
+                        type="email" name="email" placeholder="Email address" required />
+                </div>
+                
+                <div class="relative">
+                    <input id="password" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:text-white"
+                        type="password" name="password" placeholder="Password" required />
+                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-gray-400 hover:text-indigo-600">
+                        <i id="eyeIcon" class="fas fa-eye"></i>
+                    </button>
+                </div>
+                
+                <button type="submit" class="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                    <span id="btnText">Login Account</span>
+                </button>
+            </form>
 
-          <!-- Add this inside your form, right after the "Remember me" div and before the Login button -->
-
-        <!-- Social Login Section -->
-        <div class="mt-6">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
+            <div class="relative flex items-center py-2">
+                <div class="flex-grow border-t border-gray-200"></div>
+                <span class="flex-shrink mx-4 text-gray-400 text-xs uppercase font-bold">OR</span>
+                <div class="flex-grow border-t border-gray-200"></div>
             </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="px-2 bg-white dark:bg-darker text-gray-500">Or continue with</span>
-            </div>
-          </div>
 
-          <div class="mt-6">
             <a href="{{ url_for('main.login_google') }}" 
-              class="flex justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 dark:bg-dark dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-700">
-              <img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google logo">
-              Sign in with Google
+               class="flex items-center justify-center w-full py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all dark:border-gray-600">
+               <img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
+               <span class="font-medium text-gray-700 dark:text-gray-200">Continue with Google</span>
             </a>
-          </div>
-           
+
+            <div class="text-center text-sm text-gray-600 dark:text-gray-400">
+                <span id="toggleText">Don't have an account?</span> 
+                <a href="{{ url_for('main.register') }}" class="text-indigo-600 font-bold hover:underline ml-1" id="toggleBtn">Register</button>
+            </div>
         </div>
+    </main>
 
-          <div class="text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account yet? <a href="{{ url_for('main.register') }}" class="text-blue-600 hover:underline">Register</a> or Go  <a href="{{ url_for('main.index') }}" class="text-blue-600 hover:underline">Home</a>
-          </div>
-        </div>
-      </main>
-    </div>
+    <script>
+        // Password Show/Hide Logic
+        function togglePass() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (passwordInput.type === "password") {
+                passwordInput.type = "text";
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = "password";
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        }
 
+        // Form Toggle Logic
+        let isLogin = true;
+        function toggleForm() {
+            isLogin = !isLogin;
+            const form = document.getElementById('authForm');
+            const title = document.getElementById('title');
+            const subtitle = document.getElementById('subtitle');
+            const btnText = document.getElementById('btnText');
+            const toggleText = document.getElementById('toggleText');
+            const toggleBtn = document.getElementById('toggleBtn');
 
+            if (isLogin) {
+                form.action = "{{ url_for('main.login') }}";
+                title.innerText = "Welcome Back";
+                subtitle.innerText = "Sign in to your dashboard";
+                btnText.innerText = "Login Account";
+                toggleText.innerText = "Don't have an account?";
+                toggleBtn.innerText = "Register";
+            } else {
+                form.action = "{{ url_for('main.register') }}";
+                title.innerText = "Create Account";
+                subtitle.innerText = "Join us and start your journey";
+                btnText.innerText = "Create Account";
+                toggleText.innerText = "Already have an account?";
+                toggleBtn.innerText = "Login";
+            }
+        }
+    </script>
 
-    	   <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<!-- Flash message handling with SweetAlert2 -->
-<script>
-   // Flash message handling with SweetAlert2
-   const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
-   
-   if (flashMessages.length > 0) {
-       const [category, message] = flashMessages[0];
-   
-       const Toast = Swal.mixin({
-           toast: true,
-           position: 'top-end',
-           showConfirmButton: false,
-           timer: 3000,
-           timerProgressBar: true,
-           background: '#fff',
-           color: '#333',
-           didOpen: (toast) => {
-               toast.addEventListener('mouseenter', Swal.stopTimer)
-               toast.addEventListener('mouseleave', Swal.resumeTimer)
-           }
-       });
-   
-       Toast.fire({
-           icon: category === "success" ? "success" : "info",
-           title: message
-       });
-   }
-</script>
-
-
-
-
-
-  </body>
-
-  
+    <script>
+        const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
+        if (flashMessages.length > 0) {
+            const [category, message] = flashMessages[0];
+            Swal.fire({
+                toast: true, position: 'top-end', icon: category === "success" ? "success" : "error",
+                title: message, showConfirmButton: false, timer: 3000, timerProgressBar: true
+            });
+        }
+    </script>
+</body>
 </html>

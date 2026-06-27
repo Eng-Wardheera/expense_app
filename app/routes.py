@@ -1,9 +1,11 @@
 from collections import defaultdict
 import datetime
 import io
+import json
 import math
 import os
 import random
+import re
 import secrets
 import traceback
 import uuid
@@ -18,8 +20,10 @@ from app import ALLOWED_EXTENSIONS, google
 from app.extensions import mongo
 from datetime import datetime, timedelta
 from xhtml2pdf import pisa
+from flask import Response
+import dns.resolver  # Ku dar kor faylkaaga
 
-from app.modal import User, UserRole
+from app.modal import Category, User, UserRole
 
 
 bp = Blueprint('main', __name__)
@@ -60,6 +64,27 @@ def index():
 
 
 
+@bp.route('/check-username', methods=['POST'])
+def check_username():
+    username = request.json.get('username')
+    user = mongo.db.users.find_one({"username": username})
+    
+    if user:
+        # Soo saar 3 magac oo kale
+        suggestions = [f"{username}{random.randint(10,99)}" for _ in range(3)]
+        return jsonify({"taken": True, "suggestions": suggestions})
+    
+    return jsonify({"taken": False})
+
+
+def is_valid_email_domain(email):
+    try:
+        domain = email.split('@')[1]
+        # Waxaan hubineynaa in domain-ku leeyahay MX record (Mail Exchange)
+        records = dns.resolver.resolve(domain, 'MX')
+        return True if records else False
+    except:
+        return False
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -72,22 +97,42 @@ def register():
         email = request.form.get('email')
         password = request.form.get('password')
         confirm_password = request.form.get('password_confirmation')
-
-        # 1. Hubi haddii passwords-ku isku mid yihiin
-        if password != confirm_password:
-            flash("Passwords-ka isma laha!", "danger")
+        
+         # 1. Hubi in format-ku sax yahay (Regex)
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash("Fadlan geli email sax ah!", "danger")
             return redirect(url_for('main.register'))
 
-        # 2. Hubi haddii user-ku horey u jiray
+        # 2. Hubi in domain-ku dhab ahaan u jiro (MX check)
+        if not is_valid_email_domain(email):
+            flash("Email-kan domain-kiisu ma jiro (Email does not exist)!", "danger")
+            return redirect(url_for('main.register'))
+        
+        # 3. Hubi haddii user-ku horey u jiray
         if mongo.db.users.find_one({"email": email}):
             flash("Email-kan horey ayaa loo isticmaalay!", "danger")
             return redirect(url_for('main.register'))
 
-        # 3. Role Logic
+        # 4. Hubi username-ka inuu database-ka ku jiro mar kale
+        if mongo.db.users.find_one({"username": username}):
+            flash("Username-kan horey ayaa loo qaatay, fadlan mid kale dooro!", "danger")
+            return redirect(url_for('main.register'))
+        
+        # 5. Hubi xoogga password-ka (8 xaraf, 1 xaraf weyn, 1 lambar, 1 calaamad)
+        if not re.match(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$", password):
+            flash("Password-ku waa inuu ka koobnaadaa ugu yaraan 8 xaraf, lambar, iyo calaamad!", "danger")
+            return redirect(url_for('main.register'))
+        
+        # 6. Hubi haddii passwords-ku isku mid yihiin
+        if password != confirm_password:
+            flash("Passwords-ka isma laha!", "danger")
+            return redirect(url_for('main.register'))
+
+        # 7. Role Logic
         user_count = mongo.db.users.count_documents({})
         role = UserRole.superadmin.value if user_count == 0 else UserRole.admin.value
 
-        # 4. Save
+        # 8. Save
         new_user = {
             "fullname": fullname,
             "username": username,
@@ -565,6 +610,364 @@ def all_users():
         'backend/pages/components/users/all_users.html',
         users=users
     )
+
+
+
+@bp.route('/add-category', methods=['GET', 'POST'])
+@login_required
+def add_category():
+
+    if request.method == "POST":
+
+        # 🧼 CLEAN INPUT PROPERLY
+        name = request.form.get("name", "").strip()
+        category_type = request.form.get("type", "expense").strip()
+
+        if not name:
+            flash("Category name is required", "danger")
+            return redirect(url_for("main.add_category"))
+
+        # 🔥 NORMALIZE NAME (VERY IMPORTANT)
+        normalized_name = re.sub(r'\s+', ' ', name).lower()
+
+        # 🔒 HARD DUPLICATE CHECK
+        existing = mongo.db.categories.find_one({
+            "user_id": ObjectId(current_user.id),
+            "type": category_type,
+            "name_normalized": normalized_name
+        })
+
+        if existing:
+            flash("Category already exists.", "danger")
+            return redirect(url_for("main.add_category"))
+
+        # 🧠 ITEMS SAFE
+        items_raw = request.form.get("items", "").strip()
+
+        items = []
+        if items_raw and items_raw.lower() not in ["no items", "none", "-"]:
+            items = [
+                i.strip()
+                for i in items_raw.split(",")
+                if i.strip()
+            ]
+
+        items = list(dict.fromkeys(items))
+
+        # 💾 SAVE WITH NORMALIZED FIELD
+        data = {
+            "user_id": ObjectId(current_user.id),
+            "name": name,
+            "name_normalized": normalized_name,   # 🔥 KEY FIX
+            "slug": name.lower().replace(" ", "-"),
+            "items": items,
+            "type": category_type,
+            "status": True,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        }
+
+        mongo.db.categories.insert_one(data)
+
+        flash("Category added successfully.", "success")
+        return redirect(url_for("main.category_list"))
+
+    return render_template("backend/pages/components/categories/add_category.html")
+
+
+
+@bp.route('/categories')
+@login_required
+def category_list():
+
+    # 🔥 GET DATA BASED ON ROLE
+    if current_user.role == UserRole.superadmin.value:
+        raw_categories = list(mongo.db.categories.find())
+    else:
+        raw_categories = list(mongo.db.categories.find({
+            "user_id": ObjectId(current_user.id)
+        }))
+
+    categories = []
+
+    for c in raw_categories:
+
+        # 🧹 CLEAN ITEMS SAFELY
+        items = c.get("items", [])
+
+        fixed_items = []
+
+        if isinstance(items, list):
+            for i in items:
+                if isinstance(i, str):
+                    i = i.strip()
+
+                    # fix broken cases like: '"Cumar"' or 'Cumar hhg'
+                    i = i.replace('"', "")
+
+                    # split if badly stored
+                    parts = i.split()
+                    fixed_items.extend(parts)
+                else:
+                    fixed_items.append(str(i))
+
+        # remove duplicates + empty
+        c["items"] = list(dict.fromkeys([x for x in fixed_items if x]))
+
+        # 🧱 WRAP CLASS
+        categories.append(Category(c))
+
+    return render_template(
+        "backend/pages/components/categories/all_categories.html",
+        categories=categories
+    )
+
+
+def normalize_name(name):
+    return re.sub(r'\s+', ' ', name).strip().lower()
+
+
+@bp.route("/edit-category/<id>", methods=["GET", "POST"])
+@login_required
+def edit_category(id):
+
+    # 🔒 Validate ObjectId
+    try:
+        category_id = ObjectId(id)
+    except:
+        flash("Invalid category ID", "danger")
+        return redirect(url_for("main.category_list"))
+
+    # 🔎 Get category
+    category = mongo.db.categories.find_one({"_id": category_id})
+
+    if not category:
+        flash("Category not found", "danger")
+        return redirect(url_for("main.category_list"))
+
+    # 🔐 SECURITY CHECK
+    if current_user.role != "superadmin":
+        if str(category.get("user_id")) != str(current_user.id):
+            flash("Not allowed", "danger")
+            return redirect(url_for("main.category_list"))
+
+    # 🧹 CLEAN ITEMS FOR DISPLAY
+    raw_items = category.get("items", [])
+    cleaned_items = []
+
+    if isinstance(raw_items, list):
+        for i in raw_items:
+            if isinstance(i, str):
+                try:
+                    decoded = json.loads(i)
+                    if isinstance(decoded, list):
+                        cleaned_items.extend(decoded)
+                    else:
+                        cleaned_items.append(str(decoded))
+                except:
+                    cleaned_items.append(i)
+            else:
+                cleaned_items.append(str(i))
+
+    category["items"] = list(dict.fromkeys(cleaned_items))
+
+    # POST UPDATE
+    if request.method == "POST":
+
+        name = request.form.get("name", "").strip()
+        category_type = request.form.get("type", "").strip()
+
+        if not name:
+            flash("Category name is required", "danger")
+            return redirect(request.url)
+
+        # 🔥 NORMALIZE NAME
+        normalized_name = normalize_name(name)
+
+        # 🔒 DUPLICATE CHECK (IMPORTANT FIX)
+        existing = mongo.db.categories.find_one({
+            "_id": {"$ne": category_id},
+            "user_id": ObjectId(current_user.id),
+            "type": category_type,
+            "name_normalized": normalized_name
+        })
+
+        if existing:
+            flash("Category already exists.", "danger")
+            return redirect(request.url)
+
+        # 🧠 SAFE ITEMS PARSING
+        items_raw = request.form.get("items", "")
+
+        items = []
+
+        if items_raw and items_raw.lower() not in ["no items", "none", "-"]:
+            items = [
+                i.strip()
+                for i in items_raw.split(",")
+                if i.strip() and i.lower() != "no items"
+            ]
+
+        # 🧼 CLEAN + REMOVE DUPLICATES
+        items = list(dict.fromkeys(items))
+
+        # 💾 UPDATE DB
+        mongo.db.categories.update_one(
+            {"_id": category_id},
+            {"$set": {
+                "name": name,
+                "name_normalized": normalized_name,  # 🔥 IMPORTANT FIX
+                "slug": name.lower().replace(" ", "-"),
+                "type": category_type,
+                "items": items,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+
+        flash("Category updated successfully", "success")
+        return redirect(url_for("main.category_list"))
+
+    return render_template(
+        "backend/pages/components/categories/edit_category.html",
+        category=category
+    )
+
+
+@bp.route("/delete-category/<id>", methods=["GET", "POST"])
+@login_required
+def delete_category(id):
+
+    category = mongo.db.categories.find_one({"_id": ObjectId(id)})
+
+    if not category:
+        flash("Category not found", "danger")
+        return redirect(url_for("main.category_list"))
+
+    # ADMIN SECURITY CHECK
+    if current_user.role != "superadmin" and str(category["user_id"]) != str(current_user.id):
+        flash("Not allowed", "danger")
+        return redirect(url_for("main.category_list"))
+
+    mongo.db.categories.delete_one({"_id": ObjectId(id)})
+
+    flash("Category deleted successfully", "success")
+    return redirect(url_for("main.category_list"))
+
+
+@bp.route("/export-categories")
+@login_required
+def export_categories():
+
+    # 🔎 GET DATA BASED ON ROLE
+    if current_user.role == UserRole.superadmin.value:
+        categories = list(mongo.db.categories.find())
+    else:
+        categories = list(mongo.db.categories.find({
+            "user_id": ObjectId(current_user.id)
+        }))
+
+    # 🧼 CLEAN FOR JSON EXPORT
+    clean_data = []
+
+    for c in categories:
+        clean_data.append({
+            "name": c.get("name"),
+            "name_normalized": c.get("name_normalized"),
+            "slug": c.get("slug"),
+            "type": c.get("type"),
+            "items": c.get("items", []),
+            "status": c.get("status"),
+            "created_at": str(c.get("created_at")),
+            "updated_at": str(c.get("updated_at")),
+        })
+
+    return Response(
+        json.dumps(clean_data, indent=4),
+        mimetype="application/json",
+        headers={
+            "Content-Disposition": "attachment; filename=categories.json"
+        }
+    )
+
+
+
+@bp.route("/import-categories", methods=["POST"])
+@login_required
+def import_categories():
+
+    file = request.files.get("file")
+
+    if not file:
+        flash("Please upload a file", "danger")
+        return redirect(url_for("main.category_list"))
+
+    try:
+        data = json.load(file)
+    except:
+        flash("Invalid JSON file", "danger")
+        return redirect(url_for("main.category_list"))
+
+    if not isinstance(data, list):
+        flash("Invalid data format (must be list)", "danger")
+        return redirect(url_for("main.category_list"))
+
+    imported = 0
+    skipped = 0
+
+    for item in data:
+
+        if not isinstance(item, dict):
+            continue
+
+        name = (item.get("name") or "").strip()
+        category_type = (item.get("type") or "expense").strip()
+
+        if not name:
+            continue
+
+        normalized = normalize_name(name)
+
+        # 🔒 DUPLICATE CHECK (USER + TYPE + NAME)
+        existing = mongo.db.categories.find_one({
+            "user_id": ObjectId(current_user.id),
+            "type": category_type,
+            "name_normalized": normalized
+        })
+
+        if existing:
+            skipped += 1
+            continue
+
+        # 🧠 SAFE ITEMS PARSE
+        items = item.get("items") or []
+
+        if not isinstance(items, list):
+            items = []
+
+        # remove duplicates inside items
+        items = list(dict.fromkeys([i.strip() for i in items if isinstance(i, str) and i.strip()]))
+
+        # 💾 INSERT
+        mongo.db.categories.insert_one({
+            "user_id": ObjectId(current_user.id),
+            "name": name,
+            "name_normalized": normalized,
+            "slug": name.lower().replace(" ", "-"),
+            "items": items,
+            "type": category_type,
+            "status": bool(item.get("status", True)),
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow()
+        })
+
+        imported += 1
+
+    flash(f"Imported: {imported}, Skipped: {skipped}", "success")
+    return redirect(url_for("main.category_list"))
+
+
+
+
 
 
 

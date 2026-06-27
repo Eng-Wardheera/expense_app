@@ -1,8 +1,8 @@
   <nav class="nxl-navigation">
         <div class="navbar-wrapper">
             <div class="m-header">
-                 <a href="{{ url_for('main.index') }}" class="b-brand">
-                    <img src=" {{ url_for('static', filename='frontend/images/logo1.png') }}" width="200" height="75" class="logo logo-lg" />
+                 <a href="{{ url_for('main.dashboard') }}" class="b-brand">
+                    <img src=" {{ url_for('static', filename='backend/uploads/images/logo.png') }}" width="200" height="75" class="logo logo-lg" />
                 </a>
             </div>
             <div class="navbar-content">
@@ -16,61 +16,83 @@
                     {% if current_user.is_authenticated %}
                    
 
-                    <!-- ================= ADMIN ================= -->
-                     {% if current_user.role in ['superadmin','admin'] %}
-                        <li class="nxl-item nxl-hasmenu">
-                            <a href="{{ url_for('main.dashboard') }}" class="nxl-link">
-                                <span class="nxl-micon"><i class="feather-airplay"></i></span>
-                                <span class="nxl-mtext">Dashboards</span><span class="nxl-arrow"></span>
-                            </a>
-                        
-                        </li>
+                    {% if current_user.role in ['superadmin', 'admin'] %}
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="{{ url_for('main.dashboard') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-airplay"></i></span>
+                            <span class="nxl-mtext">Dashboards</span>
+                        </a>
+                    </li>
 
-                         <li class="nxl-item nxl-hasmenu">
-                            <a href="javascript:void(0);" class="nxl-link">
-                                <span class="nxl-micon"><i class="feather-users"></i></span>
-                                <span class="nxl-mtext">Manage Users</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                            </a>
-                            <ul class="nxl-submenu">
-                                <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.all_users') }}">All Users</a></li>
-                                <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_user') }}">Add New User </a></li>
-                            </ul>
-                        </li>
+                    {% if current_user.role in 'superadmin' %}
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-users"></i></span>
+                            <span class="nxl-mtext">Manage Users</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.all_users') }}">All Users</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_user') }}">Add New User</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
 
-                        <li class="nxl-item nxl-hasmenu">
-                            <a href="javascript:void(0);" class="nxl-link">
-                                <span class="nxl-micon"><i class="feather-cast"></i></span>
-                                <span class="nxl-mtext">Categories</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                            </a>
-                            <ul class="nxl-submenu">
-                                <li class="nxl-item"><a class="nxl-link" href="">All Categories</a></li>
-                                <li class="nxl-item"><a class="nxl-link" href="">Add Category </a></li>
-                            </ul>
-                        </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-layers"></i></span>
+                            <span class="nxl-mtext">Categories</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.category_list') }}">All Categories</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_category') }}">Add Category</a></li>
+                        </ul>
+                    </li>
 
-                        <li class="nxl-item nxl-hasmenu">
-                            <a href="javascript:void(0);" class="nxl-link">
-                                <span class="nxl-micon"><i class="feather-cast"></i></span>
-                                <span class="nxl-mtext">Products</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                            </a>
-                            <ul class="nxl-submenu">
-                                <li class="nxl-item"><a class="nxl-link" href="">All Products</a></li>
-                                <li class="nxl-item"><a class="nxl-link" href="">Add Product </a></li>
-                            </ul>
-                        </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-repeat"></i></span>
+                            <span class="nxl-mtext">Transactions</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="">All Transactions</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Add Transaction</a></li>
+                        </ul>
+                    </li>
 
-                        <li class="nxl-item nxl-hasmenu">
-                            <a href="javascript:void(0);" class="nxl-link">
-                                <span class="nxl-micon"><i class="feather-cast"></i></span>
-                                <span class="nxl-mtext">Orders</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
-                            </a>
-                            <ul class="nxl-submenu">
-                                <li class="nxl-item"><a class="nxl-link" href="">All Orders</a></li>
-                                <li class="nxl-item"><a class="nxl-link" href="">Add Order </a></li>
-                            </ul>
-                        </li>
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-plus-circle"></i></span>
+                            <span class="nxl-mtext">Deposits</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="">All Deposits</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Add Deposit</a></li>
+                        </ul>
+                    </li>
 
-                       
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-minus-circle"></i></span>
+                            <span class="nxl-mtext">Withdrawals</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="">All Withdrawals</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Add Withdrawal</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-pie-chart"></i></span>
+                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="">Weekly Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Monthly Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Yearly Report</a></li>
+                        </ul>
+                    </li>
+
 
 
                      {% elif current_user.role in ['user'] %}

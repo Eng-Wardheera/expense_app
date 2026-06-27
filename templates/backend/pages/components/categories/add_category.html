@@ -1,128 +1,131 @@
 {% extends 'backend/home/base.html' %}
 
-{% block title %}Add New Category | Management System{% endblock %}
+{% block title %}Add New Category | Expense Tracker{% endblock %}
 
 {% block content %}
 
 <div class="main-content mt-4">
-    <form method="POST" enctype="multipart/form-data">
 
-        <div class="card border-top-0">
+<form method="POST">
 
-            <div class="card-header p-0">
-                <ul class="nav nav-tabs flex-wrap w-100 text-center customers-nav-tabs">
-                    <li class="nav-item flex-fill border-top">
-                        <a href="#infoTab"
-                           class="nav-link active"
-                           data-bs-toggle="tab">
-                            Category Info
-                        </a>
-                    </li>
+<div class="card shadow-sm">
 
-                    <li class="nav-item flex-fill border-top">
-                        <a href="#mediaTab"
-                           class="nav-link"
-                           data-bs-toggle="tab">
-                            Category Image
-                        </a>
-                    </li>
-                </ul>
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Add New Category</h5>
+    </div>
+
+    <div class="card-body">
+
+        <!-- CATEGORY NAME -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Category Name</label>
+
+            <div class="col-lg-9">
+                <select name="name" class="form-select" required>
+                    <option value="">-- Select Category --</option>
+                    <option value="Dakhli (Income)">Dakhli (Income)</option>
+                    <option value="Waxbarasho">Waxbarasho</option>
+                    <option value="Nolosha Maalinlaha ah">Nolosha Maalinlaha ah</option>
+                    <option value="Caafimaad">Caafimaad</option>
+                    <option value="Utility & Transport">Utility & Transport</option>
+                    <option value="Cunto & Madadaalo">Cunto & Madadaalo</option>
+                    <option value="Events & Social">Events & Social</option>
+                    <option value="Kale (Misc)">Kale (Misc)</option>
+                </select>
             </div>
-
-            <div class="tab-content">
-
-                <!-- CATEGORY INFO -->
-                <div class="tab-pane fade show active" id="infoTab">
-                    <div class="card-body">
-
-                        <div class="row mb-4">
-                            <div class="col-lg-4">
-                                <label class="fw-bold">
-                                    Category Name:
-                                </label>
-                            </div>
-
-                            <div class="col-lg-8">
-                                <input type="text"
-                                       class="form-control"
-                                       name="name"
-                                       required>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <!-- CATEGORY IMAGE -->
-                <div class="tab-pane fade" id="mediaTab">
-                    <div class="card-body">
-
-                        <div class="row mb-4">
-
-                            <div class="col-lg-4">
-                                <label class="fw-bold">
-                                    Category Image:
-                                </label>
-                            </div>
-
-                            <div class="col-lg-8">
-
-                                <input type="file"
-                                       class="form-control"
-                                       name="image"
-                                       id="imageInput"
-                                       accept="image/*">
-
-                                <img id="imagePreview"
-                                     src="#"
-                                     alt="Preview"
-                                     style="max-width:200px; margin-top:10px; display:none; border-radius:10px;">
-
-                            </div>
-
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="card-footer text-center">
-                <button type="submit" class="btn btn-primary">
-                    <i class="feather-save me-1"></i>
-                    Save Category
-                </button>
-            </div>
-
         </div>
 
-    </form>
+        <!-- TYPE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Type</label>
+
+            <div class="col-lg-9">
+                <select name="type" class="form-select">
+                    <option value="income">Income</option>
+                    <option value="expense">Expense</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- ITEMS (MANUAL ONLY) -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Items</label>
+
+            <div class="col-lg-9">
+
+                <div class="input-group mb-2">
+                    <input type="text" id="itemInput" class="form-control" placeholder="Type item and click Add">
+                    <button type="button" class="btn btn-success" onclick="addItem()">
+                        Add
+                    </button>
+                </div>
+
+                <div id="itemList" class="d-flex flex-wrap gap-2"></div>
+
+                <input type="hidden" name="items" id="itemsHidden">
+
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card-footer text-center">
+        <button class="btn btn-primary px-4">
+            Save Category
+        </button>
+    </div>
+
 </div>
 
+</form>
+
+</div>
+
+<!-- JS -->
 <script>
 
-document.getElementById("imageInput").addEventListener("change", function(){
+let items = [];
 
-    const file = this.files[0];
-    const preview = document.getElementById("imagePreview");
+// ADD ITEM ONLY (NO DEFAULTS)
+function addItem() {
+    let input = document.getElementById("itemInput");
+    let value = input.value.trim();
 
-    if(file){
+    if (value === "") return;
 
-        const reader = new FileReader();
-
-        reader.onload = function(e){
-            preview.src = e.target.result;
-            preview.style.display = "block";
-        };
-
-        reader.readAsDataURL(file);
-
-    }else{
-        preview.src = "#";
-        preview.style.display = "none";
+    if (!items.includes(value)) {
+        items.push(value);
+        renderItems();
     }
 
-});
+    input.value = "";
+}
+
+// REMOVE ITEM
+function removeItem(index) {
+    items.splice(index, 1);
+    renderItems();
+}
+
+// RENDER ITEMS
+function renderItems() {
+    let list = document.getElementById("itemList");
+    let hidden = document.getElementById("itemsHidden");
+
+    list.innerHTML = "";
+
+    items.forEach((item, index) => {
+        list.innerHTML += `
+            <span class="badge bg-primary d-flex align-items-center gap-2 p-2">
+                ${item}
+                <button type="button" class="btn-close btn-close-white"
+                        onclick="removeItem(${index})"></button>
+            </span>
+        `;
+    });
+
+    hidden.value = items.join(",");
+}
 
 </script>
 

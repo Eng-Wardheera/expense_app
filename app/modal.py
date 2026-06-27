@@ -108,6 +108,44 @@ class User(UserMixin):
         return f"<User {self.username}>"
 
 
+class Category:
+    def __init__(self, data):
+        self.data = data or {}
+        self.id = str(self.data.get("_id"))
+        self.user_id = str(self.data.get("user_id"))
+        
+        # Magaca Qaybta Weyn (Main Category)
+        self.name = self.data.get("name") # Tusaale: "Waxbarasho"
+        self.slug = self.data.get("slug")
+        
+        # Halkaan ayaan ku kaydsanaynaa xubnaha hoose (Dynamic Items)
+        self.items = self.data.get("items", []) # List of strings: ["Qalin", "Laptop", "Book"]
+        
+        self.type = self.data.get("type", "expense")
+        self.status = self.data.get("status", True)
+        
+        # Timestamps
+        self.created_at = self.data.get("created_at")
+        self.updated_at = self.data.get("updated_at")
+
+
+    def add_item(self, item_name):
+        """Si aad si dynamic ah ugu dartid item cusub"""
+        if item_name not in self.items:
+            self.items.append(item_name)
+    
+    def to_dict(self):
+        return {
+            "_id": self.id,
+            "user_id": self.user_id,
+            "name": self.name,
+            "items": self.items,
+            "type": self.type,
+            "created_at": self.created_at,
+            "expires_at": self.expires_at
+        }
+      
+
 
 class Session:
     def __init__(self, data):
