@@ -14,13 +14,89 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
 
 <style>
 
+html,
 body{
-background:#f5f7fb;
+    margin:0;
+    padding:0;
+    overflow-x:hidden;
 }
 
-.hero img{
-height:600px;
-object-fit:cover;
+.hero{
+    width:100%;
+}
+
+.hero .carousel-item{
+    height:100vh;
+    min-height:650px;
+}
+
+.hero-bg{
+    width:100%;
+    height:100%;
+    background-size:cover;
+    background-position:center;
+    background-repeat:no-repeat;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position:relative;
+}
+
+.hero-bg::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.45);
+}
+
+.carousel-caption{
+    position:absolute;
+    z-index:2;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    width:90%;
+}
+
+.carousel-caption h1{
+    font-size:70px;
+    font-weight:700;
+}
+
+.carousel-caption p{
+    font-size:24px;
+}
+
+@media(max-width:992px){
+
+.hero .carousel-item{
+    height:75vh;
+}
+
+.carousel-caption h1{
+    font-size:45px;
+}
+
+.carousel-caption p{
+    font-size:18px;
+}
+
+}
+
+@media(max-width:768px){
+
+.hero .carousel-item{
+    height:60vh;
+}
+
+.carousel-caption h1{
+    font-size:32px;
+}
+
+.carousel-caption p{
+    font-size:16px;
+}
+
 }
 
 .feature-card{
@@ -72,53 +148,186 @@ Admin / User Login
 
 </nav>
 
-<div id="carouselExample" class="carousel slide hero" data-bs-ride="carousel">
+<style>
+.hero .carousel-item{
+    height:100vh;
+    min-height:500px;
+    max-height:700px;
+    position:relative;
+}
 
-<div class="carousel-inner">
+.hero-bg{
+    width:100%;
+    height:100%;
+    background-size:cover;
+    background-position:center center;
+    background-repeat:no-repeat;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    position:relative;
+}
 
-{% for slide in slides %}
+.hero-bg::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.45);
+}
 
-<div class="carousel-item {% if loop.first %}active{% endif %}">
+.carousel-caption{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    z-index:2;
+    width:90%;
+    max-width:800px;
+    text-align:center;
+}
 
-<img src="{{ url_for('static', filename=slide.image) }}"
-class="d-block w-100">
+.carousel-caption h1{
+    font-size:3.5rem;
+    font-weight:700;
+    color:#fff;
+}
 
-<div class="carousel-caption">
+.carousel-caption p{
+    font-size:1.2rem;
+    color:#f8f9fa;
+    margin:20px 0;
+}
 
-<h1>{{ slide.title }}</h1>
+.carousel-caption .btn{
+    padding:12px 35px;
+    font-size:18px;
+    border-radius:50px;
+}
 
-<p>{{ slide.description }}</p>
+@media (max-width:992px){
 
-<a href="{{ login_url }}"
-class="btn btn-warning btn-lg">
-Login
-</a>
+.hero .carousel-item{
+    height:70vh;
+}
 
-</div>
+.carousel-caption h1{
+    font-size:2.5rem;
+}
 
-</div>
+.carousel-caption p{
+    font-size:1rem;
+}
 
-{% endfor %}
+}
 
-</div>
+@media (max-width:768px){
 
-<button class="carousel-control-prev"
-type="button"
-data-bs-target="#carouselExample"
-data-bs-slide="prev">
+.hero .carousel-item{
+    height:60vh;
+    min-height:400px;
+}
 
-<span class="carousel-control-prev-icon"></span>
+.carousel-caption h1{
+    font-size:2rem;
+}
 
-</button>
+.carousel-caption p{
+    font-size:.95rem;
+}
 
-<button class="carousel-control-next"
-type="button"
-data-bs-target="#carouselExample"
-data-bs-slide="next">
+.carousel-caption .btn{
+    font-size:16px;
+    padding:10px 25px;
+}
 
-<span class="carousel-control-next-icon"></span>
+}
 
-</button>
+@media (max-width:576px){
+
+.hero .carousel-item{
+    height:55vh;
+    min-height:330px;
+}
+
+.carousel-caption h1{
+    font-size:1.6rem;
+}
+
+.carousel-caption p{
+    font-size:.9rem;
+}
+
+}
+</style>
+
+<div id="carouselExample"
+     class="carousel slide carousel-fade hero"
+     data-bs-ride="carousel"
+     data-bs-interval="5000">
+
+    <!-- Indicators -->
+    <div class="carousel-indicators">
+
+        {% for slide in slides %}
+
+        <button type="button"
+                data-bs-target="#carouselExample"
+                data-bs-slide-to="{{ loop.index0 }}"
+                class="{% if loop.first %}active{% endif %}">
+        </button>
+
+        {% endfor %}
+
+    </div>
+
+    <div class="carousel-inner">
+
+        {% for slide in slides %}
+
+        <div class="carousel-item {% if loop.first %}active{% endif %}">
+
+            <div class="hero-bg"
+                 style="background-image:url('{{ url_for('static', filename=slide.image) }}');">
+
+                <div class="carousel-caption">
+
+                    <h1>{{ slide.title }}</h1>
+
+                    <p>{{ slide.description }}</p>
+
+                    <a href="{{ login_url }}"
+                       class="btn btn-warning btn-lg">
+                        <i class="fa fa-sign-in-alt"></i>
+                        Login Now
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+    <button class="carousel-control-prev"
+            type="button"
+            data-bs-target="#carouselExample"
+            data-bs-slide="prev">
+
+        <span class="carousel-control-prev-icon"></span>
+
+    </button>
+
+    <button class="carousel-control-next"
+            type="button"
+            data-bs-target="#carouselExample"
+            data-bs-slide="next">
+
+        <span class="carousel-control-next-icon"></span>
+
+    </button>
 
 </div>
 

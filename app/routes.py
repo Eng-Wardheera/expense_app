@@ -60,22 +60,27 @@ from bson import ObjectId
 def index():
 
     slides = [
-        {
-            "title": "Manage Your Expenses",
-            "description": "Track income, expenses, savings and budgets easily.",
-            "image": "images/slider1.jpg"
-        },
-        {
-            "title": "Control Your Money",
-            "description": "Know where every dollar goes.",
-            "image": "images/slider2.jpg"
-        },
-        {
-            "title": "Save More",
-            "description": "Create savings goals and monitor your progress.",
-            "image": "images/slider3.jpg"
-        }
-    ]
+            {
+                "title": "Manage Your Expenses",
+                "description": "Track your income, expenses, savings and budgets easily in one place.",
+                "image": "frontend/images/image.webp"
+            },
+            {
+                "title": "Control Your Money",
+                "description": "Monitor every transaction and stay in control of your finances.",
+                "image": "frontend/images/image5.jpg"
+            },
+            {
+                "title": "Reach Your Saving Goals",
+                "description": "Create saving plans and watch your balance grow over time.",
+                "image": "frontend/images/image3.jpg"
+            },
+            {
+                "title": "Smart Financial Reports",
+                "description": "Generate detailed reports and analyze your financial performance instantly.",
+                "image": "frontend/images/image4.jpg"
+            }
+        ]
 
     features = [
         {
