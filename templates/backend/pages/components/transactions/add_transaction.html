@@ -1,0 +1,156 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Add Transaction{% endblock %}
+
+{% block content %}
+<div class="main-content mt-4">
+    <form method="POST" id="transactionForm">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="mb-0 fw-bold text-primary"><i class="fas fa-plus-circle me-2"></i>Add New Transaction</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Account</label>
+                    <div class="col-lg-9">
+                        <select name="account_id" id="accountSelect" class="form-select" required>
+                            <option value="">-- Select Account --</option>
+                            {% for account in accounts %}
+                            <option value="{{ account._id }}" data-balance="{{ account.balance }}">
+                                {{ account.name }} | {{ account.balance }} {{ account.currency }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Type</label>
+                    <div class="col-lg-9">
+                        <select name="transaction_type" class="form-select" id="typeSelect" required>
+                            <option value="income">Income (+)</option>
+                            <option value="expense">Expense (-)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Category</label>
+                    <div class="col-lg-9">
+                        <select name="category" id="categorySelect" class="form-select" required>
+                            <option value="">-- Select Category --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Item</label>
+                    <div class="col-lg-9">
+                        <select name="item" id="itemSelect" class="form-select">
+                            <option value="">-- Select Item --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Amount</label>
+                    <div class="col-lg-9">
+                        <input type="number" step="0.01" name="amount" id="amountInput" class="form-control" required placeholder="0.00">
+                        <div id="balanceError" class="text-danger small mt-1" style="display: none;">Insufficient balance for this expense!</div>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Description</label>
+                    <div class="col-lg-9">
+                        <textarea name="description" class="form-control" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Note</label>
+                    <div class="col-lg-9">
+                        <textarea name="note" class="form-control" rows="2" placeholder="Personal notes..."></textarea>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <label class="col-lg-3 col-form-label fw-bold">Reference No</label>
+                    <div class="col-lg-9">
+                        <input type="text" name="reference_no" class="form-control" placeholder="Optional reference number">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
+                <a href="{{ url_for('main.transaction_list') }}" class="btn btn-secondary px-4 me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4" id="submitBtn">Save Transaction</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const allCategories = {{ categories | tojson | safe }};
+    const typeSelect = document.getElementById("typeSelect");
+    const categorySelect = document.getElementById("categorySelect");
+    const itemSelect = document.getElementById("itemSelect");
+    const accountSelect = document.getElementById("accountSelect");
+    const amountInput = document.getElementById("amountInput");
+    const balanceError = document.getElementById("balanceError");
+    const submitBtn = document.getElementById("submitBtn");
+
+    // Filter Categories/Items Logic
+    function filterCategories() {
+        const type = typeSelect.value;
+        const filtered = allCategories.filter(c => c.type === type);
+        categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
+        filtered.forEach(cat => {
+            const opt = document.createElement("option");
+            opt.value = cat._id;
+            opt.textContent = cat.name;
+            categorySelect.appendChild(opt);
+        });
+        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+    }
+
+    categorySelect.addEventListener("change", function () {
+        const cat = allCategories.find(c => c._id === this.value);
+        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
+        if (cat && cat.items) {
+            cat.items.forEach(item => {
+                const opt = document.createElement("option");
+                opt.value = item;
+                opt.textContent = item;
+                itemSelect.appendChild(opt);
+            });
+        }
+    });
+
+    // Real-time Balance Validation
+    function validateBalance() {
+        if (typeSelect.value === 'expense' && accountSelect.value) {
+            const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+            const balance = parseFloat(selectedOption.getAttribute('data-balance'));
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            if (amount > balance) {
+                balanceError.style.display = 'block';
+                submitBtn.disabled = true;
+            } else {
+                balanceError.style.display = 'none';
+                submitBtn.disabled = false;
+            }
+        } else {
+            balanceError.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    typeSelect.addEventListener("change", () => { filterCategories(); validateBalance(); });
+    accountSelect.addEventListener("change", validateBalance);
+    amountInput.addEventListener("input", validateBalance);
+    typeSelect.addEventListener("change", filterCategories);
+    filterCategories();
+</script>
+{% endblock %}

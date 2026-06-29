@@ -16,7 +16,7 @@
                     {% if current_user.is_authenticated %}
                    
 
-                    {% if current_user.role in ['superadmin', 'admin'] %}
+                    {% if current_user.role in ['superadmin'] %}
                     <li class="nxl-item nxl-hasmenu">
                         <a href="{{ url_for('main.dashboard') }}" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-airplay"></i></span>
@@ -24,7 +24,6 @@
                         </a>
                     </li>
 
-                    {% if current_user.role in 'superadmin' %}
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
                             <span class="nxl-micon"><i class="feather-users"></i></span>
@@ -35,7 +34,6 @@
                             <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_user') }}">Add New User</a></li>
                         </ul>
                     </li>
-                    {% endif %}
 
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
@@ -50,25 +48,27 @@
 
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-repeat"></i></span>
-                            <span class="nxl-mtext">Transactions</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-micon"><i class="feather-plus-circle"></i></span>
+                            <span class="nxl-mtext">Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="">All Transactions</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="">Add Transaction</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.account_list')}}">All Accounts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.add_account')}}">Add Account</a></li>
                         </ul>
                     </li>
 
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
-                            <span class="nxl-micon"><i class="feather-plus-circle"></i></span>
-                            <span class="nxl-mtext">Deposits</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                            <span class="nxl-micon"><i class="feather-repeat"></i></span>
+                            <span class="nxl-mtext">Transactions</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
                         </a>
                         <ul class="nxl-submenu">
-                            <li class="nxl-item"><a class="nxl-link" href="">All Deposits</a></li>
-                            <li class="nxl-item"><a class="nxl-link" href="">Add Deposit</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.transaction_list')}}">All Transactions</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.add_transaction')}}">Add Transaction</a></li>
                         </ul>
                     </li>
+
+                  
 
                     <li class="nxl-item nxl-hasmenu">
                         <a href="javascript:void(0);" class="nxl-link">
@@ -95,9 +95,103 @@
 
 
 
-                     {% elif current_user.role in ['user'] %}
+                     {% elif current_user.role in ['admin'] %}
                         <!-- ================= USER ================= -->
                      
+                                  <li class="nxl-item nxl-hasmenu">
+                        <a href="{{ url_for('main.dashboard') }}" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-airplay"></i></span>
+                            <span class="nxl-mtext">Dashboards</span>
+                        </a>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-layers"></i></span>
+                            <span class="nxl-mtext">Categories</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.category_list') }}">All Categories</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{ url_for('main.add_category') }}">Add Category</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-plus-circle"></i></span>
+                            <span class="nxl-mtext">Accounts</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.account_list')}}">All Accounts</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.add_account')}}">Add Account</a></li>
+                        </ul>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-repeat"></i></span>
+                            <span class="nxl-mtext">Transactions</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.transaction_list')}}">All Transactions</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.add_transaction')}}">Add Transaction</a></li>
+                        </ul>
+                    </li>
+
+                  
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-minus-circle"></i></span>
+                            <span class="nxl-mtext">Savings</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.saving_list')}}">All Savings</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="{{url_for('main.add_saving')}}">Add Saving</a></li>
+                        </ul>
+                    </li>
+
+                   <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon">
+                                <i class="feather-minus-circle"></i>
+                            </span>
+
+                            <span class="nxl-mtext">
+                                Saving Transaction
+                            </span>
+
+                            <span class="nxl-arrow">
+                                <i class="feather-chevron-right"></i>
+                            </span>
+                        </a>
+
+                        <ul class="nxl-submenu">
+
+                            <!-- ALL SAVING TRANSACTIONS -->
+                            <li class="nxl-item">
+                                <a class="nxl-link"
+                                href="{{ url_for('main.saving_transaction_list') }}">
+                                    All Saving Transactions
+                                </a>
+                            </li>
+
+                            <!-- ADD SAVING TRANSACTION -->
+                           
+                        </ul>
+                    </li>
+
+                    <li class="nxl-item nxl-hasmenu">
+                        <a href="javascript:void(0);" class="nxl-link">
+                            <span class="nxl-micon"><i class="feather-pie-chart"></i></span>
+                            <span class="nxl-mtext">Reports</span><span class="nxl-arrow"><i class="feather-chevron-right"></i></span>
+                        </a>
+                        <ul class="nxl-submenu">
+                            <li class="nxl-item"><a class="nxl-link" href="">Weekly Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Monthly Report</a></li>
+                            <li class="nxl-item"><a class="nxl-link" href="">Yearly Report</a></li>
+                        </ul>
+                    </li>
 
                     {% elif current_user.role in 'customer' %}
                   

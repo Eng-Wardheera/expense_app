@@ -1,0 +1,172 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Add Saving Goal{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+<form method="POST">
+
+<div class="card shadow-sm">
+
+    <!-- HEADER -->
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Create Saving Goal</h5>
+    </div>
+
+    <!-- BODY -->
+    <div class="card-body">
+
+        <!-- TITLE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Saving Title
+            </label>
+
+            <div class="col-lg-9">
+                <input type="text"
+                       name="title"
+                       class="form-control"
+                       placeholder="Example: Buy New Laptop"
+                       required>
+            </div>
+        </div>
+
+        <!-- ACCOUNT -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Account
+            </label>
+
+            <div class="col-lg-9">
+
+                <select name="account_id"
+                        class="form-select"
+                        required>
+
+                    <option value="">
+                        -- Select Account --
+                    </option>
+
+                    {% for account in accounts %}
+                    <option value="{{ account._id }}">
+                        {{ account.name }}
+                        ({{ account.balance }} {{ account.currency }})
+                    </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+        </div>
+
+        <!-- TARGET -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Target Amount
+            </label>
+
+            <div class="col-lg-9">
+                <input type="number"
+                       name="target_amount"
+                       step="0.01"
+                       min="1"
+                       class="form-control"
+                       placeholder="0.00"
+                       required>
+            </div>
+        </div>
+
+        <!-- START DATE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Start Date
+            </label>
+
+            <div class="col-lg-9">
+                <input type="date"
+                       name="start_date"
+                       class="form-control">
+            </div>
+        </div>
+
+        <!-- MATURITY -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Target Date
+            </label>
+
+            <div class="col-lg-9">
+                <input type="date"
+                       name="maturity_date"
+                       class="form-control">
+            </div>
+        </div>
+
+        <!-- STATUS -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Status
+            </label>
+
+            <div class="col-lg-9">
+
+                <select name="status"
+                        class="form-select">
+
+                    <option value="active">
+                        Active
+                    </option>
+
+                    <option value="paused">
+                        Paused
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                </select>
+
+            </div>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">
+                Description
+            </label>
+
+            <div class="col-lg-9">
+                <textarea name="description"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Write something about this saving goal..."></textarea>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+   <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
+
+        <button type="submit"
+                class="btn btn-primary px-4">
+            Save Goal
+        </button>
+
+        <a href="{{ url_for('main.saving_list') }}"
+           class="btn btn-secondary px-4">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+</form>
+
+</div>
+
+{% endblock %}

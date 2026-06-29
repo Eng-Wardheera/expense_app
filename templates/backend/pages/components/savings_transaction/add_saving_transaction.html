@@ -1,0 +1,154 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Add Saving Transaction{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+<form method="POST">
+
+<div class="card shadow-sm">
+
+    <!-- HEADER -->
+    <div class="card-header">
+        <h5 class="mb-0">Add Saving Transaction</h5>
+    </div>
+
+    <div class="card-body">
+
+        <!-- SAVING TITLE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Saving Goal</label>
+            <div class="col-lg-9">
+                <input type="text"
+                       class="form-control"
+                       value="{{ saving.title if saving else '' }}"
+                       readonly>
+            </div>
+        </div>
+
+        <!-- CURRENT BALANCE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Saving Balance</label>
+            <div class="col-lg-9">
+                <input type="text"
+                       class="form-control"
+                       value="{{ saving.current_balance if saving else 0 }}"
+                       readonly>
+            </div>
+        </div>
+
+        <!-- TARGET -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Target Amount</label>
+            <div class="col-lg-9">
+                <input type="text"
+                       class="form-control"
+                       value="{{ saving.target_amount if saving else 0 }}"
+                       readonly>
+            </div>
+        </div>
+
+        <!-- ACCOUNT SELECT -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Account</label>
+            <div class="col-lg-9">
+
+                <select name="account_id" class="form-select" required>
+                    <option value="">-- Select Account --</option>
+
+                    {% for account in accounts or [] %}
+                        <option value="{{ account._id }}"
+                            {% if saving and saving.account_id == account._id %}
+                                selected
+                            {% endif %}>
+
+                            {{ account.name }} | {{ account.balance }} {{ account.currency }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+        </div>
+
+        <!-- TRANSACTION TYPE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Transaction Type</label>
+            <div class="col-lg-9">
+
+                <select name="transaction_type" class="form-select" required>
+                    <option value="deposit">Deposit</option>
+                    <option value="withdrawal">Withdrawal</option>
+                </select>
+
+            </div>
+        </div>
+
+        <!-- AMOUNT -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Amount</label>
+            <div class="col-lg-9">
+                <input type="number"
+                       step="0.01"
+                       name="amount"
+                       class="form-control"
+                       required>
+            </div>
+        </div>
+
+        <!-- DESCRIPTION -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Description</label>
+            <div class="col-lg-9">
+                <textarea name="description"
+                          class="form-control"
+                          rows="3"></textarea>
+            </div>
+        </div>
+
+        <!-- NOTE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Note</label>
+            <div class="col-lg-9">
+                <textarea name="note"
+                          class="form-control"
+                          rows="3"></textarea>
+            </div>
+        </div>
+
+        <!-- REFERENCE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Reference No</label>
+            <div class="col-lg-9">
+                <input type="text"
+                       name="reference_no"
+                       class="form-control"
+                       placeholder="Optional">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card-footer text-end d-flex justify-content-end gap-2">
+
+        <button type="submit" class="btn btn-success">
+            Save Transaction
+        </button>
+
+        <a href="{{ url_for('main.saving_list') }}"
+           class="btn btn-secondary">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+</form>
+
+</div>
+
+{% endblock %}

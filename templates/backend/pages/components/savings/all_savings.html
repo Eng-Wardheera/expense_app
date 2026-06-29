@@ -1,0 +1,201 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}All Savings{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+    <div class="card shadow-sm">
+
+        <!-- HEADER -->
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <h5 class="mb-0">All Savings Goals</h5>
+
+            <a href="{{ url_for('main.add_saving') }}"
+               class="btn btn-primary btn-sm">
+                + Add Saving
+            </a>
+
+        </div>
+
+        <!-- BODY -->
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0" id="leadList">
+
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Title</th>
+                            <th>Account</th>
+                            <th>Target</th>
+                            <th>Saved</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Maturity</th>
+                            <th>Created</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for saving in savings %}
+
+                        <tr>
+
+                            <td>{{ loop.index }}</td>
+
+                            <td>
+                                <strong>{{ saving.title }}</strong>
+
+                                {% if saving.description %}
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ saving.description }}
+                                    </small>
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {{ saving.account_name }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(saving.target_amount) }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(saving.current_balance) }}
+                            </td>
+
+                            <td width="180">
+
+                                <div class="progress" style="height:20px;">
+
+                                    <div class="progress-bar bg-success"
+                                         role="progressbar"
+                                         style="width: {{ saving.progress }}%;">
+
+                                        {{ saving.progress }}%
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                {% if saving.status == "active" %}
+
+                                    <span class="badge bg-success">
+                                        Active
+                                    </span>
+
+                                {% elif saving.status == "completed" %}
+
+                                    <span class="badge bg-primary">
+                                        Completed
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-warning text-dark">
+                                        Paused
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if saving.maturity_date %}
+                                    {{ saving.maturity_date }}
+                                {% else %}
+                                    -
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if saving.created_at %}
+                                    {{ saving.created_at.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    -
+                                {% endif %}
+
+                            </td>
+
+                      <td class="text-end">
+
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:6px;">
+
+        <!-- TRANSACTION -->
+        <a href="{{ url_for('main.add_saving_transaction', id=saving._id) }}"
+           style="display:inline-flex; align-items:center; gap:5px;
+                  padding:6px 10px; border-radius:6px;
+                  background:#3498db; color:#fff;
+                  text-decoration:none; font-size:12px;">
+            <i class="fa fa-exchange"></i>
+            Transaction
+        </a>
+
+        <!-- EDIT -->
+        <a href="{{ url_for('main.edit_saving', id=saving._id) }}"
+           style="display:inline-flex; align-items:center; gap:5px;
+                  padding:6px 10px; border-radius:6px;
+                  background:#f39c12; color:#fff;
+                  text-decoration:none; font-size:12px;">
+            <i class="fa fa-edit"></i>
+            Edit
+        </a>
+
+        <!-- DELETE -->
+        <a href="{{ url_for('main.delete_saving', id=saving._id) }}"
+           onclick="return confirm('Delete this saving goal?')"
+           style="display:inline-flex; align-items:center; gap:5px;
+                  padding:6px 10px; border-radius:6px;
+                  background:#e74c3c; color:#fff;
+                  text-decoration:none; font-size:12px;">
+            <i class="fa fa-trash"></i>
+            Delete
+        </a>
+
+    </div>
+
+</td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <!-- <tr>
+
+                            <td colspan="10" class="text-center py-4 text-muted">
+                                No saving goals found.
+                            </td>
+
+                        </tr> -->
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -108,6 +108,7 @@ class User(UserMixin):
         return f"<User {self.username}>"
 
 
+
 class Category:
     def __init__(self, data):
         self.data = data or {}
@@ -144,7 +145,320 @@ class Category:
             "created_at": self.created_at,
             "expires_at": self.expires_at
         }
-      
+
+
+
+class Account:
+    def __init__(self, data=None):
+        self.data = data or {}
+
+        self.id = str(self.data.get("_id"))
+        self.user_id = str(self.data.get("user_id"))
+
+        # Account Info
+        self.name = self.data.get("name")          # Main Wallet, Bank, Cash
+        self.type = self.data.get("type")          # cash, bank, mobile, savings
+
+        # Balance
+        self.balance = self.data.get("balance", 0)
+
+        # Currency
+        self.currency = self.data.get("currency", "USD")
+
+        # Status
+        self.status = self.data.get("status", True)
+
+        # Timestamps
+        self.created_at = self.data.get("created_at")
+        self.updated_at = self.data.get("updated_at")
+
+    def add(
+        self,
+        user_id,
+        name,
+        account_type="cash",
+        balance=0,
+        currency="USD",
+        status=True
+    ):
+        self.user_id = str(user_id)
+        self.name = name
+        self.type = account_type
+        self.balance = balance
+        self.currency = currency
+        self.status = status
+
+        now = datetime.utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+        return self.to_dict()
+
+    def update_balance(self, amount, operation="add"):
+        """
+        operation:
+        - add → lacag ku dar
+        - subtract → lacag ka jar
+        """
+        if operation == "add":
+            self.balance += amount
+        elif operation == "subtract":
+            self.balance -= amount
+
+        self.updated_at = datetime.utcnow()
+
+        return self.balance
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "name": self.name,
+            "type": self.type,
+            "balance": self.balance,
+            "currency": self.currency,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
+
+
+class Transaction:
+    def __init__(self, data=None):
+        self.data = data or {}
+
+        self.id = str(self.data.get("_id"))
+        self.user_id = str(self.data.get("user_id"))
+
+        # Account
+        self.account_id = self.data.get("account_id")
+
+        # Transaction
+        self.transaction_type = self.data.get("transaction_type")  # income | expense
+
+        # Category
+        self.category = self.data.get("category")
+        self.item = self.data.get("item")
+
+        # Amount
+        self.amount = self.data.get("amount", 0)
+
+        # Details
+        self.description = self.data.get("description")
+        self.note = self.data.get("note")
+
+        # Optional reference number
+        self.reference_no = self.data.get("reference_no")
+
+        # Date
+        self.date = self.data.get("date")
+
+        self.status = self.data.get("status", True)
+
+        # Timestamps
+        self.created_at = self.data.get("created_at")
+        self.updated_at = self.data.get("updated_at")
+
+    def add(
+        self,
+        user_id,
+        account_id,
+        transaction_type,
+        category,
+        item,
+        amount,
+        description="",
+        note="",
+        date=None,
+        status=True,
+        reference_no=None
+    ):
+        self.user_id = str(user_id)
+        self.account_id = account_id
+        self.transaction_type = transaction_type
+        self.category = category
+        self.item = item
+        self.amount = amount
+        self.description = description
+        self.note = note
+        self.reference_no = reference_no
+        self.date = date or datetime.utcnow()
+        self.status = status
+
+        now = datetime.utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+        return self.to_dict()
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "account_id": self.account_id,
+            "transaction_type": self.transaction_type,
+            "category": self.category,
+            "item": self.item,
+            "amount": self.amount,
+            "description": self.description,
+            "note": self.note,
+            "reference_no": self.reference_no,
+            "date": self.date,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
+
+
+class Saving:
+    def __init__(self, data=None):
+        self.data = data or {}
+
+        self.id = str(self.data.get("_id"))
+        self.user_id = str(self.data.get("user_id"))
+
+        # Saving Goal
+        self.title = self.data.get("title")
+        self.description = self.data.get("description", "")
+
+        self.target_amount = float(self.data.get("target_amount", 0))
+        self.current_balance = float(self.data.get("current_balance", 0))
+
+        # Source Account (Wallet/Bank)
+        self.account_id = self.data.get("account_id")
+
+        # Dates
+        self.start_date = self.data.get("start_date")
+        self.maturity_date = self.data.get("maturity_date")
+
+        # Status
+        self.status = self.data.get("status", "active")  # active | completed | paused
+
+        # Timestamps
+        self.created_at = self.data.get("created_at")
+        self.updated_at = self.data.get("updated_at")
+
+    def add(
+        self,
+        user_id,
+        title,
+        target_amount,
+        account_id,
+        start_date=None,
+        maturity_date=None,
+        description="",
+        status="active"
+    ):
+        self.user_id = str(user_id)
+        self.title = title
+        self.description = description
+
+        self.target_amount = float(target_amount)
+        self.current_balance = 0.0
+
+        self.account_id = account_id
+        self.start_date = start_date or datetime.utcnow()
+        self.maturity_date = maturity_date
+
+        self.status = status
+
+        now = datetime.utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+        return self.to_dict()
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "title": self.title,
+            "description": self.description,
+            "target_amount": self.target_amount,
+            "current_balance": self.current_balance,
+            "account_id": self.account_id,
+            "start_date": self.start_date,
+            "maturity_date": self.maturity_date,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
+
+
+class SavingTransaction:
+    def __init__(self, data=None):
+        self.data = data or {}
+
+        self.id = str(self.data.get("_id"))
+        self.user_id = str(self.data.get("user_id"))
+
+        self.saving_id = self.data.get("saving_id")
+        self.account_id = self.data.get("account_id")  # 🔥 IMPORTANT
+
+        # deposit | withdrawal
+        self.transaction_type = self.data.get("transaction_type")
+
+        self.amount = float(self.data.get("amount", 0))  # 🔥 safer
+
+        self.description = self.data.get("description", "")
+        self.note = self.data.get("note", "")
+
+        self.date = self.data.get("date")
+
+        self.status = self.data.get("status", True)
+
+        self.reference_no = self.data.get("reference_no")  # 🔥 tracking
+
+        self.created_at = self.data.get("created_at")
+        self.updated_at = self.data.get("updated_at")
+
+    def add(
+        self,
+        user_id,
+        saving_id,
+        account_id,
+        transaction_type,
+        amount,
+        description="",
+        note="",
+        date=None,
+        status=True,
+        reference_no=None
+    ):
+        self.user_id = str(user_id)
+        self.saving_id = saving_id
+        self.account_id = account_id
+        self.transaction_type = transaction_type
+        self.amount = float(amount)
+
+        self.description = description
+        self.note = note
+        self.date = date or datetime.utcnow()
+        self.status = status
+        self.reference_no = reference_no
+
+        now = datetime.utcnow()
+        self.created_at = now
+        self.updated_at = now
+
+        return self.to_dict()
+
+    def to_dict(self):
+        return {
+            "user_id": self.user_id,
+            "saving_id": self.saving_id,
+            "account_id": self.account_id,
+            "transaction_type": self.transaction_type,
+            "amount": self.amount,
+            "description": self.description,
+            "note": self.note,
+            "reference_no": self.reference_no,
+            "date": self.date,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
 
 
 class Session:

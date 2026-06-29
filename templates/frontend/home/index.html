@@ -1,11 +1,553 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Tracker App | </title>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Expense Tracker</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+
+body{
+background:#f5f7fb;
+}
+
+.hero img{
+height:600px;
+object-fit:cover;
+}
+
+.feature-card{
+transition:.3s;
+border:none;
+}
+
+.feature-card:hover{
+transform:translateY(-8px);
+}
+
+.counter{
+font-size:40px;
+font-weight:bold;
+color:#0d6efd;
+}
+
+footer{
+background:#212529;
+color:#fff;
+padding:40px 0;
+margin-top:60px;
+}
+
+</style>
+
 </head>
+
 <body>
-    <h1>Welcome Expense Tracker App</h1>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+
+<div class="container">
+
+<a class="navbar-brand fw-bold" href="#">
+Expense Tracker
+</a>
+
+<div>
+
+<a href="{{ login_url }}"
+class="btn btn-light">
+Admin / User Login
+</a>
+
+</div>
+
+</div>
+
+</nav>
+
+<div id="carouselExample" class="carousel slide hero" data-bs-ride="carousel">
+
+<div class="carousel-inner">
+
+{% for slide in slides %}
+
+<div class="carousel-item {% if loop.first %}active{% endif %}">
+
+<img src="{{ url_for('static', filename=slide.image) }}"
+class="d-block w-100">
+
+<div class="carousel-caption">
+
+<h1>{{ slide.title }}</h1>
+
+<p>{{ slide.description }}</p>
+
+<a href="{{ login_url }}"
+class="btn btn-warning btn-lg">
+Login
+</a>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+<button class="carousel-control-prev"
+type="button"
+data-bs-target="#carouselExample"
+data-bs-slide="prev">
+
+<span class="carousel-control-prev-icon"></span>
+
+</button>
+
+<button class="carousel-control-next"
+type="button"
+data-bs-target="#carouselExample"
+data-bs-slide="next">
+
+<span class="carousel-control-next-icon"></span>
+
+</button>
+
+</div>
+
+<section class="container py-5">
+
+<div class="text-center mb-5">
+
+<h2>Powerful Features</h2>
+
+</div>
+
+<div class="row">
+
+{% for feature in features %}
+
+<div class="col-md-3 mb-4">
+
+<div class="card feature-card shadow h-100">
+
+<div class="card-body text-center">
+
+<i class="fa {{ feature.icon }} fa-3x text-primary mb-3"></i>
+
+<h5>{{ feature.title }}</h5>
+
+<p>{{ feature.text }}</p>
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+</section>
+
+<section class="container py-5">
+
+<div class="row text-center">
+
+<div class="col-md-3">
+
+<div class="counter">10K+</div>
+
+Users
+
+</div>
+
+<div class="col-md-3">
+
+<div class="counter">250K+</div>
+
+Transactions
+
+</div>
+
+<div class="col-md-3">
+
+<div class="counter">100+</div>
+
+Companies
+
+</div>
+
+<div class="col-md-3">
+
+<div class="counter">24/7</div>
+
+Support
+
+</div>
+
+</div>
+
+</section>
+
+<section class="container py-5 text-center">
+
+<h2>Download Mobile App</h2>
+
+<p>Manage your finances anywhere.</p>
+
+<a href="{{ app_url }}"
+class="btn btn-success btn-lg">
+
+<i class="fa fa-download"></i>
+
+Download App
+
+</a>
+
+</section>
+
+
+<div class="row text-center mt-5">
+
+    <div class="col-md-4">
+        <div class="card shadow border-0 p-4">
+            <i class="fa fa-users fa-3x text-primary mb-3"></i>
+            <h2>{{ total_users }}</h2>
+            <p>Total Users</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow border-0 p-4">
+            <i class="fa fa-user-shield fa-3x text-success mb-3"></i>
+            <h2>{{ total_admins }}</h2>
+            <p>Admins</p>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow border-0 p-4">
+            <i class="fa fa-user fa-3x text-warning mb-3"></i>
+            <h2>{{ total_members }}</h2>
+            <p>Members</p>
+        </div>
+    </div>
+
+</div>
+
+
+<div class="container mt-5">
+
+    <h3 class="mb-4 text-center fw-bold">
+        <i class="fa fa-users text-primary"></i>
+        Newest Members
+    </h3>
+
+    <div class="row">
+
+        {% for user in latest_users %}
+
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+
+            <div class="card border-0 shadow h-100 text-center p-4">
+
+                {% if user.photo %}
+
+                    <img src="{{ user.photo }}"
+                         class="rounded-circle mx-auto shadow"
+                         style="width:90px;height:90px;object-fit:cover;">
+
+                {% else %}
+
+                    <img src="https://res.cloudinary.com/demo/image/upload/v1312461204/sample.jpg"
+                         class="rounded-circle mx-auto shadow"
+                         style="width:90px;height:90px;object-fit:cover;">
+
+                {% endif %}
+
+                <h5 class="mt-3 mb-1">
+                    {{ user.fullname }}
+                </h5>
+
+                <small class="text-muted">
+                    @{{ user.username }}
+                </small>
+
+                <div class="mt-2">
+
+                    {% if user.role == "admin" %}
+                        <span class="badge bg-primary">
+                            Admin
+                        </span>
+                    {% else %}
+                        <span class="badge bg-success">
+                            User
+                        </span>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
+
+
+<style>
+    footer{
+background:linear-gradient(135deg,#0d6efd,#001f4d);
+color:#fff;
+margin-top:80px;
+}
+
+.footer-title{
+font-size:20px;
+font-weight:700;
+margin-bottom:20px;
+}
+
+.footer-link{
+display:block;
+color:#ddd;
+text-decoration:none;
+margin-bottom:10px;
+transition:.3s;
+}
+
+.footer-link:hover{
+color:#fff;
+padding-left:8px;
+}
+
+.footer-social a{
+width:42px;
+height:42px;
+display:inline-flex;
+align-items:center;
+justify-content:center;
+background:rgba(255,255,255,.12);
+border-radius:50%;
+margin-right:8px;
+color:#fff;
+transition:.3s;
+text-decoration:none;
+}
+
+.footer-social a:hover{
+background:#fff;
+color:#0d6efd;
+transform:translateY(-5px);
+}
+
+.footer-bottom{
+border-top:1px solid rgba(255,255,255,.2);
+margin-top:35px;
+padding-top:20px;
+font-size:14px;
+}
+
+.back-top{
+position:fixed;
+right:20px;
+bottom:20px;
+width:50px;
+height:50px;
+border-radius:50%;
+background:#0d6efd;
+color:#fff;
+display:flex;
+align-items:center;
+justify-content:center;
+text-decoration:none;
+font-size:22px;
+box-shadow:0 10px 25px rgba(0,0,0,.25);
+transition:.3s;
+z-index:999;
+}
+
+.back-top:hover{
+background:#001f4d;
+color:#fff;
+transform:translateY(-5px);
+}
+</style>
+<footer>
+
+<div class="container py-5">
+
+<div class="row gy-4">
+
+<!-- ABOUT -->
+<div class="col-lg-4">
+
+<h4 class="footer-title">
+Expense Tracker
+</h4>
+
+<p>
+
+Expense Tracker is a modern finance management system that helps individuals, businesses and organizations monitor expenses, income, savings and financial reports with ease.
+
+</p>
+
+<div class="footer-social mt-4">
+
+<a href="#"><i class="fab fa-facebook-f"></i></a>
+
+<a href="#"><i class="fab fa-twitter"></i></a>
+
+<a href="#"><i class="fab fa-instagram"></i></a>
+
+<a href="#"><i class="fab fa-linkedin-in"></i></a>
+
+<a href="#"><i class="fab fa-github"></i></a>
+
+</div>
+
+</div>
+
+<!-- LINKS -->
+<div class="col-lg-2">
+
+<h5 class="footer-title">
+Quick Links
+</h5>
+
+<a href="/" class="footer-link">
+Home
+</a>
+
+<a href="{{ login_url }}" class="footer-link">
+Login
+</a>
+
+<a href="{{ app_url }}" class="footer-link">
+Download App
+</a>
+
+<a href="#" class="footer-link">
+Contact
+</a>
+
+</div>
+
+<!-- FEATURES -->
+<div class="col-lg-3">
+
+<h5 class="footer-title">
+Features
+</h5>
+
+<a href="#" class="footer-link">
+Expense Management
+</a>
+
+<a href="#" class="footer-link">
+Income Tracking
+</a>
+
+<a href="#" class="footer-link">
+Saving Goals
+</a>
+
+<a href="#" class="footer-link">
+Financial Reports
+</a>
+
+<a href="#" class="footer-link">
+Multi Accounts
+</a>
+
+</div>
+
+<!-- DOWNLOAD -->
+<div class="col-lg-3">
+
+<h5 class="footer-title">
+Mobile App
+</h5>
+
+<p>
+
+Manage your finances anytime from your mobile device.
+
+</p>
+
+<a href="{{ app_url }}"
+class="btn btn-warning w-100">
+
+<i class="fa fa-download"></i>
+
+Download App
+
+</a>
+
+<a href="{{ login_url }}"
+class="btn btn-light w-100 mt-3">
+
+<i class="fa fa-right-to-bracket"></i>
+
+Admin / User Login
+
+</a>
+
+</div>
+
+</div>
+
+<div class="footer-bottom text-center">
+
+<p class="mb-1">
+
+© {{ current_year if current_year else 2026 }}
+
+<strong>Expense Tracker</strong>
+
+All Rights Reserved.
+
+</p>
+
+<p class="mb-0">
+
+Developed with
+<i class="fa fa-heart text-danger"></i>
+
+for smarter financial management.
+
+</p>
+
+</div>
+
+</div>
+
+</footer>
+
+<a href="#" class="back-top">
+
+<i class="fa fa-arrow-up"></i>
+
+</a>
+
+
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
+
 </html>

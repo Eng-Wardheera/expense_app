@@ -1,0 +1,220 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transactions{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+<div class="card shadow-sm">
+
+    <!-- HEADER -->
+<div class="card-header bg-white py-3">
+    <div class="row align-items-end g-2">
+        <div class="col-lg-2">
+            <h5 class="mb-0 fw-bold">All Transactions</h5>
+        </div>
+
+        <div class="col-lg-10">
+            <form method="GET" class="row g-2 align-items-end">
+                
+                <div class="col-md-9">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Type</label>
+                            <select name="type" class="form-select form-select-sm">
+                                <option value="">All Type</option>
+                                <option value="income" {% if selected_type == "income" %}selected{% endif %}>Income</option>
+                                <option value="expense" {% if selected_type == "expense" %}selected{% endif %}>Expense</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Account</label>
+                            <select name="account_id" class="form-select form-select-sm">
+                                <option value="">All Accounts</option>
+                                {% for acc in accounts %}
+                                    <option value="{{ acc._id }}" {% if selected_account == acc._id|string %}selected{% endif %}>{{ acc.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Category</label>
+                            <select name="category" id="categorySelect" class="form-select form-select-sm">
+                                <option value="">All Categories</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat.name }}" {% if selected_category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="small fw-bold">Item</label>
+                            <select name="item" id="itemSelect" class="form-select form-select-sm">
+                                <option value="">All Items</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('main.transaction_list') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    <!-- TABLE -->
+    <div class="card-body p-0">
+
+        <div class="table-responsive" >
+
+            <table class="table table-hover align-middle mb-0" id="leadList">
+
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Item</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for trx in transactions %}
+
+                    <tr>
+
+                        <!-- INDEX -->
+                        <td>{{ loop.index }}</td>
+
+                        <!-- ACCOUNT -->
+                        <td>
+                            {{ trx.account_name }}
+                        </td>
+
+                        <!-- TYPE -->
+                        <td>
+                            {% if trx.transaction_type == "income" %}
+                                <span class="badge bg-success">Income</span>
+                            {% else %}
+                                <span class="badge bg-danger">Expense</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- CATEGORY -->
+                        <td>{{ trx.category }}</td>
+
+                        <!-- ITEM -->
+                        <td>{{ trx.item }}</td>
+
+                        <!-- AMOUNT -->
+                        <td class="fw-bold">
+                            {{ trx.amount }}
+                        </td>
+
+                        <!-- DATE -->
+                        <td>
+                            {% if trx.date %}
+                                {{ trx.date.strftime('%Y-%m-%d') }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+
+                        <!-- STATUS -->
+                        <td>
+                            {% if trx.status %}
+                                <span class="badge bg-success">Active</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- ACTIONS -->
+                        <td class="text-end">
+
+                            <a href="{{ url_for('main.edit_transaction', id=trx._id) }}"
+                               class="btn btn-warning btn-sm">
+                                Edit
+                            </a>
+
+                            <a href="{{ url_for('main.delete_transaction', id=trx._id) }}"
+                               class="btn btn-danger btn-sm"
+                               onclick="return confirm('Delete this transaction?')">
+                                Delete
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<script>
+    // 1. Loading data
+    const categories = {{ categories | tojson | safe }};
+    const categorySelect = document.getElementById("categorySelect");
+    const itemSelect = document.getElementById("itemSelect");
+
+    // 2. Function-ka ugu muhiimsan
+    function loadItems(categoryName) {
+        const cat = categories.find(c => c.name === categoryName);
+        let items = cat ? cat.items : [];
+
+        itemSelect.innerHTML = '<option value="">All Items</option>';
+
+        items.forEach(item => {
+            // Nadiifinta xogta:
+            // - Waxaan ka saaraynaa "[" , "]" , iyo calaamadaha qoraalka "
+            // - Waxaan isticmaalnaa trim() si aan u saarno boosaska bannaan
+            let cleanItem = String(item).replace(/[\[\]"']/g, '').trim();
+            
+            // Hubi in item-ku uusan ahayn madhan
+            if (cleanItem && cleanItem !== 'null' && cleanItem !== 'undefined') {
+                const opt = document.createElement("option");
+                opt.value = cleanItem;
+                opt.textContent = cleanItem;
+                
+                // Haddii uu jiro item hore loo xushay (marka Edit la samaynayo)
+                if (cleanItem === "{{ selected_item | default('') }}") {
+                    opt.selected = true;
+                }
+                
+                itemSelect.appendChild(opt);
+            }
+        });
+    }
+
+    // 3. Event Listeners
+    categorySelect.addEventListener("change", function () {
+        loadItems(this.value);
+    });
+
+    // 4. Initial load (marka boggu soo shubmo)
+    if (categorySelect.value) {
+        loadItems(categorySelect.value);
+    }
+</script>
+
+
+{% endblock %}

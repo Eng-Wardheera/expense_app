@@ -1,0 +1,119 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Edit Account{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+<form method="POST">
+
+<div class="card shadow-sm">
+
+    <!-- HEADER -->
+    <div class="card-header bg-white">
+        <h5 class="mb-0">Edit Account</h5>
+    </div>
+
+    <div class="card-body">
+
+        <!-- ACCOUNT NAME -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Account Name</label>
+
+            <div class="col-lg-9">
+                <input type="text"
+                       name="name"
+                       class="form-control"
+                       value="{{ account.name }}"
+                       required>
+            </div>
+        </div>
+
+        <!-- TYPE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Account Type</label>
+
+            <div class="col-lg-9">
+                <select name="type" class="form-select">
+
+                    <option value="cash"
+                        {% if account.type == "cash" %}selected{% endif %}>
+                        Cash
+                    </option>
+
+                    <option value="bank"
+                        {% if account.type == "bank" %}selected{% endif %}>
+                        Bank
+                    </option>
+
+                    <option value="mobile"
+                        {% if account.type == "mobile" %}selected{% endif %}>
+                        Mobile Money
+                    </option>
+
+                </select>
+            </div>
+        </div>
+
+        <!-- BALANCE -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Balance</label>
+
+            <div class="col-lg-9">
+                <input type="number"
+                       step="0.01"
+                       name="balance"
+                       class="form-control"
+                       value="{{ account.balance }}">
+            </div>
+        </div>
+
+        <!-- CURRENCY -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Currency</label>
+
+            <div class="col-lg-9">
+                <input type="text"
+                       name="currency"
+                       class="form-control"
+                       value="{{ account.currency }}">
+            </div>
+        </div>
+
+        <!-- STATUS (optional display only) -->
+        <div class="row mb-3">
+            <label class="col-lg-3 col-form-label fw-bold">Status</label>
+
+            <div class="col-lg-9">
+                {% if account.status %}
+                    <span class="badge bg-success">Active</span>
+                {% else %}
+                    <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
+
+        <button type="submit" class="btn btn-primary px-4">
+            Update Account
+        </button>
+
+        <a href="{{ url_for('main.account_list') }}"
+           class="btn btn-secondary px-4">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+</form>
+
+</div>
+
+{% endblock %}
