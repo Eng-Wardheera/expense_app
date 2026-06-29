@@ -222,6 +222,276 @@
 </div>
 
 
+{% if user.role == "superadmin" %}
+
+<!-- Recent Users Table -->
+<div class="col-xxl-8">
+
+    <div class="card stretch stretch-full">
+
+        <div class="card-header">
+            <h5 class="card-title">Recent Users</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for u in recent_users %}
+
+                        <tr>
+
+                            <!-- User -->
+                            <td class="d-flex align-items-center gap-2">
+
+                                {% if u.photo %}
+                                    <img src="{{ u.photo }}"
+                                         class="rounded-circle"
+                                         width="35"
+                                         height="35"
+                                         style="object-fit:cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='backend/uploads/images/no_image.jpg') }}"
+                                         class="rounded-circle"
+                                         width="35">
+                                {% endif %}
+
+                                <span>{{ u.fullname or u.username }}</span>
+                            </td>
+
+                            <!-- Email -->
+                            <td>{{ u.email }}</td>
+
+                            <!-- Role -->
+                            <td>
+                                <span class="badge bg-primary">
+                                    {{ u.role }}
+                                </span>
+                            </td>
+
+                            <!-- Status -->
+                            <td>
+                                {% if u.status %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Date -->
+                            <td>
+                                {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'N/A' }}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endif %}
+
+
+
+<!-- Latest Transactions -->
+<div class="col-xxl-8">
+
+    <div class="card stretch stretch-full">
+
+        <div class="card-header">
+            <h5 class="card-title">Latest Transactions</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for t in transactions %}
+
+                        <tr>
+
+                            <!-- TYPE -->
+                            <td>
+                                {% if t.transaction_type == "income" %}
+                                    <span class="badge bg-success">Income</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Expense</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- CATEGORY -->
+                            <td>{{ t.category or 'N/A' }}</td>
+
+                            <!-- ITEM -->
+                            <td>{{ t.item or 'N/A' }}</td>
+
+                            <!-- AMOUNT -->
+                            <td>
+                                <strong>
+                                    ${{ "{:,.2f}".format(t.amount or 0) }}
+                                </strong>
+                            </td>
+
+                            <!-- DATE -->
+                            <td>
+                                {{ t.date.strftime('%Y-%m-%d') if t.date else 'N/A' }}
+                            </td>
+
+                            <!-- STATUS -->
+                            <td>
+                                {% if t.status %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- Latest Saving Transactions -->
+<div class="col-xxl-8">
+
+    <div class="card stretch stretch-full">
+
+        <div class="card-header">
+            <h5 class="card-title">Latest Saving Transactions</h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Saving ID</th>
+                            <th>Account</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for s in saving_transactions %}
+
+                        <tr>
+
+                            <!-- TYPE -->
+                            <td>
+                                {% if s.transaction_type == "deposit" %}
+                                    <span class="badge bg-success">Deposit</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Withdraw</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- SAVING -->
+                            <td>{{ s.saving_id }}</td>
+
+                            <!-- ACCOUNT -->
+                            <td>{{ s.account_id }}</td>
+
+                            <!-- AMOUNT -->
+                            <td>
+                                <strong>
+                                    ${{ "{:,.2f}".format(s.amount or 0) }}
+                                </strong>
+                            </td>
+
+                            <!-- DESCRIPTION -->
+                            <td>{{ s.description or 'N/A' }}</td>
+
+                            <!-- DATE -->
+                            <td>
+                                {{ s.date.strftime('%Y-%m-%d') if s.date else 'N/A' }}
+                            </td>
+
+                            <!-- STATUS -->
+                            <td>
+                                {% if s.status %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 
     <div class="row mt-4">
 

@@ -368,6 +368,29 @@ def dashboard():
     savings = list(mongo.db.savings.find(user_filter))
     categories = list(mongo.db.categories.find({**user_filter, "status": True}))
 
+    recent_users = list(
+        mongo.db.users.find(user_filter, {"password": 0})
+        .sort("created_at", -1)
+        .limit(5)
+    )
+
+    leads = {
+        "New": 0,
+        "Working": 0,
+        "Others": 0
+    }
+
+    for u in recent_users:
+        status = u.get("auth_status", "New")
+
+        if status == "login":
+            leads["Working"] += 1
+        elif status == "logout":
+            leads["New"] += 1
+        else:
+            leads["Others"] += 1
+
+    
     # =========================
     # SAFE FLOAT
     # =========================
@@ -445,6 +468,38 @@ def dashboard():
         "transactions": len(transactions),
     }
 
+    if current_user.role == "superadmin":
+        tx_filter = {}
+    else:
+        try:
+            user_id = ObjectId(current_user.id)
+        except:
+            user_id = current_user.id
+
+        tx_filter = {"user_id": user_id}
+
+    latest_transactions = list(
+        mongo.db.transactions.find(tx_filter)
+        .sort("created_at", -1)
+        .limit(10)
+    )
+
+    if current_user.role == "superadmin":
+        st_filter = {}
+    else:
+        try:
+            user_id = ObjectId(current_user.id)
+        except:
+            user_id = current_user.id
+
+        st_filter = {"user_id": user_id}
+
+    latest_saving_transactions = list(
+        mongo.db.saving_transactions.find(st_filter)
+        .sort("created_at", -1)
+        .limit(10)
+    )
+
     return render_template(
         "backend/home/dashboard.html",
         dashboard=dashboard,
@@ -454,7 +509,11 @@ def dashboard():
         savings=active_savings,
         user=current_user,
         category_labels=category_labels,
-        category_values=category_values
+        category_values=category_values,
+        recent_users=recent_users,
+        leads=leads ,
+        latest_transactions=latest_transactions,
+        saving_transactions=latest_saving_transactions
     )
 
 
