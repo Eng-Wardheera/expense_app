@@ -141,6 +141,18 @@ def index():
         .limit(8)
     )
 
+    # Total Transactions
+    total_transactions = mongo.db.transactions.count_documents({})
+
+    # Total Accounts (Companies = Accounts)
+    total_accounts = mongo.db.accounts.count_documents({})
+
+    # Total Savings
+    total_savings = mongo.db.savings.count_documents({})
+
+    # Total Saving Transactions
+    total_saving_transactions = mongo.db.saving_transactions.count_documents({})
+
     return render_template(
         "frontend/home/index.html",
         slides=slides,
@@ -150,6 +162,11 @@ def index():
         total_admins=total_admins,
         total_members=total_members,
         latest_users=latest_users,
+
+        total_transactions=total_transactions,
+        total_accounts=total_accounts,
+        total_savings=total_savings,
+        total_saving_transactions=total_saving_transactions,
 
         login_url="https://maareye.vercel.app/login",
         app_url="https://appsgeyser.io/19942993/Maareeye Expense"
@@ -450,6 +467,41 @@ def profile():
         user=current_user
     )
 
+
+@bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    if request.method == "POST":
+
+        old_password = request.form.get("old_password")
+        new_password = request.form.get("new_password")
+        confirm_password = request.form.get("confirm_password")
+
+        # 1. check passwords match
+        if new_password != confirm_password:
+            flash("Passwords do not match", "danger")
+            return redirect(url_for("main.change_password"))
+
+        # 2. get user from DB
+        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+
+        # 3. verify old password
+        if not check_password_hash(user["password"], old_password):
+            flash("Old password is incorrect", "danger")
+            return redirect(url_for("main.change_password"))
+
+        # 4. update password
+        hashed_password = generate_password_hash(new_password)
+
+        mongo.db.users.update_one(
+            {"_id": ObjectId(current_user.id)},
+            {"$set": {"password": hashed_password}}
+        )
+
+        flash("Password changed successfully", "success")
+        return redirect(url_for("main.dashboard"))
+
+    return render_template("backend/pages/components/users/change_password.html")
 
 @bp.route("/account-settings", methods=["GET", "POST"])
 @login_required
