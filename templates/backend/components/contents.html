@@ -424,7 +424,7 @@
                             <th>Saving ID</th>
                             <th>Account</th>
                             <th>Amount</th>
-                            <th>Description</th>
+                            <!-- <th>Description</th> -->
                             <th>Date</th>
                             <th>Status</th>
                         </tr>
@@ -446,10 +446,17 @@
                             </td>
 
                             <!-- SAVING -->
-                            <td>{{ s.saving_id }}</td>
+                            <td>
+                                <span class="fw-semibold text-primary">
+                                    {{ s.saving_name }}
+                                </span>
+                            </td>
 
-                            <!-- ACCOUNT -->
-                            <td>{{ s.account_id }}</td>
+                            <td>
+                                <span class="fw-semibold">
+                                    {{ s.account_name }}
+                                </span>
+                            </td>
 
                             <!-- AMOUNT -->
                             <td>
@@ -459,7 +466,7 @@
                             </td>
 
                             <!-- DESCRIPTION -->
-                            <td>{{ s.description or 'N/A' }}</td>
+                            <!-- <td>{{ s.description or 'N/A' }}</td> -->
 
                             <!-- DATE -->
                             <td>
@@ -516,49 +523,109 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const el = document.getElementById("categoryChart");
 
-    if (!el) {
-        console.error("Canvas not found!");
-        return;
-    }
+    if (!el) return;
 
-    const labels = JSON.parse('{{ category_labels | tojson | safe }}');
-    const values = JSON.parse('{{ category_values | tojson | safe }}');
+    const labels = {{ category_labels | tojson }};
+    const values = {{ category_values | tojson }};
 
-    if (!labels.length || !values.length) {
-        console.warn("No data for chart");
-        return;
-    }
+    if (!labels.length) return;
 
-    new Chart(el.getContext("2d"), {
-        type: 'bar',
+    // Professional Color Palette
+    const palette = [
+        "#4e73df",
+        "#1cc88a",
+        "#36b9cc",
+        "#f6c23e",
+        "#e74a3b",
+        "#6f42c1",
+        "#fd7e14",
+        "#20c997",
+        "#0dcaf0",
+        "#198754",
+        "#dc3545",
+        "#6610f2",
+        "#ff6b6b",
+        "#845ef7",
+        "#3bc9db",
+        "#82c91e",
+        "#fab005",
+        "#495057",
+        "#f06595",
+        "#1098ad"
+    ];
+
+    // Load saved colors
+    let savedColors = JSON.parse(localStorage.getItem("categoryColors") || "{}");
+
+    labels.forEach(label => {
+        if (!savedColors[label]) {
+
+            // Colors already used
+            const used = Object.values(savedColors);
+
+            // Find first unused color
+            let color = palette.find(c => !used.includes(c));
+
+            // If palette finishes, generate random color
+            if (!color) {
+                color = "#" + Math.floor(Math.random() * 16777215)
+                    .toString(16)
+                    .padStart(6, "0");
+            }
+
+            savedColors[label] = color;
+        }
+    });
+
+    // Save permanently
+    localStorage.setItem(
+        "categoryColors",
+        JSON.stringify(savedColors)
+    );
+
+    const bgColors = labels.map(label => savedColors[label]);
+
+    new Chart(el, {
+
+        type: "bar",
+
         data: {
             labels: labels,
             datasets: [{
-                label: 'Amount Spent per Category ($)',
+                label: "Amount Spent per Category ($)",
                 data: values,
-                backgroundColor: '#4e73df',
+                backgroundColor: bgColors,
+                borderColor: bgColors,
+                borderWidth: 1,
                 borderRadius: 8
             }]
         },
+
         options: {
+
             responsive: true,
+
             plugins: {
-                legend: { display: false }
+                legend: {
+                    display: false
+                }
             },
+
             scales: {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: v => '$' + v
+                        callback: value => "$" + value
                     }
                 }
             }
+
         }
+
     });
 
 });
 </script>
-
 
 
 

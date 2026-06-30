@@ -1,0 +1,357 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Weekly Transaction Report{% endblock %}
+
+{% block content %}
+
+<div class="main-content mt-4">
+
+<form method="GET">
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-white">
+        <h5 class="mb-0">
+            <i data-feather="calendar"></i>
+            Weekly Transaction Report
+        </h5>
+    </div>
+
+    <div class="card-body">
+
+        <div class="row">
+
+            <!-- Start -->
+            <div class="col-lg-3 mb-3">
+                <label class="form-label fw-bold">
+                    Start Date
+                </label>
+
+                <input
+                    type="date"
+                    name="start_date"
+                    value="{{ request.args.get('start_date','') }}"
+                    class="form-control">
+            </div>
+
+            <!-- End -->
+            <div class="col-lg-3 mb-3">
+                <label class="form-label fw-bold">
+                    End Date
+                </label>
+
+                <input
+                    type="date"
+                    name="end_date"
+                    value="{{ request.args.get('end_date','') }}"
+                    class="form-control">
+            </div>
+
+            <!-- Type -->
+            <div class="col-lg-2 mb-3">
+                <label class="form-label fw-bold">
+                    Type
+                </label>
+
+                <select name="type" class="form-select">
+
+                    <option value="">All</option>
+
+                    <option value="income"
+                    {% if request.args.get("type")=="income" %}selected{% endif %}>
+                        Income
+                    </option>
+
+                    <option value="expense"
+                    {% if request.args.get("type")=="expense" %}selected{% endif %}>
+                        Expense
+                    </option>
+
+                </select>
+            </div>
+
+            <!-- Category -->
+            <div class="col-lg-2 mb-3">
+
+                <label class="form-label fw-bold">
+                    Category
+                </label>
+
+                <select class="form-select" name="category">
+
+                    <option value="">All</option>
+
+                    {% for c in categories %}
+                    <option value="{{ c.name }}"
+                    {% if request.args.get("category")==c.name %}selected{% endif %}>
+                        {{ c.name }}
+                    </option>
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <!-- Search -->
+            <div class="col-lg-2 mb-3">
+
+                <label class="form-label fw-bold">
+                    Search
+                </label>
+
+                <input
+                    class="form-control"
+                    name="search"
+                    value="{{ request.args.get('search','') }}"
+                    placeholder="Reference...">
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-footer text-end">
+
+        <button class="btn btn-primary">
+
+            <i data-feather="filter"></i>
+
+            Filter
+
+        </button>
+
+        <a href="{{ url_for('main.weekly_report') }}"
+           class="btn btn-light">
+
+            Reset
+
+        </a>
+
+    </div>
+
+</div>
+
+</form>
+
+<br>
+
+<!-- SUMMARY -->
+
+<div class="row">
+
+    <div class="col-lg-3">
+
+        <div class="card border-success shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Total Income</h6>
+
+                <h3 class="text-success">
+
+                    ${{ "{:,.2f}".format(total_income) }}
+
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-3">
+
+        <div class="card border-danger shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Total Expense</h6>
+
+                <h3 class="text-danger">
+
+                    ${{ "{:,.2f}".format(total_expense) }}
+
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-3">
+
+        <div class="card border-primary shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Net Balance</h6>
+
+                <h3 class="text-primary">
+
+                    ${{ "{:,.2f}".format(net_balance) }}
+
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-3">
+
+        <div class="card border-warning shadow-sm">
+
+            <div class="card-body">
+
+                <h6>Transactions</h6>
+
+                <h3>
+
+                    {{ transactions|length }}
+
+                </h3>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<br>
+
+<!-- TABLE -->
+
+<div class="card shadow-sm">
+
+    <div class="card-header bg-white">
+
+        <h5 class="mb-0">
+
+            Weekly Transactions
+
+        </h5>
+
+    </div>
+
+    <div class="card-body">
+
+        <div class="table-responsive">
+
+            <table class="table table-bordered table-hover align-middle">
+
+                <thead class="table-light">
+
+                <tr>
+
+                    <th>#</th>
+
+                    <th>Date</th>
+
+                    <th>Category</th>
+
+                    <th>Item</th>
+
+                    <th>Type</th>
+
+                    <th>Amount</th>
+
+                    <th>Description</th>
+
+                    <th>Reference</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for t in transactions %}
+
+                <tr>
+
+                    <td>{{ loop.index }}</td>
+
+                    <td>
+
+                        {{ t.date.strftime("%d-%m-%Y") if t.date }}
+
+                    </td>
+
+                    <td>{{ t.category }}</td>
+
+                    <td>{{ t.item }}</td>
+
+                    <td>
+
+                        {% if t.transaction_type=="income" %}
+
+                        <span class="badge bg-success">
+
+                            Income
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge bg-danger">
+
+                            Expense
+
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <td>
+
+                        ${{ "{:,.2f}".format(t.amount|float) }}
+
+                    </td>
+
+                    <td>
+
+                        {{ t.description }}
+
+                    </td>
+
+                    <td>
+
+                        {{ t.reference_no }}
+
+                    </td>
+
+                </tr>
+
+                {% else %}
+
+                <tr>
+
+                    <td colspan="8" class="text-center text-muted">
+
+                        No transactions found.
+
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+{% endblock %}

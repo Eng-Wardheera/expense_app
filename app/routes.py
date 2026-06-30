@@ -500,6 +500,24 @@ def dashboard():
         .limit(10)
     )
 
+    # Ku dar magaca Saving iyo Account
+    for tx in latest_saving_transactions:
+
+        # Saving Name
+        saving = mongo.db.savings.find_one({
+            "_id": ObjectId(tx["saving_id"])
+        }) if tx.get("saving_id") else None
+
+        tx["saving_name"] = saving["title"] if saving else "N/A"
+
+        # Account Name
+        account = mongo.db.accounts.find_one({
+            "_id": ObjectId(tx["account_id"])
+        }) if tx.get("account_id") else None
+
+        tx["account_name"] = account["name"] if account else "N/A"
+        
+
     return render_template(
         "backend/home/dashboard.html",
         dashboard=dashboard,
@@ -2544,6 +2562,443 @@ def delete_saving_transaction(id):
     flash("Transaction deleted successfully.", "success")
 
     return redirect(url_for("main.saving_transaction_list"))
+
+
+
+@bp.route("/reports/weekly")
+@login_required
+def weekly_report():
+    from datetime import datetime, timedelta
+    from bson import ObjectId
+
+    # ------------------------------------
+    # User Filter
+    # ------------------------------------
+    if current_user.role == "superadmin":
+        query = {}
+        category_filter = {}
+    else:
+        try:
+            user_id = ObjectId(current_user.id)
+        except:
+            user_id = current_user.id
+
+        query = {"user_id": user_id}
+        category_filter = {"user_id": user_id}
+
+    # ------------------------------------
+    # Categories
+    # ------------------------------------
+    categories = list(
+        mongo.db.categories.find(category_filter).sort("name", 1)
+    )
+
+    # ------------------------------------
+    # GET FILTERS
+    # ------------------------------------
+    start_date = request.args.get("start_date", "").strip()
+    end_date = request.args.get("end_date", "").strip()
+    trans_type = request.args.get("type", "").strip()
+    category = request.args.get("category", "").strip()
+    search = request.args.get("search", "").strip()
+
+    # ------------------------------------
+    # Date Range
+    # ------------------------------------
+    if start_date and end_date:
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        end = datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)
+
+    else:
+        end = datetime.utcnow()
+        start = end - timedelta(days=7)
+
+    query["date"] = {
+        "$gte": start,
+        "$lt": end
+    }
+
+    # ------------------------------------
+    # Transaction Type
+    # ------------------------------------
+    if trans_type:
+        query["transaction_type"] = trans_type
+
+    # ------------------------------------
+    # Category
+    # ------------------------------------
+    if category:
+        query["category"] = category
+
+    # ------------------------------------
+    # Search
+    # ------------------------------------
+    if search:
+        query["$or"] = [
+            {"reference_no": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+            {"item": {"$regex": search, "$options": "i"}},
+            {"category": {"$regex": search, "$options": "i"}}
+        ]
+
+    # ------------------------------------
+    # Transactions
+    # ------------------------------------
+    transactions = list(
+        mongo.db.transactions.find(query).sort("date", -1)
+    )
+
+    # ------------------------------------
+    # Totals
+    # ------------------------------------
+    total_income = sum(
+        float(t.get("amount", 0))
+        for t in transactions
+        if t.get("transaction_type") == "income"
+    )
+
+    total_expense = sum(
+        float(t.get("amount", 0))
+        for t in transactions
+        if t.get("transaction_type") == "expense"
+    )
+
+    net_balance = total_income - total_expense
+
+    total_transactions = len(transactions)
+
+    # ------------------------------------
+    # Render
+    # ------------------------------------
+    return render_template(
+        "backend/pages/components/reports/weekly_report.html",
+        transactions=transactions,
+        categories=categories,
+        total_income=total_income,
+        total_expense=total_expense,
+        net_balance=net_balance,
+        total_transactions=total_transactions,
+        start_date=start,
+        end_date=end
+    )
+
+
+
+@bp.route("/reports/monthly")
+@login_required
+def monthly_report():
+    from datetime import datetime, timedelta
+    from bson import ObjectId
+    from calendar import monthrange
+
+    today = datetime.utcnow()
+
+    # ------------------------------------
+    # USER FILTER
+    # ------------------------------------
+    if current_user.role == "superadmin":
+        base_query = {}
+    else:
+        try:
+            user_id = ObjectId(current_user.id)
+        except:
+            user_id = current_user.id
+        base_query = {"user_id": user_id}
+
+    # ------------------------------------
+    # GET FILTERS
+    # ------------------------------------
+    year = request.args.get("year", type=int) or today.year
+    month = request.args.get("month", type=int) or today.month
+
+    start = datetime(year, month, 1)
+    last_day = monthrange(year, month)[1]
+    end = datetime(year, month, last_day, 23, 59, 59)
+
+    query = {
+        **base_query,
+        "date": {"$gte": start, "$lte": end}
+    }
+
+    # ------------------------------------
+    # TRANSACTIONS
+    # ------------------------------------
+    transactions = list(
+        mongo.db.transactions.find(query).sort("date", 1)
+    )
+
+    # ------------------------------------
+    # CATEGORY BREAKDOWN (LIKE YOUR EXCEL)
+    # ------------------------------------
+    category_data = {}
+
+    for t in transactions:
+        cat = t.get("category", "Unknown")
+        t_type = t.get("transaction_type")
+        amount = float(t.get("amount", 0))
+        date = t.get("date")
+
+        if cat not in category_data:
+            category_data[cat] = {
+                "income": 0,
+                "expense": 0,
+                "total": 0,
+                "date": date   # ✔ ADD THIS
+            }
+
+        if t_type == "income":
+            category_data[cat]["income"] += amount
+        else:
+            category_data[cat]["expense"] += amount
+
+        category_data[cat]["total"] += amount
+
+    # ------------------------------------
+    # BALANCE CALCULATION (OPENING / CLOSING)
+    # ------------------------------------
+    before_query = {
+        **base_query,
+        "date": {"$lt": start}
+    }
+
+    before_transactions = list(mongo.db.transactions.find(before_query))
+
+    opening_balance = sum(
+        float(t.get("amount", 0)) if t.get("transaction_type") == "income"
+        else -float(t.get("amount", 0))
+        for t in before_transactions
+    )
+
+    income = sum(float(t.get("amount", 0)) for t in transactions if t.get("transaction_type") == "income")
+    expense = sum(float(t.get("amount", 0)) for t in transactions if t.get("transaction_type") == "expense")
+
+    closing_balance = opening_balance + income - expense
+
+    # ------------------------------------
+    # MONTHLY LIST (FOR TABLE)
+    # ------------------------------------
+    report_rows = []
+
+    for cat, val in category_data.items():
+        report_rows.append({
+            "category": cat,
+            "income": val["income"],
+            "expense": val["expense"],
+            "total": val["total"],
+            "date": val.get("date")   # ✔ ADD THIS
+        })
+
+    # ------------------------------------
+    # RENDER
+    # ------------------------------------
+    return render_template(
+        "backend/pages/components/reports/monthly_report.html",
+        transactions=transactions,
+        report_rows=report_rows,
+        opening_balance=opening_balance,
+        closing_balance=closing_balance,
+        total_income=income,
+        total_expense=expense,
+        year=year,
+        month=month
+    )
+
+
+
+@bp.route("/reports/yearly")
+@login_required
+def yearly_report():
+
+    from datetime import datetime
+    from bson import ObjectId
+
+    today = datetime.utcnow()
+
+    start = datetime(today.year, 1, 1)
+
+    if current_user.role == "superadmin":
+        query = {
+            "date": {
+                "$gte": start,
+                "$lte": today
+            }
+        }
+    else:
+        query = {
+            "user_id": ObjectId(current_user.id),
+            "date": {
+                "$gte": start,
+                "$lte": today
+            }
+        }
+
+    transactions = list(
+        mongo.db.transactions.find(query).sort("date", -1)
+    )
+
+    return render_template(
+        "backend/pages/components/reports/weekly_report.html",
+        transactions=transactions
+    )
+
+
+
+@bp.route("/reports/general")
+@login_required
+def general_report():
+
+    if current_user.role not in ["superadmin", "admin"]:
+        abort(403)
+
+    # ------------------------------------
+    # User Filter
+    # ------------------------------------
+    if current_user.role == "superadmin":
+        query = {}
+    else:
+        try:
+            query = {"user_id": ObjectId(current_user.id)}
+        except:
+            query = {"user_id": current_user.id}
+
+    # ------------------------------------
+    # Filters
+    # ------------------------------------
+    transaction_type = request.args.get("type")
+    category = request.args.get("category")
+    item = request.args.get("item")
+    account_id = request.args.get("account")
+    search = request.args.get("search")
+
+    start_date = request.args.get("start_date")
+    end_date = request.args.get("end_date")
+
+    # ------------------------------------
+    # Type
+    # ------------------------------------
+    if transaction_type:
+        query["transaction_type"] = transaction_type
+
+    # ------------------------------------
+    # Category
+    # ------------------------------------
+    if category:
+        query["category"] = category
+
+    # ------------------------------------
+    # Item
+    # ------------------------------------
+    if item:
+        query["item"] = item
+
+    # ------------------------------------
+    # Account
+    # ------------------------------------
+    if account_id:
+        query["account_id"] = account_id
+
+    # ------------------------------------
+    # Date Range
+    # ------------------------------------
+    if start_date or end_date:
+
+        date_filter = {}
+
+        if start_date:
+            date_filter["$gte"] = datetime.strptime(
+                start_date,
+                "%Y-%m-%d"
+            )
+
+        if end_date:
+            date_filter["$lte"] = datetime.strptime(
+                end_date,
+                "%Y-%m-%d"
+            )
+
+        query["date"] = date_filter
+
+    # ------------------------------------
+    # Search
+    # ------------------------------------
+    if search:
+
+        query["$or"] = [
+            {"description": {"$regex": search, "$options": "i"}},
+            {"note": {"$regex": search, "$options": "i"}},
+            {"reference_no": {"$regex": search, "$options": "i"}},
+        ]
+
+    # ------------------------------------
+    # Transactions
+    # ------------------------------------
+    transactions = list(
+        mongo.db.transactions
+        .find(query)
+        .sort("date", -1)
+    )
+
+    # ------------------------------------
+    # Totals
+    # ------------------------------------
+    total_income = sum(
+        float(t.get("amount", 0))
+        for t in transactions
+        if t.get("transaction_type") == "income"
+    )
+
+    total_expense = sum(
+        float(t.get("amount", 0))
+        for t in transactions
+        if t.get("transaction_type") == "expense"
+    )
+
+    net_balance = total_income - total_expense
+
+    # ------------------------------------
+    # Filters Data
+    # ------------------------------------
+    if current_user.role == "superadmin":
+        user_filter = {}
+    else:
+        user_filter = query.copy()
+        user_filter.pop("$or", None)
+        user_filter.pop("date", None)
+        user_filter.pop("transaction_type", None)
+        user_filter.pop("category", None)
+        user_filter.pop("item", None)
+        user_filter.pop("account_id", None)
+
+    categories = list(
+        mongo.db.categories.find(user_filter)
+    )
+
+    accounts = list(
+        mongo.db.accounts.find(user_filter)
+    )
+
+    return render_template(
+        "backend/reports/general.html",
+
+        transactions=transactions,
+
+        categories=categories,
+        accounts=accounts,
+
+        total_income=total_income,
+        total_expense=total_expense,
+        net_balance=net_balance,
+
+        filters={
+            "type": transaction_type,
+            "category": category,
+            "item": item,
+            "account": account_id,
+            "search": search,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+    )
 
 
 
