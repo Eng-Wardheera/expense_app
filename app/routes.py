@@ -383,38 +383,39 @@ def send_otp_email(user_email, otp_code, username, reset_link=None,
                    sender_name=None, sender_email=None):
 
     try:
-        # Defaults
         group_name = "My App"
         system_name = "My System"
         email_support = "support@example.com"
 
-        # Current year
         current_year = datetime.now(pytz.timezone("Africa/Nairobi")).year
 
-        # Sender info (safe fallback)
         sender_email = sender_email or current_app.config.get("MAIL_USERNAME")
         sender_name = sender_name or group_name
         sender_full = f"{sender_name} <{sender_email}>"
 
         # =====================================
-        # 🔥 AUTO RESET LINK (IMPORTANT FIX)
+        # 🔥 SECURE CLICK-ONCE OTP LINK
         # =====================================
         if not reset_link:
-            reset_link = url_for(
+            token_link = url_for(
                 'main.forgot_password_verify_otp',
                 otp=otp_code,
                 email=user_email,
                 _external=True
             )
 
-        # Create message
+            # add anti-replay flag (important)
+            reset_link = token_link + "&used=0"
+
+        # =====================================
+        # EMAIL MESSAGE
+        # =====================================
         msg = Message(
             subject=f"{group_name} - OTP Verification Code",
             sender=sender_full,
             recipients=[user_email]
         )
 
-        # HTML body
         msg.html = render_template(
             "backend/auth/auth-sms-verify.html",
             otp_code=otp_code,
@@ -427,7 +428,6 @@ def send_otp_email(user_email, otp_code, username, reset_link=None,
             email_support=email_support
         )
 
-        # Send email
         mail.send(msg)
 
         print("✅ OTP email sent successfully")
@@ -435,7 +435,7 @@ def send_otp_email(user_email, otp_code, username, reset_link=None,
     except Exception as e:
         print(f"❌ Error sending OTP email: {str(e)}")
         raise
-
+    
 @bp.route('/forgot-password/verify-otp', methods=['GET', 'POST'])
 def forgot_password_verify_otp():
 
@@ -452,60 +452,93 @@ def forgot_password_verify_otp():
     if url_email:
         session['forgot_password_email'] = url_email
 
-    if url_otp:
-        session['forgot_password_otp'] = url_otp
-
     # ===============================
     # SESSION CHECK
     # ===============================
     email = session.get('forgot_password_email')
-    saved_otp = session.get('forgot_password_otp')
-    otp_created_at = session.get('otp_created_at')
 
-    if not email or not saved_otp:
+    if not email:
         flash("Session expired. Please start the password reset again.", "error")
         return redirect(url_for('main.forgot_password'))
+
+    # ===============================
+    # GET USER FROM DB (SOURCE OF TRUTH)
+    # ===============================
+    user = mongo.db.users.find_one({"email": email})
+
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for('main.forgot_password'))
+
+    # ===============================
+    # 🔥 OTP SINGLE-USE CHECK (IMPORTANT FIX)
+    # ===============================
+    if user.get("otp_used") == True:
+        flash("OTP already used. Please request a new one.", "error")
+        return redirect(url_for('main.forgot_password'))
+
+    saved_otp = user.get("reset_otp")
+    otp_created_at = user.get("otp_created_at")
+
+    # ===============================
+    # EMAIL LINK CLICK (AUTO OTP LOAD)
+    # ===============================
+    if url_otp:
+        session['forgot_password_otp'] = url_otp
+
+        # 🔥 mark OTP as used immediately (prevents reuse)
+        mongo.db.users.update_one(
+            {"email": email},
+            {"$set": {"otp_used": True}}
+        )
+
+    saved_otp = session.get('forgot_password_otp', saved_otp)
 
     # ===============================
     # POST VERIFY OTP
     # ===============================
     if request.method == 'POST':
+
         input_otp = request.form.get('otp_code')
 
         if not input_otp:
             flash("OTP is required!", "error")
             return redirect(url_for('main.forgot_password_verify_otp'))
 
-        # OTP expiry check
+        # ===============================
+        # OTP EXPIRY CHECK
+        # ===============================
         if otp_created_at:
             try:
-                otp_time = datetime.fromisoformat(otp_created_at)
+                otp_time = otp_created_at
+                if isinstance(otp_time, str):
+                    otp_time = datetime.fromisoformat(otp_time)
+
+                current_time = datetime.now(pytz.timezone("Africa/Nairobi"))
+
+                if otp_time.tzinfo is None:
+                    otp_time = pytz.timezone("Africa/Nairobi").localize(otp_time)
+
+                if current_time - otp_time > timedelta(minutes=5):
+                    mongo.db.users.update_one(
+                        {"email": email},
+                        {"$set": {"otp_used": True}}
+                    )
+                    flash("OTP expired. Please request a new password reset.", "error")
+                    return redirect(url_for('main.forgot_password'))
+
             except:
-                session.clear()
                 flash("Session error. Please request OTP again.", "error")
                 return redirect(url_for('main.forgot_password'))
 
-            current_time = datetime.now(pytz.timezone("Africa/Nairobi"))
-
-            if otp_time.tzinfo is None:
-                otp_time = pytz.timezone("Africa/Nairobi").localize(otp_time)
-
-            if current_time - otp_time > timedelta(minutes=5):
-                session.clear()
-                flash("OTP expired. Please request a new password reset.", "error")
-                return redirect(url_for('main.forgot_password'))
-
-        # OTP validation
+        # ===============================
+        # OTP VALIDATION
+        # ===============================
         if str(input_otp).strip() == str(saved_otp).strip():
-
-            user = mongo.db.users.find_one({"email": email})
-
-            if not user:
-                flash("User not found for this email.", "error")
-                return redirect(url_for('main.forgot_password'))
 
             session['forgot_password_verified_email'] = email
 
+            # cleanup session
             session.pop('forgot_password_otp', None)
             session.pop('otp_created_at', None)
 
@@ -517,14 +550,13 @@ def forgot_password_verify_otp():
             return redirect(url_for('main.forgot_password_verify_otp'))
 
     # ===============================
-    # GET PAGE RENDER (AUTO OTP PASS)
+    # GET RENDER
     # ===============================
     return render_template(
         'backend/auth/auth-verify-creative.html',
         email=email,
         auto_otp=url_otp
     )
-
 
 @bp.route('/forgot-password/change-password', methods=['GET', 'POST'])
 def forgot_password_change_password():
