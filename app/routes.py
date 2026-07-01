@@ -2,6 +2,7 @@ from collections import defaultdict
 import datetime
 import io
 import json
+from flask_mail import Message   # ✅ CORRECT
 import math
 import os
 import random
@@ -9,15 +10,15 @@ import re
 import secrets
 import traceback
 import uuid
-
+import pytz
 from bson import ObjectId
 import cloudinary
 from flask import Blueprint, abort, current_app, flash, jsonify, make_response, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
-from app import ALLOWED_EXTENSIONS, google
-from app.extensions import mongo
+from app import ALLOWED_EXTENSIONS, google, now_eat
+from app.extensions import mongo, mail
 from datetime import datetime, timedelta
 from xhtml2pdf import pisa
 from flask import Response
@@ -334,6 +335,261 @@ def google_callback():
     
     flash("Successfully logged in with Google!", "success")
     return redirect(url_for("main.dashboard"))
+
+
+@bp.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+
+    if request.method == 'POST':
+        email = request.form.get('email')
+
+        if not email:
+            flash("Email waa mandatory!", "danger")
+            return redirect(url_for('main.forgot_password'))
+
+        user = mongo.db.users.find_one({"email": email})
+
+        flash("If this email is registered, you will receive password reset instructions shortly.", "info")
+
+        if not user:
+            return redirect(url_for('main.forgot_password'))
+
+        # Generate OTP
+        otp_code = str(random.randint(100000, 999999))
+
+        # ✅ SAVE IN SESSION (IMPORTANT FIX)
+        session['forgot_password_email'] = email
+        session['forgot_password_otp'] = otp_code
+        session['otp_created_at'] = datetime.now(pytz.timezone("Africa/Nairobi")).isoformat()
+
+        try:
+            send_otp_email(
+                user_email=email,
+                otp_code=otp_code,
+                username=user.get("username")
+            )
+
+            flash("OTP sent to your email. Please check your inbox.", "success")
+
+        except Exception as e:
+            flash(f"Failed to send OTP email. ({str(e)})", "danger")
+
+        return redirect(url_for('main.forgot_password_verify_otp'))
+
+    return render_template('backend/auth/auth-reset-creative.html')
+
+
+def send_otp_email(user_email, otp_code, username, reset_link=None,
+                   sender_name=None, sender_email=None):
+
+    try:
+        # Defaults
+        group_name = "My App"
+        system_name = "My System"
+        email_support = "support@example.com"
+
+        # Current year
+        current_year = datetime.now(pytz.timezone("Africa/Nairobi")).year
+
+        # Sender info (safe fallback)
+        sender_email = sender_email or current_app.config.get("MAIL_USERNAME")
+        sender_name = sender_name or group_name
+        sender_full = f"{sender_name} <{sender_email}>"
+
+        # =====================================
+        # 🔥 AUTO RESET LINK (IMPORTANT FIX)
+        # =====================================
+        if not reset_link:
+            reset_link = url_for(
+                'main.forgot_password_verify_otp',
+                otp=otp_code,
+                email=user_email,
+                _external=True
+            )
+
+        # Create message
+        msg = Message(
+            subject=f"{group_name} - OTP Verification Code",
+            sender=sender_full,
+            recipients=[user_email]
+        )
+
+        # HTML body
+        msg.html = render_template(
+            "backend/auth/auth-sms-verify.html",
+            otp_code=otp_code,
+            username=username,
+            email=user_email,
+            reset_link=reset_link,
+            current_year=current_year,
+            group_name=group_name,
+            system_name=system_name,
+            email_support=email_support
+        )
+
+        # Send email
+        mail.send(msg)
+
+        print("✅ OTP email sent successfully")
+
+    except Exception as e:
+        print(f"❌ Error sending OTP email: {str(e)}")
+        raise
+
+@bp.route('/forgot-password/verify-otp', methods=['GET', 'POST'])
+def forgot_password_verify_otp():
+
+    if current_user.is_authenticated:
+        flash("You are already logged in.", "info")
+        return redirect(url_for("main.dashboard"))
+
+    # ===============================
+    # 🔥 AUTO-FILL FROM EMAIL LINK
+    # ===============================
+    url_otp = request.args.get('otp')
+    url_email = request.args.get('email')
+
+    if url_email:
+        session['forgot_password_email'] = url_email
+
+    if url_otp:
+        session['forgot_password_otp'] = url_otp
+
+    # ===============================
+    # SESSION CHECK
+    # ===============================
+    email = session.get('forgot_password_email')
+    saved_otp = session.get('forgot_password_otp')
+    otp_created_at = session.get('otp_created_at')
+
+    if not email or not saved_otp:
+        flash("Session expired. Please start the password reset again.", "error")
+        return redirect(url_for('main.forgot_password'))
+
+    # ===============================
+    # POST VERIFY OTP
+    # ===============================
+    if request.method == 'POST':
+        input_otp = request.form.get('otp_code')
+
+        if not input_otp:
+            flash("OTP is required!", "error")
+            return redirect(url_for('main.forgot_password_verify_otp'))
+
+        # OTP expiry check
+        if otp_created_at:
+            try:
+                otp_time = datetime.fromisoformat(otp_created_at)
+            except:
+                session.clear()
+                flash("Session error. Please request OTP again.", "error")
+                return redirect(url_for('main.forgot_password'))
+
+            current_time = datetime.now(pytz.timezone("Africa/Nairobi"))
+
+            if otp_time.tzinfo is None:
+                otp_time = pytz.timezone("Africa/Nairobi").localize(otp_time)
+
+            if current_time - otp_time > timedelta(minutes=5):
+                session.clear()
+                flash("OTP expired. Please request a new password reset.", "error")
+                return redirect(url_for('main.forgot_password'))
+
+        # OTP validation
+        if str(input_otp).strip() == str(saved_otp).strip():
+
+            user = mongo.db.users.find_one({"email": email})
+
+            if not user:
+                flash("User not found for this email.", "error")
+                return redirect(url_for('main.forgot_password'))
+
+            session['forgot_password_verified_email'] = email
+
+            session.pop('forgot_password_otp', None)
+            session.pop('otp_created_at', None)
+
+            flash("OTP verified successfully. Please change your password.", "success")
+            return redirect(url_for('main.forgot_password_change_password'))
+
+        else:
+            flash("Invalid OTP. Please try again.", "error")
+            return redirect(url_for('main.forgot_password_verify_otp'))
+
+    # ===============================
+    # GET PAGE RENDER (AUTO OTP PASS)
+    # ===============================
+    return render_template(
+        'backend/auth/auth-verify-creative.html',
+        email=email,
+        auto_otp=url_otp
+    )
+
+
+@bp.route('/forgot-password/change-password', methods=['GET', 'POST'])
+def forgot_password_change_password():
+
+    # =========================
+    # SESSION CHECK
+    # =========================
+    email = session.get('forgot_password_verified_email')
+
+    if not email:
+        flash("Session expired. Please start the password reset again.", "error")
+        return redirect(url_for('main.forgot_password'))
+
+    # =========================
+    # POST (CHANGE PASSWORD)
+    # =========================
+    if request.method == 'POST':
+
+        new_password = request.form.get('password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not new_password or not confirm_password:
+            flash("All fields are required!", "error")
+            return redirect(url_for('main.forgot_password_change_password'))
+
+        if new_password != confirm_password:
+            flash("Passwords do not match!", "error")
+            return redirect(url_for('main.forgot_password_change_password'))
+
+        if len(new_password) < 6:
+            flash("Password must be at least 6 characters!", "error")
+            return redirect(url_for('main.forgot_password_change_password'))
+
+        # =========================
+        # HASH PASSWORD
+        # =========================
+        from werkzeug.security import generate_password_hash
+
+        hashed_password = generate_password_hash(new_password)
+
+        # =========================
+        # UPDATE MONGO USER
+        # =========================
+        mongo.db.users.update_one(
+            {"email": email},
+            {"$set": {
+                "password": hashed_password
+            }}
+        )
+
+        # =========================
+        # CLEAN SESSION
+        # =========================
+        session.pop('forgot_password_email', None)
+        session.pop('forgot_password_verified_email', None)
+        session.pop('forgot_password_otp', None)
+        session.pop('otp_created_at', None)
+
+        flash("Password changed successfully. Please login.", "success")
+        return redirect(url_for('main.login'))
+
+    # =========================
+    # GET PAGE
+    # =========================
+    return render_template('backend/auth/auth-change-password.html', email=email)
 
 
 

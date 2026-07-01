@@ -75,10 +75,13 @@ def create_app():
    
 
 
-    # Secure Secret Key
-    app.secret_key = os.getenv('SECRET_KEY', 'XWt7819618552904Sm32Mxx2102dklF')
    
-
+   # Secure Secret Key (ONLY ONCE)
+    app.config["SECRET_KEY"] = os.getenv(
+        "SECRET_KEY",
+        "XWt7819618552904Sm32Mxx2102dklF"
+    )
+    
     # Configuration
    
     mongo_uri = os.getenv("MONGO_URI")

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #f4f7fa;
+    margin: 0;
+    padding: 20px;
+}
+
+.email-container {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Header */
+.header {
+    background: linear-gradient(90deg, #6c63ff 0%, #4b6cb7 100%);
+    color: #fff;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.icon-box {
+    background: rgba(255,255,255,0.2);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+
+.content {
+    padding: 30px;
+    text-align: center;
+    color: #333;
+}
+
+/* OTP */
+.otp-container {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 25px 0;
+    flex-wrap: wrap;
+}
+
+.otp-box {
+    background: #f0f0ff;
+    color: #6c63ff;
+    font-size: 24px;
+    font-weight: bold;
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: 1px solid #e0e0ff;
+}
+
+/* Buttons */
+.btn-verify {
+    background: #6c63ff;
+    color: #fff !important;
+    padding: 15px 30px;
+    text-decoration: none;
+    border-radius: 30px;
+    font-weight: bold;
+    display: inline-block;
+}
+
+.btn-reset {
+    color: #6c63ff !important;
+    text-decoration: none;
+    font-weight: bold;
+    border: 1px solid #6c63ff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.expiry-box {
+    background: #f8f9fe;
+    border: 1px solid #eee;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 20px 0;
+    font-size: 14px;
+    color: #555;
+}
+
+/* Footer */
+.footer {
+    background: #1a1a2e;
+    color: #a0a0a0;
+    padding: 30px;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .content { padding: 20px; }
+    .otp-box { font-size: 20px; padding: 10px 14px; }
+    .btn-verify { width: 80%; padding: 15px 0; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="email-container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="icon-box">🔒</div>
+        <h2>Verify Your Email</h2>
+        <p>Use OTP below to continue securely</p>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+
+        <p style="text-align:left;">
+            Hello <strong>{{ username }}</strong>,
+        </p>
+
+        <p style="text-align:left;">
+            We received a request to verify your account. Use the OTP below.
+        </p>
+
+        <!-- OTP DISPLAY -->
+        <p style="color:#6c63ff;font-weight:bold;font-size:12px;">
+            YOUR OTP CODE
+        </p>
+
+        <div class="otp-container">
+            {% for digit in otp_code %}
+                <div class="otp-box">{{ digit }}</div>
+            {% endfor %}
+        </div>
+
+        <div class="expiry-box">
+            <strong>🕒 Expires in 10 minutes</strong><br>
+            If you did not request this, ignore this email.
+        </div>
+
+        <!-- MAIN BUTTON -->
+        <a href="{{ reset_link }}" class="btn-verify">
+            Verify My Email
+        </a>
+
+        <p style="margin:20px 0;font-size:13px;color:#888;">
+            Or enter OTP manually on the page
+        </p>
+
+        <!-- SECOND LINK -->
+        <a href="{{ reset_link }}" class="btn-reset">
+            Open Verification Page
+        </a>
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p style="color:white;font-weight:bold;">
+            MAAREYE EXPENSE TRACKER
+        </p>
+
+        <p>Manage smarter. Spend better.</p>
+
+        <hr style="border-top:1px solid #333;margin:20px 0;">
+
+        <p>&copy; {{ current_year }} All rights reserved</p>
+
+        <p>Support: {{ email_support }}</p>
+    </div>
+
+</div>
+
+</body>
+</html>
