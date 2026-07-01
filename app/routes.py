@@ -1,5 +1,6 @@
 from collections import defaultdict
 import datetime
+from decimal import Decimal, InvalidOperation
 import io
 import json
 from flask_mail import Message   # ✅ CORRECT
@@ -1261,55 +1262,63 @@ def add_category():
 
 
 
-@bp.route('/categories')
+def normalize_name(name):
+    return re.sub(r"\s+", " ", str(name)).strip().lower()
+
+
+@bp.route("/categories")
 @login_required
 def category_list():
 
-    # 🔥 GET DATA BASED ON ROLE
+    # Get categories
     if current_user.role == UserRole.superadmin.value:
         raw_categories = list(mongo.db.categories.find())
     else:
-        raw_categories = list(mongo.db.categories.find({
-            "user_id": ObjectId(current_user.id)
-        }))
+        raw_categories = list(
+            mongo.db.categories.find({
+                "user_id": ObjectId(current_user.id)
+            })
+        )
 
     categories = []
 
-    for c in raw_categories:
+    for category in raw_categories:
 
-        # 🧹 CLEAN ITEMS SAFELY
-        items = c.get("items", [])
+        items = category.get("items", [])
 
         fixed_items = []
+        seen = set()
 
         if isinstance(items, list):
-            for i in items:
-                if isinstance(i, str):
-                    i = i.strip()
 
-                    # fix broken cases like: '"Cumar"' or 'Cumar hhg'
-                    i = i.replace('"', "")
+            for item in items:
 
-                    # split if badly stored
-                    parts = i.split()
-                    fixed_items.extend(parts)
-                else:
-                    fixed_items.append(str(i))
+                if item is None:
+                    continue
 
-        # remove duplicates + empty
-        c["items"] = list(dict.fromkeys([x for x in fixed_items if x]))
+                item = str(item).replace('"', "").strip()
 
-        # 🧱 WRAP CLASS
-        categories.append(Category(c))
+                if not item:
+                    continue
+
+                # haddii uu database-ku string ahaan u kaydiyey
+                if item.startswith("[") and item.endswith("]"):
+                    item = item[1:-1].strip()
+
+                key = normalize_name(item)
+
+                if key not in seen:
+                    seen.add(key)
+                    fixed_items.append(item)
+
+        category["items"] = fixed_items
+
+        categories.append(Category(category))
 
     return render_template(
         "backend/pages/components/categories/all_categories.html",
         categories=categories
     )
-
-
-def normalize_name(name):
-    return re.sub(r'\s+', ' ', name).strip().lower()
 
 
 @bp.route("/edit-category/<id>", methods=["GET", "POST"])
@@ -2199,64 +2208,93 @@ def delete_transaction(id):
     flash("Transaction deleted successfully.", "success")
     return redirect(url_for("main.transaction_list"))
 
-
 @bp.route("/add-saving", methods=["GET", "POST"])
 @login_required
 def add_saving():
 
-    # 🔥 GET USER ACCOUNTS
-    accounts = list(mongo.db.accounts.find({
-        "user_id": ObjectId(current_user.id)
-    }))
+    # ==========================
+    # GET USER ACCOUNTS
+    # ==========================
+    accounts = list(
+        mongo.db.accounts.find({
+            "user_id": ObjectId(current_user.id)
+        })
+    )
 
     if request.method == "POST":
 
-        title = request.form.get("title")
-        description = request.form.get("description", "")
-        target_amount = request.form.get("target_amount")
-        account_id = request.form.get("account_id")
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        target_amount = request.form.get("target_amount", "").strip()
+        account_id = request.form.get("account_id", "").strip()
         start_date = request.form.get("start_date")
         maturity_date = request.form.get("maturity_date")
 
-        # ❌ VALIDATION
-        if not title or not target_amount or not account_id:
-            flash("Title, Target Amount and Account are required.", "danger")
+        # ==========================
+        # VALIDATION
+        # ==========================
+        if not title:
+            flash("Saving title is required.", "danger")
             return redirect(url_for("main.add_saving"))
 
+        if not target_amount:
+            flash("Target amount is required.", "danger")
+            return redirect(url_for("main.add_saving"))
+
+        if not account_id:
+            flash("Please select an account.", "danger")
+            return redirect(url_for("main.add_saving"))
+
+        # ==========================
+        # TARGET AMOUNT
+        # ==========================
         try:
-            target_amount = float(target_amount)
-        except ValueError:
+            target_amount = Decimal(target_amount).quantize(Decimal("0.01"))
+        except InvalidOperation:
             flash("Invalid target amount.", "danger")
             return redirect(url_for("main.add_saving"))
 
-        # 🔥 CHECK ACCOUNT EXISTS
-        account = mongo.db.accounts.find_one({
-            "_id": ObjectId(account_id),
-            "user_id": ObjectId(current_user.id)
-        })
+        if target_amount <= 0:
+            flash("Target amount must be greater than zero.", "danger")
+            return redirect(url_for("main.add_saving"))
+
+        # ==========================
+        # ACCOUNT CHECK
+        # ==========================
+        try:
+            account = mongo.db.accounts.find_one({
+                "_id": ObjectId(account_id),
+                "user_id": ObjectId(current_user.id)
+            })
+        except Exception:
+            account = None
 
         if not account:
             flash("Invalid account selected.", "danger")
             return redirect(url_for("main.add_saving"))
 
-        # 🔥 CREATE SAVING OBJECT
+        # ==========================
+        # CREATE SAVING
+        # ==========================
         saving = Saving()
 
         data = saving.add(
             user_id=current_user.id,
             title=title,
             description=description,
-            target_amount=target_amount,
+            target_amount=float(target_amount),   # 2 decimal only
             account_id=account_id,
             start_date=start_date,
             maturity_date=maturity_date
         )
 
-        # convert ObjectIds
         data["user_id"] = ObjectId(current_user.id)
         data["account_id"] = ObjectId(account_id)
+        data["target_amount"] = float(target_amount)
 
-        # 💾 SAVE TO DB
+        # ==========================
+        # SAVE
+        # ==========================
         mongo.db.savings.insert_one(data)
 
         flash("Saving goal created successfully.", "success")
