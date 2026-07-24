@@ -2126,8 +2126,6 @@ def edit_transaction(id):
         # Status
         status = True if request.form.get("status") else False
 
-
-
         # =========================
         # BALANCE CHECK FIX
         # =========================
@@ -2139,7 +2137,6 @@ def edit_transaction(id):
                     "_id": ObjectId(account_id)
                 }
             )
-
 
             if account:
 
