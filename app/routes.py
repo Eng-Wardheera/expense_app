@@ -2064,113 +2064,363 @@ def add_transaction():
 @login_required
 def edit_transaction(id):
     user_oid = ObjectId(current_user.id)
-    
-    # 1. Soo hel transaction-ka
-    transaction = mongo.db.transactions.find_one({"_id": ObjectId(id), "user_id": user_oid})
+
+    # =========================
+    # GET TRANSACTION
+    # =========================
+    transaction = mongo.db.transactions.find_one(
+        {
+            "_id": ObjectId(id),
+            "user_id": user_oid
+        }
+    )
+
     if not transaction:
         flash("Transaction not found", "danger")
         return redirect(url_for("main.transaction_list"))
 
+    # =========================
+    # POST
+    # =========================
     if request.method == "POST":
-        # Soo hel xogta cusub
+
         account_id = request.form.get("account_id")
         transaction_type = request.form.get("transaction_type")
         category_id = request.form.get("category")
         item = request.form.get("item")
+
         amount = float(request.form.get("amount", 0))
 
-        # Ka hor intaadan bilaabin transaction-ka
+        description = request.form.get(
+            "description",
+            ""
+        )
+
+        note = request.form.get(
+            "note",
+            ""
+        )
+
+        reference_no = request.form.get(
+            "reference_no",
+            ""
+        )
+
+
+        # Date
+        date_str = request.form.get("date")
+
+        if date_str:
+            try:
+                transaction_date = datetime.strptime(
+                    date_str,
+                    "%Y-%m-%dT%H:%M"
+                )
+            except:
+                transaction_date = datetime.utcnow()
+
+        else:
+            transaction_date = datetime.utcnow()
+
+
+        # Status
+        status = True if request.form.get("status") else False
+
+
+
+        # =========================
+        # BALANCE CHECK FIX
+        # =========================
+
         if transaction_type == "expense":
-            account = mongo.db.accounts.find_one({"_id": ObjectId(account_id)})
-            if account and account.get("balance", 0) < amount:
-                flash("Balance-ka akaunkan kuma filna in laga bixiyo lacagtan!", "danger")
-                return redirect(url_for("main.edit_transaction", id=id))
-            
-        
-        # Validation (la mid ah kii hore)
-        category_doc = mongo.db.categories.find_one({"_id": ObjectId(category_id), "user_id": user_oid})
+
+            account = mongo.db.accounts.find_one(
+                {
+                    "_id": ObjectId(account_id)
+                }
+            )
+
+
+            if account:
+
+
+                current_balance = account.get(
+                    "balance",
+                    0
+                )
+
+
+                available_balance = current_balance
+
+
+
+                # Haddii account kii hore yahay isla account-ka
+                if (
+                    transaction["transaction_type"] == "expense"
+                    and str(transaction["account_id"]) == account_id
+                ):
+
+                    available_balance += transaction["amount"]
+
+
+
+                if amount > available_balance:
+
+                    flash(
+                        "Balance-ka akaunkan kuma filna!",
+                        "danger"
+                    )
+
+                    return redirect(
+                        url_for(
+                            "main.edit_transaction",
+                            id=id
+                        )
+                    )
+
+
+
+        # =========================
+        # CATEGORY CHECK
+        # =========================
+
+        category_doc = mongo.db.categories.find_one(
+            {
+                "_id": ObjectId(category_id),
+                "user_id": user_oid
+            }
+        )
+
+
         if not category_doc:
-            flash("Invalid category", "danger")
-            return redirect(url_for("main.edit_transaction", id=id))
+
+            flash(
+                "Invalid category",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.edit_transaction",
+                    id=id
+                )
+            )
+
+
 
         try:
+
             with mongo.db.client.start_session() as session:
+
                 with session.start_transaction():
-                    # 1. Dib u hagaaji balance-ka:
-                    # Marka hore, ku dar lacagtii hore (haddii ay ahayd expense -> ku dar, haddii income -> ka jar)
+
+
                     old_amount = transaction["amount"]
+
                     old_type = transaction["transaction_type"]
-                    
-                    # Revert old balance
-                    revert_val = -old_amount if old_type == "income" else old_amount
+
+
+
+                    # =========================
+                    # RESTORE OLD BALANCE
+                    # =========================
+
+                    if old_type == "income":
+
+                        revert = -old_amount
+
+                    else:
+
+                        revert = old_amount
+
+
+
                     mongo.db.accounts.update_one(
-                        {"_id": transaction["account_id"]},
-                        {"$inc": {"balance": revert_val}},
+                        {
+                            "_id": transaction["account_id"]
+                        },
+                        {
+                            "$inc": {
+                                "balance": revert
+                            }
+                        },
                         session=session
                     )
 
-                    # 2. Update Transaction
+
+
+                    # =========================
+                    # UPDATE TRANSACTION
+                    # =========================
+
                     mongo.db.transactions.update_one(
-                        {"_id": ObjectId(id)},
-                        {"$set": {
-                            "account_id": ObjectId(account_id),
-                            "transaction_type": transaction_type,
-                            "category": category_doc["name"],
-                            "item": item,
-                            "amount": amount,
-                            "description": request.form.get("description", ""),
-                            "updated_at": datetime.utcnow()
-                        }},
+                        {
+                            "_id": ObjectId(id)
+                        },
+                        {
+                            "$set": {
+
+                                "account_id": ObjectId(account_id),
+
+                                "transaction_type": transaction_type,
+
+                                "category": category_doc["name"],
+
+                                "item": item,
+
+                                "amount": amount,
+
+
+                                "description": description,
+
+                                "note": note,
+
+                                "reference_no": reference_no,
+
+                                "date": transaction_date,
+
+                                "status": status,
+
+
+                                "updated_at": datetime.utcnow()
+                            }
+                        },
                         session=session
                     )
 
-                    # 3. Apply new balance
-                    new_val = amount if transaction_type == "income" else -amount
+
+
+                    # =========================
+                    # APPLY NEW BALANCE
+                    # =========================
+
+                    if transaction_type == "income":
+
+                        new_value = amount
+
+                    else:
+
+                        new_value = -amount
+
+
+
                     mongo.db.accounts.update_one(
-                        {"_id": ObjectId(account_id)},
-                        {"$inc": {"balance": new_val}},
+                        {
+                            "_id": ObjectId(account_id)
+                        },
+                        {
+                            "$inc": {
+                                "balance": new_value
+                            }
+                        },
                         session=session
                     )
-            
-            flash("Transaction updated successfully", "success")
-            return redirect(url_for("main.transaction_list"))
-            
-        except Exception as e:
-            flash(f"Error updating: {str(e)}", "danger")
-            return redirect(url_for("main.edit_transaction", id=id))
 
-    # GET: Diyaarinta xogta form-ka
-    accounts = list(mongo.db.accounts.find({"user_id": user_oid}))
-   # GET Request: Fetch and Clean Categories
-    categories_raw = list(mongo.db.categories.find({"user_id": user_oid}))
-    
+
+
+            flash(
+                "Transaction updated successfully",
+                "success"
+            )
+
+
+            return redirect(
+                url_for(
+                    "main.transaction_list"
+                )
+            )
+
+
+
+        except Exception as e:
+
+            flash(
+                f"Error updating: {e}",
+                "danger"
+            )
+
+
+            return redirect(
+                url_for(
+                    "main.edit_transaction",
+                    id=id
+                )
+            )
+
+    # ===================================================
+    # GET DATA
+    # ===================================================
+
+    # Accounts
+    accounts = list(
+        mongo.db.accounts.find(
+            {
+                "user_id": user_oid
+            }
+        )
+    )
+
+    for acc in accounts:
+        acc["_id"] = str(acc["_id"])
+
+        if "user_id" in acc:
+            acc["user_id"] = str(acc["user_id"])
+
+    # Categories
+    categories_raw = list(
+        mongo.db.categories.find(
+            {
+                "user_id": user_oid
+            }
+        )
+    )
+
     categories = []
+
     for cat in categories_raw:
+
+        cat["_id"] = str(cat["_id"])
+
+        if "user_id" in cat:
+            cat["user_id"] = str(cat["user_id"])
+
         items = cat.get("items", [])
-        
-        # Haddii uu yahay string JSON ah, u beddel list
+
         if isinstance(items, str):
             try:
                 items = json.loads(items)
             except:
                 items = []
-        
-        # Hubi in items ay yihiin list oo nadiifi wixii characters ah
-        # Haddii uu items horey u ahaa list, koodkani wuu u shaqaynayaa
+
         if isinstance(items, list):
-            cat["items"] = [str(i).strip('[]"\' ') for i in items]
+            cat["items"] = [
+                str(i).strip('[]"\' ')
+                for i in items
+            ]
         else:
             cat["items"] = []
-            
-        categories.append(clean_category(cat))
 
-  
+        categories.append(
+            clean_category(cat)
+        )
+
+    # Transaction
+    transaction["_id"] = str(transaction["_id"])
+
+    if "account_id" in transaction:
+        transaction["account_id"] = str(transaction["account_id"])
+
+    if "user_id" in transaction:
+        transaction["user_id"] = str(transaction["user_id"])
+
     return render_template(
         "backend/pages/components/transactions/edit_transaction.html",
         transaction=transaction,
         accounts=accounts,
         categories=categories
     )
+
+
 
 
 @bp.route("/delete-transaction/<id>")

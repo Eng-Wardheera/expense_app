@@ -3,145 +3,555 @@
 {% block title %}Edit Transaction{% endblock %}
 
 {% block content %}
+
 <div class="main-content mt-4">
     <form method="POST" id="editTransactionForm">
         <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom py-3">
-                <h5 class="mb-0 fw-bold text-primary">Edit Transaction</h5>
+
+```
+        <!-- Header -->
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold text-primary">
+                <i class="fas fa-edit me-2"></i>Edit Transaction
+            </h5>
+
+            {% if transaction.reference_no %}
+            <span class="badge bg-primary">
+                Ref: {{ transaction.reference_no }}
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Body -->
+        <div class="card-body">
+
+            <!-- Account -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Account</label>
+                <div class="col-lg-9">
+                    <select name="account_id" id="accountSelect" class="form-select" required>
+                        {% for account in accounts %}
+                        <option value="{{ account._id }}"
+                                data-balance="{{ account.balance }}"
+                                {% if account._id|string == transaction.account_id|string %}selected{% endif %}>
+                            {{ account.name }} | {{ account.balance }} {{ account.currency }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    <label class="col-lg-3 col-form-label fw-bold">Account</label>
-                    <div class="col-lg-9">
-                        <select name="account_id" id="accountSelect" class="form-select" required>
-                            {% for account in accounts %}
-                            <option value="{{ account._id }}" 
-                                    data-balance="{{ account.balance }}"
-                                    {% if account._id|string == transaction.account_id|string %}selected{% endif %}>
-                                {{ account.name }} | {{ account.balance }} {{ account.currency }}
-                            </option>
-                            {% endfor %}
-                        </select>
+
+            <!-- Transaction Type -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Transaction Type</label>
+                <div class="col-lg-9">
+                    <select name="transaction_type" id="typeSelect" class="form-select" required>
+                        <option value="income" {% if transaction.transaction_type == 'income' %}selected{% endif %}>
+                            Income (+)
+                        </option>
+                        <option value="expense" {% if transaction.transaction_type == 'expense' %}selected{% endif %}>
+                            Expense (-)
+                        </option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Category -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Category</label>
+                <div class="col-lg-9">
+                    <select name="category" id="categorySelect" class="form-select" required>
+                        <option value="">-- Select Category --</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat._id }}"
+                                data-type="{{ cat.type }}"
+                                {% if cat.name == transaction.category %}selected{% endif %}>
+                            {{ cat.name }} ({{ cat.type }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Item -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Item</label>
+                <div class="col-lg-9">
+                    <select name="item" id="itemSelect" class="form-select">
+                        <option value="">-- Select Item --</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Amount -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Amount</label>
+                <div class="col-lg-9">
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number"
+                               step="0.01"
+                               min="0"
+                               name="amount"
+                               id="amountInput"
+                               value="{{ transaction.amount }}"
+                               class="form-control"
+                               required>
+                    </div>
+
+                    <div id="balanceWarning"
+                         class="text-danger small mt-1"
+                         style="display:none;">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        Digniin: Lacagtaan way ka badan tahay balance-ka akaunkaaga!
                     </div>
                 </div>
+            </div>
 
-                <div class="row mb-3">
-                    <label class="col-lg-3 col-form-label fw-bold">Type</label>
-                    <div class="col-lg-9">
-                        <select name="transaction_type" id="typeSelect" class="form-select" required>
-                            <option value="income" {% if transaction.transaction_type == 'income' %}selected{% endif %}>Income (+)</option>
-                            <option value="expense" {% if transaction.transaction_type == 'expense' %}selected{% endif %}>Expense (-)</option>
-                        </select>
+            <!-- Description -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Description</label>
+                <div class="col-lg-9">
+                    <textarea name="description"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Transaction description...">{{ transaction.description or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Note</label>
+                <div class="col-lg-9">
+                    <textarea name="note"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Additional note...">{{ transaction.note or '' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Reference Number -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Reference No</label>
+                <div class="col-lg-9">
+                    <input type="text"
+                           name="reference_no"
+                           value="{{ transaction.reference_no or '' }}"
+                           class="form-control"
+                           placeholder="Optional reference number">
+                </div>
+            </div>
+
+            <!-- Date -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Transaction Date</label>
+                <div class="col-lg-9">
+                    <input type="datetime-local"
+                           name="date"
+                           value="{{ transaction.date.strftime('%Y-%m-%dT%H:%M') if transaction.date else '' }}"
+                           class="form-control">
+                </div>
+            </div>
+
+            <!-- Status -->
+            <div class="row mb-3">
+                <label class="col-lg-3 col-form-label fw-bold">Status</label>
+                <div class="col-lg-9">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input"
+                               type="checkbox"
+                               name="status"
+                               value="1"
+                               {% if transaction.status %}checked{% endif %}>
+                        <label class="form-check-label">
+                            Active Transaction
+                        </label>
                     </div>
                 </div>
+            </div>
 
-                <div class="row mb-3">
-                    <label class="col-lg-3 col-form-label fw-bold">Category</label>
-                    <div class="col-lg-9">
-                        <select name="category" id="categorySelect" class="form-select" required>
-                            <option value="">-- Select Category --</option>
-                            {% for cat in categories %}
-                            <option value="{{ cat._id }}" data-type="{{ cat.type }}"
-                                    {% if cat.name == transaction.category %}selected{% endif %}>
-                                {{ cat.name }} ({{ cat.type }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <label class="col-lg-3 col-form-label fw-bold">Item</label>
-                    <div class="col-lg-9">
-                        <select name="item" id="itemSelect" class="form-select">
-                            <option value="">-- Select Item --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="row mb-3">
-                    <label class="col-lg-3 col-form-label fw-bold">Amount</label>
-                    <div class="col-lg-9">
-                        <input type="number" step="0.01" name="amount" id="amountInput" 
-                               value="{{ transaction.amount }}" class="form-control" required>
-                        <div id="balanceWarning" class="text-danger small mt-1" style="display:none;">
-                            Digniin: Lacagtaan way ka badan tahay balance-ka akaunkaaga!
+            <!-- Created / Updated -->
+            <div class="row mt-4">
+                <div class="col-lg-9 offset-lg-3">
+                    <div class="bg-light rounded p-3 small">
+                        <div class="mb-1">
+                            <strong>Created:</strong>
+                            {{ transaction.created_at.strftime('%d %b %Y %H:%M') if transaction.created_at else '-' }}
+                        </div>
+                        <div>
+                                                        <strong>Last Updated:</strong>
+                            {{ transaction.updated_at.strftime('%d %b %Y %H:%M') if transaction.updated_at else '-' }}
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
-                <button type="submit" class="btn btn-primary px-4" id="submitBtn">Update Transaction</button>
-                <a href="{{ url_for('main.transaction_list') }}" class="btn btn-secondary px-4">Cancel</a>
-            </div>
+
         </div>
-    </form>
+
+        <!-- Footer -->
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+
+            <a href="{{ url_for('main.transaction_list') }}"
+               class="btn btn-secondary">
+                <i class="fas fa-times me-1"></i>
+                Cancel
+            </a>
+
+            <button type="submit"
+                    class="btn btn-primary"
+                    id="submitBtn">
+                <i class="fas fa-save me-1"></i>
+                Update Transaction
+            </button>
+
+        </div>
+
+    </div>
+</form>
 </div>
 
 <script>
-    const categories = {{ categories | tojson | safe }};
-    const accounts = {{ accounts | tojson | safe }};
-    
-    const typeSelect = document.getElementById("typeSelect");
-    const categorySelect = document.getElementById("categorySelect");
-    const itemSelect = document.getElementById("itemSelect");
-    const accountSelect = document.getElementById("accountSelect");
-    const amountInput = document.getElementById("amountInput");
-    const balanceWarning = document.getElementById("balanceWarning");
-    const submitBtn = document.getElementById("submitBtn");
 
-    const selectedItem = "{{ transaction.item }}";
+const categories = {{ categories | tojson | safe }};
+const accounts = {{ accounts | tojson | safe }};
 
-    // 1. Function si loo shaandheeyo Category marka Type la beddelo
-    function filterCategories() {
-        const type = typeSelect.value;
-        Array.from(categorySelect.options).forEach(opt => {
-            if (opt.value === "") return;
-            opt.style.display = (opt.getAttribute('data-type') === type) ? "block" : "none";
-        });
-    }
+const typeSelect = document.getElementById("typeSelect");
+const categorySelect = document.getElementById("categorySelect");
+const itemSelect = document.getElementById("itemSelect");
+const accountSelect = document.getElementById("accountSelect");
 
-    // 2. Function si loo soo saaro Items
-    function updateItems(categoryId) {
-        const cat = categories.find(c => c._id === categoryId);
-        const items = cat ? cat.items : [];
-        
-        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-        items.forEach(item => {
-            const opt = document.createElement("option");
-            opt.value = item;
-            opt.textContent = item;
-            if (item === selectedItem) opt.selected = true;
-            itemSelect.appendChild(opt);
-        });
-    }
+const amountInput = document.getElementById("amountInput");
+const balanceWarning = document.getElementById("balanceWarning");
+const submitBtn = document.getElementById("submitBtn");
 
-    // 3. Balance Validation
-    function validateBalance() {
-        if (typeSelect.value === 'expense') {
-            const selectedAcc = accounts.find(a => a._id === accountSelect.value || a._id.$oid === accountSelect.value);
-            const amount = parseFloat(amountInput.value) || 0;
-            if (selectedAcc && amount > selectedAcc.balance) {
-                balanceWarning.style.display = 'block';
-                submitBtn.disabled = true;
-            } else {
-                balanceWarning.style.display = 'none';
-                submitBtn.disabled = false;
-            }
-        } else {
-            balanceWarning.style.display = 'none';
-            submitBtn.disabled = false;
+
+const selectedItem = "{{ transaction.item or '' }}";
+
+
+const oldAmount = 
+    parseFloat("{{ transaction.amount or 0 }}") || 0;
+
+
+const oldTransactionType =
+    "{{ transaction.transaction_type }}";
+
+
+
+/*
+====================================
+ FILTER CATEGORY BY TYPE
+====================================
+*/
+function filterCategories(){
+
+    const type = typeSelect.value;
+
+
+    Array.from(categorySelect.options).forEach(option => {
+
+
+        if(option.value === ""){
+
+            option.hidden = false;
+            return;
+
         }
+
+
+        const categoryType =
+            option.getAttribute("data-type");
+
+
+        if(categoryType === type){
+
+            option.hidden = false;
+
+        }else{
+
+            option.hidden = true;
+
+        }
+
+
+    });
+
+}
+
+
+
+
+/*
+====================================
+ LOAD ITEMS
+====================================
+*/
+function updateItems(categoryId){
+
+
+    itemSelect.innerHTML =
+    `
+    <option value="">
+        -- Select Item --
+    </option>
+    `;
+
+
+    const category =
+        categories.find(
+            c => String(c._id) === String(categoryId)
+        );
+
+
+    if(!category){
+        return;
     }
 
-    // Event Listeners
-    typeSelect.addEventListener("change", () => { filterCategories(); categorySelect.value = ""; });
-    categorySelect.addEventListener("change", function() { updateItems(this.value); });
-    [typeSelect, accountSelect, amountInput].forEach(el => el.addEventListener("input", validateBalance));
 
-    // Initialization
+
+    if(!category.items){
+        return;
+    }
+
+
+
+    category.items.forEach(item => {
+
+
+        const option =
+            document.createElement("option");
+
+
+        option.value = item;
+
+        option.textContent = item;
+
+
+
+        if(item === selectedItem){
+
+            option.selected = true;
+
+        }
+
+
+        itemSelect.appendChild(option);
+
+
+    });
+
+
+}
+
+
+
+
+
+/*
+====================================
+ BALANCE VALIDATION
+====================================
+*/
+function validateBalance(){
+
+
+
+    // Income lacag kama bixinayo
+    if(typeSelect.value !== "expense"){
+
+
+        balanceWarning.style.display = "none";
+
+        submitBtn.disabled = false;
+
+        return;
+
+    }
+
+
+
+
+    const account =
+        accounts.find(
+            a =>
+            String(a._id) === String(accountSelect.value)
+        );
+
+
+
+    if(!account){
+
+        return;
+
+    }
+
+
+
+
+    const currentBalance =
+        parseFloat(account.balance) || 0;
+
+
+
+    const newAmount =
+        parseFloat(amountInput.value) || 0;
+
+
+
+    let availableBalance =
+        currentBalance;
+
+
+
+
+    /*
+    Haddii transaction kii hore
+    ahaa expense isla account-kaas,
+    dib ugu dar lacagtii hore
+    */
+
+    const oldAccount =
+        "{{ transaction.account_id }}";
+
+
+
+    if(
+        oldTransactionType === "expense" &&
+        String(oldAccount) === String(accountSelect.value)
+    ){
+
+        availableBalance += oldAmount;
+
+    }
+
+
+
+
+    if(newAmount > availableBalance){
+
+
+        balanceWarning.style.display = "block";
+
+
+        submitBtn.disabled = true;
+
+
+
+    }else{
+
+
+        balanceWarning.style.display = "none";
+
+
+        submitBtn.disabled = false;
+
+
+    }
+
+
+
+}
+
+
+
+
+
+/*
+====================================
+ EVENTS
+====================================
+*/
+
+
+typeSelect.addEventListener(
+    "change",
+    function(){
+
+
+        filterCategories();
+
+
+        validateBalance();
+
+
+    }
+);
+
+
+
+categorySelect.addEventListener(
+    "change",
+    function(){
+
+
+        updateItems(
+            this.value
+        );
+
+
+    }
+);
+
+
+
+accountSelect.addEventListener(
+    "change",
+    function(){
+
+        validateBalance();
+
+    }
+);
+
+
+
+amountInput.addEventListener(
+    "input",
+    function(){
+
+        validateBalance();
+
+    }
+);
+
+
+
+
+
+/*
+====================================
+ INITIAL LOAD
+====================================
+*/
+
+
+document.addEventListener(
+"DOMContentLoaded",
+function(){
+
+
+
     filterCategories();
-    if (categorySelect.value) updateItems(categorySelect.value);
+
+
+
+    if(categorySelect.value){
+
+        updateItems(
+            categorySelect.value
+        );
+
+    }
+
+
+
     validateBalance();
+
+
+
+});
+
+
 </script>
+
+
 {% endblock %}
