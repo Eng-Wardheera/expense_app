@@ -2557,7 +2557,7 @@ def person_opening_transactions():
 
     # ======================================
     # GET TRANSACTIONS
-    # LATEST DATE FIRST
+    # LATEST FIRST
     # ======================================
 
     transactions = list(
@@ -2568,8 +2568,10 @@ def person_opening_transactions():
 
         }).sort(
 
-            "date",
-            -1
+            [
+                ("date", -1),          # Latest date first
+                ("created_at", -1)     # Latest created first
+            ]
 
         )
 
@@ -2586,8 +2588,6 @@ def person_opening_transactions():
         now=now_eat()
 
     )
-
-
 
 @bp.route("/person-opening-transactions/edit/<id>", methods=["GET", "POST"])
 @login_required
