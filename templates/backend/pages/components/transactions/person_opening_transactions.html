@@ -99,294 +99,262 @@ Person Opening Transactions
         <div class="table-responsive">
 
 
+        
             <table class="table table-hover align-middle mb-0" id="leadList">
 
+    <thead class="table-light">
 
-                <thead class="table-light">
+        <tr>
 
+            <th>#</th>
 
-                <tr>
+            <th>Person</th>
 
+            <th>Type</th>
 
-                    <th>#</th>
+            <th>Item</th>
 
+            <th>Amount</th>
 
-                    <th>Person</th>
+            <th style="min-width:80px;">Description</th>
 
+            <th>Date</th>
 
-                    <th>Type</th>
+            <th class="text-end">Action</th>
 
+        </tr>
 
-                    <th>Item</th>
+    </thead>
 
+    <tbody>
 
-                    <th>Amount</th>
+    {% if transactions %}
 
+        {% for trx in transactions %}
 
-                    <th>Note</th>
+        <tr>
 
+            <td>
+                {{ loop.index }}
+            </td>
 
-                    <th>Date</th>
+            <td>
 
+                <strong>
+                    {{ trx.person_name }}
+                </strong>
 
-                    <th class="text-end">
-                        Action
-                    </th>
+            </td>
 
+            <td>
 
-                </tr>
+                {% if trx.type == "income" %}
 
-
-                </thead>
-
-
-
-                <tbody>
-
-
-
-                {% if transactions %}
-
-
-
-                    {% for trx in transactions %}
-
-
-
-                    <tr>
-
-
-
-                        <td>
-
-                            {{ loop.index }}
-
-                        </td>
-
-
-
-
-                        <td>
-
-
-                            <strong>
-
-                                {{ trx.person_name }}
-
-                            </strong>
-
-
-                        </td>
-
-
-
-
-
-                        <td>
-
-
-                            {% if trx.type == "income" %}
-
-
-                                <span class="badge bg-success">
-
-                                    Income
-
-                                </span>
-
-
-                            {% else %}
-
-
-                                <span class="badge bg-danger">
-
-                                    Expense
-
-                                </span>
-
-
-                            {% endif %}
-
-
-
-                        </td>
-
-
-
-
-
-
-                        <td>
-
-                            {{ trx.item or "-" }}
-
-                        </td>
-
-
-
-
-
-
-                        <td class="fw-bold">
-
-
-                            {% if trx.type == "income" %}
-
-
-                                <span class="text-success">
-
-                                    + ${{ "{:,.2f}".format(trx.amount) }}
-
-                                </span>
-
-
-                            {% else %}
-
-
-                                <span class="text-danger">
-
-                                    - ${{ "{:,.2f}".format(trx.amount) }}
-
-                                </span>
-
-
-                            {% endif %}
-
-
-                        </td>
-
-
-
-
-
-
-
-                        <td>
-
-                            {{ trx.note or "-" }}
-
-                        </td>
-
-
-
-
-
-
-
-                        <td>
-
-
-                            {% if trx.date %}
-
-
-                                {{ trx.date.strftime('%Y-%m-%d') }}
-
-
-                            {% else %}
-
-                                -
-
-                            {% endif %}
-
-
-
-                        </td>
-
-
-
-
-
-
-
-                        <td class="text-end">
-
-
-
-                            <a href="{{ url_for(
-                                'main.edit_person_opening_transaction',
-                                id=trx._id
-                            ) }}"
-                            class="btn btn-warning btn-sm">
-
-
-                                <i class="bi bi-pencil"></i>
-
-                                Edit
-
-
-                            </a>
-
-
-
-
-
-                            <a href="{{ url_for(
-                                'main.delete_person_opening_transaction',
-                                id=trx._id
-                            ) }}"
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('Delete this transaction?')">
-
-
-                                <i class="bi bi-trash"></i>
-
-                                Delete
-
-
-                            </a>
-
-
-
-                        </td>
-
-
-
-
-
-                    </tr>
-
-
-
-                    {% endfor %}
-
-
+                    <span class="badge bg-success">
+                        Income
+                    </span>
 
                 {% else %}
 
-
-
-                    <tr>
-
-
-                        <td colspan="8"
-                            class="text-center py-5">
-
-
-                            <h6 class="text-muted">
-
-                                No Opening Transactions Found
-
-                            </h6>
-
-
-
-                        </td>
-
-
-                    </tr>
-
-
+                    <span class="badge bg-danger">
+                        Expense
+                    </span>
 
                 {% endif %}
 
+            </td>
 
+            <td>
 
-                </tbody>
+                {% if trx.item %}
 
+                    {{ trx.item }}
 
+                {% else %}
 
-            </table>
+                    <span class="text-muted">-</span>
 
+                {% endif %}
+
+            </td>
+
+            <td class="fw-bold">
+
+                {% if trx.type == "income" %}
+
+                    <span class="text-success">
+
+                        + ${{ "{:,.2f}".format(trx.amount) }}
+
+                    </span>
+
+                {% else %}
+
+                    <span class="text-danger">
+
+                        - ${{ "{:,.2f}".format(trx.amount) }}
+
+                    </span>
+
+                {% endif %}
+
+            </td>
+
+            <!-- DESCRIPTION -->
+            <td>
+
+                {% set note = trx.note or "" %}
+
+                {% if note|length > 10 %}
+
+                    <span id="short{{ loop.index }}">
+
+                        {{ note[:10] }}...
+
+                        <a href="javascript:void(0)"
+                           onclick="toggleNote({{ loop.index }})"
+                           class="text-primary text-decoration-none">
+
+                            Read More
+
+                        </a>
+
+                    </span>
+
+                    <span id="full{{ loop.index }}"
+                          style="display:none;">
+
+                        {{ note }}
+
+                        <a href="javascript:void(0)"
+                           onclick="toggleNote({{ loop.index }})"
+                           class="text-danger text-decoration-none">
+
+                            Read Less
+
+                        </a>
+
+                    </span>
+
+                {% elif note %}
+
+                    {{ note }}
+
+                {% else %}
+
+                    <span class="text-muted">-</span>
+
+                {% endif %}
+
+            </td>
+
+            <!-- DATE -->
+            <td>
+
+                {% if trx.date %}
+
+                    <div class="fw-semibold">
+
+                        {{ trx.date.strftime('%Y-%m-%d') }}
+
+                    </div>
+
+                    <small class="text-muted">
+
+                        {{ trx.date.strftime('%I:%M %p') }}
+
+                    </small>
+
+                {% else %}
+
+                    <span class="text-muted">
+
+                        -
+
+                    </span>
+
+                {% endif %}
+
+            </td>
+
+            <td class="text-end">
+
+                <div class="btn-group">
+
+                    <a href="{{ url_for('main.edit_person_opening_transaction', id=trx._id) }}"
+                       class="btn btn-warning btn-sm"
+                       title="Edit">
+
+                        <i class="bi bi-pencil"></i>
+
+                    </a>
+
+                    <a href="{{ url_for('main.delete_person_opening_transaction', id=trx._id) }}"
+                       class="btn btn-danger btn-sm"
+                       title="Delete"
+                       onclick="return confirm('Delete this transaction?')">
+
+                        <i class="bi bi-trash"></i>
+
+                    </a>
+
+                </div>
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    {% else %}
+
+        <tr>
+
+            <td colspan="8" class="text-center py-5">
+
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+
+                <h6 class="mt-3 text-muted">
+
+                    No Opening Transactions Found
+
+                </h6>
+
+            </td>
+
+        </tr>
+
+    {% endif %}
+
+    </tbody>
+
+</table>
+
+<script>
+
+function toggleNote(id){
+
+    let shortText = document.getElementById("short" + id);
+
+    let fullText = document.getElementById("full" + id);
+
+    if(fullText.style.display === "none"){
+
+        fullText.style.display = "inline";
+
+        shortText.style.display = "none";
+
+    }else{
+
+        fullText.style.display = "none";
+
+        shortText.style.display = "inline";
+
+    }
+
+}
+
+</script>
 
 
         </div>

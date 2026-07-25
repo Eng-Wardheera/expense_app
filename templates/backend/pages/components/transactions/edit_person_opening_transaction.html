@@ -96,8 +96,7 @@ Edit Person Opening Transaction
 
     <div class="card-body">
 
-
-       <form method="POST">
+<form method="POST">
 
     <!-- PERSON NAME -->
     <div class="mb-3">
@@ -115,6 +114,7 @@ Edit Person Opening Transaction
     </div>
 
 
+
     <!-- TYPE -->
     <div class="mb-3">
 
@@ -126,12 +126,14 @@ Edit Person Opening Transaction
                 class="form-select"
                 required>
 
+
             <option value="expense"
                 {% if transaction.type == "expense" %}
                     selected
                 {% endif %}>
                 Expense (-)
             </option>
+
 
             <option value="income"
                 {% if transaction.type == "income" %}
@@ -140,9 +142,12 @@ Edit Person Opening Transaction
                 Income (+)
             </option>
 
+
         </select>
 
     </div>
+
+
 
 
     <!-- AMOUNT -->
@@ -152,11 +157,13 @@ Edit Person Opening Transaction
             Amount
         </label>
 
+
         <div class="input-group">
 
             <span class="input-group-text">
                 $
             </span>
+
 
             <input type="number"
                    step="0.01"
@@ -170,20 +177,36 @@ Edit Person Opening Transaction
     </div>
 
 
-    <!-- TRANSACTION DATE -->
+
+
+
+    <!-- DATE + TIME -->
     <div class="mb-3">
 
         <label class="form-label fw-bold">
-            Transaction Date
+            Transaction Date & Time
         </label>
 
-        <input type="date"
+
+        <input type="datetime-local"
                name="date"
                class="form-control"
-               value="{% if transaction.date %}{{ transaction.date.strftime('%Y-%m-%d') }}{% endif %}"
+               
+               value="{% if transaction.date %}{{ transaction.date.strftime('%Y-%m-%dT%H:%M') }}{% endif %}"
+
                required>
 
+
+        <small class="text-muted">
+            Select transaction date and time
+        </small>
+
+
     </div>
+
+
+
+
 
 
     <!-- ITEM -->
@@ -193,12 +216,19 @@ Edit Person Opening Transaction
             Item
         </label>
 
+
         <input type="text"
                name="item"
                class="form-control"
                value="{{ transaction.item or '' }}">
 
+
     </div>
+
+
+
+
+
 
 
     <!-- NOTE -->
@@ -208,31 +238,49 @@ Edit Person Opening Transaction
             Note
         </label>
 
+
         <textarea name="note"
                   class="form-control"
                   rows="3">{{ transaction.note or '' }}</textarea>
 
+
     </div>
+
+
+
+
+
 
 
     <!-- BUTTONS -->
-    <div class="card-footer text-end d-flex justify-content-end" style="gap:10px;">
+
+    <div class="card-footer text-end d-flex justify-content-end gap-2">
+
 
         <a href="{{ url_for('main.person_opening_transactions') }}"
-           class="btn btn-secondary px-4 me-2">
+           class="btn btn-secondary px-4">
+
             Cancel
+
         </a>
 
+
+
         <button type="submit"
-                class="btn btn-primary px-4"
-                id="submitBtn">
+                class="btn btn-primary px-4">
+
+
             Update Transaction
+
+
         </button>
+
+
 
     </div>
 
-</form>
 
+</form>
 
 
     </div>
