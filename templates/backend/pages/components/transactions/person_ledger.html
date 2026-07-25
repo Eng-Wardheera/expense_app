@@ -179,224 +179,303 @@
         <div class="table-responsive">
 
 
-            <table class="table table-hover mb-0" id="leadList">
+           <table class="table table-hover mb-0" id="leadList">
 
 
-                <thead class="table-light">
+<thead class="table-light">
 
-                <tr>
+<tr>
 
-                    <th>#</th>
+    <th>#</th>
 
-                    <th>Date</th>
+    <th>Date</th>
 
-                    <th>Source</th>
+    <th>Source</th>
 
-                    <th>Type</th>
+    <th>Type</th>
 
-                    <th>Category</th>
+    <th>Category</th>
 
-                    <th>Item</th>
+    <th>Item</th>
 
-                    <th>Note</th>
+    <th>Note</th>
 
-                    <th class="text-end">
-                        Amount
-                    </th>
+    <th class="text-end">
+        Amount
+    </th>
 
+</tr>
 
-                </tr>
+</thead>
 
-                </thead>
 
 
 
+<tbody>
 
-                <tbody>
 
+{% if ledger %}
 
-                {% if ledger %}
 
+{% for row in ledger %}
 
-                    {% for row in ledger %}
 
+<tr>
 
-                    <tr>
 
+<td>
+    {{ loop.index }}
+</td>
 
-                        <td>
-                            {{ loop.index }}
-                        </td>
 
 
 
-                        <td>
+<td>
 
-                            {% if row.date %}
+    {% if row.date %}
 
-                                {{ row.date.strftime('%Y-%m-%d') }}
+        {{ row.date.strftime('%Y-%m-%d') }}
 
-                            {% else %}
+    {% else %}
 
-                                -
+        -
 
-                            {% endif %}
+    {% endif %}
 
+</td>
 
-                        </td>
 
 
 
-                        <td>
 
+<td>
 
-                            {% if row.source == "Excel / Manual" %}
+    {% if row.source == "Excel / Manual" %}
 
-                                <span class="badge bg-warning text-dark">
+        <span class="badge bg-warning text-dark">
+            Excel
+        </span>
 
-                                    Excel
+    {% else %}
 
-                                </span>
+        <span class="badge bg-info">
+            Transaction
+        </span>
 
+    {% endif %}
 
-                            {% else %}
+</td>
 
 
-                                <span class="badge bg-info">
 
-                                    Transaction
 
-                                </span>
 
+<td>
 
-                            {% endif %}
+    {% if row.type == "income" %}
 
+        <span class="badge bg-success">
+            Income
+        </span>
 
-                        </td>
+    {% else %}
 
+        <span class="badge bg-danger">
+            Expense
+        </span>
 
+    {% endif %}
 
+</td>
 
-                        <td>
 
 
-                            {% if row.type == "income" %}
 
-                                <span class="badge bg-success">
 
-                                    Income
 
-                                </span>
+<td>
 
+    {{ row.category or '-' }}
 
-                            {% else %}
+</td>
 
 
-                                <span class="badge bg-danger">
 
-                                    Expense
 
-                                </span>
 
 
-                            {% endif %}
+<td>
 
+    {{ row.item or '-' }}
 
-                        </td>
+</td>
 
 
 
 
 
-                        <td>
 
-                            {{ row.category or '-' }}
+<!-- NOTE WITH READ MORE -->
 
-                        </td>
+<td style="max-width:250px;">
 
 
+{% set note = row.note or '-' %}
 
-                        <td>
 
-                            {{ row.item or '-' }}
+{% if note|length > 20 %}
 
-                        </td>
 
+    <span class="short-note">
 
+        {{ note[:20] }}...
 
-                        <td>
+    </span>
 
-                            {{ row.note or '-' }}
 
-                        </td>
+    <span class="full-note d-none">
 
+        {{ note }}
 
+    </span>
 
-                        <td class="text-end fw-bold">
 
 
-                            {% if row.type == "income" %}
+    <a href="javascript:void(0)"
+       class="read-more text-primary"
+       onclick="toggleNote(this)">
 
-                                <span class="text-success">
+        Read More
 
-                                    + ${{ "{:,.2f}".format(row.amount) }}
+    </a>
 
-                                </span>
 
+{% else %}
 
-                            {% else %}
 
+    {{ note }}
 
-                                <span class="text-danger">
 
-                                    - ${{ "{:,.2f}".format(row.amount) }}
+{% endif %}
 
-                                </span>
 
+</td>
 
-                            {% endif %}
 
 
-                        </td>
 
 
 
-                    </tr>
 
+<td class="text-end fw-bold">
 
-                    {% endfor %}
 
+{% if row.type == "income" %}
 
 
-                {% else %}
+    <span class="text-success">
 
+        + ${{ "{:,.2f}".format(row.amount) }}
 
-                    <tr>
+    </span>
 
-                        <td colspan="8"
-                            class="text-center py-5">
 
+{% else %}
 
-                            <h6 class="text-muted">
 
-                                No transactions found for {{ person_name }}
+    <span class="text-danger">
 
-                            </h6>
+        - ${{ "{:,.2f}".format(row.amount) }}
 
+    </span>
 
-                        </td>
 
-                    </tr>
+{% endif %}
 
 
-                {% endif %}
+</td>
 
 
 
-                </tbody>
+</tr>
 
 
-            </table>
+
+{% endfor %}
+
+
+
+{% else %}
+
+
+<tr>
+
+<td colspan="8"
+    class="text-center py-5">
+
+    <h6 class="text-muted">
+
+        No transactions found for {{ person_name }}
+
+    </h6>
+
+</td>
+
+</tr>
+
+
+{% endif %}
+
+
+</tbody>
+
+
+</table>
+
+
+
+
+
+<script>
+
+function toggleNote(element) {
+
+
+    let td = element.parentElement;
+
+
+    let shortText = td.querySelector(".short-note");
+
+    let fullText = td.querySelector(".full-note");
+
+
+
+    if(fullText.classList.contains("d-none")){
+
+
+        shortText.classList.add("d-none");
+
+        fullText.classList.remove("d-none");
+
+        element.innerHTML = "Read Less";
+
+
+    }else{
+
+
+        shortText.classList.remove("d-none");
+
+        fullText.classList.add("d-none");
+
+        element.innerHTML = "Read More";
+
+
+    }
+
+
+}
+
+</script>
 
 
         </div>

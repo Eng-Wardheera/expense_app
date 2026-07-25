@@ -2589,6 +2589,8 @@ def person_opening_transactions():
 
     )
 
+
+
 @bp.route("/person-opening-transactions/edit/<id>", methods=["GET", "POST"])
 @login_required
 def edit_person_opening_transaction(id):
@@ -2929,32 +2931,36 @@ def person_ledger(person_id):
 
 
 
-    # regex:
-    # Samiro
-    # by Samiro
-    # BY SAMIRO
     person_regex = rf"^\s*(?:by\s+)?{re.escape(person_name)}\s*$"
 
 
 
+
     user_filter = {
+
         "$or": [
+
             {
                 "user_id": str(current_user.id)
             },
+
             {
                 "user_id": ObjectId(current_user.id)
             }
+
         ]
+
     }
 
 
 
+
     # =========================
-    # TRANSACTIONS COLLECTION
+    # TRANSACTIONS
     # =========================
 
     transactions = list(
+
         mongo.db.transactions.find({
 
             **user_filter,
@@ -2984,19 +2990,21 @@ def person_ledger(person_id):
 
             ]
 
-        }).sort(
-            "date",
-            1
-        )
+        })
+
     )
 
 
 
+
+
+
     # =========================
-    # EXCEL / OPENING MONEY
+    # OPENING / MANUAL
     # =========================
 
     old_transactions = list(
+
         mongo.db.person_opening_transactions.find({
 
             "user_id": ObjectId(current_user.id),
@@ -3006,18 +3014,22 @@ def person_ledger(person_id):
                 "$options": "i"
             }
 
-        }).sort(
-            "date",
-            1
-        )
+        })
+
     )
+
+
 
 
 
     ledger = []
 
+
     total_income = 0
+
     total_expense = 0
+
+
 
 
 
@@ -3027,14 +3039,17 @@ def person_ledger(person_id):
 
     for t in transactions:
 
+
         amount = float(
-            t.get("amount",0) or 0
+            t.get("amount", 0) or 0
         )
 
 
         trx_type = t.get(
-            "transaction_type"
+            "transaction_type",
+            "expense"
         )
+
 
 
         if trx_type == "income":
@@ -3044,6 +3059,8 @@ def person_ledger(person_id):
         else:
 
             total_expense += amount
+
+
 
 
 
@@ -3068,20 +3085,28 @@ def person_ledger(person_id):
 
 
 
+
+
+
+
     # =========================
-    # EXCEL OPENING
+    # OPENING / MANUAL
     # =========================
 
     for t in old_transactions:
 
+
         amount = float(
-            t.get("amount",0) or 0
+            t.get("amount", 0) or 0
         )
+
 
 
         trx_type = t.get(
-            "type"
+            "type",
+            "expense"
         )
+
 
 
         if trx_type == "income":
@@ -3094,19 +3119,27 @@ def person_ledger(person_id):
 
 
 
+
+
         ledger.append({
 
             "date": t.get("date"),
 
             "type": trx_type,
 
-            "category": "Opening Balance",
+            "category": t.get(
+                "category",
+                "Opening Balance"
+            ),
 
             "item": t.get("item"),
 
+
             "amount": amount,
 
+
             "note": t.get("note"),
+
 
             "source": "Excel / Manual"
 
@@ -3115,22 +3148,91 @@ def person_ledger(person_id):
 
 
 
-    # sort date
+
+
+
+    # =========================
+    # DATE CONVERTER
+    # =========================
+
+    def convert_date(value):
+
+        if isinstance(value, datetime):
+
+            return value
+
+
+
+        if isinstance(value, str):
+
+            formats = [
+
+                "%Y-%m-%dT%H:%M",
+
+                "%Y-%m-%d",
+
+                "%Y-%m-%d %H:%M:%S"
+
+            ]
+
+
+            for fmt in formats:
+
+                try:
+
+                    return datetime.strptime(
+                        value,
+                        fmt
+                    )
+
+                except:
+
+                    continue
+
+
+
+        return datetime.min
+
+
+
+
+
+
+    # =========================
+    # SORT LATEST FIRST
+    # =========================
 
     ledger.sort(
-        key=lambda x: x.get("date") or datetime.min
+
+        key=lambda x: convert_date(
+            x.get("date")
+        ),
+
+        reverse=True
+
     )
+
+
+
+
 
 
 
     balance = (
+
         total_income -
+
         total_expense
+
     )
 
 
 
+
+
+
     return render_template(
+
         "backend/pages/components/transactions/person_ledger.html",
 
         person_name=person_name,
@@ -3141,9 +3243,11 @@ def person_ledger(person_id):
 
         total_expense=total_expense,
 
-        balance=balance
-    )
+        balance=balance,
 
+        now=now_eat()
+
+    )
 
 @bp.route("/add-transaction", methods=["GET", "POST"])
 @login_required
