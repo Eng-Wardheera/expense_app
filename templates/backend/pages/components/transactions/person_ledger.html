@@ -317,52 +317,90 @@
 
 <!-- NOTE WITH READ MORE -->
 
-<td style="max-width:250px;">
+<!-- NOTE WITH READ MORE -->
+
+<td style="max-width:220px;">
+
+    {% set note = row.note or '-' %}
 
 
-{% set note = row.note or '-' %}
+    <div class="note-container">
 
 
-{% if note|length > 20 %}
+        {% if note|length > 20 %}
 
 
-    <span class="short-note">
+            <span class="short-note">
 
-        {{ note[:20] }}...
+                {{ note[:20] }}...
 
-    </span>
-
-
-    <span class="full-note d-none">
-
-        {{ note }}
-
-    </span>
+            </span>
 
 
 
-    <a href="javascript:void(0)"
-       class="read-more text-primary"
-       onclick="toggleNote(this)">
+            <span class="full-note d-none">
 
-        Read More
+                {{ note }}
 
-    </a>
+            </span>
 
 
-{% else %}
+
+            <a href="javascript:void(0)"
+               class="read-more text-primary ms-1"
+               onclick="toggleNote(this)">
+
+                Read More
+
+            </a>
 
 
-    {{ note }}
+
+        {% else %}
 
 
-{% endif %}
+            {{ note }}
 
+
+        {% endif %}
+
+
+    </div>
 
 </td>
 
+<style>
+
+.note-container{
+
+    max-width:300px;
+
+    word-wrap:break-word;
+
+    overflow-wrap:break-word;
+
+}
 
 
+.full-note{
+
+    white-space:normal;
+
+}
+
+
+.read-more{
+
+    cursor:pointer;
+
+    text-decoration:none;
+
+    font-weight:600;
+
+}
+
+
+</style>
 
 
 
@@ -438,24 +476,24 @@
 
 <script>
 
-function toggleNote(element) {
+function toggleNote(element){
 
 
-    let td = element.parentElement;
+    let container = element.closest(".note-container");
 
 
-    let shortText = td.querySelector(".short-note");
+    let shortNote = container.querySelector(".short-note");
 
-    let fullText = td.querySelector(".full-note");
-
-
-
-    if(fullText.classList.contains("d-none")){
+    let fullNote = container.querySelector(".full-note");
 
 
-        shortText.classList.add("d-none");
 
-        fullText.classList.remove("d-none");
+    if(fullNote.classList.contains("d-none")){
+
+
+        shortNote.classList.add("d-none");
+
+        fullNote.classList.remove("d-none");
 
         element.innerHTML = "Read Less";
 
@@ -463,9 +501,9 @@ function toggleNote(element) {
     }else{
 
 
-        shortText.classList.remove("d-none");
+        shortNote.classList.remove("d-none");
 
-        fullText.classList.add("d-none");
+        fullNote.classList.add("d-none");
 
         element.innerHTML = "Read More";
 
@@ -476,7 +514,6 @@ function toggleNote(element) {
 }
 
 </script>
-
 
         </div>
 
