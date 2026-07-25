@@ -1,0 +1,645 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %} {{ person_name }} Invoice {% endblock %}
+
+
+{% block content %}
+
+
+<div class="page-header no-print">
+
+    <div class="page-header-left d-flex align-items-center">
+
+        <div class="page-header-title">
+            <h5 class="m-b-10">
+                Person Invoice
+            </h5>
+        </div>
+
+
+        <ul class="breadcrumb">
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.dashboard') }}">
+                    Home
+                </a>
+            </li>
+
+            <li class="breadcrumb-item">
+                Person Invoice
+            </li>
+
+        </ul>
+
+    </div>
+
+</div>
+
+
+
+<div class="main-content container-lg">
+
+
+<div class="row">
+
+<div class="col-lg-12">
+
+
+
+<div class="d-flex justify-content-end gap-2 mb-3 no-print">
+
+
+<button onclick="window.print()"
+class="btn btn-danger btn-sm">
+
+<i class="feather icon-printer"></i>
+Print Invoice
+
+</button>
+
+
+
+<a href="{{ url_for('main.persons') }}"
+class="btn btn-outline-secondary btn-sm">
+
+<i class="feather icon-arrow-left"></i>
+Back
+
+</a>
+
+
+</div>
+
+
+
+
+
+<div class="card invoice-container p-4 border-0 shadow-sm">
+
+
+
+<!-- HEADER -->
+
+<div class="row align-items-center border-bottom pb-4 mb-4">
+
+
+<div class="col-sm-6 d-flex align-items-center gap-3">
+
+
+<img 
+src="{{ url_for('static', filename=g.site_logo.sub_logo) 
+if g.site_logo and g.site_logo.sub_logo 
+else url_for('static', filename='backend/uploads/images/logo.png') }}"
+style="width:80px;height:80px;object-fit:contain;">
+
+
+
+<div>
+
+
+<h3 class="fw-bold text-uppercase">
+
+{% if current_user.school %}
+
+{{ current_user.school.name }}
+
+{% else %}
+
+Expense Management
+
+{% endif %}
+
+</h3>
+
+
+<div class="text-muted fs-13">
+
+{{ current_user.phone or '' }}
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-sm-6 text-end">
+
+
+<h2 class="text-primary fw-bold">
+
+INVOICE
+
+</h2>
+
+
+<div>
+
+<strong>Date:</strong>
+
+{{ now.strftime('%d %b, %Y') if now else '' }}
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- PERSON INFO -->
+
+
+<div class="row bg-light rounded p-3 mb-4">
+
+
+<div class="col-md-6">
+
+
+<h6 class="fw-bold text-uppercase">
+
+Invoice To
+
+</h6>
+
+
+<h4 class="text-dark">
+
+{{ person_name }}
+
+</h4>
+
+
+</div>
+
+
+
+<div class="col-md-6">
+
+
+<div class="row">
+
+
+<div class="col-6 text-muted">
+Total Income
+</div>
+
+
+<div class="col-6 text-end text-success fw-bold">
+
+${{ "{:,.2f}".format(total_income) }}
+
+</div>
+
+
+
+
+<div class="col-6 text-muted">
+Total Expense
+</div>
+
+
+<div class="col-6 text-end text-danger fw-bold">
+
+${{ "{:,.2f}".format(total_expense) }}
+
+</div>
+
+
+
+
+
+<div class="col-6 text-muted">
+Balance
+</div>
+
+
+<div class="col-6 text-end fw-bold">
+
+{% if balance >= 0 %}
+
+<span class="text-success">
+
+${{ "{:,.2f}".format(balance) }}
+
+</span>
+
+
+{% else %}
+
+<span class="text-danger">
+
+${{ "{:,.2f}".format(balance) }}
+
+</span>
+
+{% endif %}
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- TRANSACTION TABLE -->
+
+
+<div class="table-responsive">
+
+
+<table class="table table-bordered align-middle">
+
+
+<thead class="table-dark">
+
+
+<tr>
+
+
+<th>#</th>
+
+
+<th>Date</th>
+
+
+<th>Item</th>
+
+
+<th>Reference</th>
+
+
+<th>Type</th>
+
+
+<th class="text-end">
+Amount
+</th>
+
+
+<!-- <th>
+Note
+</th> -->
+
+
+
+</tr>
+
+
+</thead>
+
+
+
+<tbody>
+
+
+{% if invoices %}
+
+
+{% for invoice in invoices %}
+
+
+<tr>
+
+
+<td>
+{{ loop.index }}
+</td>
+
+
+<td>
+
+{{ invoice.date.strftime('%d %b %Y') 
+if invoice.date else '' }}
+
+</td>
+
+
+
+<td class="fw-bold">
+
+{{ invoice.item }}
+
+</td>
+
+
+
+<td>
+
+<span class="badge bg-secondary">
+
+{{ invoice.reference }}
+
+</span>
+
+</td>
+
+
+
+
+<td>
+
+
+{% if invoice.type == 'income' %}
+
+
+<span class="badge bg-success">
+
+Income
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge bg-danger">
+
+Expense
+
+</span>
+
+
+{% endif %}
+
+
+</td>
+
+
+
+<td class="text-end fw-bold">
+
+
+${{ "{:,.2f}".format(invoice.amount) }}
+
+
+</td>
+
+
+
+<!-- <td>
+
+{{ invoice.note or '' }}
+
+</td> -->
+
+
+
+</tr>
+
+
+
+{% endfor %}
+
+
+{% else %}
+
+
+<tr>
+
+
+<td colspan="7"
+class="text-center py-5">
+
+
+No Transactions Found
+
+
+</td>
+
+
+</tr>
+
+
+{% endif %}
+
+
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+
+
+
+
+<!-- FOOTER TOTAL -->
+
+
+<div class="row mt-4">
+
+
+<div class="col-md-7">
+
+
+<!-- <h6 class="fw-bold">
+
+Terms & Conditions
+
+</h6>
+
+
+<p class="text-muted">
+
+This invoice was generated automatically from the financial management system.
+
+</p> -->
+
+
+</div>
+
+
+
+<div class="col-md-5">
+
+
+<table class="table">
+
+
+<tr>
+
+<td>
+Total Income
+</td>
+
+
+<td class="text-end text-success fw-bold">
+
+${{ "{:,.2f}".format(total_income) }}
+
+</td>
+
+</tr>
+
+
+
+<tr>
+
+<td>
+Total Expense
+</td>
+
+
+<td class="text-end text-danger fw-bold">
+
+${{ "{:,.2f}".format(total_expense) }}
+
+</td>
+
+</tr>
+
+
+
+<tr class="table-dark">
+
+<td>
+Balance
+</td>
+
+
+<td class="text-end">
+
+${{ "{:,.2f}".format(balance) }}
+
+</td>
+
+
+</tr>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="text-center mt-5">
+
+
+<hr>
+
+
+<h6>
+
+Account Manager
+
+</h6>
+
+
+<p>
+
+{{ current_user.fullname }}
+
+</p>
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<style>
+
+
+@media print {
+
+
+body * {
+
+visibility:hidden;
+
+}
+
+
+
+.invoice-container,
+.invoice-container * {
+
+visibility:visible;
+
+}
+
+
+
+.invoice-container {
+
+position:absolute;
+
+left:0;
+
+top:0;
+
+width:100%;
+
+box-shadow:none!important;
+
+}
+
+
+
+.no-print {
+
+display:none!important;
+
+}
+
+
+
+}
+
+
+</style>
+
+
+
+{% endblock %}

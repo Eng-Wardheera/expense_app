@@ -1,0 +1,242 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Persons Ledger{% endblock %}
+
+{% block content %}
+
+ <!-- [ page-header ] start -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Persons Transactions List</h5>
+        </div>
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+            <li class="breadcrumb-item">All Persons Transactions </li>
+        </ul>
+    </div>
+    <div class="page-header-right ms-auto">
+        <div class="page-header-right-items">
+            <div class="d-flex d-md-none">
+                <a href="javascript:void(0)" class="page-header-right-close-toggle">
+                    <i class="feather-arrow-left me-2"></i>
+                    <span>Back</span>
+                </a>
+            </div>
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+                <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                    <i class="feather-bar-chart"></i>
+                </a>
+              
+                
+                <a href="leads-create.html" class="btn btn-primary">
+                    <i class="feather-plus me-2"></i>
+                    <span>Create Lead</span>
+                </a>
+            </div>
+        </div>
+        <div class="d-md-none d-flex align-items-center">
+            <a href="javascript:void(0)" class="page-header-right-open-toggle">
+                <i class="feather-align-right fs-20"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="main-content ">
+<div class="row">
+      <div class="card shadow-sm">
+
+        <div class="card-header bg-white py-3">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <h5 class="mb-0 fw-bold">
+                    Persons Ledger
+                </h5>
+
+                <a href="{{ url_for('main.transaction_list') }}"
+                   class="btn btn-primary btn-sm">
+
+                    <i class="bi bi-arrow-left"></i>
+                    Transactions
+
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="card-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0" id="leadList">
+
+                    <thead class="table-light">
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Person</th>
+
+                        <th class="text-end">
+                            Total Income
+                        </th>
+
+                        <th class="text-end">
+                            Total Expense
+                        </th>
+
+                        <th class="text-end">
+                            Balance
+                        </th>
+
+                        <th class="text-center">
+                            Transactions
+                        </th>
+
+                        <th class="text-end">
+                            Action
+                        </th>
+
+                    </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% if persons %}
+
+                        {% for person in persons %}
+
+                        <tr>
+
+                            <td>
+
+                                {{ loop.index }}
+
+                            </td>
+
+                           <td>
+
+    {% if person.name %}
+
+        <strong>
+            {{ person.name }}
+        </strong>
+
+    {% else %}
+
+        <span class="text-danger">
+            Unknown
+        </span>
+
+    {% endif %}
+
+</td>
+
+                            <td class="text-end text-success fw-bold">
+
+                                ${{ "{:,.2f}".format(person.total_income) }}
+
+                            </td>
+
+                            <td class="text-end text-danger fw-bold">
+
+                                ${{ "{:,.2f}".format(person.total_expense) }}
+
+                            </td>
+
+                            <td class="text-end">
+
+                                {% if person.balance >= 0 %}
+
+                                    <span class="badge bg-success">
+
+                                        ${{ "{:,.2f}".format(person.balance) }}
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge bg-danger">
+
+                                        ${{ "{:,.2f}".format(person.balance) }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="text-center">
+
+                                <span class="badge bg-primary">
+
+                                    {{ person.transactions }}
+
+                                </span>
+
+                            </td>
+
+                            <td class="text-end">
+
+                            <a href="{{ url_for('main.person_invoice', person_name=person.name) }}"
+                                class="btn btn-success btn-sm">
+
+                                    <i class="bi bi-receipt"></i>
+                                    Invoice
+
+                            </a>
+
+                                
+                            <a href="{{ url_for('main.person_ledger', person_id=person._id) }}"
+                                    class="btn btn-primary btn-sm">
+                                        <i class="bi bi-journal-text"></i>
+                                        View
+
+                            </a>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="7" class="text-center py-5">
+
+                                <h6 class="text-muted">
+
+                                    No Persons Found
+
+                                </h6>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+  
+
+</div>
+
+{% endblock %}

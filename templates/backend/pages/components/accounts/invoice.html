@@ -1,286 +1,240 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>Invoice</title>
+{% extends 'backend/home/base.html' %}
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 13px;
-            color: #333;
-            margin: 0;
-            padding: 0;
-        }
+{% block title %} {{ student.full_name|capitalize }} Fee Invoice | School Management {% endblock %}
 
-        .wrapper {
-            padding: 25px;
-        }
+{% block content %}
 
-        /* ================= HEADER ================= */
-        .header {
-            width: 100%;
-            border-bottom: 2px solid #0d6efd;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        .header-table {
-            width: 100%;
-        }
-
-        .logo {
-            width: 80px;
-            height: auto;
-        }
-
-        .company-name {
-            font-size: 22px;
-            font-weight: bold;
-            color: #0d6efd;
-            margin: 0;
-        }
-
-        .tagline {
-            font-size: 12px;
-            color: #666;
-            margin: 2px 0;
-        }
-
-        .phone {
-            font-size: 12px;
-            color: #000;
-            font-weight: bold;
-        }
-
-        .invoice-title {
-            text-align: right;
-            font-size: 18px;
-            font-weight: bold;
-            color: #000;
-        }
-
-        /* ================= INFO ================= */
-        .info-box {
-            margin-top: 15px;
-        }
-
-        .info-table {
-            width: 100%;
-        }
-
-        .info-table td {
-            padding: 5px 0;
-        }
-
-        /* ================= SECTION ================= */
-        .section-title {
-            margin-top: 25px;
-            font-weight: bold;
-            font-size: 14px;
-            color: #0d6efd;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-
-        /* ================= TABLE ================= */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th {
-            background: #0d6efd;
-            color: white;
-            padding: 10px;
-            font-size: 12px;
-        }
-
-        td {
-            padding: 8px;
-            border: 1px solid #ddd;
-            text-align: center;
-        }
-
-        /* ================= TOTALS ================= */
-        .totals {
-            margin-top: 20px;
-            width: 100%;
-        }
-
-        .totals-box {
-            width: 300px;
-            float: right;
-        }
-
-        .totals-box table {
-            width: 100%;
-        }
-
-        .totals-box td {
-            border: none;
-            text-align: left;
-            padding: 6px;
-        }
-
-        .grand {
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .paid {
-            color: green;
-            font-weight: bold;
-        }
-
-        .unpaid {
-            color: red;
-            font-weight: bold;
-        }
-
-        /* ================= FOOTER ================= */
-        .footer {
-            margin-top: 40px;
-            text-align: center;
-            font-size: 11px;
-            color: #777;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-        }
-    </style>
-</head>
-
-<body>
-
-<div class="wrapper">
-
-    <!-- ================= HEADER ================= -->
-    <div class="header">
-
-        <table class="header-table">
-
-            <tr>
-
-                <!-- LEFT: LOGO + COMPANY -->
-                <td style="width: 60%; vertical-align: middle;">
-
-                    <table>
-                        <tr>
-                            <td style="vertical-align: middle;">
-                                <img src="{{ url_for('static', filename='frontend/images/logo.png') }}" class="logo">
-                            </td>
-
-                            <td style="padding-left: 10px; vertical-align: middle;">
-                                <h2 class="company-name">TRUST TECHNOLOGY</h2>
-                                <p class="tagline">A Perfect Experience For Tech Parts Store</p>
-                                <p class="phone">Tel: 614172200</p>
-                            </td>
-                        </tr>
-                    </table>
-
-                </td>
-
-                <!-- RIGHT: INVOICE -->
-                <td style="width: 40%; text-align: right; vertical-align: middle;">
-                    <div class="invoice-title">INVOICE</div>
-                    <div style="font-size:12px; margin-top:5px;">
-                        <strong>Order ID:</strong> {{ order._id }}
-                    </div>
-                </td>
-
-            </tr>
-
-        </table>
-
-    </div>
-
-    <!-- ================= INFO ================= -->
-    <div class="info-box">
-        <table class="info-table">
-            <tr>
-                <td>
-                    <strong>Customer:</strong> {{ order.customer_name or 'Unknown' }} <br>
-                    <strong>Status:</strong> {{ order.status|capitalize }}
-                </td>
-
-                <td style="text-align:right;">
-                    <strong>Date:</strong>
-                    {% if order.created_at %}
-                        {{ order.created_at.strftime('%Y-%m-%d') }}
-                    {% else %}
-                        -
-                    {% endif %}
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- ================= ITEMS ================= -->
-    <div class="section-title">Order Items</div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Price</th>
-                <th>Total</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for item in order.items_list or order.items or [] %}
-            <tr>
-                <td>{{ item.name }}</td>
-                <td>{{ item.qty }}</td>
-                <td>${{ "{:,.2f}".format(item.price) }}</td>
-                <td>
-                    ${{ "{:,.2f}".format(item.total) if item.total else "{:,.2f}".format(item.price * item.qty) }}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <!-- ================= TOTALS ================= -->
-    <div class="totals">
-
-        <div class="totals-box">
-
-            <table>
-
-                <tr>
-                    <td>Total:</td>
-                    <td class="grand">${{ "{:,.2f}".format(order.total or 0) }}</td>
-                </tr>
-
-                <tr>
-                    <td>Paid:</td>
-                    <td>${{ "{:,.2f}".format(order.paid_amount or 0) }}</td>
-                </tr>
-
-                <tr>
-                    <td>Remaining:</td>
-                    <td class="{% if (order.remaining_amount or 0) <= 0 %}paid{% else %}unpaid{% endif %}">
-                        ${{ "{:,.2f}".format(order.remaining_amount or 0) }}
-                    </td>
-                </tr>
-
-            </table>
-
+<div class="page-header no-print">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Fee Collection Invoice</h5>
         </div>
-
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('main.school_profit_loss_report') }}">Profit & Loss</a></li>
+            <li class="breadcrumb-item">Invoice Preview</li>
+        </ul>
     </div>
-
-    <div style="clear: both;"></div>
-
-    <!-- ================= FOOTER ================= -->
-    <div class="footer">
-        Thank you for your business — TRUST TECHNOLOGY
-    </div>
-
 </div>
 
-</body>
-</html>
+<div class="main-content container-lg">
+    <div class="row">
+        <div class="col-lg-12">
+            
+            <div class="d-flex justify-content-end gap-2 mb-3 no-print">
+                <button onclick="window.print();" class="btn btn-danger btn-sm shadow-sm printBTN">
+                    <i class="feather icon-printer me-1"></i> Print Invoice
+                </button>
+                <a href="{{ url_for('main.school_profit_loss_report') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="feather icon-arrow-left me-1"></i> Back to Financials
+                </a>
+            </div>
+
+            <div class="card invoice-container p-4 border-0 shadow-sm">
+                
+                <div class="row align-items-center border-bottom pb-4 mb-4">
+                    <div class="col-sm-6 d-flex align-items-center gap-3">
+                        <img 
+                            src="{{ url_for('static', filename=g.site_logo.sub_logo) if g.site_logo and g.site_logo.sub_logo else url_for('static', filename='backend/uploads/images/no_image.jpg') }}" 
+                            style="width: 80px; height: 80px; object-fit: contain;"
+                            alt="School Logo"
+                        />
+                        <div>
+                            <h3 class="fw-bold text-uppercase mb-1 text-dark">
+                                {% if current_user.role.value == 'branch_admin' %}
+                                    {{ current_user.branch.name if current_user.branch else 'N/A' }}
+                                {% else %}
+                                    {{ current_user.school.name if current_user.school else 'N/A' }}
+                                {% endif %}
+                            </h3>
+                            <div class="text-muted fs-13">
+                                <div><i class="feather icon-map-pin me-1"></i>
+                                    {% if current_user.role.value == 'branch_admin' %}
+                                        {{ current_user.branch.address if current_user.branch else 'N/A' }}
+                                    {% else %}
+                                        {{ current_user.school.address if current_user.school else 'N/A' }}
+                                    {% endif %}
+                                </div>
+                                <div><i class="feather icon-phone me-1"></i>
+                                    {% if current_user.role.value == 'branch_admin' %}
+                                        {{ current_user.branch.phone if current_user.branch else 'N/A' }}
+                                    {% else %}
+                                        {{ current_user.school.phone if current_user.school else 'N/A' }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                        <h2 class="fs-2 fw-bold text-primary text-uppercase mb-2">Invoice</h2>
+                        <div class="fs-14">
+                            <span class="fw-bold text-dark">Invoice ID:</span>
+                            <span class="fw-bold text-primary">#{{ fee_record.id }}</span>
+                        </div>
+                        <div class="fs-13 text-muted">
+                            <div><span class="fw-semibold text-dark">Issued Date:</span> {{ fee_record.created_at.strftime('%d %b, %Y') }}</div>
+                            <div><span class="fw-semibold text-dark">Due Date:</span> {{ fee_record.payment_date.strftime('%d %b, %Y') if fee_record.payment_date else 'N/A' }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4 bg-light p-3 rounded-3 mx-0">
+                    <div class="col-sm-6 border-sm-end border-gray-300 py-2">
+                        <h6 class="fs-14 fw-bold text-dark text-uppercase mb-2" style="letter-spacing: 0.5px;">Invoiced To:</h6>
+                        <div class="text-dark fw-semibold fs-15">{{ student.full_name }}</div>
+                        <div class="text-muted fs-13 lh-base mt-1">
+                            <div><strong>Roll No:</strong> {{ student.roll_no or 'N/A' }}</div>
+                            <div><strong>Class:</strong> {{ student.class_.name if student.class_ else 'N/A' }} 
+                                 {% if student.section_rel %} - <strong>Section:</strong> {{ student.section_rel.name }}{% endif %}
+                            </div>
+                            <div><strong>Gender:</strong> {{ student.gender|capitalize or 'N/A' }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-sm-6 py-2 ps-sm-4 mt-3 mt-sm-0">
+                        <h6 class="fs-14 fw-bold text-dark text-uppercase mb-2" style="letter-spacing: 0.5px;">Payment Details:</h6>
+                        <div class="row g-1 fs-13">
+                            <div class="col-6 text-muted">Total Due:</div>
+                            <div class="col-6 fw-bold text-dark text-end">${{ '%.2f' % fee_record.amount_due }}</div>
+                            
+                            <div class="col-6 text-muted">Amount Paid:</div>
+                            <div class="col-6 fw-bold text-success text-end">${{ '%.2f' % fee_record.amount_paid }}</div>
+                            
+                            <div class="col-6 text-muted">Remaining Balance:</div>
+                            <div class="col-6 fw-bold text-danger text-end">${{ '%.2f' % (fee_record.amount_due - fee_record.amount_paid) }}</div>
+                            
+                            <div class="col-6 text-muted">Status:</div>
+                            <div class="col-6 text-end">
+                                {% if fee_record.payment_status == 'Paid' %}
+                                    <span class="badge bg-success p-1 px-2">Paid</span>
+                                {% elif fee_record.payment_status == 'Partial' %}
+                                    <span class="badge bg-warning text-dark p-1 px-2">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-danger p-1 px-2">Pending</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-center" style="width: 60px;">#</th>
+                                <th>Service / Account Item</th>
+                                <th>Invoice Reference</th>
+                                <th>Type</th>
+                                <th class="text-end">Charge (Deyn)</th>
+                                <th class="text-end">Paid (Bixis)</th>
+                                <th class="text-end">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in invoices %}
+                            <tr>
+                                <td class="text-center">{{ loop.index }}</td>
+                                <td class="fw-bold text-dark">Student Fee Collection</td>
+                                <td class="text-muted fs-13">{{ invoice.invoice_number }}</td>
+                                <td><span class="text-secondary fw-medium">{{ invoice.type }}</span></td>
+                                <td class="text-end text-danger fw-semibold">${{ '%.2f' % (invoice.amount_due or 0) }}</td>
+                                <td class="text-end text-success fw-semibold">${{ '%.2f' % (invoice.amount_paid or 0) }}</td>
+                                <td class="text-end fw-bold text-primary">${{ '%.2f' % (invoice.balance or 0) }}</td>
+                            </tr>
+                            {% endfor %}
+                            
+                            {% if previous_balance and previous_balance > 0 %}
+                            <tr>
+                                <td colspan="6" class="text-end fw-bold text-muted bg-light-alt">Previous Arrears (Deyn Hore):</td>
+                                <td class="text-end fw-bold text-muted bg-light-alt">${{ '%.2f' % previous_balance }}</td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <td colspan="6" class="text-end fw-bold">Current Sub-Total:</td>
+                                <td class="text-end fw-bold text-dark">${{ '%.2f' % total_fee }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="6" class="text-end fw-bold text-danger">Remaining Balance:</td>
+                                <td class="text-end fw-bold text-danger">${{ '%.2f' % remaining_balance }}</td>
+                            </tr>
+                            <tr class="table-dark fw-bold fs-15">
+                                <td colspan="6" class="text-end text-uppercase">Outstanding Balance (Wadarta dhabta ah):</td>
+                                <td class="text-end text-white">${{ '%.2f' % current_balance }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="row align-items-end mt-4 pt-3">
+                    <div class="col-sm-7 mb-4 mb-sm-0">
+                        <h6 class="fs-13 fw-bold text-dark text-uppercase mb-1">Terms & Conditions:</h6>
+                        <p class="text-muted fs-12 lh-base mb-0">
+                            We sincerely thank you, <strong class="text-dark">{{ student.full_name|capitalize }}</strong>, for your trusted payment and partnership. This invoice is generated dynamically from the official financial system.
+                        </p>
+                    </div>
+                    
+                    <div class="col-sm-5 text-center ms-auto">
+                        <div class="d-inline-block text-center">
+                            <img 
+                                src="{{ url_for('static', filename=g.site_logo.sign_logo) if g.site_logo and g.site_logo.sign_logo else url_for('static', filename='backend/uploads/images/no_image.jpg') }}" 
+                                style="max-height: 55px; width: auto; object-fit: contain;" 
+                                alt="Signature"
+                            />
+                            <div style="width: 180px; border-bottom: 1px dashed #ccc; margin: 8px auto;"></div>
+                            <h6 class="fs-13 fw-bold text-dark mb-0">Account Manager</h6>
+                            <p class="fs-11 text-muted mb-0 fw-semibold">{{ current_user.fullname }}</p>
+                            <small class="text-muted fs-10 d-block">{{ current_user.phone if current_user.phone else 'N/A' }}</small>
+                        </div>
+                    </div>
+                </div>
+
+            </div> </div>
+    </div>
+</div>
+
+<style>
+    .bg-light-alt { background-color: #fdfdfd; }
+    
+    @media print {
+        /* Iska qari dhammaan nidaamka web-ka */
+        body * {
+            visibility: hidden;
+        }
+        /* Soo muuji kaliya weelka weyn ee rasiidhka */
+        .invoice-container, .invoice-container * {
+            visibility: visible;
+        }
+        .invoice-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        /* Qari badhamada iyo walxaha aan loo baahnayn */
+        .no-print, .printBTN, .page-header, .breadcrumb, .navbar, .sidebar {
+            display: none !important;
+        }
+        /* Hubi in miisku midabkiisa ceshado */
+        .table {
+            border-collapse: collapse !important;
+        }
+        .table-dark th {
+            background-color: #212529 !important;
+            color: #ffffff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .bg-light {
+            background-color: #f8f9fa !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>
+
+{% endblock %}

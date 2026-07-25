@@ -1912,6 +1912,965 @@ def transaction_list():
 
 
 
+@bp.route("/persons")
+@login_required
+def persons():
+
+    persons_dict = defaultdict(lambda: {
+        "_id": "",
+        "name": "",
+        "total_income": 0.0,
+        "total_expense": 0.0,
+        "balance": 0.0,
+        "transactions": 0
+    })
+
+
+    # ==================================================
+    # 1. NORMAL TRANSACTIONS
+    # ==================================================
+
+    transactions = mongo.db.transactions.find({
+        "$or": [
+            {
+                "user_id": str(current_user.id)
+            },
+            {
+                "user_id": ObjectId(current_user.id)
+            }
+        ]
+    }).sort(
+        "date",
+        -1
+    )
+
+
+    for trx in transactions:
+
+
+        raw_name = (
+            trx.get("person_name")
+            or trx.get("description")
+            or trx.get("note")
+            or ""
+        )
+
+
+        raw_name = str(raw_name).strip()
+
+
+        if not raw_name:
+            continue
+
+
+
+        # Remove By / by
+        raw_name = re.sub(
+            r"^by\s*",
+            "",
+            raw_name,
+            flags=re.IGNORECASE
+        )
+
+
+        person_name = " ".join(
+            raw_name.split()
+        ).title()
+
+
+
+        if not person_name:
+            continue
+
+
+
+        amount = float(
+            trx.get("amount", 0) or 0
+        )
+
+
+        persons_dict[person_name]["_id"] = person_name
+
+        persons_dict[person_name]["name"] = person_name
+
+        persons_dict[person_name]["transactions"] += 1
+
+
+
+        if trx.get("transaction_type") == "income":
+
+            persons_dict[person_name]["total_income"] += amount
+
+        else:
+
+            persons_dict[person_name]["total_expense"] += amount
+
+
+
+
+
+    # ==================================================
+    # 2. OLD EXCEL / MANUAL TRANSACTIONS
+    # ==================================================
+
+    old_transactions = mongo.db.person_opening_transactions.find({
+
+        "user_id": ObjectId(current_user.id)
+
+    }).sort(
+        "date",
+        -1
+    )
+
+
+    for old in old_transactions:
+
+
+        raw_name = str(
+            old.get("person_name", "")
+        ).strip()
+
+
+        if not raw_name:
+            continue
+
+
+
+        raw_name = re.sub(
+            r"^by\s*",
+            "",
+            raw_name,
+            flags=re.IGNORECASE
+        )
+
+
+
+        person_name = " ".join(
+            raw_name.split()
+        ).title()
+
+
+
+        amount = float(
+            old.get("amount", 0) or 0
+        )
+
+
+
+        persons_dict[person_name]["_id"] = person_name
+
+        persons_dict[person_name]["name"] = person_name
+
+        persons_dict[person_name]["transactions"] += 1
+
+
+
+        if old.get("type") == "income":
+
+            persons_dict[person_name]["total_income"] += amount
+
+        else:
+
+            persons_dict[person_name]["total_expense"] += amount
+
+
+
+
+
+    # ==================================================
+    # FINAL DATA
+    # ==================================================
+
+    persons = []
+
+
+    for person in persons_dict.values():
+
+        person["balance"] = (
+            person["total_income"]
+            -
+            person["total_expense"]
+        )
+
+        persons.append(person)
+
+
+
+    persons.sort(
+        key=lambda x: x["name"].lower()
+    )
+
+
+    return render_template(
+        "backend/pages/components/transactions/persons.html",
+        persons=persons
+    )
+
+
+@bp.route("/person/<person_name>/invoice")
+@login_required
+def person_invoice(person_name):
+
+    person_name = person_name.strip()
+
+
+    user_query = {
+        "$or": [
+            {
+                "user_id": str(current_user.id)
+            },
+            {
+                "user_id": ObjectId(current_user.id)
+            }
+        ]
+    }
+
+
+    transactions = []
+
+
+    # =====================================================
+    # NORMAL TRANSACTIONS
+    # =====================================================
+
+    normal_transactions = list(
+        mongo.db.transactions.find({
+
+            **user_query,
+
+            "$or": [
+
+                {
+                    "description": {
+                        "$regex": person_name,
+                        "$options": "i"
+                    }
+                },
+
+                {
+                    "person_name": {
+                        "$regex": person_name,
+                        "$options": "i"
+                    }
+                },
+
+                {
+                    "note": {
+                        "$regex": person_name,
+                        "$options": "i"
+                    }
+                }
+
+            ]
+
+        }).sort(
+            "date",
+            1
+        )
+    )
+
+
+
+    # =====================================================
+    # OPENING / EXCEL TRANSACTIONS
+    # =====================================================
+
+    opening_transactions = list(
+        mongo.db.person_opening_transactions.find({
+
+            "user_id": ObjectId(current_user.id),
+
+            "person_name": {
+                "$regex": person_name,
+                "$options": "i"
+            }
+
+        }).sort(
+            "date",
+            1
+        )
+    )
+
+
+
+    total_income = 0
+    total_expense = 0
+
+
+    invoices = []
+
+
+
+    # =====================================================
+    # NORMAL ADD
+    # =====================================================
+
+    for t in normal_transactions:
+
+
+        amount = float(
+            t.get("amount",0)
+        )
+
+
+        t_type = t.get(
+            "transaction_type"
+        )
+
+
+
+        if t_type == "income":
+
+            total_income += amount
+
+        else:
+
+            total_expense += amount
+
+
+
+        invoices.append({
+
+            "date": t.get("date"),
+
+            "item": t.get("item") or "Transaction",
+
+            "reference": "NORMAL",
+
+            "type": t_type,
+
+            "amount": amount,
+
+            "note": t.get("note")
+
+        })
+
+
+
+    # =====================================================
+    # OPENING ADD
+    # =====================================================
+
+    for t in opening_transactions:
+
+
+        amount = float(
+            t.get("amount",0)
+        )
+
+
+        t_type = t.get("type")
+
+
+
+        if t_type == "income":
+
+            total_income += amount
+
+        else:
+
+            total_expense += amount
+
+
+
+        invoices.append({
+
+            "date": t.get("date"),
+
+            "item": t.get("item") or "Opening Balance",
+
+            "reference": "EXCEL / MANUAL",
+
+            "type": t_type,
+
+            "amount": amount,
+
+            "note": t.get("note")
+
+        })
+
+
+
+
+    balance = (
+        total_income -
+        total_expense
+    )
+
+
+
+    return render_template(
+
+        "backend/pages/components/transactions/person_invoice.html",
+
+        person_name=person_name,
+
+        invoices=invoices,
+
+        total_income=total_income,
+
+        total_expense=total_expense,
+
+        balance=balance,
+         now=datetime.now()
+
+    )
+
+@bp.route("/person/manual/add", methods=["GET", "POST"])
+@login_required
+def add_manual_person_transaction():
+
+    if request.method == "POST":
+
+        person_name = request.form.get(
+            "person_name",
+            ""
+        ).strip()
+
+
+        amount = float(
+            request.form.get("amount", 0)
+        )
+
+
+        transaction_type = request.form.get(
+            "transaction_type"
+        )
+
+
+        # ✅ Item cusub
+        item = request.form.get(
+            "item",
+            ""
+        ).strip()
+
+
+        note = request.form.get(
+            "note",
+            ""
+        )
+
+
+
+        if not person_name or amount <= 0:
+
+            flash(
+                "Person and amount required",
+                "danger"
+            )
+
+            return redirect(
+                request.url
+            )
+
+
+
+        # Nadiifi magaca
+        person_name = (
+            person_name
+            .replace("By ", "")
+            .replace("by ", "")
+            .strip()
+            .title()
+        )
+
+
+
+        mongo.db.person_opening_transactions.insert_one({
+
+            "user_id": ObjectId(
+                current_user.id
+            ),
+
+            "person_name": person_name,
+
+
+            "amount": amount,
+
+
+            "type": transaction_type,
+
+
+            # ✅ item key cusub
+            "item": item,
+
+
+            "note": note,
+
+
+            "source": "manual",
+
+
+            "date": datetime.utcnow(),
+
+
+            "created_at": datetime.utcnow()
+
+        })
+
+
+
+        flash(
+            "Person transaction added successfully",
+            "success"
+        )
+
+
+        return redirect(
+            url_for("main.persons")
+        )
+
+
+
+    return render_template(
+        "backend/pages/components/transactions/add_person_manual.html"
+    )
+
+
+@bp.route("/person-opening-transactions")
+@login_required
+def person_opening_transactions():
+
+    transactions = list(
+        mongo.db.person_opening_transactions.find({
+
+            "user_id": ObjectId(current_user.id)
+
+        }).sort(
+            "date",
+            -1
+        )
+    )
+
+
+    return render_template(
+        "backend/pages/components/transactions/person_opening_transactions.html",
+        transactions=transactions
+    )
+
+@bp.route("/person-opening-transactions/edit/<id>",methods=["GET", "POST"])
+@login_required
+def edit_person_opening_transaction(id):
+
+    try:
+        transaction_id = ObjectId(id)
+        user_id = ObjectId(current_user.id)
+
+    except Exception:
+        abort(404)
+
+
+
+    # =========================
+    # GET OLD DATA
+    # =========================
+
+    transaction = mongo.db.person_opening_transactions.find_one({
+
+        "_id": transaction_id,
+
+        "user_id": user_id
+
+    })
+
+
+    if not transaction:
+        abort(404)
+
+
+
+    # =========================
+    # UPDATE
+    # =========================
+
+    if request.method == "POST":
+
+
+        person_name = request.form.get(
+            "person_name",
+            ""
+        ).strip()
+
+
+        trx_type = request.form.get(
+            "type"
+        )
+
+
+        amount = float(
+            request.form.get(
+                "amount",
+                0
+            )
+        )
+
+
+        item = request.form.get(
+            "item"
+        )
+
+
+        note = request.form.get(
+            "note"
+        )
+
+
+
+        mongo.db.person_opening_transactions.update_one(
+
+            {
+                "_id": transaction_id,
+                "user_id": user_id
+            },
+
+            {
+                "$set": {
+
+                    "person_name": person_name,
+
+                    "type": trx_type,
+
+                    "amount": amount,
+
+                    "item": item,
+
+                    "note": note,
+
+                    "updated_at": datetime.utcnow()
+
+                }
+            }
+
+        )
+
+
+        flash(
+            "Person opening transaction updated successfully",
+            "success"
+        )
+
+
+        return redirect(
+            url_for(
+                "main.person_opening_transactions"
+            )
+        )
+
+
+
+    return render_template(
+
+        "backend/pages/components/transactions/edit_person_opening_transaction.html",
+
+        transaction=transaction
+
+    )
+
+
+@bp.route("/person-opening-transactions/delete/<id>")
+@login_required
+def delete_person_opening_transaction(id):
+
+    try:
+        transaction_id = ObjectId(id)
+        user_id = ObjectId(current_user.id)
+
+    except Exception:
+        abort(404)
+
+
+    # =========================
+    # CHECK EXISTS
+    # =========================
+
+    transaction = mongo.db.person_opening_transactions.find_one({
+
+        "_id": transaction_id,
+
+        "user_id": user_id
+
+    })
+
+
+    if not transaction:
+
+        flash(
+            "Opening transaction not found",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.person_opening_transactions"
+            )
+        )
+
+
+
+    # =========================
+    # DELETE
+    # =========================
+
+    mongo.db.person_opening_transactions.delete_one({
+
+        "_id": transaction_id,
+
+        "user_id": user_id
+
+    })
+
+
+
+    flash(
+        "Person opening transaction deleted successfully",
+        "success"
+    )
+
+
+    return redirect(
+        url_for(
+            "main.person_opening_transactions"
+        )
+    )
+
+
+
+@bp.route("/person/<person_id>/ledger")
+@login_required
+def person_ledger(person_id):
+
+    # =========================
+    # CLEAN PERSON NAME
+    # =========================
+
+    person_name = str(person_id).strip()
+
+    person_name = re.sub(
+        r"^by\s+",
+        "",
+        person_name,
+        flags=re.IGNORECASE
+    )
+
+    person_name = person_name.strip().title()
+
+
+
+    # regex:
+    # Samiro
+    # by Samiro
+    # BY SAMIRO
+    person_regex = rf"^\s*(?:by\s+)?{re.escape(person_name)}\s*$"
+
+
+
+    user_filter = {
+        "$or": [
+            {
+                "user_id": str(current_user.id)
+            },
+            {
+                "user_id": ObjectId(current_user.id)
+            }
+        ]
+    }
+
+
+
+    # =========================
+    # TRANSACTIONS COLLECTION
+    # =========================
+
+    transactions = list(
+        mongo.db.transactions.find({
+
+            **user_filter,
+
+            "$or": [
+
+                {
+                    "description": {
+                        "$regex": person_regex,
+                        "$options": "i"
+                    }
+                },
+
+                {
+                    "person_name": {
+                        "$regex": person_regex,
+                        "$options": "i"
+                    }
+                },
+
+                {
+                    "note": {
+                        "$regex": person_regex,
+                        "$options": "i"
+                    }
+                }
+
+            ]
+
+        }).sort(
+            "date",
+            1
+        )
+    )
+
+
+
+    # =========================
+    # EXCEL / OPENING MONEY
+    # =========================
+
+    old_transactions = list(
+        mongo.db.person_opening_transactions.find({
+
+            "user_id": ObjectId(current_user.id),
+
+            "person_name": {
+                "$regex": person_regex,
+                "$options": "i"
+            }
+
+        }).sort(
+            "date",
+            1
+        )
+    )
+
+
+
+    ledger = []
+
+    total_income = 0
+    total_expense = 0
+
+
+
+    # =========================
+    # NORMAL TRANSACTIONS
+    # =========================
+
+    for t in transactions:
+
+        amount = float(
+            t.get("amount",0) or 0
+        )
+
+
+        trx_type = t.get(
+            "transaction_type"
+        )
+
+
+        if trx_type == "income":
+
+            total_income += amount
+
+        else:
+
+            total_expense += amount
+
+
+
+        ledger.append({
+
+            "date": t.get("date"),
+
+            "type": trx_type,
+
+            "category": t.get("category"),
+
+            "item": t.get("item"),
+
+            "amount": amount,
+
+            "note": t.get("description") or t.get("note"),
+
+            "source": "Transaction"
+
+        })
+
+
+
+
+    # =========================
+    # EXCEL OPENING
+    # =========================
+
+    for t in old_transactions:
+
+        amount = float(
+            t.get("amount",0) or 0
+        )
+
+
+        trx_type = t.get(
+            "type"
+        )
+
+
+        if trx_type == "income":
+
+            total_income += amount
+
+        else:
+
+            total_expense += amount
+
+
+
+        ledger.append({
+
+            "date": t.get("date"),
+
+            "type": trx_type,
+
+            "category": "Opening Balance",
+
+            "item": t.get("item"),
+
+            "amount": amount,
+
+            "note": t.get("note"),
+
+            "source": "Excel / Manual"
+
+        })
+
+
+
+
+    # sort date
+
+    ledger.sort(
+        key=lambda x: x.get("date") or datetime.min
+    )
+
+
+
+    balance = (
+        total_income -
+        total_expense
+    )
+
+
+
+    return render_template(
+        "backend/pages/components/transactions/person_ledger.html",
+
+        person_name=person_name,
+
+        ledger=ledger,
+
+        total_income=total_income,
+
+        total_expense=total_expense,
+
+        balance=balance
+    )
+
 
 @bp.route("/add-transaction", methods=["GET", "POST"])
 @login_required
@@ -2419,7 +3378,6 @@ def edit_transaction(id):
 
 
 
-
 @bp.route("/delete-transaction/<id>")
 @login_required
 def delete_transaction(id):
@@ -2454,6 +3412,10 @@ def delete_transaction(id):
 
     flash("Transaction deleted successfully.", "success")
     return redirect(url_for("main.transaction_list"))
+
+
+
+
 
 @bp.route("/add-saving", methods=["GET", "POST"])
 @login_required
