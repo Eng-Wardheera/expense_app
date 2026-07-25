@@ -2316,6 +2316,7 @@ def person_invoice(person_name):
 
     )
 
+
 @bp.route("/person/manual/add", methods=["GET", "POST"])
 @login_required
 def add_manual_person_transaction():
@@ -2327,30 +2328,30 @@ def add_manual_person_transaction():
             ""
         ).strip()
 
-
         amount = float(
             request.form.get("amount", 0)
         )
-
 
         transaction_type = request.form.get(
             "transaction_type"
         )
 
-
-        # ✅ Item cusub
+        # Item
         item = request.form.get(
             "item",
             ""
         ).strip()
 
-
         note = request.form.get(
             "note",
             ""
-        )
+        ).strip()
 
-
+        # ✅ Date uu user-ku doortay
+        transaction_date = request.form.get(
+            "date",
+            ""
+        ).strip()
 
         if not person_name or amount <= 0:
 
@@ -2359,11 +2360,7 @@ def add_manual_person_transaction():
                 "danger"
             )
 
-            return redirect(
-                request.url
-            )
-
-
+            return redirect(request.url)
 
         # Nadiifi magaca
         person_name = (
@@ -2374,56 +2371,51 @@ def add_manual_person_transaction():
             .title()
         )
 
-
+        # Haddii date la waayo maanta isticmaal
+        if transaction_date:
+            transaction_date = datetime.strptime(
+                transaction_date,
+                "%Y-%m-%d"
+            )
+        else:
+            transaction_date = datetime.utcnow()
 
         mongo.db.person_opening_transactions.insert_one({
 
-            "user_id": ObjectId(
-                current_user.id
-            ),
+            "user_id": ObjectId(current_user.id),
 
             "person_name": person_name,
 
-
             "amount": amount,
-
 
             "type": transaction_type,
 
-
-            # ✅ item key cusub
             "item": item,
-
 
             "note": note,
 
-
             "source": "manual",
 
+            # ✅ Date uu user-ku doortay
+            "date": transaction_date,
 
-            "date": datetime.utcnow(),
-
-
+            # Goorta record-ka la abuuray
             "created_at": datetime.utcnow()
 
         })
-
-
 
         flash(
             "Person transaction added successfully",
             "success"
         )
 
-
         return redirect(
             url_for("main.persons")
         )
 
-
-
     return render_template(
-        "backend/pages/components/transactions/add_person_manual.html"
+        "backend/pages/components/transactions/add_person_manual.html",
+         today=datetime.utcnow().strftime("%Y-%m-%d")
     )
 
 
@@ -2448,7 +2440,8 @@ def person_opening_transactions():
         transactions=transactions
     )
 
-@bp.route("/person-opening-transactions/edit/<id>",methods=["GET", "POST"])
+
+@bp.route("/person-opening-transactions/edit/<id>", methods=["GET", "POST"])
 @login_required
 def edit_person_opening_transaction(id):
 
@@ -2458,8 +2451,6 @@ def edit_person_opening_transaction(id):
 
     except Exception:
         abort(404)
-
-
 
     # =========================
     # GET OLD DATA
@@ -2473,11 +2464,8 @@ def edit_person_opening_transaction(id):
 
     })
 
-
     if not transaction:
         abort(404)
-
-
 
     # =========================
     # UPDATE
@@ -2485,17 +2473,14 @@ def edit_person_opening_transaction(id):
 
     if request.method == "POST":
 
-
         person_name = request.form.get(
             "person_name",
             ""
         ).strip()
 
-
         trx_type = request.form.get(
             "type"
         )
-
 
         amount = float(
             request.form.get(
@@ -2504,17 +2489,32 @@ def edit_person_opening_transaction(id):
             )
         )
 
-
         item = request.form.get(
-            "item"
-        )
-
+            "item",
+            ""
+        ).strip()
 
         note = request.form.get(
-            "note"
-        )
+            "note",
+            ""
+        ).strip()
 
+        # ✅ Transaction Date
+        transaction_date = request.form.get(
+            "date",
+            ""
+        ).strip()
 
+        if transaction_date:
+            transaction_date = datetime.strptime(
+                transaction_date,
+                "%Y-%m-%d"
+            )
+        else:
+            transaction_date = transaction.get(
+                "date",
+                datetime.utcnow()
+            )
 
         mongo.db.person_opening_transactions.update_one(
 
@@ -2536,6 +2536,9 @@ def edit_person_opening_transaction(id):
 
                     "note": note,
 
+                    # ✅ Update transaction date
+                    "date": transaction_date,
+
                     "updated_at": datetime.utcnow()
 
                 }
@@ -2543,20 +2546,16 @@ def edit_person_opening_transaction(id):
 
         )
 
-
         flash(
             "Person opening transaction updated successfully",
             "success"
         )
-
 
         return redirect(
             url_for(
                 "main.person_opening_transactions"
             )
         )
-
-
 
     return render_template(
 
@@ -2565,7 +2564,6 @@ def edit_person_opening_transaction(id):
         transaction=transaction
 
     )
-
 
 @bp.route("/person-opening-transactions/delete/<id>")
 @login_required
