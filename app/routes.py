@@ -2360,80 +2360,35 @@ def add_manual_person_transaction():
             ""
         ).strip()
 
-
-        amount = float(
-            request.form.get(
-                "amount",
-                0
-            )
-        )
-
-
         transaction_type = request.form.get(
             "transaction_type",
             "expense"
         )
-
 
         category = request.form.get(
             "category",
             "Person Payment"
         ).strip()
 
-
-
         item = request.form.get(
             "item",
             ""
         ).strip()
-
-
 
         note = request.form.get(
             "note",
             ""
         ).strip()
 
-
-
-        # =========================
-        # DATE + TIME (EAT)
-        # =========================
-
-        transaction_date = request.form.get(
-            "date",
-            ""
-        ).strip()
-
-
-
-        if transaction_date:
-
-            try:
-
-                transaction_date = datetime.strptime(
-                    transaction_date,
-                    "%Y-%m-%dT%H:%M"
+        try:
+            amount = float(
+                request.form.get(
+                    "amount",
+                    0
                 )
-
-                # Convert selected date/time to EAT timezone
-                transaction_date = EAT.localize(
-                    transaction_date
-                )
-
-
-            except ValueError:
-
-                transaction_date = now_eat()
-
-
-        else:
-
-            transaction_date = now_eat()
-
-
-
-
+            )
+        except (ValueError, TypeError):
+            amount = 0
 
         # =========================
         # VALIDATION
@@ -2442,18 +2397,47 @@ def add_manual_person_transaction():
         if not person_name or amount <= 0:
 
             flash(
-                "Person and amount required",
+                "Person and amount required.",
                 "danger"
             )
 
             return redirect(request.url)
 
+        # =========================
+        # USER SELECTED DATE & TIME
+        # =========================
 
+        date_value = request.form.get(
+            "date",
+            ""
+        ).strip()
 
+        if date_value:
 
+            try:
+
+                transaction_date = datetime.strptime(
+                    date_value,
+                    "%Y-%m-%dT%H:%M"
+                )
+
+            except ValueError:
+
+                flash(
+                    "Invalid date and time.",
+                    "danger"
+                )
+
+                return redirect(request.url)
+
+        else:
+
+            transaction_date = now_eat().replace(
+                tzinfo=None
+            )
 
         # =========================
-        # CLEAN NAME
+        # CLEAN PERSON NAME
         # =========================
 
         person_name = (
@@ -2464,77 +2448,52 @@ def add_manual_person_transaction():
             .title()
         )
 
-
-
-
-
         # =========================
-        # INSERT DATABASE
+        # INSERT
         # =========================
 
         mongo.db.person_opening_transactions.insert_one({
 
-            "user_id": ObjectId(
-                current_user.id
-            ),
-
+            "user_id": ObjectId(current_user.id),
 
             "person_name": person_name,
 
-
-            "amount": amount,
-
-
             "type": transaction_type,
-
 
             "category": category,
 
+            "amount": amount,
 
             "item": item,
 
-
             "note": note,
-
 
             "source": "manual",
 
-
-
-            # User selected date + time (EAT)
+            # User selected Date & Time
             "date": transaction_date,
 
-
-
-            # Created time (EAT)
+            # Record created time
             "created_at": now_eat()
 
         })
 
-
-
         flash(
-            "Person transaction added successfully",
+            "Person transaction added successfully.",
             "success"
         )
 
-
-
         return redirect(
-            url_for(
-                "main.persons"
-            )
+            url_for("main.persons")
         )
-
-
 
     return render_template(
 
         "backend/pages/components/transactions/add_person_manual.html",
 
-        today=now_eat().strftime(
-            "%Y-%m-%dT%H:%M"
-        )
+        today=now_eat().replace(
+            tzinfo=None
+        ).strftime("%Y-%m-%dT%H:%M")
 
     )
 
@@ -2596,18 +2555,11 @@ def person_opening_transactions():
 def edit_person_opening_transaction(id):
 
     try:
-
         transaction_id = ObjectId(id)
-
-        user_id = ObjectId(
-            current_user.id
-        )
+        user_id = ObjectId(current_user.id)
 
     except Exception:
-
         abort(404)
-
-
 
     # =========================
     # GET TRANSACTION
@@ -2616,18 +2568,12 @@ def edit_person_opening_transaction(id):
     transaction = mongo.db.person_opening_transactions.find_one({
 
         "_id": transaction_id,
-
         "user_id": user_id
 
     })
 
-
     if not transaction:
-
         abort(404)
-
-
-
 
     # =========================
     # UPDATE
@@ -2635,120 +2581,89 @@ def edit_person_opening_transaction(id):
 
     if request.method == "POST":
 
-
         person_name = request.form.get(
             "person_name",
             ""
-        ).strip()
-
-
+        ).strip().title()
 
         trx_type = request.form.get(
             "type",
             "expense"
         )
 
-
-
-        amount = float(
-            request.form.get(
-                "amount",
-                0
-            )
-        )
-
-
+        category = request.form.get(
+            "category",
+            "Person Payment"
+        ).strip()
 
         item = request.form.get(
             "item",
             ""
         ).strip()
 
-
-
         note = request.form.get(
             "note",
             ""
         ).strip()
 
-
-
-        category = request.form.get(
-            "category",
-            "Person Payment"
-        ).strip()
-
-
-
-
-        # =========================
-        # DATE + TIME (EAT)
-        # =========================
-
-        transaction_datetime = request.form.get(
-            "date",
-            ""
-        ).strip()
-
-
-
-        if transaction_datetime:
-
-
-            try:
-
-                transaction_datetime = datetime.strptime(
-                    transaction_datetime,
-                    "%Y-%m-%dT%H:%M"
+        try:
+            amount = float(
+                request.form.get(
+                    "amount",
+                    0
                 )
+            )
+        except (ValueError, TypeError):
 
-
-                # Convert to EAT timezone
-
-                transaction_datetime = EAT.localize(
-                    transaction_datetime
-                )
-
-
-            except ValueError:
-
-
-                transaction_datetime = now_eat()
-
-
-
-        else:
-
-
-            transaction_datetime = transaction.get(
-                "date",
-                now_eat()
+            flash(
+                "Invalid amount.",
+                "danger"
             )
 
-
-
-
-
-        # =========================
-        # VALIDATION
-        # =========================
+            return redirect(request.url)
 
         if not person_name or amount <= 0:
-
 
             flash(
                 "Person and amount required.",
                 "danger"
             )
 
+            return redirect(request.url)
 
-            return redirect(
-                request.url
+        # =========================
+        # DATE & TIME
+        # =========================
+
+        date_value = request.form.get(
+            "date",
+            ""
+        ).strip()
+
+        if date_value:
+
+            try:
+
+                transaction_datetime = datetime.strptime(
+                    date_value,
+                    "%Y-%m-%dT%H:%M"
+                )
+
+            except ValueError:
+
+                flash(
+                    "Invalid date and time.",
+                    "danger"
+                )
+
+                return redirect(request.url)
+
+        else:
+
+            transaction_datetime = transaction.get(
+                "date",
+                now_eat().replace(tzinfo=None)
             )
-
-
-
-
 
         # =========================
         # UPDATE DATABASE
@@ -2757,80 +2672,56 @@ def edit_person_opening_transaction(id):
         mongo.db.person_opening_transactions.update_one(
 
             {
-
                 "_id": transaction_id,
-
                 "user_id": user_id
-
             },
 
-
             {
-
                 "$set": {
-
 
                     "person_name": person_name,
 
-
                     "type": trx_type,
-
-
-                    "amount": amount,
-
 
                     "category": category,
 
+                    "amount": amount,
 
                     "item": item,
 
-
                     "note": note,
 
-
-
-                    # Selected Date + Time EAT
-
+                    # User selected date & time
                     "date": transaction_datetime,
 
-
-
-                    # Updated Time EAT
-
+                    # Update timestamp
                     "updated_at": now_eat()
 
-
                 }
-
             }
 
         )
 
-
-
-
-
         flash(
-
             "Person opening transaction updated successfully.",
-
             "success"
-
         )
-
-
 
         return redirect(
-
-            url_for(
-                "main.person_opening_transactions"
-            )
-
+            url_for("main.person_opening_transactions")
         )
 
+    # =========================
+    # FORMAT DATE FOR datetime-local
+    # =========================
 
+    if transaction.get("date"):
 
+        if hasattr(transaction["date"], "tzinfo") and transaction["date"].tzinfo:
 
+            transaction["date"] = transaction["date"].replace(
+                tzinfo=None
+            )
 
     return render_template(
 
@@ -2839,7 +2730,6 @@ def edit_person_opening_transaction(id):
         transaction=transaction
 
     )
-
 
 
 @bp.route("/person-opening-transactions/delete/<id>")
@@ -3248,6 +3138,8 @@ def person_ledger(person_id):
         now=now_eat()
 
     )
+
+
 
 @bp.route("/add-transaction", methods=["GET", "POST"])
 @login_required
