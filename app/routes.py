@@ -4,6 +4,8 @@ from decimal import Decimal, InvalidOperation
 import io
 import json
 from flask_mail import Message   # ✅ CORRECT
+from openpyxl import Workbook, load_workbook
+
 import math
 import os
 import random
@@ -24,6 +26,7 @@ from datetime import datetime, timedelta
 from xhtml2pdf import pisa
 from flask import Response
 import dns.resolver  # Ku dar kor faylkaaga
+from flask import send_file
 
 from app.modal import Account, Category, Saving, SavingTransaction, Transaction, User, UserRole
 
@@ -2729,6 +2732,805 @@ def edit_person_opening_transaction(id):
 
         transaction=transaction
 
+    )
+
+
+
+
+@bp.route("/person-opening-transactions/export-sample")
+@login_required
+def export_sample_person_opening_transactions():
+
+    wb = Workbook()
+
+    ws = wb.active
+    ws.title = "Person Opening Transactions"
+
+
+    # =========================
+    # HEADERS
+    # =========================
+
+    ws.append([
+        "Person Name",
+        "Type",
+        "Category",
+        "Amount",
+        "Item",
+        "Note",
+        "Date"
+    ])
+
+
+    # =========================
+    # SAMPLE DATA
+    # =========================
+
+    ws.append([
+        "Ahmed Ali",
+        "Income",
+        "Opening Balance",
+        1500,
+        "Cash",
+        "Initial opening balance",
+        "2026-07-26T09:00"
+    ])
+
+
+    ws.append([
+        "Mohamed Hassan",
+        "Expense",
+        "Payment",
+        250,
+        "Transport",
+        "Bus fare payment",
+        "2026-07-26T10:30"
+    ])
+
+
+    ws.append([
+        "Asha Mohamed",
+        "Income",
+        "Debt Received",
+        800,
+        "Cash",
+        "Received previous debt",
+        "2026-07-27T14:15"
+    ])
+
+
+    # =========================
+    # COLUMN WIDTH
+    # =========================
+
+    widths = {
+        "A": 25,
+        "B": 15,
+        "C": 20,
+        "D": 15,
+        "E": 20,
+        "F": 30,
+        "G": 25
+    }
+
+
+    for col, width in widths.items():
+
+        ws.column_dimensions[col].width = width
+
+
+
+    # =========================
+    # SAVE FILE
+    # =========================
+
+    output = io.BytesIO()
+
+    wb.save(output)
+
+    output.seek(0)
+
+
+
+    return send_file(
+
+        output,
+
+        as_attachment=True,
+
+        download_name="Person_Opening_Transactions_Sample.xlsx",
+
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    )
+
+
+@bp.route("/person-opening-transactions/export")
+@login_required
+def export_person_opening_transactions():
+
+    user_id = ObjectId(current_user.id)
+
+
+    # =========================
+    # GET USER TRANSACTIONS
+    # =========================
+
+    transactions = list(
+        mongo.db.person_opening_transactions.find(
+            {
+                "user_id": user_id
+            }
+        ).sort(
+            "date",
+            -1
+        )
+    )
+
+
+    wb = Workbook()
+
+    ws = wb.active
+    ws.title = "Person Opening Transactions"
+
+
+
+    # =========================
+    # HEADERS
+    # =========================
+
+    ws.append([
+        "Person Name",
+        "Type",
+        "Category",
+        "Amount",
+        "Item",
+        "Note",
+        "Date"
+    ])
+
+
+
+    # =========================
+    # DATA ROWS
+    # =========================
+
+    for trx in transactions:
+
+
+        date_value = trx.get("date")
+
+
+        if date_value:
+
+            if hasattr(date_value, "strftime"):
+
+                date_value = date_value.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
+
+            else:
+
+                date_value = str(date_value)
+
+        else:
+
+            date_value = ""
+
+
+
+        ws.append([
+
+            trx.get(
+                "person_name",
+                ""
+            ),
+
+            trx.get(
+                "type",
+                ""
+            ),
+
+            trx.get(
+                "category",
+                ""
+            ),
+
+            trx.get(
+                "amount",
+                0
+            ),
+
+            trx.get(
+                "item",
+                ""
+            ),
+
+            trx.get(
+                "note",
+                ""
+            ),
+
+            date_value
+
+        ])
+
+
+
+    # =========================
+    # AUTO COLUMN WIDTH
+    # =========================
+
+    for column in ws.columns:
+
+        max_length = 0
+
+        column_letter = column[0].column_letter
+
+
+        for cell in column:
+
+            try:
+
+                if len(str(cell.value)) > max_length:
+
+                    max_length = len(
+                        str(cell.value)
+                    )
+
+            except:
+
+                pass
+
+
+        ws.column_dimensions[
+            column_letter
+        ].width = max_length + 5
+
+
+
+    # =========================
+    # DOWNLOAD
+    # =========================
+
+    output = io.BytesIO()
+
+    wb.save(output)
+
+    output.seek(0)
+
+
+
+    return send_file(
+
+        output,
+
+        as_attachment=True,
+
+        download_name="Person_Opening_Transactions.xlsx",
+
+        mimetype=
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+    )
+
+
+
+@bp.route("/person-opening-transactions/import", methods=["POST"])
+@login_required
+def import_person_opening_transactions():
+
+    user_id = ObjectId(current_user.id)
+
+    file = request.files.get("file")
+
+
+    if not file:
+
+        flash(
+            "Please select Excel file.",
+            "danger"
+        )
+
+        return redirect(request.referrer)
+
+
+
+    try:
+
+        wb = load_workbook(file)
+
+        ws = wb.active
+
+
+    except Exception as e:
+
+        flash(
+            "Invalid Excel file.",
+            "danger"
+        )
+
+        return redirect(request.referrer)
+
+
+
+    imported_count = 0
+    skipped_count = 0
+    duplicate_count = 0
+    error_count = 0
+
+
+
+    # SAME TIME FOR THIS IMPORT BATCH
+
+    import_time = now_eat().replace(
+        tzinfo=None
+    )
+
+
+
+    for row in ws.iter_rows(
+        min_row=2,
+        values_only=True
+    ):
+
+
+        try:
+
+            (
+                person_name,
+                trx_type,
+                category,
+                amount,
+                item,
+                note,
+                date_value
+
+            ) = row
+
+
+
+            # =========================
+            # REQUIRED
+            # =========================
+
+            if not person_name or amount is None:
+
+                skipped_count += 1
+
+                continue
+
+
+
+
+            # =========================
+            # PERSON NAME
+            # =========================
+
+            person_name = (
+                str(person_name)
+                .strip()
+                .title()
+            )
+
+
+
+            # =========================
+            # TYPE FIX
+            # =========================
+
+            raw_type = str(
+                trx_type or ""
+            ).strip().lower()
+
+
+
+            if raw_type.startswith("income"):
+
+                trx_type = "income"
+
+
+            elif raw_type.startswith("expense"):
+
+                trx_type = "ixpense"
+
+
+            else:
+
+                print(
+                    "INVALID TYPE:",
+                    repr(trx_type)
+                )
+
+                skipped_count += 1
+
+                continue
+
+
+
+
+            # =========================
+            # AMOUNT CLEAN
+            # =========================
+
+            try:
+
+                amount_text = str(
+                    amount
+                )
+
+
+                amount_text = (
+
+                    amount_text
+                    .replace("$", "")
+                    .replace(",", "")
+                    .strip()
+
+                )
+
+
+                amount = float(
+                    amount_text
+                )
+
+
+            except:
+
+                skipped_count += 1
+
+                continue
+
+
+
+
+            if amount == 0:
+
+                skipped_count += 1
+
+                continue
+
+
+
+
+            # =========================
+            # AMOUNT BY TYPE
+            # =========================
+            amount = abs(amount)
+
+            if trx_type == "expense":
+                amount = -abs(amount)
+
+            elif trx_type == "income":
+                amount = abs(amount)
+
+
+
+
+            # =========================
+            # CATEGORY
+            # =========================
+
+            category = (
+
+                str(category)
+                .strip()
+
+                if category
+
+                else "Person Payment"
+
+            )
+
+
+
+            item = (
+
+                str(item)
+                .strip()
+
+                if item
+
+                else ""
+
+            )
+
+
+
+            note = (
+
+                str(note)
+                .strip()
+
+                if note
+
+                else ""
+
+            )
+
+
+
+
+            # =========================
+            # DATE
+            # =========================
+
+            transaction_date = now_eat().replace(
+                tzinfo=None
+            )
+
+
+
+            if date_value:
+
+
+                if isinstance(
+                    date_value,
+                    datetime
+                ):
+
+                    transaction_date = date_value
+
+
+
+                else:
+
+
+                    date_string = str(
+                        date_value
+                    ).strip()
+
+
+
+                    formats = [
+
+                        "%Y-%m-%dT%H:%M",
+
+                        "%Y-%m-%d %H:%M",
+
+                        "%Y-%m-%d",
+
+                        "%d/%m/%Y",
+
+                        "%m/%d/%Y"
+
+                    ]
+
+
+
+                    for fmt in formats:
+
+                        try:
+
+                            transaction_date = datetime.strptime(
+                                date_string,
+                                fmt
+                            )
+
+                            break
+
+
+                        except ValueError:
+
+                            pass
+
+
+
+
+            # =========================
+            # DUPLICATE CHECK
+            # =========================
+
+            exists = mongo.db.person_opening_transactions.find_one({
+
+                "user_id": user_id,
+
+                "person_name": person_name,
+
+                "type": trx_type,
+
+                "category": category,
+
+                "amount": amount,
+
+                "date": transaction_date
+
+            })
+
+
+
+            if exists:
+
+                duplicate_count += 1
+
+                continue
+
+
+
+
+
+            # =========================
+            # INSERT
+            # =========================
+
+            mongo.db.person_opening_transactions.insert_one({
+
+                "user_id": user_id,
+
+                "person_name": person_name,
+
+                "type": trx_type,
+
+                "category": category,
+
+                "amount": amount,
+
+                "item": item,
+
+                "note": note,
+
+                "date": transaction_date,
+
+
+                # FOR UNDO LAST IMPORT
+
+                "source": "import",
+
+                "import_batch": import_time,
+
+
+                "created_at": import_time,
+
+                "updated_at": import_time
+
+            })
+
+
+
+            imported_count += 1
+
+
+
+
+        except Exception as e:
+
+            print(
+                "IMPORT ERROR:",
+                e
+            )
+
+            error_count += 1
+
+            continue
+
+
+
+
+
+    flash(
+
+        f"""
+        Import Completed ✅
+
+        Imported: {imported_count}
+
+        Skipped: {skipped_count}
+
+        Duplicate: {duplicate_count}
+
+        Errors: {error_count}
+        """,
+
+        "success"
+
+    )
+
+
+
+    return redirect(
+
+        url_for(
+            "main.person_opening_transactions"
+        )
+
+    )
+
+
+@bp.route("/person-opening-transactions/undo-last-import")
+@login_required
+def undo_last_person_opening_import():
+
+    try:
+        user_id = ObjectId(current_user.id)
+
+    except Exception:
+        abort(404)
+
+
+    # =========================
+    # FIND LAST IMPORT RECORD
+    # =========================
+
+    last_record = mongo.db.person_opening_transactions.find_one(
+        {
+            "user_id": user_id
+        },
+        sort=[
+            (
+                "created_at",
+                -1
+            )
+        ]
+    )
+
+
+    if not last_record:
+
+        flash(
+            "No last import found to undo.",
+            "warning"
+        )
+
+        return redirect(
+            url_for(
+                "main.person_opening_transactions"
+            )
+        )
+
+
+    created_at = last_record.get("created_at")
+
+
+    if not created_at:
+
+        flash(
+            "Created time missing.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.person_opening_transactions"
+            )
+        )
+
+
+    # =========================
+    # FIND SAME IMPORT TIME RANGE
+    # =========================
+
+    start_time = created_at - timedelta(seconds=10)
+
+    end_time = created_at + timedelta(seconds=10)
+
+
+
+    # =========================
+    # DELETE LAST IMPORT BATCH
+    # =========================
+
+    result = mongo.db.person_opening_transactions.delete_many(
+        {
+            "user_id": user_id,
+
+            "created_at": {
+                "$gte": start_time,
+                "$lte": end_time
+            }
+        }
+    )
+
+
+    flash(
+        f"Last import undone successfully. Removed {result.deleted_count} records.",
+        "success"
+    )
+
+
+    return redirect(
+        url_for(
+            "main.person_opening_transactions"
+        )
     )
 
 
