@@ -620,6 +620,17 @@ def dashboard():
     else:
         user_filter = {"user_id": user_id}
 
+    # =====================================
+    # DEFAULT CHART VARIABLES
+    # =====================================
+
+    chart_labels = []
+    chart_income = []
+    chart_expense = []
+    chart_profit = []
+
+    account_cards = []
+
     # =========================
     # DATA
     # =========================
@@ -1034,30 +1045,21 @@ def dashboard():
 
     for goal in saving_goals:
 
-
         saving_id = goal["_id"]
-
 
         total_deposit = 0
         total_withdrawal = 0
         deposit_count = 0
 
 
-
         for st in saving_transactions:
 
-
             if str(st.get("saving_id")) != str(saving_id):
-
                 continue
 
 
-
             amount = float(
-                st.get(
-                    "amount",
-                    0
-                )
+                st.get("amount",0)
             )
 
 
@@ -1067,11 +1069,9 @@ def dashboard():
                 deposit_count += 1
 
 
-
             elif st.get("transaction_type") == "withdrawal":
 
                 total_withdrawal += amount
-
 
 
 
@@ -1081,133 +1081,157 @@ def dashboard():
         )
 
 
-
         saving_deposit_report.append({
 
-            "title":
-                goal["title"],
+            "title": goal["title"],
 
+            "target": goal["target"],
 
-            "target":
-                goal["target"],
+            "current": goal["saved"],
 
+            "total_deposit": total_deposit,
 
-            "current":
-                goal["saved"],
+            "total_withdrawal": total_withdrawal,
 
+            "growth": growth,
 
-            "total_deposit":
-                total_deposit,
+            "deposit_count": deposit_count,
 
+            "remaining": goal["remaining"],
 
-            "total_withdrawal":
-                total_withdrawal,
-
-
-            "growth":
-                growth,
-
-
-            "deposit_count":
-                deposit_count,
-
-
-            "remaining":
-                goal["remaining"],
-
-
-            "progress":
-                goal["progress"]
+            "progress": goal["progress"]
 
         })
 
-     # =====================================
-        # CHART DATA (MONTHLY)
-        # =====================================
-    
-        monthly_income = defaultdict(float)
-        monthly_expense = defaultdict(float)
-    
-    
-        for t in transactions:
-    
-            date = t.get("date")
-    
-            if not date:
-                continue
-    
-            month = date.strftime("%b")
-    
-            amount = float(
-                t.get("amount",0)
-            )
-    
-    
-            if t.get("transaction_type") == "income":
-    
-                monthly_income[month] += amount
-    
-    
-            elif t.get("transaction_type") == "expense":
-    
-                monthly_expense[month] += amount
-    
-    
-    
-        chart_labels = list(
-            monthly_income.keys()
-            |
-            monthly_expense.keys()
-        )
-    
-    
-        chart_income = [
-            monthly_income.get(x,0)
-            for x in chart_labels
-        ]
-    
-    
-        chart_expense = [
-            monthly_expense.get(x,0)
-            for x in chart_labels
-        ]
-    
-    
-        chart_profit = [
-    
-            monthly_income.get(x,0)
-            -
-            monthly_expense.get(x,0)
-    
-            for x in chart_labels
-    
-        ]
-    
-    
-    
-        # =====================================
-        # ACCOUNT CARDS
-        # =====================================
-    
+
+
+    # =====================================
+    # ACCOUNT CARDS
+    # =====================================
+
         account_cards = []
-    
-    
+
+
         for account in accounts:
-    
+
             account_cards.append({
-    
+
                 "name": account.get("name"),
-    
+
                 "type": account.get("type"),
-    
+
                 "balance": float(
                     account.get("balance",0)
                 )
-    
+
             })
 
-            
 
+
+
+# =====================================
+# MONTHLY CHART DATA
+# =====================================
+
+
+    monthly_income = defaultdict(float)
+
+    monthly_expense = defaultdict(float)
+
+
+
+
+
+
+    for t in transactions:
+
+        date = t.get("date")
+
+
+        if not date:
+            continue
+
+
+        month = date.strftime("%b")
+
+
+        amount = float(
+            t.get("amount",0)
+        )
+
+
+        if t.get("transaction_type") == "income":
+
+            monthly_income[month] += amount
+
+
+
+        elif t.get("transaction_type") == "expense":
+
+            monthly_expense[month] += amount
+
+
+
+
+    chart_labels = sorted(
+
+        list(
+
+            set(monthly_income.keys())
+
+            |
+
+            set(monthly_expense.keys())
+
+        )
+
+    )
+
+
+
+    chart_income = [
+
+        round(
+            monthly_income.get(month,0),
+            2
+        )
+
+        for month in chart_labels
+
+    ]
+
+
+
+    chart_expense = [
+
+        round(
+            monthly_expense.get(month,0),
+            2
+        )
+
+        for month in chart_labels
+
+    ]
+
+
+
+    chart_profit = [
+
+        round(
+
+            monthly_income.get(month,0)
+
+            -
+
+            monthly_expense.get(month,0),
+
+            2
+
+        )
+
+        for month in chart_labels
+
+    ]
 
 
     return render_template(
