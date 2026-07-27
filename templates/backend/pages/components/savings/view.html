@@ -1,0 +1,1728 @@
+{% extends 'backend/home/base.html' %}
+
+
+{% block title %}
+{{ goal.title }} - Saving View
+{% endblock %}
+
+
+
+{% block content %}
+
+
+<!-- PAGE HEADER -->
+
+<div class="page-header">
+
+
+    <div class="page-header-left d-flex align-items-center">
+
+
+        <div class="page-header-title">
+
+            <h5 class="m-b-10">
+
+                <i class="bi bi-piggy-bank-fill text-primary"></i>
+
+                Saving Details
+
+            </h5>
+
+
+        </div>
+
+
+        <ul class="breadcrumb">
+
+            <li class="breadcrumb-item">
+
+                <a href="{{ url_for('main.dashboard') }}">
+
+                    Home
+
+                </a>
+
+            </li>
+
+
+            <li class="breadcrumb-item">
+
+                {{ goal.title }}
+
+            </li>
+
+        </ul>
+
+
+    </div>
+
+
+
+
+    <div class="page-header-right ms-auto">
+
+
+        <a href="{{ url_for('main.saving_list') }}"
+           class="btn btn-light">
+
+            <i class="bi bi-arrow-left"></i>
+
+            Back
+
+        </a>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+<div class="main-content">
+
+
+
+<div class="row g-4">
+
+
+
+
+
+<!-- =========================
+     SUMMARY CARD
+========================== -->
+
+
+<div class="col-12">
+
+
+<div class="card shadow-sm border-0 rounded-4">
+
+
+<div class="card-body">
+
+
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+
+<div>
+
+
+<h3 class="fw-bold">
+
+
+<i class="bi bi-wallet2 text-primary"></i>
+
+
+{{ goal.title }}
+
+
+</h3>
+
+
+<span class="badge bg-success">
+
+{{ goal.status }}
+
+</span>
+
+
+</div>
+
+
+
+<div>
+
+
+<a href="{{ url_for('main.add_saving_transaction', id=goal._id) }}"
+class="btn btn-primary">
+
+
+<i class="bi bi-plus-circle"></i>
+
+Add Transaction
+
+
+</a>
+
+
+</div>
+
+
+
+</div>
+
+
+
+<hr>
+
+
+
+
+<div class="row g-3 text-center">
+
+
+
+<div class="col-12 col-md-3">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small>
+Target
+</small>
+
+
+<h4 class="text-primary fw-bold">
+
+${{ "{:,.2f}".format(goal.target|float) }}
+
+</h4>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-12 col-md-3">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small>
+Saved
+</small>
+
+
+<h4 class="text-success fw-bold">
+
+${{ "{:,.2f}".format(goal.saved|float) }}
+
+</h4>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-12 col-md-3">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small>
+Remaining
+</small>
+
+
+<h4 class="text-danger fw-bold">
+
+${{ "{:,.2f}".format(goal.remaining|float) }}
+
+</h4>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-12 col-md-3">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small>
+Progress
+</small>
+
+
+<h4 class="fw-bold">
+
+{{ goal.progress }}%
+
+</h4>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- =========================
+      PROGRESS
+========================== -->
+
+
+<!-- =========================
+     ADVANCED SAVING PROGRESS
+========================== -->
+
+
+<div class="col-12 col-lg-5">
+
+
+<div class="card shadow-lg border-0 rounded-5 h-100 overflow-hidden">
+
+
+
+<div class="card-header bg-primary text-white">
+
+
+<h5 class="mb-0 fw-bold">
+
+<i class="bi bi-bullseye"></i>
+
+Saving Progress
+
+</h5>
+
+
+</div>
+
+
+
+
+<div class="card-body text-center">
+
+
+
+
+
+{% set progress = goal.progress|float %}
+
+
+
+
+
+<!-- STATUS BADGE -->
+
+
+{% if progress >= 100 %}
+
+<span class="badge rounded-pill bg-success px-4 py-2">
+
+<i class="bi bi-trophy-fill"></i>
+
+Completed
+
+</span>
+
+
+{% elif progress >=70 %}
+
+
+<span class="badge rounded-pill bg-info px-4 py-2">
+
+<i class="bi bi-lightning-fill"></i>
+
+Almost There
+
+</span>
+
+
+{% elif progress >=30 %}
+
+
+<span class="badge rounded-pill bg-warning text-dark px-4 py-2">
+
+<i class="bi bi-arrow-up-circle"></i>
+
+Good Progress
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge rounded-pill bg-danger px-4 py-2">
+
+<i class="bi bi-exclamation-triangle"></i>
+
+Need Saving
+
+</span>
+
+
+{% endif %}
+
+
+
+
+
+
+
+<!-- CIRCLE -->
+
+
+<div class="position-relative mx-auto my-4"
+
+style="width:220px;height:220px;">
+
+
+
+
+
+<div
+
+class="saving-circle"
+
+
+style="
+
+width:220px;
+
+height:220px;
+
+border-radius:50%;
+
+background:
+
+conic-gradient(
+
+{% if progress >=100 %}
+
+#198754
+
+{% elif progress >=70 %}
+
+#0dcaf0
+
+{% elif progress >=30 %}
+
+#ffc107
+
+{% else %}
+
+#dc3545
+
+{% endif %}
+
+{{progress}}%,
+
+#e9ecef {{progress}}%
+
+);
+
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+
+box-shadow:
+
+0 0 35px rgba(0,0,0,.15);
+
+"
+
+>
+
+
+
+
+<div
+
+style="
+
+width:170px;
+
+height:170px;
+
+background:white;
+
+border-radius:50%;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+flex-direction:column;
+
+box-shadow:inset 0 0 20px rgba(0,0,0,.08);
+
+">
+
+
+<h1 class="fw-bold mb-0">
+
+
+{{progress|round}}%
+
+
+</h1>
+
+
+<small class="text-muted">
+
+Completed
+
+</small>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- PROGRESS BAR -->
+
+
+<div class="mt-4">
+
+
+<div class="d-flex justify-content-between mb-2">
+
+
+<strong>
+
+Saving Level
+
+</strong>
+
+
+<span>
+
+{{progress|round}}%
+
+</span>
+
+
+</div>
+
+
+
+
+<div class="progress shadow"
+
+style="height:18px;border-radius:30px;">
+
+
+<div
+
+class="progress-bar progress-bar-striped progress-bar-animated"
+
+
+style="
+
+width:{{progress}}%;
+
+
+{% if progress >=100 %}
+
+background:linear-gradient(90deg,#198754,#20c997);
+
+
+{% elif progress >=70 %}
+
+background:linear-gradient(90deg,#0d6efd,#0dcaf0);
+
+
+{% elif progress >=30 %}
+
+background:linear-gradient(90deg,#ffc107,#fd7e14);
+
+
+{% else %}
+
+background:linear-gradient(90deg,#dc3545,#ff6b6b);
+
+
+{% endif %}
+
+
+">
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- MONEY SUMMARY -->
+
+
+<div class="row mt-4 g-3">
+
+
+
+<div class="col-6">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small class="text-muted">
+
+Saved
+
+</small>
+
+
+<h5 class="text-success fw-bold mb-0">
+
+
+${{ "{:,.2f}".format(goal.saved) }}
+
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-6">
+
+
+<div class="p-3 bg-light rounded-4">
+
+
+<small class="text-muted">
+
+Remaining
+
+</small>
+
+
+<h5 class="text-danger fw-bold mb-0">
+
+
+${{ "{:,.2f}".format(goal.remaining) }}
+
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+<!-- MESSAGE -->
+
+
+<div class="mt-4">
+
+
+
+{% if progress >=100 %}
+
+
+<div class="alert alert-success rounded-4">
+
+
+<i class="bi bi-stars"></i>
+
+
+<strong>
+
+Congratulations!
+
+</strong>
+
+
+<br>
+
+Your saving goal has been completed.
+
+
+</div>
+
+
+
+{% elif progress >=70 %}
+
+
+<div class="alert alert-info rounded-4">
+
+
+<i class="bi bi-rocket-takeoff"></i>
+
+
+You are very close. Keep pushing!
+
+
+</div>
+
+
+
+{% elif progress >=30 %}
+
+
+<div class="alert alert-warning rounded-4">
+
+
+<i class="bi bi-graph-up-arrow"></i>
+
+
+Your saving journey is growing.
+
+
+</div>
+
+
+
+{% else %}
+
+
+<div class="alert alert-danger rounded-4">
+
+
+<i class="bi bi-wallet2"></i>
+
+
+Start increasing your deposits.
+
+
+</div>
+
+
+
+{% endif %}
+
+
+
+</div>
+
+
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- =========================
+      ADVANCED ANALYTICS
+========================== -->
+
+
+<!-- ==========================================
+        FULL ADVANCED SAVING ANALYTICS
+========================================== -->
+
+
+<div class="col-12 col-lg-7">
+
+
+<div class="card shadow-lg border-0 rounded-5 h-100 overflow-hidden">
+
+
+
+<!-- HEADER -->
+
+<div class="card-header bg-success text-white p-4">
+
+
+<div class="d-flex justify-content-between align-items-center">
+
+
+<h5 class="mb-0 fw-bold">
+
+<i class="bi bi-graph-up-arrow me-2"></i>
+
+Saving Analytics
+
+</h5>
+
+
+<span class="badge bg-white text-success rounded-pill px-3">
+
+Live Report
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="card-body p-4">
+
+
+
+
+
+
+<!-- ==========================
+      SUMMARY CARDS
+========================== -->
+
+
+<div class="row g-3">
+
+
+
+
+
+<!-- DEPOSIT -->
+
+<div class="col-12 col-md-4">
+
+
+<div class="card border-0 shadow-sm rounded-4 bg-success bg-opacity-10">
+
+
+<div class="card-body text-center">
+
+
+<i class="bi bi-arrow-down-circle-fill text-success fs-1"></i>
+
+
+<h4 class="fw-bold mt-2" style="color: #fff;">
+
+
+${{ "{:,.2f}".format(total_deposit) }}
+
+
+</h4>
+
+
+<small class="text-dark">
+
+Total Deposits
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- WITHDRAW -->
+
+<div class="col-12 col-md-4">
+
+
+<div class="card border-0 shadow-sm rounded-4 bg-danger bg-opacity-10">
+
+
+<div class="card-body text-center">
+
+
+<i class="bi bi-arrow-up-circle-fill text-danger fs-1"></i>
+
+
+<h4 class="fw-bold mt-2" style="color: #fff;">
+
+
+${{ "{:,.2f}".format(total_withdrawal) }}
+
+
+</h4>
+
+
+<small class="text-dark">
+
+Total Withdrawals
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- GROWTH -->
+
+
+<div class="col-12 col-md-4">
+
+
+<div class="card border-0 shadow-sm rounded-4 bg-primary bg-opacity-10">
+
+
+<div class="card-body text-center">
+
+
+<i class="bi bi-bar-chart-fill text-primary fs-1"></i>
+
+
+<h4 class="fw-bold mt-2" style="color: #fff;">
+
+
+${{ "{:,.2f}".format(growth) }}
+
+
+</h4>
+
+
+<small class="text-dark">
+
+Net Growth
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<hr class="my-4">
+
+
+
+
+
+
+
+
+
+<!-- ==========================
+      SAVING HEALTH SCORE
+========================== -->
+
+
+<h6 class="fw-bold mb-3">
+
+<i class="bi bi-heart-pulse-fill text-danger"></i>
+
+Saving Health Score
+
+</h6>
+
+
+
+{% if total_deposit > 0 %}
+
+{% set health =
+((growth / total_deposit)*100)
+%}
+
+{% else %}
+
+{% set health = 0 %}
+
+{% endif %}
+
+
+
+
+
+
+<div class="d-flex justify-content-between mb-2">
+
+
+<span>
+
+Financial Stability
+
+</span>
+
+
+<strong>
+
+{{health|round(1)}}%
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<div class="progress rounded-pill shadow"
+
+style="height:30px;">
+
+
+<div class="progress-bar progress-bar-striped progress-bar-animated
+
+{% if health >=70 %}
+
+bg-success
+
+{% elif health >=40 %}
+
+bg-warning
+
+{% else %}
+
+bg-danger
+
+{% endif %}
+
+"
+
+style="width:{{health}}%">
+
+
+{{health|round(1)}}%
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<hr class="my-4">
+
+
+
+
+
+
+
+
+<!-- ==========================
+       MONEY FLOW
+========================== -->
+
+
+
+<h6 class="fw-bold mb-4">
+
+
+<i class="bi bi-cash-stack"></i>
+
+Money Flow Analysis
+
+
+</h6>
+
+
+
+
+
+{% set total_flow =
+total_deposit + total_withdrawal
+%}
+
+
+
+{% if total_flow > 0 %}
+
+
+{% set deposit_percent =
+(total_deposit / total_flow * 100)
+%}
+
+
+{% set withdrawal_percent =
+(total_withdrawal / total_flow * 100)
+%}
+
+
+
+{% else %}
+
+
+{% set deposit_percent = 0 %}
+
+{% set withdrawal_percent = 0 %}
+
+
+{% endif %}
+
+
+
+
+
+
+
+
+<!-- DEPOSIT BAR -->
+
+
+<div class="mb-4">
+
+
+<div class="d-flex justify-content-between">
+
+
+<span class="fw-bold text-success">
+
+
+<i class="bi bi-plus-circle"></i>
+
+Deposits
+
+
+</span>
+
+
+
+<span class="text-success fw-bold">
+
+
+${{ "{:,.2f}".format(total_deposit) }}
+
+({{deposit_percent|round(1)}}%)
+
+</span>
+
+
+</div>
+
+
+
+
+
+<div class="progress mt-2"
+
+style="height:22px;">
+
+
+<div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+
+style="width:{{deposit_percent}}%">
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- WITHDRAW BAR -->
+
+
+<div class="mb-4">
+
+
+<div class="d-flex justify-content-between">
+
+
+<span class="fw-bold text-danger">
+
+
+<i class="bi bi-dash-circle"></i>
+
+Withdrawals
+
+
+</span>
+
+
+
+<span class="text-danger fw-bold">
+
+
+${{ "{:,.2f}".format(total_withdrawal) }}
+
+({{withdrawal_percent|round(1)}}%)
+
+</span>
+
+
+</div>
+
+
+
+
+
+<div class="progress mt-2"
+
+style="height:22px;">
+
+
+<div class="progress-bar bg-danger progress-bar-striped progress-bar-animated"
+
+style="width:{{withdrawal_percent}}%">
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<hr class="my-4">
+
+
+
+
+
+
+
+
+
+<!-- ==========================
+     PERFORMANCE CARDS
+========================== -->
+
+
+<div class="row g-3 text-center">
+
+
+
+
+
+
+<div class="col-6 col-md-4">
+
+
+<div class="border rounded-4 p-3">
+
+
+<i class="bi bi-arrow-down-circle text-success fs-3"></i>
+
+
+<h4 class="fw-bold text-success">
+
+
+{{transactions|selectattr(
+"transaction_type",
+"equalto",
+"deposit"
+)|list|length}}
+
+
+</h4>
+
+
+<small>
+
+Deposit Count
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-6 col-md-4">
+
+
+<div class="border rounded-4 p-3">
+
+
+<i class="bi bi-arrow-up-circle text-danger fs-3"></i>
+
+
+<h4 class="fw-bold text-danger">
+
+
+{{transactions|selectattr(
+"transaction_type",
+"equalto",
+"withdrawal"
+)|list|length}}
+
+
+</h4>
+
+
+<small>
+
+Withdrawal Count
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="col-12 col-md-4">
+
+
+<div class="border rounded-4 p-3">
+
+
+<i class="bi bi-clock-history text-primary fs-3"></i>
+
+
+<h4 class="fw-bold">
+
+
+{{transactions|length}}
+
+
+</h4>
+
+
+<small>
+
+Total Transactions
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<hr class="my-4">
+
+
+
+
+
+
+
+
+<!-- ==========================
+       FINAL MESSAGE
+========================== -->
+
+
+{% if growth > 0 %}
+
+
+<div class="alert alert-success rounded-4">
+
+
+<i class="bi bi-check-circle-fill"></i>
+
+
+<strong>
+
+Excellent Saving Performance!
+
+</strong>
+
+<br>
+
+Your savings are growing positively.
+
+
+</div>
+
+
+
+{% elif growth == 0 %}
+
+
+<div class="alert alert-warning rounded-4">
+
+
+<i class="bi bi-info-circle"></i>
+
+
+No growth recorded yet.
+
+
+</div>
+
+
+
+
+{% else %}
+
+
+<div class="alert alert-danger rounded-4">
+
+
+<i class="bi bi-exclamation-triangle-fill"></i>
+
+
+Withdrawals are higher than deposits.
+
+
+</div>
+
+
+
+{% endif %}
+
+
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<!-- =========================
+ TRANSACTION HISTORY
+========================== -->
+
+
+<div class="col-12">
+
+
+<div class="card shadow-sm border-0 rounded-4">
+
+
+<div class="card-header bg-primary text-white">
+
+
+<h5 class="mb-0">
+
+<i class="bi bi-clock-history"></i>
+
+Transaction History
+
+</h5>
+
+
+</div>
+
+
+
+<div class="card-body p-0">
+
+
+<div class="table-responsive">
+
+
+<table class="table table-hover mb-0" id="leadList">
+
+
+<thead class="table-light">
+
+
+<tr>
+
+<th>#</th>
+
+<th>Date</th>
+
+<th>Type</th>
+
+<th>Amount</th>
+
+<!-- <th>Note</th> -->
+
+</tr>
+
+
+</thead>
+
+
+
+<tbody>
+
+
+
+{% for trx in transactions %}
+
+
+<tr>
+
+
+<td>
+
+{{loop.index}}
+
+</td>
+
+
+
+<td>
+
+{{trx.date}}
+
+</td>
+
+
+
+
+<td>
+
+
+{% if trx.transaction_type=="deposit" %}
+
+
+<span class="badge bg-success">
+
+Deposit
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge bg-danger">
+
+Withdrawal
+
+</span>
+
+
+{% endif %}
+
+
+
+</td>
+
+
+
+
+
+<td>
+
+
+${{ "{:,.2f}".format(trx.amount|float) }}
+
+
+</td>
+
+
+
+
+<!-- <td>
+
+{{trx.note or "-"}}
+
+</td> -->
+
+
+
+</tr>
+
+
+
+
+{% else %}
+
+
+<tr>
+
+
+<td colspan="5"
+class="text-center py-4">
+
+
+No transactions found
+
+
+</td>
+
+
+</tr>
+
+
+
+{% endfor %}
+
+
+
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+{% endblock %}

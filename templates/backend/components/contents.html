@@ -791,111 +791,85 @@ beginAtZero:true
      ADVANCED SAVING GOALS DASHBOARD
 ========================================== -->
 
-<!-- MONEY SUMMARY RESPONSIVE -->
-
-<div class="row g-3 text-center">
-
-
-    <div class="col-12 col-sm-4">
-
-
-        <div class="money-box target-box">
-
-
-            <small>
-                Target
-            </small>
-
-
-            <h6>
-                ${{ "{:,.2f}".format(goal.target) }}
-            </h6>
-
-
-        </div>
-
-
-    </div>
-
-
-
-
-
-    <div class="col-12 col-sm-4">
-
-
-        <div class="money-box saved-box">
-
-
-            <small>
-                Saved
-            </small>
-
-
-            <h6>
-                ${{ "{:,.2f}".format(goal.saved) }}
-            </h6>
-
-
-        </div>
-
-
-    </div>
-
-
-
-
-
-    <div class="col-12 col-sm-4">
-
-
-        <div class="money-box remaining-box">
-
-
-            <small>
-                Remaining
-            </small>
-
-
-            <h6>
-                ${{ "{:,.2f}".format(goal.remaining) }}
-            </h6>
-
-
-        </div>
-
-
-    </div>
-
-
-
-</div>
-
 <style>
-    /* =============================
-   MONEY BOX RESPONSIVE
-============================= */
+
+/* ==========================
+   SAVING DASHBOARD STYLE
+========================== */
+
+
+.saving-dashboard-card{
+
+    border-radius:25px;
+
+    overflow:hidden;
+
+    transition:.35s ease;
+
+}
+
+
+
+.saving-dashboard-card:hover{
+
+    transform:translateY(-8px);
+
+    box-shadow:
+    0 20px 45px rgba(0,0,0,.15);
+
+}
+
+
+
+
+.goal-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+
+
+.goal-title{
+
+    font-size:18px;
+
+    font-weight:700;
+
+}
+
+
 
 
 .money-box{
 
-    padding:15px;
-
-    border-radius:12px;
-
     background:#f8f9fa;
 
-    height:100%;
+    border-radius:18px;
 
-    overflow:hidden;
+    padding:15px;
+
+    transition:.3s;
+
+}
+
+
+
+.money-box:hover{
+
+    transform:scale(1.05);
 
 }
 
 
 
 .money-box small{
-
-    font-size:12px;
 
     color:#6c757d;
 
@@ -905,70 +879,63 @@ beginAtZero:true
 
 .money-box h6{
 
-
     margin-top:8px;
 
-    font-size:18px;
+}
 
-    font-weight:700;
 
-    white-space:normal;
 
-    word-break:break-word;
 
-    overflow-wrap:anywhere;
+.progress-wrapper{
+
+    height:28px;
+
+    border-radius:20px;
+
+    overflow:hidden;
+
+}
+
+
+
+.progress-bar{
+
+    animation:
+    progressLoad 1.5s ease;
+
+}
+
+
+
+@keyframes progressLoad{
+
+
+from{
+
+width:0;
+
+}
 
 }
 
 
 
 
+.circle-progress{
 
-.target-box h6{
+    width:140px;
 
-    color:#0d6efd;
+    height:140px;
 
-}
+    border-radius:50%;
 
+    display:flex;
 
+    justify-content:center;
 
-.saved-box h6{
+    align-items:center;
 
-    color:#198754;
-
-}
-
-
-
-.remaining-box h6{
-
-    color:#dc3545;
-
-}
-
-
-
-
-
-/* MOBILE */
-
-@media(max-width:576px){
-
-
-    .money-box{
-
-        padding:12px;
-
-    }
-
-
-    .money-box h6{
-
-
-        font-size:20px;
-
-
-    }
+    margin:auto;
 
 
 }
@@ -976,22 +943,542 @@ beginAtZero:true
 
 
 
+.circle-inner{
 
+    width:105px;
 
+    height:105px;
 
-/* TABLET */
+    background:white;
 
-@media(min-width:577px){
+    border-radius:50%;
 
+    display:flex;
 
-    .money-box h6{
+    justify-content:center;
 
-        font-size:17px;
+    align-items:center;
 
-    }
+    font-size:24px;
+
+    font-weight:bold;
 
 }
+
+
+
+
+
+.analytics-card{
+
+    border-radius:25px;
+
+    transition:.3s;
+
+}
+
+
+.analytics-card:hover{
+
+    transform:translateY(-5px);
+
+}
+
+
+
+
+.alert{
+
+    border-radius:18px;
+
+}
+
+
+
+
+@media(max-width:768px){
+
+
+.goal-title{
+
+font-size:15px;
+
+}
+
+
+.money-box{
+
+padding:10px;
+
+}
+
+
+
+.circle-progress{
+
+width:110px;
+
+height:110px;
+
+}
+
+
+
+.circle-inner{
+
+width:80px;
+
+height:80px;
+
+font-size:18px;
+
+}
+
+
+}
+
+
 </style>
+
+
+
+<div class="container-fluid">
+
+
+<div class="row g-4">
+
+
+{% for goal in saving_goals %}
+
+
+<div class="col-12 col-sm-6 col-xl-4">
+
+
+<div class="card border-0 shadow-sm h-100 saving-dashboard-card">
+
+
+<div class="card-body">
+
+
+<div class="goal-header">
+
+
+<h5 class="goal-title">
+
+<i class="bi bi-piggy-bank text-primary"></i>
+
+{{goal.title}}
+
+</h5>
+
+
+
+<span class="badge rounded-pill bg-success">
+
+{{goal.status}}
+
+</span>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="row g-2">
+
+
+<div class="col-4">
+
+<div class="money-box text-center">
+
+<small>
+Target
+</small>
+
+
+<h6 class="text-primary">
+
+${{ "{:,.2f}".format(goal.target|float) }}
+
+</h6>
+
+
+</div>
+
+</div>
+
+
+
+
+<div class="col-4">
+
+
+<div class="money-box text-center">
+
+
+<small>
+Saved
+</small>
+
+
+<h6 class="text-success">
+
+
+${{ "{:,.2f}".format(goal.saved|float) }}
+
+
+</h6>
+
+
+</div>
+
+</div>
+
+
+
+
+<div class="col-4">
+
+
+<div class="money-box text-center">
+
+
+<small>
+Left
+</small>
+
+
+<h6 class="text-danger">
+
+
+${{ "{:,.2f}".format(goal.remaining|float) }}
+
+
+</h6>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<br>
+
+
+
+{% set p = goal.progress|float %}
+
+
+<div class="circle-progress"
+
+style="
+background:
+conic-gradient(
+#198754 {{p}}%,
+#eee {{p}}%
+);
+">
+
+
+<div class="circle-inner">
+
+
+{{p|round}}%
+
+
+</div>
+
+
+</div>
+
+
+
+
+<br>
+
+
+
+<div class="progress progress-wrapper">
+
+
+<div class="progress-bar bg-success"
+
+style="
+width:{{p}}%
+">
+
+</div>
+
+
+</div>
+
+
+
+
+<br>
+
+
+
+{% if goal.is_over_target %}
+
+
+<div class="alert alert-success">
+
+
+<i class="bi bi-stars"></i>
+
+Target exceeded!
+
+
+<br>
+
+
+Extra:
+
+<strong>
+
+${{
+"{:,.2f}".format(
+goal.saved|float-goal.target|float
+)
+
+}}
+
+</strong>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+<a href="{{ url_for('main.view_saving_goal', id=goal._id) }}"
+   class="btn btn-primary w-100 rounded-pill">
+
+    <i class="bi bi-eye"></i>
+
+    View Goal
+
+</a>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+{% endfor %}
+
+
+
+</div>
+
+
+</div>
+
+
+<div class="card border-0 shadow mt-5 analytics-card">
+
+
+<div class="card-header bg-success text-white">
+
+
+<h5>
+
+<i class="bi bi-graph-up"></i>
+
+Saving Growth Analytics
+
+</h5>
+
+
+</div>
+
+
+
+<div class="card-body">
+
+
+<div class="row g-4">
+
+
+{% for report in saving_deposit_report %}
+
+
+
+<div class="col-12 col-lg-6">
+
+
+<div class="card border-0 shadow-sm">
+
+
+<div class="card-body">
+
+
+<h5>
+
+{{report.title}}
+
+</h5>
+
+
+<hr>
+
+
+<div class="row text-center">
+
+
+<div class="col-3">
+
+
+<h6 class="text-success">
+
+${{ "{:,.2f}".format(report.total_deposit) }}
+
+</h6>
+
+
+<small>
+Deposit
+</small>
+
+
+</div>
+
+
+
+
+<div class="col-3">
+
+
+<h6 class="text-danger">
+
+${{ "{:,.2f}".format(report.total_withdrawal) }}
+
+</h6>
+
+
+<small>
+Withdraw
+</small>
+
+
+</div>
+
+
+
+
+<div class="col-3">
+
+
+<h6>
+
+${{ "{:,.2f}".format(report.growth) }}
+
+</h6>
+
+
+<small>
+Growth
+</small>
+
+
+</div>
+
+
+
+
+<div class="col-3">
+
+
+<h6>
+
+{{report.deposit_count}}
+
+</h6>
+
+
+<small>
+Times
+</small>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+<script>
+
+
+function openGoal(id){
+
+
+window.location.href=
+"/saving-goals/view/"+id;
+
+
+}
+
+
+
+
+// Animate numbers
+
+document
+.querySelectorAll(".money-box h6")
+.forEach(el=>{
+
+
+el.style.transition="all .5s";
+
+
+});
+
+
+
+
+</script>
 
 
 

@@ -1205,7 +1205,8 @@ def dashboard():
                 )
     
             })
-    
+
+            
 
 
 
@@ -1245,6 +1246,301 @@ saving_warnings=saving_warnings,
 
 saving_deposit_report=saving_deposit_report,
     )
+
+
+@bp.route("/saving-goals/view/<id>")
+@login_required
+def view_saving_goal(id):
+
+    try:
+
+        saving_id = ObjectId(id)
+
+    except Exception:
+
+        abort(404)
+
+
+
+    user_id = str(current_user.id)
+
+
+
+    # ==================================
+    # GET SAVING
+    # COLLECTION = savings
+    # ==================================
+
+    saving = mongo.db.savings.find_one({
+
+        "_id": saving_id,
+
+        "$or": [
+
+            {
+                "user_id": user_id
+            },
+
+            {
+                "user_id": ObjectId(user_id)
+            }
+
+        ]
+
+    })
+
+
+
+    print("==============================")
+    print("Saving ID:", saving_id)
+    print("User:", user_id)
+    print("Saving:", saving)
+    print("==============================")
+
+
+
+    if not saving:
+
+
+        flash(
+            "Saving goal not found.",
+            "danger"
+        )
+
+
+        return redirect(
+            url_for(
+                "main.dashboard"
+            )
+        )
+
+
+
+
+    # ==================================
+    # CALCULATE SAVING
+    # ==================================
+
+
+    target = float(
+        saving.get(
+            "target_amount",
+            0
+        )
+    )
+
+
+    saved = float(
+        saving.get(
+            "current_balance",
+            0
+        )
+    )
+
+
+
+    remaining = max(
+        target - saved,
+        0
+    )
+
+
+
+    progress = 0
+
+
+    if target > 0:
+
+        progress = round(
+            (saved / target) * 100,
+            2
+        )
+
+
+
+    if progress >= 100:
+
+        status = "Completed"
+
+
+    elif progress >= 50:
+
+        status = "Good Progress"
+
+
+    elif progress > 0:
+
+        status = "In Progress"
+
+
+    else:
+
+        status = "Not Started"
+
+
+
+
+    # ==================================
+    # TRANSACTIONS
+    # ==================================
+
+
+    transactions = list(
+
+        mongo.db.saving_transactions.find({
+
+            "$or":[
+
+                {
+                    "saving_id": saving_id
+                },
+
+                {
+                    "saving_id": str(saving_id)
+                }
+
+            ],
+
+            "status": True
+
+        })
+
+        .sort(
+            "date",
+            -1
+        )
+
+    )
+
+
+
+
+    # ==================================
+    # SUMMARY
+    # ==================================
+
+
+    total_deposit = 0
+
+    total_withdrawal = 0
+
+
+
+    for trx in transactions:
+
+
+        amount = float(
+            trx.get(
+                "amount",
+                0
+            )
+        )
+
+
+        if trx.get(
+            "transaction_type"
+        ) == "deposit":
+
+
+            total_deposit += amount
+
+
+
+        elif trx.get(
+            "transaction_type"
+        ) == "withdrawal":
+
+
+            total_withdrawal += amount
+
+
+
+
+
+    growth = (
+        total_deposit -
+        total_withdrawal
+    )
+
+
+
+
+    # ==================================
+    # TEMPLATE DATA
+    # ==================================
+
+
+    goal = {
+
+
+        "_id":
+        str(
+            saving["_id"]
+        ),
+
+
+        "title":
+        saving.get(
+            "title",
+            "Saving Goal"
+        ),
+
+
+        "description":
+        saving.get(
+            "description",
+            ""
+        ),
+
+
+        "target":
+        target,
+
+
+        "saved":
+        saved,
+
+
+        "remaining":
+        remaining,
+
+
+        "progress":
+        progress,
+
+
+        "status":
+        status,
+
+
+        "maturity_date":
+        saving.get(
+            "maturity_date"
+        ),
+
+
+        "created_at":
+        saving.get(
+            "created_at"
+        )
+
+    }
+
+
+
+    return render_template(
+
+        "backend/pages/components/savings/view.html",
+        goal=goal,
+        transactions=transactions,
+        total_deposit=total_deposit,
+        total_withdrawal=total_withdrawal,
+        growth=growth
+
+    )
+
+
+
 
 
 
