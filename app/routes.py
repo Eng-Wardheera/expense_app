@@ -2358,148 +2358,299 @@ def gym_profile():
 
     )
 
-
 @bp.route("/gym/weight/add", methods=["GET", "POST"])
 @login_required
 def add_gym_weight():
 
     user_id = ObjectId(current_user.id)
 
+
     # =====================================
-    # GET USER PROFILE
+    # GET USER GYM PROFILE
     # =====================================
 
     profile = mongo.db.gym_profile.find_one({
+
         "user_id": user_id
+
     })
 
+
     if not profile:
+
 
         flash(
             "Please create your Gym Profile first.",
             "warning"
         )
 
+
         return redirect(
-            url_for("main.gym_profile")
+            url_for(
+                "main.gym_profile"
+            )
         )
+
+
 
     # =====================================
     # GET LAST WEIGHT
     # =====================================
 
     last_weight = mongo.db.weight_progress.find_one(
+
         {
             "user_id": user_id
         },
+
         sort=[
-            ("date", -1)
+            (
+                "date",
+                -1
+            )
         ]
+
     )
+
+
 
     if last_weight:
 
+
         previous_weight = float(
+
             last_weight.get(
                 "weight",
                 0
             )
+
         )
+
 
     else:
 
+
         previous_weight = float(
+
             profile.get(
                 "start_weight",
                 0
             )
+
         )
 
+
+
+
     # =====================================
-    # SAVE
+    # BMI SUMMARY
     # =====================================
 
+
+    height_cm = float(
+
+        profile.get(
+            "height_cm",
+            0
+        )
+
+    )
+
+
+
+    bmi = 0
+
+
+    bmi_status = "Unknown"
+
+
+
+    if height_cm > 0 and previous_weight > 0:
+
+
+        height_m = height_cm / 100
+
+
+
+        bmi = round(
+
+            previous_weight /
+            (height_m ** 2),
+
+            2
+
+        )
+
+
+
+        if bmi < 18.5:
+
+
+            bmi_status = "Underweight"
+
+
+
+        elif bmi < 25:
+
+
+            bmi_status = "Normal Weight"
+
+
+
+        elif bmi < 30:
+
+
+            bmi_status = "Overweight"
+
+
+
+        else:
+
+
+            bmi_status = "Obese"
+
+
+
+
+
+
+
+    # =====================================
+    # POST SAVE WEIGHT
+    # =====================================
+
+
     if request.method == "POST":
+
+
 
         weight = request.form.get(
             "weight",
             ""
         ).strip()
 
+
+
         date = request.form.get(
             "date",
             ""
         )
+
+
 
         note = request.form.get(
             "note",
             ""
         ).strip()
 
+
+
         record_type = request.form.get(
             "type",
             "weight_record"
         )
 
-        # ==========================
+
+
+
+
+        # =============================
         # VALIDATION
-        # ==========================
+        # =============================
+
 
         if not weight:
+
 
             flash(
                 "Weight is required.",
                 "danger"
             )
 
+
             return redirect(
-                url_for("main.add_gym_weight")
+                url_for(
+                    "main.add_gym_weight"
+                )
             )
+
+
+
 
         try:
 
+
             weight = float(weight)
 
+
+
         except ValueError:
+
 
             flash(
                 "Invalid weight.",
                 "danger"
             )
 
+
             return redirect(
-                url_for("main.add_gym_weight")
+                url_for(
+                    "main.add_gym_weight"
+                )
             )
 
+
+
+
         if weight <= 0:
+
 
             flash(
                 "Weight must be greater than zero.",
                 "danger"
             )
 
+
             return redirect(
-                url_for("main.add_gym_weight")
+                url_for(
+                    "main.add_gym_weight"
+                )
             )
 
-        # ==========================
+
+
+
+
+        # =============================
         # DATE
-        # ==========================
+        # =============================
+
 
         if date:
 
+
             date = datetime.strptime(
+
                 date,
+
                 "%Y-%m-%d"
+
             )
+
 
         else:
 
+
             date = datetime.utcnow()
 
-        # ==========================
+
+
+
+
+        # =============================
         # DUPLICATE DATE
-        # ==========================
+        # =============================
+
 
         exists = mongo.db.weight_progress.find_one({
 
@@ -2509,109 +2660,279 @@ def add_gym_weight():
 
         })
 
+
+
         if exists:
 
+
             flash(
+
                 "Weight for this date already exists.",
+
                 "warning"
+
             )
+
 
             return redirect(
-                url_for("main.add_gym_weight")
+
+                url_for(
+
+                    "main.add_gym_weight"
+
+                )
+
             )
 
-        # ==========================
-        # CALCULATE CHANGE
-        # ==========================
+
+
+
+
+
+        # =============================
+        # WEIGHT CHANGE
+        # =============================
+
 
         difference = round(
+
             weight - previous_weight,
+
             2
+
         )
+
+
 
         if difference > 0:
 
+
             change_type = "Weight Gain"
+
+
 
         elif difference < 0:
 
+
             change_type = "Weight Loss"
 
+
+
         else:
+
 
             change_type = "No Change"
 
-        # ==========================
-        # SAVE DATABASE
-        # ==========================
+
+
+
+
+
+        # =============================
+        # BMI NEW WEIGHT
+        # =============================
+
+
+        new_bmi = 0
+
+
+        new_bmi_status = "Unknown"
+
+
+
+        if height_cm > 0:
+
+
+            height_m = height_cm / 100
+
+
+
+            new_bmi = round(
+
+                weight /
+                (height_m ** 2),
+
+                2
+
+            )
+
+
+
+            if new_bmi < 18.5:
+
+
+                new_bmi_status = "Underweight"
+
+
+
+            elif new_bmi < 25:
+
+
+                new_bmi_status = "Normal Weight"
+
+
+
+            elif new_bmi < 30:
+
+
+                new_bmi_status = "Overweight"
+
+
+
+            else:
+
+
+                new_bmi_status = "Obese"
+
+
+
+
+
+
+
+        # =============================
+        # INSERT DATABASE
+        # =============================
+
 
         mongo.db.weight_progress.insert_one({
 
+
+
             "user_id": user_id,
+
 
             "type": record_type,
 
+
             "weight": weight,
+
 
             "previous_weight": previous_weight,
 
+
             "difference": difference,
+
 
             "change_type": change_type,
 
+
+            "bmi": new_bmi,
+
+
+            "bmi_status": new_bmi_status,
+
+
+            "height_cm": height_cm,
+
+
             "date": date,
+
 
             "note": note,
 
+
             "created_at": datetime.utcnow(),
+
 
             "updated_at": datetime.utcnow()
 
+
         })
 
-        # ==========================
-        # SUCCESS MESSAGE
-        # ==========================
+
+
+
+
+
 
         if change_type == "Weight Gain":
 
+
             flash(
-                f"Weight saved successfully. You gained {abs(difference):.1f} KG.",
+
+                f"You gained {abs(difference):.1f} KG.",
+
                 "success"
+
             )
+
+
 
         elif change_type == "Weight Loss":
 
+
             flash(
-                f"Weight saved successfully. You lost {abs(difference):.1f} KG.",
+
+                f"You lost {abs(difference):.1f} KG.",
+
                 "success"
+
             )
+
+
 
         else:
 
+
             flash(
-                "Weight saved successfully. No weight change detected.",
+
+                "No weight change detected.",
+
                 "success"
+
             )
 
+
+
+
+
         return redirect(
+
             url_for(
+
                 "main.weight_history"
+
             )
+
         )
+
+
+
+
+
+
+
+    # =====================================
+    # TEMPLATE
+    # =====================================
+
 
     return render_template(
 
+
         "backend/pages/components/gym/add_weight.html",
+
 
         profile=profile,
 
+
         previous_weight=previous_weight,
+
+
+        height_cm=height_cm,
+
+
+        bmi=bmi,
+
+
+        bmi_status=bmi_status,
+
 
         datetime=datetime
 
-    )
 
+    )
 
 
 @bp.route("/gym/weight/edit/<id>", methods=["GET","POST"])
@@ -6513,6 +6834,7 @@ def add_transaction():
                     
         cat["items"] = clean_items
         categories.append(clean_category(cat))
+
         
 
     return render_template(
