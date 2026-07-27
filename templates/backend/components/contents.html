@@ -222,6 +222,45 @@
 </div>
 
 
+
+
+
+<div class="row">
+
+{% for acc in account_cards %}
+
+<div class="col-xl-4 col-lg-6 mb-4">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6>
+{{ acc.name }}
+</h6>
+
+
+<h3>
+${{ "%.2f"|format(acc.balance) }}
+</h3>
+
+
+<small>
+{{ acc.type }}
+</small>
+
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
 {% if user.role == "superadmin" %}
 
 <!-- Recent Users Table -->
@@ -626,6 +665,935 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
+
+
+
+<div class="card mt-4">
+
+<div class="card-body">
+
+<h5>
+Monthly Cash Flow
+</h5>
+
+
+<canvas id="cashFlowChart"></canvas>
+
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+
+
+const ctx =
+document.getElementById(
+"cashFlowChart"
+);
+
+
+
+new Chart(ctx, {
+
+
+type:"bar",
+
+
+data:{
+
+
+labels:
+{{ chart_labels|tojson }},
+
+
+datasets:[
+
+
+{
+
+label:"Income",
+
+data:
+{{ chart_income|tojson }},
+
+},
+
+
+{
+
+label:"Expense",
+
+data:
+{{ chart_expense|tojson }},
+
+},
+
+
+{
+
+label:"Profit",
+
+data:
+{{ chart_profit|tojson }},
+
+}
+
+
+]
+
+
+},
+
+
+
+options:{
+
+
+responsive:true,
+
+
+scales:{
+
+
+y:{
+
+
+beginAtZero:true
+
+
+}
+
+
+}
+
+
+}
+
+
+});
+
+
+
+</script>
+
+
+
+
+
+
+
+<!-- ==========================================
+     ADVANCED SAVING GOALS DASHBOARD
+========================================== -->
+
+
+<div class="card mt-4 p-3 shadow-lg border-0">
+
+
+<div class="card-header bg-primary text-white 
+d-flex justify-content-between align-items-center">
+
+
+<h5 class="mb-0">
+
+<i class="bi bi-piggy-bank-fill"></i>
+
+Saving Goals Dashboard
+
+</h5>
+
+
+
+{% if saving_goals %}
+
+<span class="badge bg-white text-primary">
+
+{{ saving_goals|length }} Goals
+
+</span>
+
+{% endif %}
+
+
+</div>
+
+
+
+
+<div class="card-body">
+
+
+{% if saving_goals %}
+
+
+<div class="row">
+
+
+{% for goal in saving_goals %}
+
+
+
+<div class="col-lg-6 mb-4">
+
+
+<div class="card border-0 shadow-sm h-100">
+
+
+<div class="card-body">
+
+
+
+<!-- TITLE -->
+
+<div class="d-flex justify-content-between">
+
+
+<h5 class="fw-bold">
+
+
+<i class="bi bi-wallet-fill text-primary"></i>
+
+{{goal.title}}
+
+
+</h5>
+
+
+
+
+{% if goal.status == "Completed" %}
+
+<span class="badge bg-success">
+
+<i class="bi bi-trophy-fill"></i>
+
+Completed
+
+</span>
+
+
+{% elif goal.status == "Good Progress" %}
+
+<span class="badge bg-info">
+
+Good Progress
+
+</span>
+
+
+{% elif goal.status == "In Progress" %}
+
+<span class="badge bg-warning">
+
+In Progress
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge bg-secondary">
+
+Not Started
+
+</span>
+
+
+{% endif %}
+
+
+
+</div>
+
+
+
+<hr>
+
+
+
+
+<!-- MONEY CARDS -->
+
+
+<div class="row text-center">
+
+
+
+<div class="col-4">
+
+<div class="p-3 rounded bg-light">
+
+
+<small>
+Target
+</small>
+
+
+<h6 class="text-primary fw-bold">
+
+${{ "%.2f"|format(goal.target) }}
+
+</h6>
+
+
+</div>
+
+</div>
+
+
+
+
+
+
+<div class="col-4">
+
+
+<div class="p-3 rounded bg-light">
+
+
+<small>
+Saved
+</small>
+
+
+<h6 class="text-success fw-bold">
+
+${{ "%.2f"|format(goal.saved) }}
+
+</h6>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-4">
+
+
+<div class="p-3 rounded bg-light">
+
+
+<small>
+Remaining
+</small>
+
+
+<h6 class="text-danger fw-bold">
+
+${{ "%.2f"|format(goal.remaining) }}
+
+</h6>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<!-- CIRCLE PROGRESS -->
+
+
+<div class="text-center mt-4">
+
+
+<div style="
+width:130px;
+height:130px;
+border-radius:50%;
+margin:auto;
+display:flex;
+align-items:center;
+justify-content:center;
+
+background:
+conic-gradient(
+#198754 {{goal.progress}}%,
+#e9ecef {{goal.progress}}%
+);
+
+">
+
+
+<div style="
+width:100px;
+height:100px;
+background:white;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
+font-size:22px;
+">
+
+
+{{goal.progress}}%
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- BAR -->
+
+
+<div class="mt-4">
+
+
+<div class="progress shadow"
+style="
+height:28px;
+border-radius:20px;
+">
+
+
+<div 
+
+class="progress-bar progress-bar-striped progress-bar-animated"
+
+style="
+width:{{goal.progress}}%;
+
+{% if goal.progress >=100 %}
+
+background:linear-gradient(90deg,#198754,#20c997);
+
+{% elif goal.progress >=70 %}
+
+background:linear-gradient(90deg,#0d6efd,#6610f2);
+
+{% elif goal.progress >=30 %}
+
+background:linear-gradient(90deg,#ffc107,#fd7e14);
+
+{% else %}
+
+background:linear-gradient(90deg,#dc3545,#ff6b6b);
+
+{% endif %}
+
+">
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- STATUS MESSAGE -->
+
+
+<div class="text-center mt-3">
+
+
+{% if goal.progress >=100 %}
+
+
+<div class="alert alert-success">
+
+
+<i class="bi bi-check-circle-fill"></i>
+
+
+Saving goal completed!
+
+
+</div>
+
+
+
+{% elif goal.progress >=70 %}
+
+
+<div class="alert alert-info">
+
+
+<i class="bi bi-lightning-fill"></i>
+
+
+Almost completed. Keep saving!
+
+
+</div>
+
+
+
+
+{% elif goal.progress >=30 %}
+
+
+<div class="alert alert-warning">
+
+
+<i class="bi bi-arrow-up-circle"></i>
+
+
+Good progress. Continue!
+
+
+</div>
+
+
+
+{% else %}
+
+
+<div class="alert alert-danger">
+
+
+<i class="bi bi-exclamation-triangle"></i>
+
+
+Saving is low. Increase deposits.
+
+
+</div>
+
+
+
+{% endif %}
+
+
+</div>
+
+
+
+
+
+<!-- OVER TARGET -->
+
+
+{% if goal.is_over_target %}
+
+
+<div class="alert alert-success">
+
+
+<i class="bi bi-stars"></i>
+
+
+Target exceeded!
+
+
+<br>
+
+
+Extra saved:
+
+
+<strong>
+
+${{ "%.2f"|format(goal.saved-goal.target) }}
+
+</strong>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+</div>
+
+
+
+{% else %}
+
+
+<div class="alert alert-info">
+
+<i class="bi bi-info-circle"></i>
+
+No Saving Goals Found
+
+</div>
+
+
+{% endif %}
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ==========================================
+     SAVING GROWTH ANALYTICS
+========================================== -->
+
+
+<div class="card mt-4 shadow-lg p-3 border-0">
+
+
+<div class="card-header bg-success text-white">
+
+
+<h5 class="mb-0">
+
+<i class="bi bi-graph-up-arrow"></i>
+
+Saving Growth Analytics
+
+</h5>
+
+
+</div>
+
+
+
+
+<div class="card-body">
+
+
+{% if saving_deposit_report %}
+
+
+
+<div class="row">
+
+
+
+{% for report in saving_deposit_report %}
+
+
+
+<div class="col-md-6 mb-4">
+
+
+
+<div class="card shadow-sm border-0">
+
+
+<div class="card-body">
+
+
+
+<h5 class="fw-bold">
+
+{{report.title}}
+
+</h5>
+
+
+<hr>
+
+
+
+
+<div class="row text-center">
+
+
+<div class="col-3">
+
+<h6 class="text-success">
+
+${{ "%.2f"|format(report.total_deposit) }}
+
+</h6>
+
+<small>
+Deposits
+</small>
+
+</div>
+
+
+
+<div class="col-3">
+
+<h6 class="text-danger">
+
+${{ "%.2f"|format(report.total_withdrawal) }}
+
+</h6>
+
+<small>
+Withdraw
+</small>
+
+
+</div>
+
+
+
+
+<div class="col-3">
+
+<h6>
+
+${{ "%.2f"|format(report.growth) }}
+
+</h6>
+
+
+<small>
+Growth
+</small>
+
+</div>
+
+
+
+
+<div class="col-3">
+
+<h6>
+
+{{report.deposit_count}}
+
+</h6>
+
+
+<small>
+Times
+</small>
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<div class="mt-4">
+
+
+<div class="progress"
+style="height:25px;">
+
+
+<div class="progress-bar bg-success progress-bar-striped progress-bar-animated"
+
+style="width:{{report.progress}}%">
+
+
+{{report.progress}}%
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+{% if report.total_withdrawal > report.total_deposit %}
+
+
+<div class="alert alert-danger mt-3">
+
+
+<i class="bi bi-exclamation-triangle"></i>
+
+
+Warning:
+
+Withdrawals are higher than deposits.
+
+
+</div>
+
+
+{% else %}
+
+
+<div class="alert alert-success mt-3">
+
+
+<i class="bi bi-arrow-up-circle"></i>
+
+
+Saving is growing positively.
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+</div>
+
+
+
+{% else %}
+
+
+<div class="alert alert-warning">
+
+No Saving History Found
+
+</div>
+
+
+{% endif %}
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- ==========================================
+     SAVING ALERTS
+========================================== -->
+
+
+{% if saving_warnings %}
+
+
+<div class="card mt-4 p-3 shadow-lg">
+
+
+<div class="card-header bg-danger text-white">
+
+
+<h5>
+
+<i class="bi bi-bell-fill"></i>
+
+Saving Alerts
+
+</h5>
+
+
+</div>
+
+
+
+
+<div class="card-body">
+
+
+{% for warning in saving_warnings %}
+
+
+
+<div class="alert alert-{{warning.type}}">
+
+
+<strong>
+
+{{warning.title}}
+
+</strong>
+
+
+<br>
+
+
+{{warning.message}}
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+
+</div>
+
+
+</div>
+
+
+{% endif %}
+
+
 
 
 

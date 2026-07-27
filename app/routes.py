@@ -778,6 +778,437 @@ def dashboard():
         tx["account_name"] = account["name"] if account else "N/A"
         
 
+    # =====================================
+    # SAVING PROGRESS
+    # =====================================
+
+    saving_progress=[]
+
+
+    for saving in savings:
+
+
+        target=float(
+            saving.get("target_amount",0)
+        )
+
+
+        current=float(
+            saving.get("current_balance",0)
+        )
+
+
+        percentage=0
+
+
+        if target > 0:
+
+            percentage=round(
+                (current/target)*100,
+                2
+            )
+
+
+        saving_progress.append({
+
+            "title":saving.get("title"),
+
+            "target":target,
+
+            "current":current,
+
+            "percentage":percentage
+
+        })
+
+
+
+    # ==========================================
+    # SAVING GOALS REPORT
+    # ==========================================
+
+    saving_goals = []
+
+    saving_warnings = []
+
+
+    savings = list(
+        mongo.db.savings.find({
+            "$or": [
+                {
+                    "user_id": str(current_user.id)
+                },
+                {
+                    "user_id": ObjectId(current_user.id)
+                }
+            ]
+        })
+    )
+
+
+
+    for saving in savings:
+
+
+        target = float(
+            saving.get(
+                "target_amount",
+                0
+            )
+        )
+
+
+        saved = float(
+            saving.get(
+                "current_balance",
+                0
+            )
+        )
+
+
+        remaining = target - saved
+
+
+        progress = 0
+
+        if target > 0:
+
+            progress = round(
+                (saved / target) * 100,
+                2
+            )
+
+
+
+        # ===============================
+        # STATUS
+        # ===============================
+
+        if progress >= 100:
+
+            status = "Completed"
+
+        elif progress >= 50:
+
+            status = "Good Progress"
+
+        elif progress > 0:
+
+            status = "In Progress"
+
+        else:
+
+            status = "Not Started"
+
+
+
+        # ===============================
+        # SAVING WARNINGS
+        # ===============================
+
+        if saved > target:
+
+
+            saving_warnings.append({
+
+                "type": "success",
+
+                "title": saving.get(
+                    "title",
+                    "Saving"
+                ),
+
+                "message":
+                f"Saving exceeded target by ${saved-target:,.2f}"
+
+            })
+
+
+
+        elif progress >= 90 and progress < 100:
+
+
+            saving_warnings.append({
+
+                "type": "warning",
+
+                "title": saving.get(
+                    "title",
+                    "Saving"
+                ),
+
+                "message":
+                f"Almost completed. Only ${remaining:,.2f} remaining."
+
+            })
+
+
+
+        elif progress < 25 and target > 0:
+
+
+            saving_warnings.append({
+
+                "type": "danger",
+
+                "title": saving.get(
+                    "title",
+                    "Saving"
+                ),
+
+                "message":
+                f"Saving progress is low ({progress}%)."
+
+            })
+
+
+
+        # ===============================
+        # REPORT DATA
+        # ===============================
+
+        saving_goals.append({
+
+            "_id": str(
+                saving.get("_id")
+            ),
+
+            "title":
+            saving.get(
+                "title",
+                "Saving Goal"
+            ),
+
+
+            "target":
+            target,
+
+
+            "saved":
+            saved,
+
+
+            "remaining":
+            max(
+                remaining,
+                0
+            ),
+
+
+            "progress":
+            progress,
+
+
+            "status":
+            status,
+
+
+            "is_over_target":
+            saved > target
+
+        })
+
+
+    # ==========================================
+    # SAVING DEPOSIT REPORT
+    # ==========================================
+
+    saving_deposit_report = []
+
+
+    saving_transactions = list(
+        mongo.db.saving_transactions.find({
+            "$or": [
+                {
+                    "user_id": str(current_user.id)
+                },
+                {
+                    "user_id": ObjectId(current_user.id)
+                }
+            ],
+            "status": True
+        })
+    )
+
+
+
+    for goal in saving_goals:
+
+
+        saving_id = goal["_id"]
+
+
+        total_deposit = 0
+        total_withdrawal = 0
+        deposit_count = 0
+
+
+
+        for st in saving_transactions:
+
+
+            if str(st.get("saving_id")) != str(saving_id):
+
+                continue
+
+
+
+            amount = float(
+                st.get(
+                    "amount",
+                    0
+                )
+            )
+
+
+            if st.get("transaction_type") == "deposit":
+
+                total_deposit += amount
+                deposit_count += 1
+
+
+
+            elif st.get("transaction_type") == "withdrawal":
+
+                total_withdrawal += amount
+
+
+
+
+        growth = (
+            total_deposit -
+            total_withdrawal
+        )
+
+
+
+        saving_deposit_report.append({
+
+            "title":
+                goal["title"],
+
+
+            "target":
+                goal["target"],
+
+
+            "current":
+                goal["saved"],
+
+
+            "total_deposit":
+                total_deposit,
+
+
+            "total_withdrawal":
+                total_withdrawal,
+
+
+            "growth":
+                growth,
+
+
+            "deposit_count":
+                deposit_count,
+
+
+            "remaining":
+                goal["remaining"],
+
+
+            "progress":
+                goal["progress"]
+
+        })
+
+     # =====================================
+        # CHART DATA (MONTHLY)
+        # =====================================
+    
+        monthly_income = defaultdict(float)
+        monthly_expense = defaultdict(float)
+    
+    
+        for t in transactions:
+    
+            date = t.get("date")
+    
+            if not date:
+                continue
+    
+            month = date.strftime("%b")
+    
+            amount = float(
+                t.get("amount",0)
+            )
+    
+    
+            if t.get("transaction_type") == "income":
+    
+                monthly_income[month] += amount
+    
+    
+            elif t.get("transaction_type") == "expense":
+    
+                monthly_expense[month] += amount
+    
+    
+    
+        chart_labels = list(
+            monthly_income.keys()
+            |
+            monthly_expense.keys()
+        )
+    
+    
+        chart_income = [
+            monthly_income.get(x,0)
+            for x in chart_labels
+        ]
+    
+    
+        chart_expense = [
+            monthly_expense.get(x,0)
+            for x in chart_labels
+        ]
+    
+    
+        chart_profit = [
+    
+            monthly_income.get(x,0)
+            -
+            monthly_expense.get(x,0)
+    
+            for x in chart_labels
+    
+        ]
+    
+    
+    
+        # =====================================
+        # ACCOUNT CARDS
+        # =====================================
+    
+        account_cards = []
+    
+    
+        for account in accounts:
+    
+            account_cards.append({
+    
+                "name": account.get("name"),
+    
+                "type": account.get("type"),
+    
+                "balance": float(
+                    account.get("balance",0)
+                )
+    
+            })
+    
+
+
+
     return render_template(
         "backend/home/dashboard.html",
         dashboard=dashboard,
@@ -791,7 +1222,28 @@ def dashboard():
         recent_users=recent_users,
         leads=leads ,
         latest_transactions=latest_transactions,
-        saving_transactions=latest_saving_transactions
+        saving_transactions=latest_saving_transactions,
+
+        saving_progress=saving_progress,
+
+        
+        chart_labels=chart_labels,
+
+chart_income=chart_income,
+
+chart_expense=chart_expense,
+
+chart_profit=chart_profit,
+
+
+account_cards=account_cards,
+
+
+
+saving_goals=saving_goals,
+saving_warnings=saving_warnings,
+
+saving_deposit_report=saving_deposit_report,
     )
 
 
@@ -2301,228 +2753,10 @@ def transaction_list():
 
         })
 
-    # =====================================
-    # CHART DATA (MONTHLY)
-    # =====================================
+   
 
-    monthly_income = defaultdict(float)
-    monthly_expense = defaultdict(float)
 
-
-    for t in transactions:
-
-        date = t.get("date")
-
-        if not date:
-            continue
-
-        month = date.strftime("%b")
-
-        amount = float(
-            t.get("amount",0)
-        )
-
-
-        if t.get("transaction_type") == "income":
-
-            monthly_income[month] += amount
-
-
-        elif t.get("transaction_type") == "expense":
-
-            monthly_expense[month] += amount
-
-
-
-    chart_labels = list(
-        monthly_income.keys()
-        |
-        monthly_expense.keys()
-    )
-
-
-    chart_income = [
-        monthly_income.get(x,0)
-        for x in chart_labels
-    ]
-
-
-    chart_expense = [
-        monthly_expense.get(x,0)
-        for x in chart_labels
-    ]
-
-
-    chart_profit = [
-
-        monthly_income.get(x,0)
-        -
-        monthly_expense.get(x,0)
-
-        for x in chart_labels
-
-    ]
-
-
-
-    # =====================================
-    # ACCOUNT CARDS
-    # =====================================
-
-    account_cards = []
-
-
-    for account in accounts:
-
-        account_cards.append({
-
-            "name": account.get("name"),
-
-            "type": account.get("type"),
-
-            "balance": float(
-                account.get("balance",0)
-            )
-
-        })
-
-
-
-    # =====================================
-    # SAVING PROGRESS
-    # =====================================
-
-    saving_progress=[]
-
-
-    for saving in savings:
-
-
-        target=float(
-            saving.get("target_amount",0)
-        )
-
-
-        current=float(
-            saving.get("current_balance",0)
-        )
-
-
-        percentage=0
-
-
-        if target > 0:
-
-            percentage=round(
-                (current/target)*100,
-                2
-            )
-
-
-        saving_progress.append({
-
-            "title":saving.get("title"),
-
-            "target":target,
-
-            "current":current,
-
-            "percentage":percentage
-
-        })
-
-
-    # ==========================================
-    # SAVING GOALS REPORT
-    # ==========================================
-
-    saving_goals = []
-
-
-    savings = list(
-        mongo.db.savings.find({
-            "$or": [
-                {
-                    "user_id": str(current_user.id)
-                },
-                {
-                    "user_id": ObjectId(current_user.id)
-                }
-            ]
-        })
-    )
-
-
-
-    for saving in savings:
-
-
-        target = float(
-            saving.get(
-                "target_amount",
-                0
-            )
-        )
-
-
-        saved = float(
-            saving.get(
-                "current_balance",
-                0
-            )
-        )
-
-
-        remaining = target - saved
-
-
-        progress = 0
-
-        if target > 0:
-
-            progress = round(
-                (saved / target) * 100,
-                2
-            )
-
-
-
-        if progress >= 100:
-
-            status = "Completed"
-
-        elif progress > 0:
-
-            status = "In Progress"
-
-        else:
-
-            status = "Not Started"
-
-
-
-        saving_goals.append({
-
-            "title": saving.get(
-                "title",
-                "Saving Goal"
-            ),
-
-            "target": target,
-
-            "saved": saved,
-
-            "remaining": max(
-                remaining,
-                0
-            ),
-
-            "progress": progress,
-
-            "status": status
-
-        })
-
+   
     # =====================================
     # RENDER
     # =====================================
@@ -2602,21 +2836,7 @@ def transaction_list():
 
         month_name=now.strftime("%B %Y"),
 
-        chart_labels=chart_labels,
 
-chart_income=chart_income,
-
-chart_expense=chart_expense,
-
-chart_profit=chart_profit,
-
-
-account_cards=account_cards,
-
-
-saving_progress=saving_progress,
-
-saving_goals=saving_goals,
 
     )
 
