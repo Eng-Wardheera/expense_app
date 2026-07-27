@@ -2358,6 +2358,7 @@ def gym_profile():
 
     )
 
+
 @bp.route("/gym/weight/add", methods=["GET", "POST"])
 @login_required
 def add_gym_weight():
@@ -2366,7 +2367,7 @@ def add_gym_weight():
 
 
     # =====================================
-    # GET USER GYM PROFILE
+    # GET USER PROFILE
     # =====================================
 
     profile = mongo.db.gym_profile.find_one({
@@ -2393,8 +2394,9 @@ def add_gym_weight():
 
 
 
+
     # =====================================
-    # GET LAST WEIGHT
+    # LAST WEIGHT
     # =====================================
 
     last_weight = mongo.db.weight_progress.find_one(
@@ -2442,8 +2444,9 @@ def add_gym_weight():
 
 
 
+
     # =====================================
-    # BMI SUMMARY
+    # HEIGHT + BMI SUMMARY
     # =====================================
 
 
@@ -2458,28 +2461,45 @@ def add_gym_weight():
 
 
 
-    bmi = 0
+    height_m = 0
 
+
+
+    if height_cm > 0:
+
+
+        height_m = round(
+
+            height_cm / 100,
+
+            2
+
+        )
+
+
+
+
+
+    bmi = 0
 
     bmi_status = "Unknown"
 
 
 
-    if height_cm > 0 and previous_weight > 0:
 
-
-        height_m = height_cm / 100
+    if height_m > 0 and previous_weight > 0:
 
 
 
         bmi = round(
 
             previous_weight /
-            (height_m ** 2),
+            (height_m * height_m),
 
             2
 
         )
+
 
 
 
@@ -2514,9 +2534,8 @@ def add_gym_weight():
 
 
 
-
     # =====================================
-    # POST SAVE WEIGHT
+    # POST SAVE
     # =====================================
 
 
@@ -2549,7 +2568,6 @@ def add_gym_weight():
             "type",
             "weight_record"
         )
-
 
 
 
@@ -2621,6 +2639,7 @@ def add_gym_weight():
 
 
 
+
         # =============================
         # DATE
         # =============================
@@ -2647,8 +2666,9 @@ def add_gym_weight():
 
 
 
+
         # =============================
-        # DUPLICATE DATE
+        # DUPLICATE
         # =============================
 
 
@@ -2667,7 +2687,7 @@ def add_gym_weight():
 
             flash(
 
-                "Weight for this date already exists.",
+                "Weight already recorded for this date.",
 
                 "warning"
 
@@ -2689,6 +2709,8 @@ def add_gym_weight():
 
 
 
+
+
         # =============================
         # WEIGHT CHANGE
         # =============================
@@ -2701,6 +2723,7 @@ def add_gym_weight():
             2
 
         )
+
 
 
 
@@ -2728,33 +2751,33 @@ def add_gym_weight():
 
 
 
+
+
         # =============================
-        # BMI NEW WEIGHT
+        # NEW BMI
         # =============================
 
 
         new_bmi = 0
 
-
         new_bmi_status = "Unknown"
 
 
 
-        if height_cm > 0:
 
-
-            height_m = height_cm / 100
+        if height_m > 0:
 
 
 
             new_bmi = round(
 
                 weight /
-                (height_m ** 2),
+                (height_m * height_m),
 
                 2
 
             )
+
 
 
 
@@ -2791,12 +2814,11 @@ def add_gym_weight():
 
 
         # =============================
-        # INSERT DATABASE
+        # SAVE DATABASE
         # =============================
 
 
         mongo.db.weight_progress.insert_one({
-
 
 
             "user_id": user_id,
@@ -2817,13 +2839,16 @@ def add_gym_weight():
             "change_type": change_type,
 
 
+            "height_cm": height_cm,
+
+
+            "height_m": height_m,
+
+
             "bmi": new_bmi,
 
 
             "bmi_status": new_bmi_status,
-
-
-            "height_cm": height_cm,
 
 
             "date": date,
@@ -2845,45 +2870,13 @@ def add_gym_weight():
 
 
 
+        flash(
 
-        if change_type == "Weight Gain":
+            "Weight record saved successfully.",
 
+            "success"
 
-            flash(
-
-                f"You gained {abs(difference):.1f} KG.",
-
-                "success"
-
-            )
-
-
-
-        elif change_type == "Weight Loss":
-
-
-            flash(
-
-                f"You lost {abs(difference):.1f} KG.",
-
-                "success"
-
-            )
-
-
-
-        else:
-
-
-            flash(
-
-                "No weight change detected.",
-
-                "success"
-
-            )
-
-
+        )
 
 
 
@@ -2921,6 +2914,9 @@ def add_gym_weight():
 
 
         height_cm=height_cm,
+
+
+        height_m=height_m,
 
 
         bmi=bmi,
