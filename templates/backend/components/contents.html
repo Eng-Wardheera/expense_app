@@ -791,33 +791,503 @@ beginAtZero:true
      ADVANCED SAVING GOALS DASHBOARD
 ========================================== -->
 
+<!-- =====================================
+     RESPONSIVE SAVING GOALS DASHBOARD
+====================================== -->
 
-<div class="card mt-4 p-3 shadow-lg border-0">
+<div class="card mt-4 shadow-lg border-0">
 
-
-<div class="card-header bg-primary text-white 
-d-flex justify-content-between align-items-center">
-
-
-<h5 class="mb-0">
-
-<i class="bi bi-piggy-bank-fill"></i>
-
-Saving Goals Dashboard
-
-</h5>
+    <div class="card-header bg-primary text-white 
+                d-flex flex-wrap justify-content-between 
+                align-items-center gap-2">
 
 
+        <h5 class="mb-0">
+            <i class="bi bi-piggy-bank-fill"></i>
+            Saving Goals Dashboard
+        </h5>
 
-{% if saving_goals %}
 
-<span class="badge bg-white text-primary">
+        {% if saving_goals %}
 
-{{ saving_goals|length }} Goals
+        <span class="badge bg-white text-primary px-3 py-2">
 
-</span>
+            {{ saving_goals|length }} Goals
 
-{% endif %}
+        </span>
+
+        {% endif %}
+
+
+    </div>
+
+
+
+
+    <div class="card-body">
+
+
+    {% if saving_goals %}
+
+
+
+    <div class="row g-4">
+
+
+
+    {% for goal in saving_goals %}
+
+
+
+
+    <div class="col-12 col-md-6">
+
+
+
+    <div class="card border-0 shadow-sm h-100">
+
+
+
+    <div class="card-body">
+
+
+
+        <!-- HEADER -->
+
+        <div class="d-flex flex-wrap 
+                    justify-content-between 
+                    align-items-center gap-2">
+
+
+            <h5 class="fw-bold mb-0">
+
+
+                <i class="bi bi-wallet-fill text-primary"></i>
+
+                {{ goal.title }}
+
+
+            </h5>
+
+
+
+
+
+            {% if goal.status == "Completed" %}
+
+
+            <span class="badge bg-success">
+
+                <i class="bi bi-trophy-fill"></i>
+
+                Completed
+
+            </span>
+
+
+
+
+            {% elif goal.status == "Good Progress" %}
+
+
+            <span class="badge bg-info">
+
+                Good Progress
+
+            </span>
+
+
+
+
+
+            {% elif goal.status == "In Progress" %}
+
+
+            <span class="badge bg-warning">
+
+                In Progress
+
+            </span>
+
+
+
+
+            {% else %}
+
+
+            <span class="badge bg-secondary">
+
+                Not Started
+
+            </span>
+
+
+
+            {% endif %}
+
+
+        </div>
+
+
+
+        <hr>
+
+
+
+
+        <!-- MONEY SUMMARY -->
+
+        <div class="row g-2 text-center">
+
+
+
+            <div class="col-4">
+
+
+                <div class="bg-light rounded p-2">
+
+
+                    <small class="text-muted">
+                        Target
+                    </small>
+
+
+                    <h6 class="text-primary fw-bold mb-0">
+
+                        ${{ "%.2f"|format(goal.target) }}
+
+                    </h6>
+
+
+                </div>
+
+
+            </div>
+
+
+
+
+
+            <div class="col-4">
+
+
+                <div class="bg-light rounded p-2">
+
+
+                    <small class="text-muted">
+                        Saved
+                    </small>
+
+
+                    <h6 class="text-success fw-bold mb-0">
+
+                        ${{ "%.2f"|format(goal.saved) }}
+
+                    </h6>
+
+
+                </div>
+
+
+            </div>
+
+
+
+
+
+            <div class="col-4">
+
+
+                <div class="bg-light rounded p-2">
+
+
+                    <small class="text-muted">
+                        Remaining
+                    </small>
+
+
+                    <h6 class="text-danger fw-bold mb-0">
+
+                        ${{ "%.2f"|format(goal.remaining) }}
+
+                    </h6>
+
+
+                </div>
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <!-- RESPONSIVE CIRCLE -->
+
+        <div class="saving-circle-wrapper my-4">
+
+
+            <div class="saving-circle"
+
+            style="
+            --progress: {{ goal.progress }}%;
+            ">
+
+
+                <div class="saving-circle-inner">
+
+
+                    <strong>
+
+                        {{ goal.progress }}%
+
+                    </strong>
+
+
+                    <small>
+                        Saved
+                    </small>
+
+
+                </div>
+
+
+            </div>
+
+
+
+        </div>
+
+
+
+
+
+
+
+        <!-- PROGRESS BAR -->
+
+
+        <div class="mt-3">
+
+
+            <div class="d-flex justify-content-between mb-1">
+
+
+                <span>
+                    Progress
+                </span>
+
+
+                <strong>
+                    {{goal.progress}}%
+                </strong>
+
+
+            </div>
+
+
+
+
+
+            <div class="progress"
+                 style="height:25px;">
+
+
+
+                <div class="progress-bar 
+                            progress-bar-striped 
+                            progress-bar-animated"
+
+                style="width:{{goal.progress}}%;"
+
+                >
+
+                </div>
+
+
+
+            </div>
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <!-- SMART MESSAGE -->
+
+
+        <div class="mt-3">
+
+
+        {% if goal.progress >= 100 %}
+
+
+            <div class="alert alert-success mb-0">
+
+
+                <i class="bi bi-check-circle-fill"></i>
+
+                Saving goal completed!
+
+
+            </div>
+
+
+
+
+
+        {% elif goal.progress >=70 %}
+
+
+            <div class="alert alert-info mb-0">
+
+
+                <i class="bi bi-lightning-fill"></i>
+
+                Almost completed. Keep saving!
+
+
+            </div>
+
+
+
+
+
+        {% elif goal.progress >=30 %}
+
+
+            <div class="alert alert-warning mb-0">
+
+
+                <i class="bi bi-arrow-up-circle"></i>
+
+                Good progress. Continue!
+
+
+            </div>
+
+
+
+
+
+        {% else %}
+
+
+            <div class="alert alert-danger mb-0">
+
+
+                <i class="bi bi-exclamation-triangle"></i>
+
+                Saving is low. Increase deposits.
+
+
+            </div>
+
+
+        {% endif %}
+
+
+
+        </div>
+
+
+
+
+
+
+
+
+        <!-- OVER TARGET -->
+
+
+        {% if goal.is_over_target %}
+
+
+        <div class="alert alert-success mt-3">
+
+
+            <i class="bi bi-stars"></i>
+
+
+            Target exceeded!
+
+
+            <br>
+
+
+            Extra saved:
+
+
+            <strong>
+
+            ${{ "%.2f"|format(goal.saved-goal.target) }}
+
+            </strong>
+
+
+        </div>
+
+
+        {% endif %}
+
+
+
+
+    </div>
+
+
+    </div>
+
+
+    </div>
+
+
+
+
+    {% endfor %}
+
+
+
+    </div>
+
+
+
+
+
+    {% else %}
+
+
+
+    <div class="alert alert-info">
+
+
+        <i class="bi bi-info-circle"></i>
+
+
+        No Saving Goals Found
+
+
+    </div>
+
+
+
+    {% endif %}
+
+
+
+
+    </div>
 
 
 </div>
@@ -825,452 +1295,165 @@ Saving Goals Dashboard
 
 
 
-<div class="card-body">
 
 
-{% if saving_goals %}
+<style>
 
 
-<div class="row">
+/* ============================
+   RESPONSIVE SAVING CIRCLE
+============================ */
 
 
-{% for goal in saving_goals %}
+.saving-circle-wrapper{
 
+    display:flex;
+    justify-content:center;
 
+}
 
-<div class="col-lg-6 mb-4">
 
 
-<div class="card border-0 shadow-sm h-100">
+.saving-circle{
 
 
-<div class="card-body">
+    width:140px;
+    height:140px;
 
+    border-radius:50%;
 
 
-<!-- TITLE -->
+    display:flex;
+    align-items:center;
+    justify-content:center;
 
-<div class="d-flex justify-content-between">
 
+    background:
+    conic-gradient(
+        #198754 var(--progress),
+        #e9ecef var(--progress)
+    );
 
-<h5 class="fw-bold">
 
+}
 
-<i class="bi bi-wallet-fill text-primary"></i>
 
-{{goal.title}}
 
+.saving-circle-inner{
 
-</h5>
 
+    width:105px;
+    height:105px;
 
 
+    border-radius:50%;
 
-{% if goal.status == "Completed" %}
 
-<span class="badge bg-success">
+    background:white;
 
-<i class="bi bi-trophy-fill"></i>
 
-Completed
+    display:flex;
 
-</span>
+    flex-direction:column;
 
 
-{% elif goal.status == "Good Progress" %}
+    justify-content:center;
 
-<span class="badge bg-info">
+    align-items:center;
 
-Good Progress
 
-</span>
 
+}
 
-{% elif goal.status == "In Progress" %}
 
-<span class="badge bg-warning">
 
-In Progress
+.saving-circle-inner strong{
 
-</span>
 
+    font-size:24px;
 
-{% else %}
+}
 
 
-<span class="badge bg-secondary">
 
-Not Started
+.saving-circle-inner small{
 
-</span>
 
+    color:#777;
 
-{% endif %}
+}
 
 
 
-</div>
 
 
+/* MOBILE */
 
-<hr>
 
+@media(max-width:576px){
 
 
+    .saving-circle{
 
-<!-- MONEY CARDS -->
+        width:120px;
 
+        height:120px;
 
-<div class="row text-center">
+    }
 
 
+    .saving-circle-inner{
 
-<div class="col-4">
 
-<div class="p-3 rounded bg-light">
+        width:90px;
 
+        height:90px;
 
-<small>
-Target
-</small>
 
+    }
 
-<h6 class="text-primary fw-bold">
 
-${{ "%.2f"|format(goal.target) }}
+    .saving-circle-inner strong{
 
-</h6>
+        font-size:20px;
 
+    }
 
-</div>
 
-</div>
 
+    h5{
 
+        font-size:16px;
 
+    }
 
 
+}
 
-<div class="col-4">
 
 
-<div class="p-3 rounded bg-light">
 
 
-<small>
-Saved
-</small>
+/* TABLET */
 
 
-<h6 class="text-success fw-bold">
+@media(min-width:577px) and (max-width:991px){
 
-${{ "%.2f"|format(goal.saved) }}
 
-</h6>
+    .saving-circle{
 
+        width:130px;
 
-</div>
+        height:130px;
 
+    }
 
-</div>
 
+}
 
 
 
-
-
-
-<div class="col-4">
-
-
-<div class="p-3 rounded bg-light">
-
-
-<small>
-Remaining
-</small>
-
-
-<h6 class="text-danger fw-bold">
-
-${{ "%.2f"|format(goal.remaining) }}
-
-</h6>
-
-
-</div>
-
-
-</div>
-
-
-
-</div>
-
-
-
-
-
-<!-- CIRCLE PROGRESS -->
-
-
-<div class="text-center mt-4">
-
-
-<div style="
-width:130px;
-height:130px;
-border-radius:50%;
-margin:auto;
-display:flex;
-align-items:center;
-justify-content:center;
-
-background:
-conic-gradient(
-#198754 {{goal.progress}}%,
-#e9ecef {{goal.progress}}%
-);
-
-">
-
-
-<div style="
-width:100px;
-height:100px;
-background:white;
-border-radius:50%;
-display:flex;
-align-items:center;
-justify-content:center;
-font-weight:bold;
-font-size:22px;
-">
-
-
-{{goal.progress}}%
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<!-- BAR -->
-
-
-<div class="mt-4">
-
-
-<div class="progress shadow"
-style="
-height:28px;
-border-radius:20px;
-">
-
-
-<div 
-
-class="progress-bar progress-bar-striped progress-bar-animated"
-
-style="
-width:{{goal.progress}}%;
-
-{% if goal.progress >=100 %}
-
-background:linear-gradient(90deg,#198754,#20c997);
-
-{% elif goal.progress >=70 %}
-
-background:linear-gradient(90deg,#0d6efd,#6610f2);
-
-{% elif goal.progress >=30 %}
-
-background:linear-gradient(90deg,#ffc107,#fd7e14);
-
-{% else %}
-
-background:linear-gradient(90deg,#dc3545,#ff6b6b);
-
-{% endif %}
-
-">
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<!-- STATUS MESSAGE -->
-
-
-<div class="text-center mt-3">
-
-
-{% if goal.progress >=100 %}
-
-
-<div class="alert alert-success">
-
-
-<i class="bi bi-check-circle-fill"></i>
-
-
-Saving goal completed!
-
-
-</div>
-
-
-
-{% elif goal.progress >=70 %}
-
-
-<div class="alert alert-info">
-
-
-<i class="bi bi-lightning-fill"></i>
-
-
-Almost completed. Keep saving!
-
-
-</div>
-
-
-
-
-{% elif goal.progress >=30 %}
-
-
-<div class="alert alert-warning">
-
-
-<i class="bi bi-arrow-up-circle"></i>
-
-
-Good progress. Continue!
-
-
-</div>
-
-
-
-{% else %}
-
-
-<div class="alert alert-danger">
-
-
-<i class="bi bi-exclamation-triangle"></i>
-
-
-Saving is low. Increase deposits.
-
-
-</div>
-
-
-
-{% endif %}
-
-
-</div>
-
-
-
-
-
-<!-- OVER TARGET -->
-
-
-{% if goal.is_over_target %}
-
-
-<div class="alert alert-success">
-
-
-<i class="bi bi-stars"></i>
-
-
-Target exceeded!
-
-
-<br>
-
-
-Extra saved:
-
-
-<strong>
-
-${{ "%.2f"|format(goal.saved-goal.target) }}
-
-</strong>
-
-
-</div>
-
-
-{% endif %}
-
-
-
-
-</div>
-
-</div>
-
-
-</div>
-
-
-
-{% endfor %}
-
-
-</div>
-
-
-
-{% else %}
-
-
-<div class="alert alert-info">
-
-<i class="bi bi-info-circle"></i>
-
-No Saving Goals Found
-
-</div>
-
-
-{% endif %}
-
-
-
-</div>
-
-
-</div>
-
+</style>
 
 
 
