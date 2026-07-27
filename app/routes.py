@@ -1854,64 +1854,774 @@ def clean_category(cat):
     }
 
 
+
+
+
 @bp.route("/transactions")
 @login_required
 def transaction_list():
+
+    user_object_id = ObjectId(current_user.id)
+
 
     transaction_type = request.args.get("type")
     account_id = request.args.get("account_id")
     category = request.args.get("category")
     item = request.args.get("item")
 
+
+
+    # =====================================
+    # CURRENT MONTH RANGE
+    # =====================================
+
+    now = datetime.utcnow()
+
+    month_start = datetime(
+        now.year,
+        now.month,
+        1
+    )
+
+
+    if now.month == 12:
+
+        month_end = datetime(
+            now.year + 1,
+            1,
+            1
+        )
+
+    else:
+
+        month_end = datetime(
+            now.year,
+            now.month + 1,
+            1
+        )
+
+
+
+    # =====================================
+    # QUERY
+    # =====================================
+
     query = {
-        "user_id": ObjectId(current_user.id)
+
+        "user_id": user_object_id,
+
+        "status": True,
+
+        "date": {
+            "$gte": month_start,
+            "$lt": month_end
+        }
+
     }
 
-    # TYPE FILTER
+
+
     if transaction_type:
+
         query["transaction_type"] = transaction_type
 
-    # ACCOUNT FILTER
-    if account_id:
-        query["account_id"] = ObjectId(account_id)
 
-    # CATEGORY FILTER
+
+    if account_id:
+
+        try:
+
+            query["account_id"] = ObjectId(account_id)
+
+        except:
+
+            pass
+
+
+
     if category:
+
         query["category"] = category
 
-    # ITEM FILTER
+
+
     if item:
+
         query["item"] = item
 
+
+
+
+    # =====================================
+    # TRANSACTIONS
+    # =====================================
+
     transactions = list(
-        mongo.db.transactions.find(query).sort("created_at", -1)
+
+        mongo.db.transactions.find(query)
+        .sort("date",-1)
+
     )
 
-    accounts = list(mongo.db.accounts.find({
-        "user_id": ObjectId(current_user.id)
-    }))
 
-    categories_raw = list(mongo.db.categories.find({
-        "user_id": ObjectId(current_user.id)
-    }))
 
-    categories = [clean_category(c) for c in categories_raw]
+    # =====================================
+    # ACCOUNTS
+    # =====================================
 
-    account_map = {str(a["_id"]): a["name"] for a in accounts}
+    accounts = list(
+
+        mongo.db.accounts.find({
+
+            "user_id": user_object_id,
+
+            "status": True
+
+        })
+
+    )
+
+
+    account_map = {
+
+        str(a["_id"]):a.get("name")
+
+        for a in accounts
+
+    }
+
+
 
     for t in transactions:
-        t["account_name"] = account_map.get(str(t.get("account_id")), "Unknown")
+
+        t["account_name"] = account_map.get(
+
+            str(t.get("account_id")),
+
+            "Unknown"
+
+        )
+
+
+
+
+    # =====================================
+    # CATEGORIES
+    # =====================================
+
+    categories_raw = list(
+
+        mongo.db.categories.find({
+
+            "user_id": user_object_id,
+
+            "status": True
+
+        })
+
+    )
+
+
+    categories = [
+
+        clean_category(c)
+
+        for c in categories_raw
+
+    ]
+
+
+
+
+    # =====================================
+    # SAVINGS
+    # =====================================
+
+    savings = list(
+
+        mongo.db.savings.find({
+
+            "user_id":str(current_user.id)
+
+        })
+
+    )
+
+
+    total_savings = sum(
+
+        float(s.get("current_balance",0))
+
+        for s in savings
+
+    )
+
+
+
+
+    # =====================================
+    # ACCOUNT BALANCE
+    # =====================================
+
+    total_balance = sum(
+
+        float(a.get("balance",0))
+
+        for a in accounts
+
+    )
+
+
+
+
+    # =====================================
+    # SUMMARY
+    # =====================================
+
+    total_income = 0
+
+    total_expense = 0
+
+
+    income_categories = defaultdict(float)
+
+    expense_categories = defaultdict(float)
+
+
+
+    largest_income = None
+
+    largest_expense = None
+
+
+
+
+    for t in transactions:
+
+
+        amount = float(
+
+            t.get("amount",0)
+
+        )
+
+
+        trx_type = t.get(
+            "transaction_type"
+        )
+
+
+        cat = t.get(
+            "category",
+            "Unknown"
+        )
+
+
+
+        if trx_type == "income":
+
+
+            total_income += amount
+
+
+            income_categories[cat]+=amount
+
+
+
+            if (
+
+                largest_income is None
+
+                or amount >
+
+                float(
+                    largest_income.get(
+                        "amount",
+                        0
+                    )
+                )
+
+            ):
+
+                largest_income=t
+
+
+
+
+        elif trx_type == "expense":
+
+
+            total_expense += amount
+
+
+            expense_categories[cat]+=amount
+
+
+
+            if (
+
+                largest_expense is None
+
+                or amount >
+
+                float(
+                    largest_expense.get(
+                        "amount",
+                        0
+                    )
+                )
+
+            ):
+
+                largest_expense=t
+
+
+
+
+
+    # =====================================
+    # PROFIT
+    # =====================================
+
+    net_profit = (
+
+        total_income
+
+        -
+
+        total_expense
+
+    )
+
+
+
+    total_transactions = len(
+        transactions
+    )
+
+
+
+
+    # =====================================
+    # BIGGEST CATEGORY
+    # =====================================
+
+
+    biggest_income_category=None
+
+    biggest_income_amount=0
+
+
+    if income_categories:
+
+
+        biggest_income_category=max(
+
+            income_categories,
+
+            key=income_categories.get
+
+        )
+
+
+        biggest_income_amount = (
+
+            income_categories[
+                biggest_income_category
+            ]
+
+        )
+
+
+
+
+    biggest_expense_category=None
+
+    biggest_expense_amount=0
+
+
+    if expense_categories:
+
+
+        biggest_expense_category=max(
+
+            expense_categories,
+
+            key=expense_categories.get
+
+        )
+
+
+        biggest_expense_amount=(
+
+            expense_categories[
+                biggest_expense_category
+            ]
+
+        )
+
+
+
+
+    # =====================================
+    # WARNINGS
+    # =====================================
+
+    warnings=[]
+
+
+
+    if total_balance < 10:
+
+
+        warnings.append({
+
+            "type":"danger",
+
+            "title":"Low Balance",
+
+            "message":
+            f"Available balance is only ${total_balance:.2f}"
+
+        })
+
+
+
+    if total_expense > total_income:
+
+
+        warnings.append({
+
+            "type":"warning",
+
+            "title":"Overspending",
+
+            "message":
+            "Expenses are higher than income."
+
+        })
+
+    # =====================================
+    # CHART DATA (MONTHLY)
+    # =====================================
+
+    monthly_income = defaultdict(float)
+    monthly_expense = defaultdict(float)
+
+
+    for t in transactions:
+
+        date = t.get("date")
+
+        if not date:
+            continue
+
+        month = date.strftime("%b")
+
+        amount = float(
+            t.get("amount",0)
+        )
+
+
+        if t.get("transaction_type") == "income":
+
+            monthly_income[month] += amount
+
+
+        elif t.get("transaction_type") == "expense":
+
+            monthly_expense[month] += amount
+
+
+
+    chart_labels = list(
+        monthly_income.keys()
+        |
+        monthly_expense.keys()
+    )
+
+
+    chart_income = [
+        monthly_income.get(x,0)
+        for x in chart_labels
+    ]
+
+
+    chart_expense = [
+        monthly_expense.get(x,0)
+        for x in chart_labels
+    ]
+
+
+    chart_profit = [
+
+        monthly_income.get(x,0)
+        -
+        monthly_expense.get(x,0)
+
+        for x in chart_labels
+
+    ]
+
+
+
+    # =====================================
+    # ACCOUNT CARDS
+    # =====================================
+
+    account_cards = []
+
+
+    for account in accounts:
+
+        account_cards.append({
+
+            "name": account.get("name"),
+
+            "type": account.get("type"),
+
+            "balance": float(
+                account.get("balance",0)
+            )
+
+        })
+
+
+
+    # =====================================
+    # SAVING PROGRESS
+    # =====================================
+
+    saving_progress=[]
+
+
+    for saving in savings:
+
+
+        target=float(
+            saving.get("target_amount",0)
+        )
+
+
+        current=float(
+            saving.get("current_balance",0)
+        )
+
+
+        percentage=0
+
+
+        if target > 0:
+
+            percentage=round(
+                (current/target)*100,
+                2
+            )
+
+
+        saving_progress.append({
+
+            "title":saving.get("title"),
+
+            "target":target,
+
+            "current":current,
+
+            "percentage":percentage
+
+        })
+
+
+    # ==========================================
+    # SAVING GOALS REPORT
+    # ==========================================
+
+    saving_goals = []
+
+
+    savings = list(
+        mongo.db.savings.find({
+            "$or": [
+                {
+                    "user_id": str(current_user.id)
+                },
+                {
+                    "user_id": ObjectId(current_user.id)
+                }
+            ]
+        })
+    )
+
+
+
+    for saving in savings:
+
+
+        target = float(
+            saving.get(
+                "target_amount",
+                0
+            )
+        )
+
+
+        saved = float(
+            saving.get(
+                "current_balance",
+                0
+            )
+        )
+
+
+        remaining = target - saved
+
+
+        progress = 0
+
+        if target > 0:
+
+            progress = round(
+                (saved / target) * 100,
+                2
+            )
+
+
+
+        if progress >= 100:
+
+            status = "Completed"
+
+        elif progress > 0:
+
+            status = "In Progress"
+
+        else:
+
+            status = "Not Started"
+
+
+
+        saving_goals.append({
+
+            "title": saving.get(
+                "title",
+                "Saving Goal"
+            ),
+
+            "target": target,
+
+            "saved": saved,
+
+            "remaining": max(
+                remaining,
+                0
+            ),
+
+            "progress": progress,
+
+            "status": status
+
+        })
+
+    # =====================================
+    # RENDER
+    # =====================================
 
     return render_template(
+
         "backend/pages/components/transactions/all_transactions.html",
+
+
         transactions=transactions,
+
+
         accounts=accounts,
+
+
         categories=categories,
+
+
         selected_type=transaction_type,
+
         selected_account=account_id,
+
         selected_category=category,
-        selected_item=item
+
+        selected_item=item,
+
+
+
+        total_balance=total_balance,
+
+
+        total_income=total_income,
+
+
+        total_expense=total_expense,
+
+
+        current_balance=total_balance,
+
+
+        available_cash=total_balance,
+
+
+        net_profit=net_profit,
+
+
+        total_savings=total_savings,
+
+
+        total_transactions=total_transactions,
+
+
+
+        biggest_income_category=biggest_income_category,
+
+        biggest_income_amount=biggest_income_amount,
+
+
+
+        biggest_expense_category=biggest_expense_category,
+
+        biggest_expense_amount=biggest_expense_amount,
+
+
+
+        largest_income=largest_income,
+
+
+        largest_expense=largest_expense,
+
+
+        savings=savings,
+
+
+        warnings=warnings,
+
+
+        month_name=now.strftime("%B %Y"),
+
+        chart_labels=chart_labels,
+
+chart_income=chart_income,
+
+chart_expense=chart_expense,
+
+chart_profit=chart_profit,
+
+
+account_cards=account_cards,
+
+
+saving_progress=saving_progress,
+
+saving_goals=saving_goals,
+
     )
+
+
+
 
 
 
@@ -4483,8 +5193,6 @@ def delete_transaction(id):
 
     flash("Transaction deleted successfully.", "success")
     return redirect(url_for("main.transaction_list"))
-
-
 
 
 

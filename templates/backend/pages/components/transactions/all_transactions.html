@@ -47,6 +47,515 @@
 <div class="row">
   <div class="card shadow-sm">
 
+    <div class="row mb-4 p-3">
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small>Total Balance</small>
+                <h3 class="text-primary">
+                    ${{ "{:,.2f}".format(current_balance) }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small>Total Income</small>
+                <h3 class="text-success">
+                    ${{ "{:,.2f}".format(total_income) }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small>Total Expense</small>
+                <h3 class="text-danger">
+                    ${{ "{:,.2f}".format(total_expense) }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <small>Transactions</small>
+                <h3>
+                    {{ total_transactions }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+
+<div class="row mb-3">
+
+    <div class="col-lg-6">
+
+        <div class="alert alert-danger">
+
+            <strong>Highest Expense Category</strong>
+
+            <br>
+
+            {{ biggest_expense_category or "-" }}
+
+            <br>
+
+            <strong>
+
+                ${{ "{:,.2f}".format(biggest_expense_amount) }}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-6">
+
+        <div class="alert alert-success">
+
+            <strong>Highest Income Category</strong>
+
+            <br>
+
+            {{ biggest_income_category or "-" }}
+
+            <br>
+
+            <strong>
+
+                ${{ "{:,.2f}".format(biggest_income_amount) }}
+
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="row mb-3">
+
+    <div class="col-md-6">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h6>Largest Income</h6>
+
+                {% if largest_income %}
+
+                    {{ largest_income.item }}
+
+                    <br>
+
+                    ${{ largest_income.amount }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-6">
+
+        <div class="card">
+
+            <div class="card-body">
+
+                <h6>Largest Expense</h6>
+
+                {% if largest_expense %}
+
+                    {{ largest_expense.item }}
+
+                    <br>
+
+                    ${{ largest_expense.amount }}
+
+                {% else %}
+
+                    -
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ==============================
+     SAVING GOALS REPORT
+=============================== -->
+
+<div class="card mt-4">
+
+    <div class="card-header">
+        <h5>
+            Saving Goals Report
+        </h5>
+    </div>
+
+
+    <div class="card-body">
+
+
+        {% if saving_goals %}
+
+
+        {% for goal in saving_goals %}
+
+
+        <div class="border rounded p-3 mb-3">
+
+
+            <h5>
+                {{ goal.title }}
+            </h5>
+
+
+            <p>
+                Target:
+                <strong>
+                    ${{ "%.2f"|format(goal.target) }}
+                </strong>
+            </p>
+
+
+            <p>
+                Saved:
+                <strong>
+                    ${{ "%.2f"|format(goal.saved) }}
+                </strong>
+            </p>
+
+
+            <p>
+                Remaining:
+                <strong>
+                    ${{ "%.2f"|format(goal.remaining) }}
+                </strong>
+            </p>
+
+
+
+            <div class="progress mb-2">
+
+                <div 
+                class="progress-bar"
+                role="progressbar"
+                style="width: {{ goal.progress }}%"
+                >
+
+                {{ goal.progress }}%
+
+                </div>
+
+            </div>
+
+
+
+            {% if goal.status == "Completed" %}
+
+                <span class="badge bg-success">
+                    Completed
+                </span>
+
+            {% elif goal.status == "In Progress" %}
+
+                <span class="badge bg-warning">
+                    In Progress
+                </span>
+
+            {% else %}
+
+                <span class="badge bg-secondary">
+                    Not Started
+                </span>
+
+            {% endif %}
+
+
+
+        </div>
+
+
+        {% endfor %}
+
+
+        {% else %}
+
+
+        <div class="alert alert-info">
+
+            No Saving Goals Found
+
+        </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+</div>
+
+
+<div class="row">
+
+{% for acc in account_cards %}
+
+<div class="col-md-4">
+
+<div class="card shadow-sm">
+
+<div class="card-body">
+
+<h6>
+{{ acc.name }}
+</h6>
+
+
+<h3>
+${{ "%.2f"|format(acc.balance) }}
+</h3>
+
+
+<small>
+{{ acc.type }}
+</small>
+
+
+</div>
+
+</div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+
+<div class="card mt-4">
+
+<div class="card-body">
+
+<h5>
+Monthly Cash Flow
+</h5>
+
+
+<canvas id="cashFlowChart"></canvas>
+
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+
+
+const ctx =
+document.getElementById(
+"cashFlowChart"
+);
+
+
+
+new Chart(ctx, {
+
+
+type:"bar",
+
+
+data:{
+
+
+labels:
+{{ chart_labels|tojson }},
+
+
+datasets:[
+
+
+{
+
+label:"Income",
+
+data:
+{{ chart_income|tojson }},
+
+},
+
+
+{
+
+label:"Expense",
+
+data:
+{{ chart_expense|tojson }},
+
+},
+
+
+{
+
+label:"Profit",
+
+data:
+{{ chart_profit|tojson }},
+
+}
+
+
+]
+
+
+},
+
+
+
+options:{
+
+
+responsive:true,
+
+
+scales:{
+
+
+y:{
+
+
+beginAtZero:true
+
+
+}
+
+
+}
+
+
+}
+
+
+});
+
+
+
+</script>
+
+
+<div class="row mt-4">
+
+
+{% for s in saving_progress %}
+
+
+<div class="col-md-4">
+
+
+<div class="card shadow-sm">
+
+
+<div class="card-body">
+
+
+<h6>
+{{s.title}}
+</h6>
+
+
+<p>
+
+${{s.current}}
+/
+${{s.target}}
+
+</p>
+
+
+<div class="progress">
+
+
+<div class="progress-bar"
+
+style="width:{{s.percentage}}%">
+
+{{s.percentage}}%
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+{% endfor %}
+
+
+</div>
+
+
+
+
+
+
+{% for warning in warnings %}
+
+<div class="alert alert-{{ warning.type }}">
+
+    <strong>{{ warning.title }}</strong>
+
+    <br>
+
+    {{ warning.message }}
+
+</div>
+
+{% endfor %}
+
+
+
+
+
+
     <!-- HEADER -->
 <div class="card-header bg-white py-3">
     <div class="row align-items-end g-2">
