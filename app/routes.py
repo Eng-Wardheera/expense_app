@@ -1950,6 +1950,1188 @@ def all_users():
 
 
 
+
+
+# ==========================================
+# CALCULATE HEALTHY WEIGHT
+# ==========================================
+
+def calculate_goal_weight(height_cm):
+
+    height_m = height_cm / 100
+
+    healthy_min = 18.5 * (height_m ** 2)
+
+    healthy_max = 24.9 * (height_m ** 2)
+
+    goal = (healthy_min + healthy_max) / 2
+
+
+    return (
+        round(goal, 1),
+        round(healthy_min, 1),
+        round(healthy_max, 1)
+    )
+
+
+
+
+
+# ==========================================
+# BMI CALCULATOR
+# ==========================================
+
+def calculate_bmi(weight, height_cm):
+
+    height_m = height_cm / 100
+
+    if height_m <= 0:
+        return 0
+
+
+    bmi = weight / (height_m ** 2)
+
+
+    return round(bmi,1)
+
+
+
+
+
+
+def bmi_status(bmi):
+
+    if bmi < 18.5:
+
+        return "Under Weight"
+
+
+    elif bmi < 25:
+
+        return "Normal Weight"
+
+
+    elif bmi < 30:
+
+        return "Over Weight"
+
+
+    else:
+
+        return "Obesity"
+
+
+
+
+
+
+
+# ==========================================
+# GYM PROFILE
+# ==========================================
+
+
+@bp.route("/gym/profile", methods=["GET","POST"])
+@login_required
+def gym_profile():
+
+
+    user_id = ObjectId(current_user.id)
+
+
+
+    profile = mongo.db.gym_profile.find_one({
+
+        "user_id": user_id
+
+    })
+
+
+
+
+    # DEFAULT VALUES
+
+    bmi = 0
+
+    bmi_status_text = ""
+
+    goal_weight = 0
+
+    healthy_min = 0
+
+    healthy_max = 0
+
+    age = 0
+
+
+
+
+
+    # ==========================
+    # POST SAVE
+    # ==========================
+
+    if request.method == "POST":
+
+
+        height = float(
+            request.form.get("height")
+        )
+
+
+        start_weight = float(
+            request.form.get("start_weight")
+        )
+
+
+
+        birth_year = int(
+            request.form.get("birth_year")
+        )
+
+
+
+        # AUTO AGE
+
+        current_year = datetime.utcnow().year
+
+        age = current_year - birth_year
+
+
+
+
+        gender = request.form.get(
+            "gender"
+        )
+
+
+
+        activity_level = request.form.get(
+            "activity_level"
+        )
+
+
+
+
+        # ==========================
+        # AUTO GOAL WEIGHT
+        # ==========================
+
+
+        goal_weight, healthy_min, healthy_max = calculate_goal_weight(
+            height
+        )
+
+
+
+        # ==========================
+        # BMI
+        # ==========================
+
+
+        bmi = calculate_bmi(
+            start_weight,
+            height
+        )
+
+
+        bmi_status_text = bmi_status(
+            bmi
+        )
+
+
+
+
+
+        data = {
+
+
+            "user_id": user_id,
+
+
+            "height_cm": height,
+
+
+            "start_weight": start_weight,
+
+
+            "goal_weight": goal_weight,
+
+
+            "healthy_min": healthy_min,
+
+
+            "healthy_max": healthy_max,
+
+
+            "birth_year": birth_year,
+
+
+            "age": age,
+
+
+            "gender": gender,
+
+
+            "activity_level": activity_level,
+
+
+            "updated_at": datetime.utcnow()
+
+
+        }
+
+
+
+
+
+        # UPDATE
+
+        if profile:
+
+
+
+            mongo.db.gym_profile.update_one(
+
+                {
+                    "_id": profile["_id"]
+                },
+
+                {
+                    "$set": data
+                }
+
+            )
+
+
+
+
+        # INSERT
+
+        else:
+
+
+
+            data["created_at"] = datetime.utcnow()
+
+
+
+            mongo.db.gym_profile.insert_one(
+                data
+            )
+
+
+
+
+        flash(
+            "Gym profile saved successfully.",
+            "success"
+        )
+
+
+
+        return redirect(
+            url_for(
+                "main.gym_profile"
+            )
+        )
+
+
+
+
+
+
+    # ==========================
+    # GET DISPLAY CALCULATION
+    # ==========================
+
+
+    if profile:
+
+
+
+        height = float(
+            profile.get(
+                "height_cm",
+                0
+            )
+        )
+
+
+        weight = float(
+            profile.get(
+                "start_weight",
+                0
+            )
+        )
+
+
+
+        if height and weight:
+
+
+
+            bmi = calculate_bmi(
+                weight,
+                height
+            )
+
+
+            bmi_status_text = bmi_status(
+                bmi
+            )
+
+
+
+
+        goal_weight, healthy_min, healthy_max = calculate_goal_weight(
+            height
+        )
+
+
+
+        birth_year = profile.get(
+            "birth_year"
+        )
+
+
+        if birth_year:
+
+
+            age = datetime.utcnow().year - birth_year
+
+
+
+
+
+
+    return render_template(
+
+
+        "backend/pages/components/gym/profile.html",
+
+
+        profile=profile,
+
+
+        bmi=bmi,
+
+
+        bmi_status=bmi_status_text,
+
+
+        goal_weight=goal_weight,
+
+
+        healthy_min=healthy_min,
+
+
+        healthy_max=healthy_max,
+
+
+        age=age
+
+
+    )
+
+
+@bp.route("/gym/weight/add", methods=["GET", "POST"])
+@login_required
+def add_gym_weight():
+
+    user_id = ObjectId(current_user.id)
+
+    # =====================================
+    # GET USER PROFILE
+    # =====================================
+
+    profile = mongo.db.gym_profile.find_one({
+        "user_id": user_id
+    })
+
+    if not profile:
+
+        flash(
+            "Please create your Gym Profile first.",
+            "warning"
+        )
+
+        return redirect(
+            url_for("main.gym_profile")
+        )
+
+    # =====================================
+    # GET LAST WEIGHT
+    # =====================================
+
+    last_weight = mongo.db.weight_progress.find_one(
+        {
+            "user_id": user_id
+        },
+        sort=[
+            ("date", -1)
+        ]
+    )
+
+    if last_weight:
+
+        previous_weight = float(
+            last_weight.get(
+                "weight",
+                0
+            )
+        )
+
+    else:
+
+        previous_weight = float(
+            profile.get(
+                "start_weight",
+                0
+            )
+        )
+
+    # =====================================
+    # SAVE
+    # =====================================
+
+    if request.method == "POST":
+
+        weight = request.form.get(
+            "weight",
+            ""
+        ).strip()
+
+        date = request.form.get(
+            "date",
+            ""
+        )
+
+        note = request.form.get(
+            "note",
+            ""
+        ).strip()
+
+        record_type = request.form.get(
+            "type",
+            "weight_record"
+        )
+
+        # ==========================
+        # VALIDATION
+        # ==========================
+
+        if not weight:
+
+            flash(
+                "Weight is required.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_gym_weight")
+            )
+
+        try:
+
+            weight = float(weight)
+
+        except ValueError:
+
+            flash(
+                "Invalid weight.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_gym_weight")
+            )
+
+        if weight <= 0:
+
+            flash(
+                "Weight must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_gym_weight")
+            )
+
+        # ==========================
+        # DATE
+        # ==========================
+
+        if date:
+
+            date = datetime.strptime(
+                date,
+                "%Y-%m-%d"
+            )
+
+        else:
+
+            date = datetime.utcnow()
+
+        # ==========================
+        # DUPLICATE DATE
+        # ==========================
+
+        exists = mongo.db.weight_progress.find_one({
+
+            "user_id": user_id,
+
+            "date": date
+
+        })
+
+        if exists:
+
+            flash(
+                "Weight for this date already exists.",
+                "warning"
+            )
+
+            return redirect(
+                url_for("main.add_gym_weight")
+            )
+
+        # ==========================
+        # CALCULATE CHANGE
+        # ==========================
+
+        difference = round(
+            weight - previous_weight,
+            2
+        )
+
+        if difference > 0:
+
+            change_type = "Weight Gain"
+
+        elif difference < 0:
+
+            change_type = "Weight Loss"
+
+        else:
+
+            change_type = "No Change"
+
+        # ==========================
+        # SAVE DATABASE
+        # ==========================
+
+        mongo.db.weight_progress.insert_one({
+
+            "user_id": user_id,
+
+            "type": record_type,
+
+            "weight": weight,
+
+            "previous_weight": previous_weight,
+
+            "difference": difference,
+
+            "change_type": change_type,
+
+            "date": date,
+
+            "note": note,
+
+            "created_at": datetime.utcnow(),
+
+            "updated_at": datetime.utcnow()
+
+        })
+
+        # ==========================
+        # SUCCESS MESSAGE
+        # ==========================
+
+        if change_type == "Weight Gain":
+
+            flash(
+                f"Weight saved successfully. You gained {abs(difference):.1f} KG.",
+                "success"
+            )
+
+        elif change_type == "Weight Loss":
+
+            flash(
+                f"Weight saved successfully. You lost {abs(difference):.1f} KG.",
+                "success"
+            )
+
+        else:
+
+            flash(
+                "Weight saved successfully. No weight change detected.",
+                "success"
+            )
+
+        return redirect(
+            url_for(
+                "main.weight_history"
+            )
+        )
+
+    return render_template(
+
+        "backend/pages/components/gym/add_weight.html",
+
+        profile=profile,
+
+        previous_weight=previous_weight,
+
+        datetime=datetime
+
+    )
+
+
+
+@bp.route("/gym/weight/edit/<id>", methods=["GET","POST"])
+@login_required
+def edit_gym_weight(id):
+
+    try:
+
+        weight_id = ObjectId(id)
+
+    except:
+
+        abort(404)
+
+
+
+    user_id = ObjectId(current_user.id)
+
+
+
+    # ==========================
+    # GET OLD RECORD
+    # ==========================
+
+    weight = mongo.db.weight_progress.find_one({
+
+        "_id": weight_id,
+
+        "user_id": user_id
+
+    })
+
+
+
+    if not weight:
+
+        abort(404)
+
+
+
+
+
+    if request.method == "POST":
+
+
+        new_weight = request.form.get(
+            "weight"
+        )
+
+
+        date = request.form.get(
+            "date"
+        )
+
+
+        note = request.form.get(
+            "note",
+            ""
+        )
+
+
+
+        # ==========================
+        # VALIDATION
+        # ==========================
+
+
+        if not new_weight:
+
+
+            flash(
+                "Weight is required.",
+                "danger"
+            )
+
+            return redirect(
+                request.url
+            )
+
+
+
+        try:
+
+            new_weight = float(
+                new_weight
+            )
+
+
+        except:
+
+
+            flash(
+                "Invalid weight.",
+                "danger"
+            )
+
+            return redirect(
+                request.url
+            )
+
+
+
+
+        if new_weight <= 0:
+
+
+            flash(
+                "Weight must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(
+                request.url
+            )
+
+
+
+
+
+        # ==========================
+        # DATE
+        # ==========================
+
+
+        if date:
+
+
+            date = datetime.strptime(
+                date,
+                "%Y-%m-%d"
+            )
+
+
+        else:
+
+            date = weight.get(
+                "date",
+                datetime.utcnow()
+            )
+
+
+
+
+
+
+
+        # ==========================
+        # CALCULATE CHANGE
+        # ==========================
+
+
+        old_weight = float(
+            weight.get(
+                "weight",
+                0
+            )
+        )
+
+
+
+        difference = round(
+
+            new_weight - old_weight,
+
+            2
+
+        )
+
+
+
+        if difference > 0:
+
+
+            change_type = "Weight Gain"
+
+
+
+        elif difference < 0:
+
+
+            change_type = "Weight Loss"
+
+
+
+        else:
+
+
+            change_type = "No Change"
+
+
+
+
+
+
+
+        # ==========================
+        # UPDATE
+        # ==========================
+
+
+        mongo.db.weight_progress.update_one(
+
+            {
+
+                "_id":weight_id,
+
+                "user_id":user_id
+
+            },
+
+
+            {
+
+                "$set":{
+
+
+                    "weight":
+                    new_weight,
+
+
+                    "difference":
+                    difference,
+
+
+                    "change_type":
+                    change_type,
+
+
+                    "date":
+                    date,
+
+
+                    "note":
+                    note,
+
+
+                    "updated_at":
+                    datetime.utcnow()
+
+
+                }
+
+            }
+
+        )
+
+
+
+
+
+
+        flash(
+
+            "Weight updated successfully.",
+
+            "success"
+
+        )
+
+
+
+        return redirect(
+
+            url_for(
+                "main.weight_history"
+            )
+
+        )
+
+
+
+
+
+
+
+    return render_template(
+
+        "backend/pages/components/gym/edit_weight.html",
+
+        weight=weight
+
+    )
+
+@bp.route("/gym/weight/delete/<id>")
+@login_required
+def delete_gym_weight(id):
+
+    mongo.db.weight_progress.delete_one({
+
+        "_id":ObjectId(id),
+
+        "user_id":ObjectId(current_user.id)
+
+    })
+
+
+    flash(
+        "Weight deleted successfully.",
+        "success"
+    )
+
+
+    return redirect(
+        url_for("main.weight_history")
+    )
+
+
+
+@bp.route("/gym/weight-history")
+@login_required
+def weight_history():
+
+    user_id = ObjectId(current_user.id)
+
+    # ==========================
+    # GET GYM PROFILE
+    # ==========================
+    profile = mongo.db.gym_profile.find_one({
+        "user_id": user_id
+    })
+
+    if not profile:
+        flash(
+            "Please create your Gym Profile first.",
+            "warning"
+        )
+        return redirect(
+            url_for("main.gym_profile")
+        )
+
+    # ==========================
+    # GET ALL WEIGHTS
+    # Latest first
+    # ==========================
+    weights = list(
+        mongo.db.weight_progress.find({
+            "user_id": user_id
+        }).sort("date", -1)
+    )
+
+    # ==========================
+    # PROFILE DATA
+    # ==========================
+    start_weight = float(
+        profile.get(
+            "start_weight",
+            0
+        )
+    )
+
+    goal_weight = float(
+        profile.get(
+            "goal_weight",
+            0
+        )
+    )
+
+    # ==========================
+    # CURRENT WEIGHT
+    # ==========================
+    if weights:
+
+        current_weight = float(
+            weights[0]["weight"]
+        )
+
+    else:
+
+        current_weight = start_weight
+
+    # ==========================
+    # GAIN / LOSS
+    # ==========================
+    weight_difference = round(
+        current_weight - start_weight,
+        2
+    )
+
+    if weight_difference > 0:
+
+        weight_status = "gain"
+
+    elif weight_difference < 0:
+
+        weight_status = "loss"
+
+    else:
+
+        weight_status = "same"
+
+    # ==========================
+    # PROGRESS %
+    # ==========================
+
+    progress_percent = 0
+
+    if start_weight > goal_weight:
+
+        # User wants to LOSE weight
+
+        total = start_weight - goal_weight
+
+        done = start_weight - current_weight
+
+        if total > 0:
+
+            progress_percent = round(
+                (done / total) * 100,
+                1
+            )
+
+    elif goal_weight > start_weight:
+
+        # User wants to GAIN weight
+
+        total = goal_weight - start_weight
+
+        done = current_weight - start_weight
+
+        if total > 0:
+
+            progress_percent = round(
+                (done / total) * 100,
+                1
+            )
+
+    # Prevent bad values
+    progress_percent = max(
+        0,
+        min(progress_percent, 100)
+    )
+
+    # ==========================
+    # FIX OBJECTID
+    # ==========================
+    for item in weights:
+
+        item["_id"] = str(item["_id"])
+
+    # ==========================
+    # TEMPLATE
+    # ==========================
+    return render_template(
+
+        "backend/pages/components/gym/weight_history.html",
+
+        profile=profile,
+
+        weights=weights,
+
+        current_weight=current_weight,
+
+        start_weight=start_weight,
+
+        goal_weight=goal_weight,
+
+        weight_difference=abs(weight_difference),
+
+        weight_status=weight_status,
+
+        progress_percent=progress_percent
+
+    )
+
+
+
+@bp.route("/gym/dashboard")
+@login_required
+def gym_dashboard():
+
+    profile = mongo.db.gym_profile.find_one({
+        "user_id": ObjectId(current_user.id)
+    })
+
+    if not profile:
+
+        flash("Please complete your gym profile first.", "warning")
+        return redirect(url_for("main.gym_profile"))
+
+    weights = list(
+        mongo.db.weight_progress.find(
+            {
+                "user_id": ObjectId(current_user.id)
+            }
+        ).sort("date", 1)
+    )
+
+    current_weight = profile["start_weight"]
+
+    if weights:
+        current_weight = weights[-1]["weight"]
+
+    start_weight = profile["start_weight"]
+    goal_weight = profile["goal_weight"]
+    height = profile["height_cm"]
+
+    bmi = round(
+        current_weight /
+        ((height / 100) ** 2),
+        1
+    )
+
+    lost = round(
+        start_weight - current_weight,
+        2
+    )
+
+    remaining = round(
+        current_weight - goal_weight,
+        2
+    )
+
+    total = start_weight - goal_weight
+
+    progress = 0
+
+    if total > 0:
+
+        progress = round(
+            (lost / total) * 100,
+            2
+        )
+
+    progress = max(0, min(progress, 100))
+
+    return render_template(
+        "backend/pages/components/gym/dashboard.html",
+
+        profile=profile,
+
+        weights=weights,
+
+        current_weight=current_weight,
+
+        bmi=bmi,
+
+        lost=lost,
+
+        remaining=remaining,
+
+        progress=progress
+    )
+
+
 @bp.route('/add-category', methods=['GET', 'POST'])
 @login_required
 def add_category():

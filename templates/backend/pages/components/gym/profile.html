@@ -1,0 +1,992 @@
+{% extends 'backend/home/base.html' %}
+
+
+{% block title %}
+Gym Body Profile
+{% endblock %}
+
+
+
+{% block content %}
+
+
+<style>
+
+
+.gym-wrapper{
+
+    padding:20px;
+
+}
+
+
+
+.gym-card{
+
+    border-radius:30px;
+
+    overflow:hidden;
+
+    border:0;
+
+    background:white;
+
+    box-shadow:
+    0 20px 50px rgba(0,0,0,.12);
+
+}
+
+
+
+.gym-header{
+
+
+    background:
+    linear-gradient(
+    135deg,
+    #198754,
+    #20c997
+    );
+
+    color:white;
+
+    padding:25px;
+
+}
+
+
+
+.gym-header h5{
+
+    font-weight:800;
+
+}
+
+
+
+.form-control,
+.form-select{
+
+    border-radius:18px;
+
+    padding:14px;
+
+    border:1px solid #ddd;
+
+}
+
+
+
+.form-control:focus,
+.form-select:focus{
+
+    box-shadow:
+    0 0 0 3px rgba(25,135,84,.15);
+
+}
+
+
+
+
+
+.label-title{
+
+    font-weight:700;
+
+    margin-bottom:8px;
+
+}
+
+
+
+
+
+.info-text{
+
+    font-size:13px;
+
+    color:#777;
+
+}
+
+
+
+
+.save-btn{
+
+
+    border-radius:50px;
+
+    padding:15px;
+
+    font-weight:700;
+
+}
+
+
+
+
+
+
+
+/* BMI */
+
+
+.bmi-box{
+
+
+    width:220px;
+
+    height:220px;
+
+    border-radius:50%;
+
+
+    margin:auto;
+
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+
+
+background:
+
+conic-gradient(
+
+{% if bmi < 18.5 %}
+
+#dc3545
+
+{% elif bmi < 25 %}
+
+#198754
+
+{% elif bmi < 30 %}
+
+#ffc107
+
+{% else %}
+
+#dc3545
+
+{% endif %}
+
+
+{{ (bmi*4) if bmi else 0 }}%,
+
+#eeeeee 0%
+
+);
+
+
+}
+
+
+
+.bmi-inner{
+
+
+width:170px;
+
+height:170px;
+
+
+background:white;
+
+
+border-radius:50%;
+
+
+display:flex;
+
+flex-direction:column;
+
+
+justify-content:center;
+
+align-items:center;
+
+
+
+}
+
+
+
+.bmi-number{
+
+
+font-size:45px;
+
+font-weight:900;
+
+color:#198754;
+
+
+}
+
+
+
+
+.bmi-label{
+
+color:#777;
+
+}
+
+
+
+
+.status{
+
+
+padding:12px 30px;
+
+border-radius:50px;
+
+font-weight:700;
+
+}
+
+
+
+
+
+.analysis-item{
+
+
+border-radius:25px;
+
+
+padding:25px;
+
+
+background:#f8f9fa;
+
+
+text-align:center;
+
+
+transition:.3s;
+
+
+}
+
+
+
+.analysis-item:hover{
+
+
+transform:translateY(-5px);
+
+
+box-shadow:
+0 10px 30px rgba(0,0,0,.1);
+
+
+}
+
+
+
+.analysis-number{
+
+
+font-size:28px;
+
+font-weight:900;
+
+
+}
+
+
+
+
+
+
+.goal-card{
+
+
+background:
+
+linear-gradient(
+135deg,
+#198754,
+#20c997
+);
+
+
+color:white;
+
+
+border-radius:25px;
+
+
+padding:25px;
+
+
+}
+
+
+
+
+
+.range-card{
+
+
+background:#e7f1ff;
+
+
+border-radius:25px;
+
+
+padding:25px;
+
+
+}
+
+
+
+
+@media(max-width:768px){
+
+
+.bmi-box{
+
+width:170px;
+
+height:170px;
+
+}
+
+
+
+.bmi-inner{
+
+width:130px;
+
+height:130px;
+
+}
+
+
+
+.bmi-number{
+
+font-size:32px;
+
+}
+
+
+}
+
+
+
+</style>
+
+
+
+
+
+
+<div class="page-header">
+
+
+<div class="page-header-left">
+
+
+<h5 class="fw-bold">
+
+Gym Body Profile
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="gym-wrapper">
+
+
+<div class="row g-4">
+
+
+
+
+
+<!-- ================= FORM ================= -->
+
+
+
+<div class="col-lg-6">
+
+
+<div class="card gym-card">
+
+
+<div class="gym-header">
+
+
+<h5>
+
+<i class="bi bi-person-circle"></i>
+
+Body Information
+
+</h5>
+
+
+<small>
+
+Track your fitness progress
+
+</small>
+
+
+</div>
+
+
+
+
+
+<div class="card-body p-4">
+
+
+
+<form method="POST">
+
+
+
+
+
+<label class="label-title">
+
+Height (CM)
+
+</label>
+
+
+<input
+
+type="number"
+
+step="0.1"
+
+name="height"
+
+class="form-control"
+
+
+value="{{profile.height_cm if profile else ''}}"
+
+placeholder="177"
+
+required>
+
+
+<div class="info-text">
+
+Your body height in centimeters
+
+</div>
+
+
+
+<br>
+
+
+
+
+
+
+<label class="label-title">
+
+Starting Weight (KG)
+
+</label>
+
+
+<input
+
+type="number"
+
+step="0.1"
+
+name="start_weight"
+
+class="form-control"
+
+
+value="{{profile.start_weight if profile else ''}}"
+
+placeholder="78"
+
+required>
+
+
+<div class="info-text">
+
+Your first recorded weight
+
+</div>
+
+
+
+<br>
+
+
+
+
+
+
+
+<label class="label-title">
+
+Birth Year
+
+</label>
+
+
+
+<input
+
+type="number"
+
+name="birth_year"
+
+class="form-control"
+
+
+value="{{profile.birth_year if profile else ''}}"
+
+placeholder="1992"
+
+required>
+
+
+
+<div class="info-text">
+
+Age will calculate automatically
+
+</div>
+
+
+
+<br>
+
+
+
+
+
+
+
+<label class="label-title">
+
+Current Age
+
+</label>
+
+
+<input
+
+class="form-control"
+
+readonly
+
+value="{{age}} Years">
+
+
+
+
+
+
+<br>
+
+
+
+
+
+<label class="label-title">
+
+Gender
+
+</label>
+
+
+<select name="gender"
+
+class="form-select">
+
+
+
+<option value="Male"
+
+{% if profile and profile.gender=="Male" %}
+selected
+{% endif %}
+>
+
+Male
+
+</option>
+
+
+
+<option value="Female"
+
+{% if profile and profile.gender=="Female" %}
+selected
+{% endif %}
+>
+
+Female
+
+</option>
+
+
+
+</select>
+
+
+
+
+
+
+<br>
+
+
+
+
+
+
+<label class="label-title">
+
+Activity Level
+
+</label>
+
+
+
+<select name="activity_level"
+
+class="form-select">
+
+
+<option value="Low">
+
+Low Activity
+
+</option>
+
+
+<option value="Moderate">
+
+Moderate Activity
+
+</option>
+
+
+<option value="High">
+
+High Activity
+
+</option>
+
+
+</select>
+
+
+
+
+
+
+<br>
+
+
+
+
+
+
+<button class="btn btn-success w-100 save-btn">
+
+
+<i class="bi bi-save"></i>
+
+Save Gym Profile
+
+
+</button>
+
+
+
+
+</form>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- ================= ANALYSIS ================= -->
+
+
+
+
+<div class="col-lg-6">
+
+
+
+<div class="card gym-card">
+
+
+
+<div class="card-header bg-primary text-white">
+
+
+<h5 class="mb-0">
+
+<i class="bi bi-activity"></i>
+
+Body Analysis
+
+</h5>
+
+
+</div>
+
+
+
+
+
+<div class="card-body text-center p-4">
+
+
+
+
+
+<div class="bmi-box">
+
+
+<div class="bmi-inner">
+
+
+<div class="bmi-number">
+
+{{bmi}}
+
+</div>
+
+
+<div class="bmi-label">
+
+BMI
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<br>
+
+
+
+
+
+{% if bmi_status=="Normal Weight" %}
+
+
+<span class="badge bg-success status">
+
+<i class="bi bi-check-circle"></i>
+
+{{bmi_status}}
+
+</span>
+
+
+
+{% elif bmi_status=="Under Weight" %}
+
+
+<span class="badge bg-danger status">
+
+{{bmi_status}}
+
+</span>
+
+
+
+{% else %}
+
+
+<span class="badge bg-warning text-dark status">
+
+{{bmi_status}}
+
+</span>
+
+
+
+{% endif %}
+
+
+
+
+
+
+
+
+<div class="row g-3 mt-4">
+
+
+
+<div class="col-12">
+
+
+<div class="goal-card">
+
+
+<small>
+
+Recommended Goal Weight
+
+</small>
+
+
+<h1 class="fw-bold">
+
+{{goal_weight}} KG
+
+</h1>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-12">
+
+
+<div class="range-card">
+
+
+<small>
+
+Healthy Weight Range
+
+</small>
+
+
+<h3 class="fw-bold text-primary">
+
+
+{{healthy_min}}
+
+-
+
+{{healthy_max}}
+
+KG
+
+
+</h3>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="alert alert-info mt-4 rounded-4">
+
+
+<i class="bi bi-lightbulb"></i>
+
+
+Your ideal weight is calculated from healthy BMI range:
+
+
+<strong>
+
+18.5 - 24.9
+
+</strong>
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+{% endblock %}

@@ -1,0 +1,782 @@
+{% extends 'backend/home/base.html' %}
+
+
+{% block title %}
+Add Weight Record
+{% endblock %}
+
+
+
+
+{% block content %}
+
+
+
+<style>
+
+
+.weight-card{
+
+    border-radius:25px;
+
+    overflow:hidden;
+
+}
+
+
+
+.weight-header{
+
+    background:
+    linear-gradient(
+        135deg,
+        #198754,
+        #20c997
+    );
+
+    color:white;
+
+}
+
+
+
+.form-control{
+
+    border-radius:15px;
+
+    padding:14px;
+
+}
+
+
+
+.icon-box{
+
+    width:90px;
+
+    height:90px;
+
+    border-radius:50%;
+
+    background:#e8f8ef;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    margin:auto;
+
+    font-size:40px;
+
+    color:#198754;
+
+}
+
+
+
+.type-box{
+
+    background:#e8f8ef;
+
+    border-radius:15px;
+
+    padding:15px;
+
+    font-weight:700;
+
+    color:#198754;
+
+}
+
+
+
+.result-card{
+
+    border-radius:20px;
+
+    padding:20px;
+
+    text-align:center;
+
+    background:#f8f9fa;
+
+}
+
+
+
+.result-number{
+
+    font-size:25px;
+
+    font-weight:800;
+
+}
+
+
+
+.save-btn{
+
+    border-radius:50px;
+
+    padding:15px;
+
+    font-weight:bold;
+
+}
+
+
+
+</style>
+
+
+
+
+
+<div class="page-header">
+
+
+<div class="page-header-left d-flex align-items-center">
+
+
+<div class="page-header-title">
+
+<h5 class="m-b-10">
+
+Gym Weight Tracking
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="main-content mt-4">
+
+
+<div class="row justify-content-center">
+
+
+
+<div class="col-lg-7">
+
+
+
+<div class="card shadow-lg border-0 weight-card">
+
+
+
+
+
+<div class="card-header weight-header">
+
+
+<h5 class="mb-0">
+
+<i class="bi bi-speedometer2"></i>
+
+Add Weight Record
+
+</h5>
+
+
+</div>
+
+
+
+
+
+
+<div class="card-body">
+
+
+
+
+
+<div class="icon-box mb-4">
+
+<i class="bi bi-person-standing"></i>
+
+</div>
+
+
+
+
+
+
+
+
+<form method="POST">
+
+
+
+
+
+<input type="hidden"
+name="type"
+value="weight_record">
+
+
+
+
+
+
+<!-- TYPE -->
+
+
+<div class="type-box mb-4">
+
+
+<i class="bi bi-tag-fill"></i>
+
+Record Type:
+
+<span>
+
+Weight Tracking
+
+</span>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- PREVIOUS -->
+
+
+<div class="mb-4">
+
+
+<label class="fw-bold">
+
+Previous Weight (KG)
+
+</label>
+
+
+<input
+
+type="text"
+
+class="form-control bg-light fw-bold"
+
+value="{{previous_weight}} KG"
+
+readonly>
+
+
+<small class="text-muted">
+
+Last recorded body weight
+
+</small>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- CURRENT WEIGHT -->
+
+
+<div class="mb-4">
+
+
+<label class="fw-bold">
+
+Current Weight (KG)
+
+</label>
+
+
+<input
+
+type="number"
+
+step="0.1"
+
+id="currentWeight"
+
+name="weight"
+
+class="form-control"
+
+placeholder="Example: 78.5"
+
+required>
+
+
+<small class="text-muted">
+
+Enter today's body weight
+
+</small>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+<!-- LIVE ANALYSIS -->
+
+
+<div class="row g-3 mb-4">
+
+
+
+<div class="col-md-4">
+
+
+<div class="result-card">
+
+
+<small>
+
+Previous
+
+</small>
+
+
+<div class="result-number">
+
+{{previous_weight}} KG
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-md-4">
+
+
+<div class="result-card">
+
+
+<small>
+
+Difference
+
+</small>
+
+
+<div 
+id="difference"
+
+class="result-number text-primary">
+
+0 KG
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-md-4">
+
+
+<div class="result-card">
+
+
+<small>
+
+Status
+
+</small>
+
+
+<div id="status">
+
+
+<span class="badge bg-secondary">
+
+Waiting
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- DATE -->
+
+
+<div class="mb-4">
+
+
+<label class="fw-bold">
+
+Date
+
+</label>
+
+
+<input
+
+type="date"
+
+name="date"
+
+class="form-control"
+
+required>
+
+
+<small class="text-muted">
+
+Choose measurement date
+
+</small>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- NOTE -->
+
+
+<div class="mb-4">
+
+
+<label class="fw-bold">
+
+Note
+
+</label>
+
+
+<textarea
+
+name="note"
+
+rows="3"
+
+class="form-control"
+
+placeholder="Example: Morning weight, After workout"></textarea>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+<div class="alert alert-info rounded-4">
+
+
+<i class="bi bi-info-circle"></i>
+
+
+System automatically detects:
+
+<ul class="mb-0 mt-2">
+
+<li>
+Weight Gain 🔺
+</li>
+
+
+<li>
+Weight Loss 🔻
+</li>
+
+
+<li>
+No Change ⚪
+</li>
+
+</ul>
+
+
+</div>
+
+
+
+
+
+
+
+
+<button
+
+class="btn btn-success w-100 save-btn"
+
+type="submit">
+
+
+<i class="bi bi-save"></i>
+
+Save Weight Record
+
+
+</button>
+
+
+
+
+
+
+</form>
+
+
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+
+
+let previousWeight = Number("{{previous_weight}}");
+
+
+let input = document.getElementById(
+    "currentWeight"
+);
+
+
+let difference = document.getElementById(
+    "difference"
+);
+
+
+let status = document.getElementById(
+    "status"
+);
+
+
+
+input.addEventListener(
+"input",
+function(){
+
+
+let current = parseFloat(
+    this.value
+);
+
+
+
+if(isNaN(current)){
+
+
+difference.innerHTML="0 KG";
+
+
+status.innerHTML=
+`
+<span class="badge bg-secondary">
+Waiting
+</span>
+`;
+
+
+return;
+
+}
+
+
+
+
+let diff = (
+    current - previousWeight
+).toFixed(1);
+
+
+
+
+if(diff > 0){
+
+
+difference.innerHTML =
+"+"+diff+" KG";
+
+
+difference.className =
+"result-number text-danger";
+
+
+
+status.innerHTML =
+`
+<span class="badge bg-danger">
+
+🔺 Weight Gain
+
+</span>
+`;
+
+
+
+}
+
+
+
+
+else if(diff < 0){
+
+
+difference.innerHTML =
+diff+" KG";
+
+
+difference.className =
+"result-number text-success";
+
+
+
+status.innerHTML =
+`
+<span class="badge bg-success">
+
+🔻 Weight Loss
+
+</span>
+`;
+
+
+
+}
+
+
+
+else{
+
+
+difference.innerHTML =
+"0 KG";
+
+
+difference.className =
+"result-number text-primary";
+
+
+
+status.innerHTML =
+`
+<span class="badge bg-secondary">
+
+⚪ No Change
+
+</span>
+`;
+
+
+
+}
+
+
+
+});
+
+
+</script>
+
+
+
+
+
+
+
+{% endblock %}

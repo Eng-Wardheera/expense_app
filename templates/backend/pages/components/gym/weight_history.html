@@ -1,0 +1,886 @@
+{% extends 'backend/home/base.html' %}
+
+
+{% block title %}
+Weight History
+{% endblock %}
+
+
+
+{% block content %}
+
+
+<style>
+
+
+.weight-card{
+
+    border-radius:25px;
+    overflow:hidden;
+
+}
+
+
+
+.header-gradient{
+
+    background:linear-gradient(
+        135deg,
+        #198754,
+        #20c997
+    );
+
+    color:white;
+
+}
+
+
+
+.stat-card{
+
+    border-radius:20px;
+
+    padding:25px;
+
+    text-align:center;
+
+    background:#fff;
+
+    box-shadow:
+    0 10px 25px rgba(0,0,0,.08);
+
+}
+
+
+
+.stat-number{
+
+    font-size:30px;
+
+    font-weight:800;
+
+}
+
+
+
+.chart-box{
+
+    border-radius:20px;
+
+    background:#f8f9fa;
+
+    padding:20px;
+
+}
+
+
+
+.table thead th{
+
+    white-space:nowrap;
+
+}
+
+
+
+.badge{
+
+    padding:8px 15px;
+
+    border-radius:20px;
+
+}
+
+
+
+</style>
+
+
+
+
+
+
+
+<div class="page-header">
+
+
+<div class="page-header-left d-flex align-items-center">
+
+
+<div class="page-header-title">
+
+
+<h5 class="m-b-10">
+
+Weight History
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+
+<div class="ms-auto">
+
+
+<a href="{{url_for('main.add_gym_weight')}}"
+
+class="btn btn-success rounded-pill">
+
+
+<i class="bi bi-plus-circle"></i>
+
+Add Weight
+
+
+</a>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<div class="main-content mt-4">
+
+
+
+<div class="row g-4">
+
+
+
+
+
+
+
+<!-- ==================
+ SUMMARY
+================== -->
+
+
+
+<div class="col-lg-4">
+
+
+<div class="stat-card">
+
+
+<i class="bi bi-person-standing fs-1 text-success"></i>
+
+
+<h6 class="mt-3">
+
+Current Weight
+
+</h6>
+
+
+<div class="stat-number text-success">
+
+{{current_weight}}
+
+KG
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="col-lg-4">
+
+
+<div class="stat-card">
+
+
+<i class="bi bi-flag fs-1 text-primary"></i>
+
+
+<h6 class="mt-3">
+
+Goal Weight
+
+</h6>
+
+
+<div class="stat-number text-primary">
+
+{{goal_weight}}
+
+KG
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="col-lg-4">
+
+
+<div class="stat-card">
+
+
+<i class="bi bi-graph-up-arrow fs-1 text-warning"></i>
+
+
+<h6 class="mt-3">
+
+Progress
+
+
+</h6>
+
+
+<div class="stat-number">
+
+
+{{progress_percent}}%
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ==================
+PROGRESS CARD
+================== -->
+
+
+
+<div class="col-12">
+
+
+<div class="card shadow border-0 weight-card">
+
+
+
+<div class="card-header header-gradient">
+
+
+<h5 class="mb-0">
+
+
+<i class="bi bi-speedometer2"></i>
+
+
+Weight Progress Summary
+
+
+</h5>
+
+
+</div>
+
+
+
+
+
+
+<div class="card-body">
+
+
+
+
+
+<div class="row g-4">
+
+
+
+
+
+<div class="col-md-6">
+
+
+<div class="chart-box">
+
+
+<h6>
+
+Starting Weight
+
+</h6>
+
+
+<h3 class="fw-bold">
+
+{{start_weight}}
+
+KG
+
+</h3>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-md-6">
+
+
+<div class="chart-box">
+
+
+<h6>
+
+Weight Change
+
+</h6>
+
+
+
+{% if weight_difference > 0 %}
+
+
+
+<h3 class="text-danger fw-bold">
+
++{{weight_difference}}
+
+KG 🔺
+
+</h3>
+
+
+<small>
+
+Weight Gain
+
+</small>
+
+
+
+{% elif weight_difference < 0 %}
+
+
+
+<h3 class="text-success fw-bold">
+
+{{weight_difference}}
+
+KG 🔻
+
+</h3>
+
+
+<small>
+
+Weight Loss
+
+</small>
+
+
+
+{% else %}
+
+
+
+<h3 class="text-secondary fw-bold">
+
+0 KG
+
+</h3>
+
+
+<small>
+
+No Change
+
+</small>
+
+
+{% endif %}
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="card shadow-lg border-0 rounded-4 mb-4">
+
+<div class="card-header bg-primary text-white">
+
+<h5 class="mb-0">
+
+Weight Trend
+
+</h5>
+
+</div>
+
+<div class="card-body">
+
+<canvas id="weightChart"></canvas>
+
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const labels = [
+
+{% for w in weights %}
+
+"{{ w.date.strftime('%d %b') }}",
+
+{% endfor %}
+
+];
+
+
+
+const values = [
+
+{% for w in weights %}
+
+{{ w.weight }},
+
+{% endfor %}
+
+];
+
+
+
+new Chart(
+
+document.getElementById("weightChart"),
+
+{
+
+type:"line",
+
+data:{
+
+labels:labels,
+
+datasets:[{
+
+label:"Weight",
+
+data:values,
+
+fill:true,
+
+tension:.4,
+
+borderWidth:4
+
+}]
+
+}
+
+}
+
+);
+
+</script>
+
+
+
+
+<!-- ==================
+TABLE
+================== -->
+
+
+
+<div class="col-12">
+
+
+
+<div class="card shadow border-0 weight-card">
+
+
+
+<div class="card-header d-flex justify-content-between">
+
+
+<h5 class="mb-0">
+
+Weight Records
+
+</h5>
+
+
+</div>
+
+
+
+
+
+
+<div class="card-body p-0">
+
+
+
+<div class="table-responsive">
+
+
+
+<table class="table table-hover align-middle mb-0" id="leadList">
+
+
+
+<thead class="table-light">
+
+
+<tr>
+
+<th>#</th>
+
+<th>Date</th>
+
+<th>Weight</th>
+
+<th>Note</th>
+
+<th>Status</th>
+
+<th width="180">
+
+Action
+
+</th>
+
+
+</tr>
+
+
+</thead>
+
+
+
+
+
+
+<tbody>
+
+
+
+{% for item in weights %}
+
+
+
+<tr>
+
+
+<td>
+
+{{loop.index}}
+
+</td>
+
+
+
+
+
+<td>
+
+{{item.date.strftime('%d-%m-%Y')}}
+
+</td>
+
+
+
+
+
+
+
+<td>
+
+
+<strong class="text-primary">
+
+{{item.weight}}
+
+KG
+
+</strong>
+
+
+</td>
+
+
+
+
+
+
+
+<td>
+
+{{item.note if item.note else '-'}}
+
+</td>
+
+
+
+
+
+
+
+<td>
+
+
+
+{% if loop.first %}
+
+
+<span class="badge bg-success">
+
+Latest
+
+</span>
+
+
+{% else %}
+
+
+{% if item.weight > weights[loop.index0-1].weight %}
+
+
+<span class="badge bg-danger">
+
+Gain 🔺
+
+</span>
+
+
+{% elif item.weight < weights[loop.index0-1].weight %}
+
+
+<span class="badge bg-success">
+
+Loss 🔻
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge bg-secondary">
+
+No Change
+
+</span>
+
+
+{% endif %}
+
+
+{% endif %}
+
+
+
+</td>
+
+
+
+
+
+
+
+
+
+<td>
+
+
+<div class="d-flex gap-2">
+
+
+
+<a href="{{url_for('main.edit_gym_weight',id=item._id)}}"
+
+class="btn btn-warning btn-sm">
+
+
+<i class="bi bi-pencil"></i>
+
+Edit
+
+
+</a>
+
+
+
+
+
+<a href="{{url_for('main.delete_gym_weight',id=item._id)}}"
+
+onclick="return confirm('Delete this weight record?')"
+
+class="btn btn-danger btn-sm">
+
+
+<i class="bi bi-trash"></i>
+
+Delete
+
+
+</a>
+
+
+
+</div>
+
+
+</td>
+
+
+
+
+
+
+
+</tr>
+
+
+
+
+{% else %}
+
+
+<tr>
+
+
+<td colspan="6"
+
+class="text-center py-4 text-muted">
+
+
+No weight history found.
+
+
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+
+
+
+</tbody>
+
+
+
+</table>
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+{% endblock %}

@@ -503,6 +503,486 @@ class Session:
 
 
 
+class GymProfile:
+
+
+    def __init__(self, data=None):
+
+        self.data = data or {}
+
+
+
+        # =====================
+        # ID
+        # =====================
+
+        self.id = str(
+            self.data.get("_id")
+        )
+
+
+        self.user_id = self.data.get(
+            "user_id"
+        )
+
+
+
+        # =====================
+        # TYPE
+        # =====================
+
+        self.type = self.data.get(
+            "type",
+            "gym_profile"
+        )
+
+
+
+        # =====================
+        # BODY INFORMATION
+        # =====================
+
+        self.height_cm = float(
+            self.data.get(
+                "height_cm",
+                0
+            )
+        )
+
+
+        self.start_weight = float(
+            self.data.get(
+                "start_weight",
+                0
+            )
+        )
+
+
+
+        self.goal_weight = float(
+            self.data.get(
+                "goal_weight",
+                0
+            )
+        )
+
+
+
+        # =====================
+        # BIRTH YEAR / AGE
+        # =====================
+
+        self.birth_year = int(
+            self.data.get(
+                "birth_year",
+                0
+            )
+        )
+
+
+        self.age = self.calculate_age()
+
+
+
+
+        # =====================
+        # PERSONAL INFO
+        # =====================
+
+        self.gender = self.data.get(
+            "gender",
+            "Male"
+        )
+
+
+        self.activity_level = self.data.get(
+            "activity_level",
+            "Low"
+        )
+
+
+
+
+        # =====================
+        # BMI
+        # =====================
+
+        self.bmi = self.calculate_bmi()
+
+
+        self.bmi_status = self.get_bmi_status()
+
+
+
+
+        # =====================
+        # HEALTH RANGE
+        # =====================
+
+        healthy = self.healthy_range()
+
+
+        self.healthy_min = healthy["min"]
+
+
+        self.healthy_max = healthy["max"]
+
+
+
+
+        # AUTO GOAL
+
+        self.goal_weight = (
+            self.calculate_goal_weight()
+        )
+
+
+
+
+        # =====================
+        # TIME
+        # =====================
+
+        self.created_at = self.data.get(
+            "created_at"
+        )
+
+
+        self.updated_at = self.data.get(
+            "updated_at"
+        )
+
+
+
+
+
+
+
+    # ==========================
+    # AGE CALCULATION
+    # ==========================
+
+
+    def calculate_age(self):
+
+        if self.birth_year <= 0:
+
+            return 0
+
+
+
+        current_year = datetime.utcnow().year
+
+
+        return (
+            current_year -
+            self.birth_year
+        )
+
+
+
+
+
+
+
+    # ==========================
+    # BMI CALCULATION
+    # ==========================
+
+
+    def calculate_bmi(self):
+
+
+        if (
+            self.height_cm <= 0
+            or
+            self.start_weight <= 0
+        ):
+
+            return 0
+
+
+
+        height_m = (
+            self.height_cm / 100
+        )
+
+
+
+        bmi = (
+
+            self.start_weight /
+
+            (height_m ** 2)
+
+        )
+
+
+
+        return round(
+            bmi,
+            2
+        )
+
+
+
+
+
+
+
+    # ==========================
+    # BMI STATUS
+    # ==========================
+
+
+    def get_bmi_status(self):
+
+
+        bmi = self.bmi
+
+
+
+        if bmi == 0:
+
+            return "Unknown"
+
+
+
+        if bmi < 18.5:
+
+            return "Under Weight"
+
+
+
+        elif bmi < 25:
+
+            return "Normal Weight"
+
+
+
+        elif bmi < 30:
+
+            return "Over Weight"
+
+
+
+        else:
+
+            return "Obese"
+
+
+
+
+
+
+
+    # ==========================
+    # HEALTHY RANGE
+    # ==========================
+
+
+    def healthy_range(self):
+
+
+        if self.height_cm <= 0:
+
+
+            return {
+
+                "min":0,
+
+                "max":0
+
+            }
+
+
+
+
+        height_m = (
+
+            self.height_cm / 100
+
+        )
+
+
+
+
+        min_weight = (
+
+            18.5 *
+
+            (height_m ** 2)
+
+        )
+
+
+
+
+        max_weight = (
+
+            24.9 *
+
+            (height_m ** 2)
+
+        )
+
+
+
+
+        return {
+
+
+            "min":
+
+            round(
+                min_weight,
+                1
+            ),
+
+
+
+            "max":
+
+            round(
+                max_weight,
+                1
+            )
+
+        }
+
+
+
+
+
+
+
+    # ==========================
+    # AUTO GOAL WEIGHT
+    # ==========================
+
+
+    def calculate_goal_weight(self):
+
+
+        range_data = (
+            self.healthy_range()
+        )
+
+
+
+        if (
+            range_data["min"] == 0
+            or
+            range_data["max"] == 0
+        ):
+
+            return 0
+
+
+
+
+        goal = (
+
+            range_data["min"]
+
+            +
+
+            range_data["max"]
+
+        ) / 2
+
+
+
+
+        return round(
+            goal,
+            1
+        )
+
+
+
+
+
+
+
+
+    # ==========================
+    # SAVE TO MONGO
+    # ==========================
+
+
+    def to_dict(self):
+
+
+        return {
+
+
+            "user_id":
+
+            self.user_id,
+
+
+
+            "type":
+
+            self.type,
+
+
+
+            "height_cm":
+
+            self.height_cm,
+
+
+
+            "start_weight":
+
+            self.start_weight,
+
+
+
+            "goal_weight":
+
+            self.calculate_goal_weight(),
+
+
+
+            "birth_year":
+
+            self.birth_year,
+
+
+
+            "age":
+
+            self.age,
+
+
+
+            "gender":
+
+            self.gender,
+
+
+
+            "activity_level":
+
+            self.activity_level,
+
+
+
+            "created_at":
+
+            self.created_at or datetime.utcnow(),
+
+
+
+            "updated_at":
+
+            datetime.utcnow()
+
+        }
+
 
 
 
