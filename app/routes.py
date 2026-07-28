@@ -1,3 +1,4 @@
+import calendar
 from collections import defaultdict
 import datetime
 from decimal import Decimal, InvalidOperation
@@ -2007,19 +2008,29 @@ def calculate_goal_weight(height_cm):
 
 def calculate_bmi(weight, height_cm):
 
-    height_m = height_cm / 100
+    try:
 
-    if height_m <= 0:
+        weight = float(weight)
+        height_cm = float(height_cm)
+
+
+        if weight <= 0 or height_cm <= 0:
+            return 0
+
+
+        # CM TO METER
+        height_m = height_cm / 100
+
+
+        bmi = weight / (height_m * height_m)
+
+
+        return round(bmi, 2)
+
+
+    except:
+
         return 0
-
-
-    bmi = weight / (height_m ** 2)
-
-
-    return round(bmi,1)
-
-
-
 
 
 
@@ -2048,21 +2059,18 @@ def bmi_status(bmi):
 
 
 
-
-
-# ==========================================
-# GYM PROFILE
-# ==========================================
-
-
-@bp.route("/gym/profile", methods=["GET","POST"])
+@bp.route("/gym/checkin", methods=["GET"])
 @login_required
-def gym_profile():
-
+def gym_checkin():
 
     user_id = ObjectId(current_user.id)
 
+    today = datetime.utcnow().date()
 
+
+    # =====================================
+    # PROFILE
+    # =====================================
 
     profile = mongo.db.gym_profile.find_one({
 
@@ -2070,6 +2078,940 @@ def gym_profile():
 
     })
 
+
+    if not profile:
+
+        flash(
+            "Please create Gym Profile first.",
+            "warning"
+        )
+
+        return redirect(
+            url_for("main.gym_profile")
+        )
+
+
+
+    # =====================================
+    # WEIGHT DATA
+    # =====================================
+
+    latest_weight = mongo.db.weight_progress.find_one(
+
+        {
+            "user_id": user_id
+        },
+
+        sort=[
+            ("date",-1)
+        ]
+
+    )
+
+
+    if latest_weight:
+
+        current_weight = float(
+            latest_weight.get(
+                "weight",
+                0
+            )
+        )
+
+    else:
+
+        current_weight = float(
+            profile.get(
+                "start_weight",
+                0
+            )
+        )
+
+
+
+    start_weight = float(
+
+        profile.get(
+            "start_weight",
+            current_weight
+        )
+
+    )
+
+
+
+    # =====================================
+    # WEIGHT RESULT
+    # =====================================
+
+    if current_weight > start_weight:
+
+
+        net_gain = round(
+            current_weight - start_weight,
+            2
+        )
+
+        net_loss = 0
+
+
+    elif current_weight < start_weight:
+
+
+        net_loss = round(
+            start_weight-current_weight,
+            2
+        )
+
+        net_gain = 0
+
+
+    else:
+
+        net_gain = 0
+        net_loss = 0
+
+
+
+
+
+    # =====================================
+    # STREAK DATA
+    # =====================================
+
+    streak = mongo.db.gym_streak.find_one({
+
+        "user_id":user_id
+
+    })
+
+
+    if not streak:
+
+        streak = {
+
+            "current_streak":0,
+
+            "best_streak":0,
+
+            "total_checkins":0,
+
+            "start_date":None
+
+        }
+
+
+
+
+
+    # =====================================
+    # CHECKIN HISTORY
+    # =====================================
+
+
+    checkins = list(
+
+        mongo.db.gym_checkins.find({
+
+            "user_id":user_id
+
+        })
+
+    )
+
+
+
+    checked_dates = {}
+
+
+
+    for item in checkins:
+
+
+        check_date = item.get(
+            "date"
+        )
+
+
+        if check_date:
+
+
+            checked_dates[check_date.date()] = {
+
+                "time":check_date.strftime(
+                    "%H:%M"
+                )
+
+            }
+
+
+
+
+
+
+    # =====================================
+    # JOURNEY START DATE
+    # =====================================
+
+
+    journey_start = profile.get(
+        "created_at"
+    )
+
+
+
+    if not journey_start:
+
+        journey_start = streak.get(
+            "start_date"
+        )
+
+
+
+    if not journey_start:
+
+        journey_start = datetime.utcnow()
+
+
+
+    journey_start = journey_start.date()
+
+
+
+
+
+
+    # =====================================
+    # DAILY ATTENDANCE REPORT
+    # =====================================
+
+
+    calendar_days = []
+
+
+    present_days = 0
+
+    absent_days = 0
+
+
+
+    total_days = (
+
+        today -
+
+        journey_start
+
+    ).days + 1
+
+
+
+
+    for i in range(total_days):
+
+
+        day = journey_start + timedelta(
+            days=i
+        )
+
+
+
+        if day in checked_dates:
+
+
+            checked = True
+
+            status = "Checked"
+
+            icon = "☑️"
+
+            checkin_time = checked_dates[day]["time"]
+
+            present_days += 1
+
+
+
+        else:
+
+
+            checked = False
+
+            status = "Absent"
+
+            icon = "⬜"
+
+            checkin_time = "-"
+
+            absent_days += 1
+
+
+
+
+
+        calendar_days.append({
+
+
+            "date":day.strftime(
+                "%Y-%m-%d"
+            ),
+
+
+            "day_name":calendar.day_name[
+                day.weekday()
+            ],
+
+
+            "checked":checked,
+
+
+            "icon":icon,
+
+
+            "status":status,
+
+
+            "checkin_time":checkin_time
+
+
+        })
+
+
+
+
+
+
+
+    # =====================================
+    # DAYS SINCE START
+    # =====================================
+
+
+    days_since_start = (
+
+        today -
+
+        journey_start
+
+    ).days + 1
+
+
+
+
+
+    # =====================================
+    # MOTIVATION
+    # =====================================
+
+
+    current = streak.get(
+
+        "current_streak",
+
+        0
+
+    )
+
+
+    if current >= 60:
+
+
+        message = "🔥 Legendary! 60+ days consistency!"
+
+
+
+    elif current >= 30:
+
+
+        message = "👑 Amazing! 30 days completed!"
+
+
+
+    elif current >=14:
+
+
+        message = "🚀 Two weeks strong! Keep pushing."
+
+
+
+    elif current >=7:
+
+
+        message = "🏆 One week completed!"
+
+
+
+    elif current >=3:
+
+
+        message = "🔥 Great consistency. Keep going!"
+
+
+
+    else:
+
+
+        message = "💪 Every workout counts. Stay focused."
+
+
+
+
+
+
+    # =====================================
+    # TEMPLATE
+    # =====================================
+
+
+    return render_template(
+
+        "backend/pages/components/gym/checkin_report.html",
+
+
+        profile=profile,
+
+
+        calendar_days=calendar_days,
+
+
+        journey_start=journey_start,
+
+
+        total_days=total_days,
+
+
+        present_days=present_days,
+
+
+        absent_days=absent_days,
+
+
+        current_streak=streak.get(
+            "current_streak",
+            0
+        ),
+
+
+        best_streak=streak.get(
+            "best_streak",
+            0
+        ),
+
+
+        total_checkins=streak.get(
+            "total_checkins",
+            0
+        ),
+
+
+        start_date=streak.get(
+            "start_date"
+        ),
+
+
+        days_since_start=days_since_start,
+
+
+        start_weight=start_weight,
+
+
+        current_weight=current_weight,
+
+
+        net_gain=net_gain,
+
+
+        net_loss=net_loss,
+
+
+        message=message
+
+    )
+
+
+@bp.route("/gym/checkin/manual", methods=["POST"])
+@login_required
+def gym_checkin_manual():
+
+    user_id = ObjectId(current_user.id)
+
+
+    selected_dates = request.form.getlist(
+        "checkin_dates"
+    )
+
+
+    if not selected_dates:
+
+        flash(
+            "Please select at least one day.",
+            "warning"
+        )
+
+        return redirect(
+            url_for("main.gym_checkin")
+        )
+
+
+
+    # =====================================
+    # GET PROFILE START DATE
+    # =====================================
+
+    profile = mongo.db.gym_profile.find_one({
+
+        "user_id": user_id
+
+    })
+
+
+    if not profile:
+
+        flash(
+            "Please create Gym Profile first.",
+            "warning"
+        )
+
+        return redirect(
+            url_for("main.gym_profile")
+        )
+
+
+
+    start_date = profile.get(
+        "created_at"
+    )
+
+
+    if not start_date:
+
+        start_date = datetime.utcnow()
+
+
+
+    start_date = start_date.date()
+
+
+
+    weight = float(
+
+        profile.get(
+            "start_weight",
+            0
+        )
+
+    )
+
+
+
+    saved = 0
+
+
+
+    # =====================================
+    # SAVE SELECTED DAYS
+    # =====================================
+
+    for date_string in selected_dates:
+
+
+        check_date = datetime.strptime(
+
+            date_string,
+
+            "%Y-%m-%d"
+
+        )
+
+
+
+        check_day = check_date.date()
+
+
+
+        # ================================
+        # BLOCK BEFORE PROFILE DATE
+        # ================================
+
+        if check_day < start_date:
+
+
+            continue
+
+
+
+
+        # ================================
+        # DUPLICATE CHECK
+        # ================================
+
+        exists = mongo.db.gym_checkins.find_one({
+
+            "user_id": user_id,
+
+
+            "date": check_date
+
+        })
+
+
+
+        if not exists:
+
+
+            mongo.db.gym_checkins.insert_one({
+
+                "user_id": user_id,
+
+                "date": check_date,
+
+                "weight": weight,
+
+                "created_at": datetime.utcnow()
+
+            })
+
+
+            saved += 1
+
+
+
+
+    if saved > 0:
+
+
+        flash(
+
+            f"✅ {saved} gym attendance days saved.",
+
+            "success"
+
+        )
+
+
+    else:
+
+
+        flash(
+
+            "No new attendance saved.",
+
+            "info"
+
+        )
+
+
+
+    return redirect(
+
+        url_for(
+            "main.gym_checkin"
+        )
+
+    )
+
+
+
+@bp.route("/gym/calendar")
+@login_required
+def gym_calendar():
+
+    user_id = ObjectId(current_user.id)
+
+    now = datetime.utcnow()
+
+    today = now.date()
+
+    # =====================================
+    # PROFILE
+    # =====================================
+
+    profile = mongo.db.gym_profile.find_one({
+        "user_id": user_id
+    })
+
+    if not profile:
+
+        flash(
+            "Please create Gym Profile first.",
+            "warning"
+        )
+
+        return redirect(
+            url_for("main.gym_profile")
+        )
+
+    # =====================================
+    # YEAR / MONTH
+    # =====================================
+
+    year = int(
+        request.args.get(
+            "year",
+            now.year
+        )
+    )
+
+    month = int(
+        request.args.get(
+            "month",
+            now.month
+        )
+    )
+
+    if month < 1:
+
+        month = 12
+        year -= 1
+
+    elif month > 12:
+
+        month = 1
+        year += 1
+
+    month_name = calendar.month_name[month]
+
+    # =====================================
+    # PROFILE START DATE
+    # =====================================
+
+    journey_start = profile.get("created_at")
+
+    if not journey_start:
+
+        streak = mongo.db.gym_streak.find_one({
+            "user_id": user_id
+        })
+
+        if streak:
+
+            journey_start = streak.get("start_date")
+
+    if not journey_start:
+
+        journey_start = now
+
+    journey_start = journey_start.date()
+
+    # =====================================
+    # MONTH RANGE
+    # =====================================
+
+    first_day = datetime(
+        year,
+        month,
+        1
+    )
+
+    if month == 12:
+
+        next_month = datetime(
+            year + 1,
+            1,
+            1
+        )
+
+    else:
+
+        next_month = datetime(
+            year,
+            month + 1,
+            1
+        )
+
+    # =====================================
+    # CHECKINS
+    # =====================================
+
+    checkins = list(
+
+        mongo.db.gym_checkins.find({
+
+            "user_id": user_id,
+
+            "date": {
+
+                "$gte": first_day,
+
+                "$lt": next_month
+
+            }
+
+        })
+
+    )
+
+    checked_days = {}
+
+    for item in checkins:
+
+        d = item.get("date")
+
+        if d:
+
+            checked_days[d.day] = d.strftime("%H:%M")
+
+    # =====================================
+    # BUILD CALENDAR
+    # =====================================
+
+    calendar_data = []
+
+    for week in calendar.monthcalendar(year, month):
+
+        row = []
+
+        for day in week:
+
+            if day == 0:
+
+                row.append(None)
+
+                continue
+
+            current_date = datetime(
+                year,
+                month,
+                day
+            ).date()
+
+            checked = day in checked_days
+
+            if current_date < journey_start:
+
+                status = "before"
+
+            elif current_date > today:
+
+                status = "future"
+
+            elif checked:
+
+                status = "checked"
+
+            else:
+
+                status = "absent"
+
+            row.append({
+
+                "day": day,
+
+                "checked": checked,
+
+                "status": status,
+
+                "time": checked_days.get(day)
+
+            })
+
+        calendar_data.append(row)
+
+    # =====================================
+    # STREAK
+    # =====================================
+
+    streak = mongo.db.gym_streak.find_one({
+
+        "user_id": user_id
+
+    })
+
+    if not streak:
+
+        streak = {
+
+            "current_streak": 0,
+
+            "best_streak": 0,
+
+            "total_checkins": 0
+
+        }
+
+    # =====================================
+    # SUMMARY
+    # =====================================
+
+    total_gym_days = len(checked_days)
+
+    total_month_days = 0
+    absent_days = 0
+
+    for week in calendar_data:
+
+        for cell in week:
+
+            if not cell:
+
+                continue
+
+            if cell["status"] in ["checked", "absent"]:
+
+                total_month_days += 1
+
+            if cell["status"] == "absent":
+
+                absent_days += 1
+
+    # =====================================
+    # TEMPLATE
+    # =====================================
+
+    return render_template(
+
+        "backend/pages/components/gym/gym_calendar.html",
+
+        calendar_data=calendar_data,
+
+        month_name=month_name,
+
+        month=month,
+
+        year=year,
+
+        today=today,
+
+        journey_start=journey_start,
+
+        total_month_days=total_month_days,
+
+        total_gym_days=total_gym_days,
+
+        absent_days=absent_days,
+
+        current_streak=streak.get(
+            "current_streak",
+            0
+        ),
+
+        best_streak=streak.get(
+            "best_streak",
+            0
+        ),
+
+        total_checkins=streak.get(
+            "total_checkins",
+            0
+        )
+
+    )
+
+
+# ==========================================
+# GYM PROFILE
+# ==========================================
+
+@bp.route("/gym/profile", methods=["GET","POST"])
+@login_required
+def gym_profile():
+
+    user_id = ObjectId(current_user.id)
+
+
+    profile = mongo.db.gym_profile.find_one({
+
+        "user_id": user_id
+
+    })
 
 
 
@@ -2087,7 +3029,7 @@ def gym_profile():
 
     age = 0
 
-
+    height_m = 0
 
 
 
@@ -2098,7 +3040,7 @@ def gym_profile():
     if request.method == "POST":
 
 
-        height = float(
+        height_cm = float(
             request.form.get("height")
         )
 
@@ -2108,9 +3050,22 @@ def gym_profile():
         )
 
 
-
         birth_year = int(
             request.form.get("birth_year")
+        )
+
+
+
+        # ==========================
+        # HEIGHT CONVERSION
+        # ==========================
+
+        height_m = round(
+
+            height_cm / 100,
+
+            2
+
         )
 
 
@@ -2123,11 +3078,9 @@ def gym_profile():
 
 
 
-
         gender = request.form.get(
             "gender"
         )
-
 
 
         activity_level = request.form.get(
@@ -2136,14 +3089,14 @@ def gym_profile():
 
 
 
-
         # ==========================
-        # AUTO GOAL WEIGHT
+        # GOAL WEIGHT
         # ==========================
-
 
         goal_weight, healthy_min, healthy_max = calculate_goal_weight(
-            height
+
+            height_cm
+
         )
 
 
@@ -2152,18 +3105,20 @@ def gym_profile():
         # BMI
         # ==========================
 
-
         bmi = calculate_bmi(
+
             start_weight,
-            height
+
+            height_cm
+
         )
 
 
         bmi_status_text = bmi_status(
+
             bmi
+
         )
-
-
 
 
 
@@ -2173,7 +3128,14 @@ def gym_profile():
             "user_id": user_id,
 
 
-            "height_cm": height,
+            # CM VALUE
+
+            "height_cm": height_cm,
+
+
+            # METER VALUE
+
+            "height_m": height_m,
 
 
             "start_weight": start_weight,
@@ -2202,17 +3164,12 @@ def gym_profile():
 
             "updated_at": datetime.utcnow()
 
-
         }
 
 
 
 
-
-        # UPDATE
-
         if profile:
-
 
 
             mongo.db.gym_profile.update_one(
@@ -2228,45 +3185,46 @@ def gym_profile():
             )
 
 
-
-
-        # INSERT
-
         else:
-
 
 
             data["created_at"] = datetime.utcnow()
 
 
-
             mongo.db.gym_profile.insert_one(
+
                 data
+
             )
 
 
 
 
         flash(
-            "Gym profile saved successfully.",
-            "success"
-        )
 
+            "Gym profile saved successfully.",
+
+            "success"
+
+        )
 
 
         return redirect(
-            url_for(
-                "main.gym_profile"
-            )
-        )
 
+            url_for(
+
+                "main.gym_profile"
+
+            )
+
+        )
 
 
 
 
 
     # ==========================
-    # GET DISPLAY CALCULATION
+    # GET DISPLAY
     # ==========================
 
 
@@ -2274,55 +3232,89 @@ def gym_profile():
 
 
 
-        height = float(
+        height_cm = float(
+
             profile.get(
+
                 "height_cm",
+
                 0
+
             )
+
         )
+
+
+
+        height_m = round(
+
+            height_cm / 100,
+
+            2
+
+        )
+
+
 
 
         weight = float(
+
             profile.get(
+
                 "start_weight",
+
                 0
+
             )
+
         )
 
 
 
-        if height and weight:
+        if height_cm and weight:
 
 
 
             bmi = calculate_bmi(
+
                 weight,
-                height
+
+                height_cm
+
             )
 
 
             bmi_status_text = bmi_status(
+
                 bmi
+
             )
 
 
 
 
         goal_weight, healthy_min, healthy_max = calculate_goal_weight(
-            height
+
+            height_cm
+
         )
+
 
 
 
         birth_year = profile.get(
+
             "birth_year"
+
         )
+
 
 
         if birth_year:
 
 
             age = datetime.utcnow().year - birth_year
+
 
 
 
@@ -2353,7 +3345,13 @@ def gym_profile():
         healthy_max=healthy_max,
 
 
-        age=age
+        age=age,
+
+
+        height_cm=height_cm if profile else 0,
+
+
+        height_m=height_m
 
 
     )
@@ -2367,31 +3365,24 @@ def add_gym_weight():
 
 
     # =====================================
-    # GET USER PROFILE
+    # GET PROFILE
     # =====================================
 
     profile = mongo.db.gym_profile.find_one({
-
         "user_id": user_id
-
     })
 
 
     if not profile:
-
 
         flash(
             "Please create your Gym Profile first.",
             "warning"
         )
 
-
         return redirect(
-            url_for(
-                "main.gym_profile"
-            )
+            url_for("main.gym_profile")
         )
-
 
 
 
@@ -2400,136 +3391,110 @@ def add_gym_weight():
     # =====================================
 
     last_weight = mongo.db.weight_progress.find_one(
-
         {
             "user_id": user_id
         },
-
         sort=[
-            (
-                "date",
-                -1
-            )
+            ("date",-1)
         ]
-
     )
-
 
 
     if last_weight:
 
-
         previous_weight = float(
-
             last_weight.get(
                 "weight",
                 0
             )
-
         )
-
 
     else:
 
-
         previous_weight = float(
-
             profile.get(
                 "start_weight",
                 0
             )
-
         )
 
 
 
 
-
     # =====================================
-    # HEIGHT + BMI SUMMARY
+    # HEIGHT CONVERSION
     # =====================================
-
 
     height_cm = float(
-
         profile.get(
             "height_cm",
             0
         )
-
     )
 
 
-
-    height_m = 0
-
-
-
-    if height_cm > 0:
+    height_m = round(
+        height_cm / 100,
+        2
+    ) if height_cm else 0
 
 
-        height_m = round(
 
-            height_cm / 100,
 
+    # =====================================
+    # BMI FUNCTION
+    # =====================================
+
+    def calculate_bmi_value(weight):
+
+        if height_m <= 0:
+
+            return 0
+
+        return round(
+            weight /
+            (height_m ** 2),
             2
-
         )
 
 
 
+    def get_bmi_status(value):
+
+        if value < 18.5:
+
+            return "Underweight"
 
 
-    bmi = 0
+        elif value < 25:
 
-    bmi_status = "Unknown"
-
-
+            return "Normal Weight"
 
 
-    if height_m > 0 and previous_weight > 0:
+        elif value < 30:
 
-
-
-        bmi = round(
-
-            previous_weight /
-            (height_m * height_m),
-
-            2
-
-        )
-
-
-
-
-        if bmi < 18.5:
-
-
-            bmi_status = "Underweight"
-
-
-
-        elif bmi < 25:
-
-
-            bmi_status = "Normal Weight"
-
-
-
-        elif bmi < 30:
-
-
-            bmi_status = "Overweight"
-
+            return "Overweight"
 
 
         else:
 
+            return "Obese"
 
-            bmi_status = "Obese"
 
 
+
+    # =====================================
+    # CURRENT BMI
+    # =====================================
+
+    bmi = calculate_bmi_value(
+        previous_weight
+    )
+
+
+    bmi_status = get_bmi_status(
+        bmi
+    )
 
 
 
@@ -2538,9 +3503,7 @@ def add_gym_weight():
     # POST SAVE
     # =====================================
 
-
     if request.method == "POST":
-
 
 
         weight = request.form.get(
@@ -2549,12 +3512,9 @@ def add_gym_weight():
         ).strip()
 
 
-
         date = request.form.get(
-            "date",
-            ""
+            "date"
         )
-
 
 
         note = request.form.get(
@@ -2563,18 +3523,11 @@ def add_gym_weight():
         ).strip()
 
 
-
         record_type = request.form.get(
             "type",
             "weight_record"
         )
 
-
-
-
-        # =============================
-        # VALIDATION
-        # =============================
 
 
         if not weight:
@@ -2585,24 +3538,17 @@ def add_gym_weight():
                 "danger"
             )
 
-
             return redirect(
-                url_for(
-                    "main.add_gym_weight"
-                )
+                request.url
             )
-
 
 
 
         try:
 
-
             weight = float(weight)
 
-
-
-        except ValueError:
+        except:
 
 
             flash(
@@ -2610,13 +3556,9 @@ def add_gym_weight():
                 "danger"
             )
 
-
             return redirect(
-                url_for(
-                    "main.add_gym_weight"
-                )
+                request.url
             )
-
 
 
 
@@ -2628,49 +3570,30 @@ def add_gym_weight():
                 "danger"
             )
 
-
             return redirect(
-                url_for(
-                    "main.add_gym_weight"
-                )
+                request.url
             )
 
 
 
 
-
-
-        # =============================
         # DATE
-        # =============================
-
 
         if date:
 
-
             date = datetime.strptime(
-
                 date,
-
                 "%Y-%m-%d"
-
             )
 
-
         else:
-
 
             date = datetime.utcnow()
 
 
 
 
-
-
-        # =============================
-        # DUPLICATE
-        # =============================
-
+        # DUPLICATE CHECK
 
         exists = mongo.db.weight_progress.find_one({
 
@@ -2681,254 +3604,141 @@ def add_gym_weight():
         })
 
 
-
         if exists:
 
 
             flash(
-
-                "Weight already recorded for this date.",
-
+                "Weight already exists for this date.",
                 "warning"
-
             )
-
 
             return redirect(
-
-                url_for(
-
-                    "main.add_gym_weight"
-
-                )
-
+                request.url
             )
 
 
 
 
-
-
-
-
-        # =============================
         # WEIGHT CHANGE
-        # =============================
-
 
         difference = round(
-
             weight - previous_weight,
-
             2
-
         )
-
-
 
 
         if difference > 0:
 
-
             change_type = "Weight Gain"
-
 
 
         elif difference < 0:
 
-
             change_type = "Weight Loss"
 
 
-
         else:
-
 
             change_type = "No Change"
 
 
 
 
-
-
-
-
-        # =============================
         # NEW BMI
-        # =============================
+
+        new_bmi = calculate_bmi_value(
+            weight
+        )
 
 
-        new_bmi = 0
-
-        new_bmi_status = "Unknown"
-
-
-
-
-        if height_m > 0:
-
-
-
-            new_bmi = round(
-
-                weight /
-                (height_m * height_m),
-
-                2
-
-            )
+        new_bmi_status = get_bmi_status(
+            new_bmi
+        )
 
 
 
 
-            if new_bmi < 18.5:
-
-
-                new_bmi_status = "Underweight"
-
-
-
-            elif new_bmi < 25:
-
-
-                new_bmi_status = "Normal Weight"
-
-
-
-            elif new_bmi < 30:
-
-
-                new_bmi_status = "Overweight"
-
-
-
-            else:
-
-
-                new_bmi_status = "Obese"
-
-
-
-
-
-
-
-        # =============================
-        # SAVE DATABASE
-        # =============================
+        # SAVE
 
 
         mongo.db.weight_progress.insert_one({
 
+            "user_id":user_id,
 
-            "user_id": user_id,
+            "type":record_type,
 
+            "weight":weight,
 
-            "type": record_type,
+            "previous_weight":previous_weight,
 
+            "difference":difference,
 
-            "weight": weight,
-
-
-            "previous_weight": previous_weight,
-
-
-            "difference": difference,
+            "change_type":change_type,
 
 
-            "change_type": change_type,
+            "height_cm":height_cm,
+
+            "height_m":height_m,
 
 
-            "height_cm": height_cm,
+            "bmi":new_bmi,
+
+            "bmi_status":new_bmi_status,
 
 
-            "height_m": height_m,
+            "date":date,
+
+            "note":note,
 
 
-            "bmi": new_bmi,
+            "created_at":datetime.utcnow(),
 
-
-            "bmi_status": new_bmi_status,
-
-
-            "date": date,
-
-
-            "note": note,
-
-
-            "created_at": datetime.utcnow(),
-
-
-            "updated_at": datetime.utcnow()
-
+            "updated_at":datetime.utcnow()
 
         })
 
 
 
 
-
-
         flash(
-
             "Weight record saved successfully.",
-
             "success"
-
         )
-
 
 
         return redirect(
-
             url_for(
-
                 "main.weight_history"
-
             )
-
         )
 
 
-
-
-
-
-
-    # =====================================
-    # TEMPLATE
-    # =====================================
 
 
     return render_template(
 
-
         "backend/pages/components/gym/add_weight.html",
 
-
         profile=profile,
-
 
         previous_weight=previous_weight,
 
 
         height_cm=height_cm,
 
-
         height_m=height_m,
 
 
         bmi=bmi,
-
 
         bmi_status=bmi_status,
 
 
         datetime=datetime
 
-
     )
+
+
 
 
 @bp.route("/gym/weight/edit/<id>", methods=["GET","POST"])

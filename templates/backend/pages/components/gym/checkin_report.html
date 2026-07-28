@@ -1,0 +1,811 @@
+{% extends "backend/home/base.html" %}
+
+
+{% block title %}
+Gym Check-in Report
+{% endblock %}
+
+
+
+{% block content %}
+
+
+<div class="container-fluid">
+
+
+<!-- ============================= -->
+<!-- HEADER -->
+<!-- ============================= -->
+
+<div class="card shadow mb-4 border-0">
+
+<div class="card-body text-center">
+
+
+<h2 class="fw-bold">
+
+🔥 Gym Attendance Report
+
+</h2>
+
+
+<p class="text-muted">
+
+{{ message }}
+
+</p>
+
+
+</div>
+
+</div>
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- SUMMARY CARDS -->
+<!-- ============================= -->
+
+
+<div class="row g-3">
+
+
+
+<div class="col-md-3">
+
+<div class="card shadow border-0 text-center">
+
+<div class="card-body">
+
+<h1>
+🔥
+</h1>
+
+<h5>
+Current Streak
+</h5>
+
+
+<h2 class="text-primary">
+
+{{ current_streak }}
+
+</h2>
+
+
+<span>
+Days
+</span>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+
+
+
+
+<div class="col-md-3">
+
+<div class="card shadow border-0 text-center">
+
+<div class="card-body">
+
+
+<h1>
+🏆
+</h1>
+
+
+<h5>
+Best Streak
+</h5>
+
+
+<h2 class="text-warning">
+
+{{ best_streak }}
+
+</h2>
+
+
+<span>
+Days
+</span>
+
+
+
+</div>
+
+</div>
+
+</div>
+
+
+
+
+
+
+
+<div class="col-md-3">
+
+
+<div class="card shadow border-0 text-center">
+
+
+<div class="card-body">
+
+
+<h1>
+✅
+</h1>
+
+
+<h5>
+Total Check-ins
+</h5>
+
+
+<h2 class="text-success">
+
+{{ total_checkins }}
+
+</h2>
+
+
+<span>
+Visits
+</span>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="col-md-3">
+
+
+<div class="card shadow border-0 text-center">
+
+
+<div class="card-body">
+
+
+<h1>
+📅
+</h1>
+
+
+<h5>
+Days Since Start
+</h5>
+
+
+<h2 class="text-info">
+
+{{ days_since_start }}
+
+</h2>
+
+
+<span>
+Days
+</span>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- WEIGHT PROGRESS -->
+<!-- ============================= -->
+
+
+<div class="card shadow border-0 mt-4">
+
+
+<div class="card-header bg-primary text-white">
+
+
+<h5>
+
+⚖️ Weight Progress
+
+</h5>
+
+
+</div>
+
+
+
+<div class="card-body">
+
+
+<div class="row text-center">
+
+
+
+<div class="col-md-4">
+
+<h6>
+Start Weight
+</h6>
+
+
+<h3>
+
+{{ start_weight }} KG
+
+</h3>
+
+
+</div>
+
+
+
+
+
+<div class="col-md-4">
+
+
+<h6>
+
+Current Weight
+
+</h6>
+
+
+<h3>
+
+{{ current_weight }} KG
+
+</h3>
+
+
+</div>
+
+
+
+
+
+<div class="col-md-4">
+
+
+<h6>
+
+Progress
+
+</h6>
+
+
+
+{% if net_loss > 0 %}
+
+
+<h3 class="text-success">
+
+📉 {{ net_loss }} KG Loss
+
+</h3>
+
+
+
+{% elif net_gain > 0 %}
+
+
+<h3 class="text-danger">
+
+📈 {{ net_gain }} KG Gain
+
+</h3>
+
+
+
+{% else %}
+
+
+<h3>
+
+No Change
+
+</h3>
+
+
+
+{% endif %}
+
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- ATTENDANCE SUMMARY -->
+<!-- ============================= -->
+
+
+<div class="row mt-4">
+
+
+<div class="col-md-6">
+
+
+<div class="card shadow border-0 text-center">
+
+
+<div class="card-body">
+
+
+<h4 class="text-success">
+
+☑️ Present Days
+
+</h4>
+
+
+<h1>
+
+{{ present_days }}
+
+</h1>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-md-6">
+
+
+<div class="card shadow border-0 text-center">
+
+
+<div class="card-body">
+
+
+<h4 class="text-danger">
+
+⬜ Absent Days
+
+</h4>
+
+
+<h1>
+
+{{ absent_days }}
+
+</h1>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- MANUAL CHECKIN -->
+<!-- ============================= -->
+
+
+<div class="card shadow border-0 mt-4">
+
+
+<div class="card-header bg-dark text-white">
+
+
+<h5>
+
+✍️ Manual Attendance Update
+
+</h5>
+
+
+</div>
+
+
+
+
+<form method="POST"
+action="{{ url_for('main.gym_checkin_manual') }}">
+
+
+<div class="card-body">
+
+
+
+<div class="row">
+
+
+
+{% for day in calendar_days %}
+
+
+
+<div class="col-md-3 mb-2">
+
+
+<div class="form-check">
+
+
+<input class="form-check-input"
+
+type="checkbox"
+
+name="checkin_dates"
+
+value="{{ day.date }}"
+
+{% if day.checked %}
+
+checked
+
+{% endif %}
+
+>
+
+
+
+<label class="form-check-label">
+
+
+{{ day.date }}
+
+<br>
+
+
+{{ day.day_name }}
+
+
+</label>
+
+
+</div>
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+<div class="card-footer text-end">
+
+
+<button class="btn btn-success">
+
+
+💾 Save Attendance
+
+
+</button>
+
+
+</div>
+
+
+
+</form>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- HISTORY TABLE -->
+<!-- ============================= -->
+
+
+<div class="card shadow border-0 mt-4">
+
+
+<div class="card-header bg-success text-white">
+
+
+<h5>
+
+📅 Gym Attendance History
+
+</h5>
+
+
+</div>
+
+
+
+
+
+<div class="table-responsive">
+
+
+<table class="table table-bordered table-hover mb-0">
+
+
+<thead class="table-dark">
+
+
+<tr>
+
+
+<th>
+Check
+</th>
+
+
+<th>
+Date
+</th>
+
+
+<th>
+Day
+</th>
+
+
+<th>
+Check-in Time
+</th>
+
+
+<th>
+Status
+</th>
+
+
+</tr>
+
+
+</thead>
+
+
+
+<tbody>
+
+
+
+{% for day in calendar_days %}
+
+
+
+<tr>
+
+
+
+<td class="text-center">
+
+
+{% if day.checked %}
+
+
+<input type="checkbox"
+checked
+disabled>
+
+
+{% else %}
+
+
+<input type="checkbox"
+disabled>
+
+
+{% endif %}
+
+
+
+</td>
+
+
+
+
+
+<td>
+
+{{ day.date }}
+
+</td>
+
+
+
+
+
+<td>
+
+{{ day.day_name }}
+
+</td>
+
+
+
+
+
+
+<td>
+
+
+{% if day.checked %}
+
+
+{{ day.checkin_time }}
+
+
+{% else %}
+
+
+-
+
+{% endif %}
+
+
+
+</td>
+
+
+
+
+
+
+<td>
+
+
+
+{% if day.checked %}
+
+
+
+<span class="badge bg-success">
+
+☑️ Checked
+
+</span>
+
+
+
+{% else %}
+
+
+
+<span class="badge bg-danger">
+
+⬜ Absent
+
+</span>
+
+
+
+{% endif %}
+
+
+
+
+</td>
+
+
+
+
+
+</tr>
+
+
+
+
+{% endfor %}
+
+
+
+
+</tbody>
+
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,426 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}
+Gym Calendar
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- ========================================= -->
+    <!-- PAGE HEADER -->
+    <!-- ========================================= -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+
+            <h3 class="fw-bold">
+                <i class="bi bi-calendar-check-fill text-success"></i>
+                Gym Attendance Calendar
+            </h3>
+
+            <small class="text-muted">
+                View your monthly gym attendance
+            </small>
+
+        </div>
+
+        <div>
+
+            <a href="{{ url_for('main.gym_checkin') }}"
+               class="btn btn-primary">
+
+                <i class="bi bi-clipboard-check"></i>
+
+                Attendance Report
+
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================= -->
+    <!-- SUMMARY -->
+    <!-- ========================================= -->
+
+    <div class="row mb-4">
+
+        <div class="col-lg-3 col-md-6 mb-3">
+
+            <div class="card border-0 shadow h-100">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">
+                        Current Streak
+                    </h6>
+
+                    <h2 class="text-success">
+
+                        {{ current_streak }}
+
+                    </h2>
+
+                    <small>Days</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+
+            <div class="card border-0 shadow h-100">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">
+
+                        Best Streak
+
+                    </h6>
+
+                    <h2 class="text-warning">
+
+                        {{ best_streak }}
+
+                    </h2>
+
+                    <small>Days</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+
+            <div class="card border-0 shadow h-100">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">
+
+                        Gym Days
+
+                    </h6>
+
+                    <h2 class="text-primary">
+
+                        {{ total_gym_days }}
+
+                    </h2>
+
+                    <small>This Month</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+
+            <div class="card border-0 shadow h-100">
+
+                <div class="card-body text-center">
+
+                    <h6 class="text-muted">
+
+                        Missed Days
+
+                    </h6>
+
+                    <h2 class="text-danger">
+
+                        {{ absent_days }}
+
+                    </h2>
+
+                    <small>This Month</small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ========================================= -->
+    <!-- MONTH NAVIGATION -->
+    <!-- ========================================= -->
+
+    <div class="card shadow border-0">
+
+        <div class="card-header bg-success text-white">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <a class="btn btn-light btn-sm"
+
+                   href="{{ url_for('main.gym_calendar',
+                                    month=month-1,
+                                    year=year) }}">
+
+                    ← Previous
+
+                </a>
+
+                <h4 class="mb-0">
+
+                    {{ month_name }} {{ year }}
+
+                </h4>
+
+                <a class="btn btn-light btn-sm"
+
+                   href="{{ url_for('main.gym_calendar',
+                                    month=month+1,
+                                    year=year) }}">
+
+                    Next →
+
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="card-body p-2">
+
+            <table class="table table-bordered text-center align-middle">
+
+                <thead class="table-dark">
+
+                <tr>
+
+                    <th>Sun</th>
+
+                    <th>Mon</th>
+
+                    <th>Tue</th>
+
+                    <th>Wed</th>
+
+                    <th>Thu</th>
+
+                    <th>Fri</th>
+
+                    <th>Sat</th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for week in calendar_data %}
+
+                <tr>
+
+                    {% for day in week %}
+
+                        {% if day %}
+
+                            {% if day.status=="checked" %}
+
+                                <td class="bg-success text-white"
+                                    style="height:100px;">
+
+                                    <h5>
+
+                                        {{ day.day }}
+
+                                    </h5>
+
+                                    <div>
+
+                                        ✅
+
+                                    </div>
+
+                                    <small>
+
+                                        Checked
+
+                                    </small>
+
+                                    {% if day.time %}
+
+                                    <br>
+
+                                    <small>
+
+                                        {{ day.time }}
+
+                                    </small>
+
+                                    {% endif %}
+
+                                </td>
+
+                            {% elif day.status=="absent" %}
+
+                                <td class="bg-danger text-white"
+                                    style="height:100px;">
+
+                                    <h5>
+
+                                        {{ day.day }}
+
+                                    </h5>
+
+                                    <div>
+
+                                        ❌
+
+                                    </div>
+
+                                    <small>
+
+                                        Missed
+
+                                    </small>
+
+                                </td>
+
+                            {% elif day.status=="future" %}
+
+                                <td class="bg-light"
+                                    style="height:100px;">
+
+                                    <h5>
+
+                                        {{ day.day }}
+
+                                    </h5>
+
+                                    <small>
+
+                                        Future
+
+                                    </small>
+
+                                </td>
+
+                            {% else %}
+
+                                <td class="bg-secondary text-white"
+                                    style="height:100px;">
+
+                                    <h5>
+
+                                        {{ day.day }}
+
+                                    </h5>
+
+                                    <small>
+
+                                        Before Start
+
+                                    </small>
+
+                                </td>
+
+                            {% endif %}
+
+                        {% else %}
+
+                            <td class="bg-white"></td>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- ========================================= -->
+    <!-- LEGEND -->
+    <!-- ========================================= -->
+
+    <div class="card mt-4 shadow border-0">
+
+        <div class="card-header">
+
+            <strong>
+
+                Calendar Legend
+
+            </strong>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-3 mb-2">
+
+                    <span class="badge bg-success">
+
+                        ✅ Checked
+
+                    </span>
+
+                </div>
+
+                <div class="col-md-3 mb-2">
+
+                    <span class="badge bg-danger">
+
+                        ❌ Missed
+
+                    </span>
+
+                </div>
+
+                <div class="col-md-3 mb-2">
+
+                    <span class="badge bg-light text-dark border">
+
+                        Future
+
+                    </span>
+
+                </div>
+
+                <div class="col-md-3 mb-2">
+
+                    <span class="badge bg-secondary">
+
+                        Before Start
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
