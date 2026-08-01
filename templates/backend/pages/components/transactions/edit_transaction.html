@@ -250,131 +250,192 @@
    
 </div>
 
+
 <script>
 
 const categories = {{ categories | tojson | safe }};
 const accounts = {{ accounts | tojson | safe }};
 
-const typeSelect = document.getElementById("typeSelect");
-const categorySelect = document.getElementById("categorySelect");
-const itemSelect = document.getElementById("itemSelect");
-const accountSelect = document.getElementById("accountSelect");
 
-const amountInput = document.getElementById("amountInput");
-const balanceWarning = document.getElementById("balanceWarning");
-const submitBtn = document.getElementById("submitBtn");
+const typeSelect =
+document.getElementById("typeSelect");
 
 
-const selectedItem = "{{ transaction.item or '' }}";
+const categorySelect =
+document.getElementById("categorySelect");
 
 
-const oldAmount = 
-    parseFloat("{{ transaction.amount or 0 }}") || 0;
+const itemSelect =
+document.getElementById("itemSelect");
+
+
+const accountSelect =
+document.getElementById("accountSelect");
+
+
+const amountInput =
+document.getElementById("amountInput");
+
+
+const balanceWarning =
+document.getElementById("balanceWarning");
+
+
+const submitBtn =
+document.getElementById("submitBtn");
+
+
+
+const selectedItem =
+"{{ transaction.item or '' }}";
+
+
+const oldAmount =
+parseFloat(
+"{{ transaction.amount or 0 }}"
+) || 0;
+
 
 
 const oldTransactionType =
-    "{{ transaction.transaction_type }}";
+"{{ transaction.transaction_type }}";
+
+
+
+const oldAccountId =
+"{{ transaction.account_id }}";
+
+
 
 
 
 /*
 ====================================
- FILTER CATEGORY BY TYPE
+ CATEGORY FILTER
 ====================================
 */
+
 function filterCategories(){
 
-    const type = typeSelect.value;
+
+    const type =
+    typeSelect.value;
 
 
-    Array.from(categorySelect.options).forEach(option => {
+
+    Array.from(
+        categorySelect.options
+    ).forEach(option=>{
 
 
-        if(option.value === ""){
+        if(option.value===""){
 
-            option.hidden = false;
+            option.hidden=false;
+
             return;
 
         }
 
 
+
         const categoryType =
-            option.getAttribute("data-type");
+        option.dataset.type;
 
 
-        if(categoryType === type){
 
-            option.hidden = false;
+        option.hidden =
+        categoryType !== type;
 
-        }else{
-
-            option.hidden = true;
-
-        }
 
 
     });
+
 
 }
 
 
 
 
+
+
+
 /*
 ====================================
- LOAD ITEMS
+ LOAD CATEGORY ITEMS
 ====================================
 */
+
+
 function updateItems(categoryId){
 
 
     itemSelect.innerHTML =
     `
     <option value="">
-        -- Select Item --
+    -- Select Item --
     </option>
     `;
 
 
+
     const category =
-        categories.find(
-            c => String(c._id) === String(categoryId)
-        );
+    categories.find(
+        c =>
+        String(c._id)
+        ===
+        String(categoryId)
+    );
+
 
 
     if(!category){
+
         return;
+
     }
 
 
 
-    if(!category.items){
+    if(
+        !category.items
+        ||
+        category.items.length===0
+    ){
+
         return;
+
     }
 
 
 
-    category.items.forEach(item => {
+    category.items.forEach(item=>{
 
 
         const option =
-            document.createElement("option");
+        document.createElement(
+            "option"
+        );
 
 
-        option.value = item;
+        option.value=item;
 
-        option.textContent = item;
+        option.textContent=item;
 
 
 
-        if(item === selectedItem){
+        if(
+            item === selectedItem
+        ){
 
-            option.selected = true;
+            option.selected=true;
 
         }
 
 
-        itemSelect.appendChild(option);
+
+        itemSelect.appendChild(
+            option
+        );
 
 
     });
@@ -386,24 +447,27 @@ function updateItems(categoryId){
 
 
 
+
+
 /*
 ====================================
- BALANCE VALIDATION
+ ACCOUNT BALANCE LIVE CARD
 ====================================
 */
+
+
 function validateBalance(){
 
 
+    if(
+        typeSelect.value !== "expense"
+    ){
 
-    // Income lacag kama bixinayo
-    if(typeSelect.value !== "expense"){
 
-
-        balanceWarning.style.display = "none";
-
-        submitBtn.disabled = false;
+        hideWarning();
 
         return;
+
 
     }
 
@@ -411,14 +475,18 @@ function validateBalance(){
 
 
     const account =
-        accounts.find(
-            a =>
-            String(a._id) === String(accountSelect.value)
-        );
+    accounts.find(
+        acc =>
+        String(acc._id)
+        ===
+        String(accountSelect.value)
+    );
 
 
 
     if(!account){
+
+        hideWarning();
 
         return;
 
@@ -427,36 +495,31 @@ function validateBalance(){
 
 
 
-    const currentBalance =
-        parseFloat(account.balance) || 0;
-
-
-
-    const newAmount =
-        parseFloat(amountInput.value) || 0;
-
-
 
     let availableBalance =
-        currentBalance;
+    parseFloat(
+        account.balance
+    )
+    ||
+    0;
+
 
 
 
 
     /*
-    Haddii transaction kii hore
-    ahaa expense isla account-kaas,
-    dib ugu dar lacagtii hore
+    Restore old expense amount
+    when editing same transaction
     */
 
-    const oldAccount =
-        "{{ transaction.account_id }}";
-
-
-
     if(
-        oldTransactionType === "expense" &&
-        String(oldAccount) === String(accountSelect.value)
+
+        oldTransactionType === "expense"
+        &&
+        String(oldAccountId)
+        ===
+        String(accountSelect.value)
+
     ){
 
         availableBalance += oldAmount;
@@ -466,23 +529,65 @@ function validateBalance(){
 
 
 
-    if(newAmount > availableBalance){
 
 
-        balanceWarning.style.display = "block";
+    const amount =
+    parseFloat(
+        amountInput.value
+    )
+    ||
+    0;
 
 
-        submitBtn.disabled = true;
 
 
 
-    }else{
+    if(
+        amount > availableBalance
+    ){
 
 
-        balanceWarning.style.display = "none";
+
+        balanceWarning.style.display =
+        "block";
 
 
-        submitBtn.disabled = false;
+
+        balanceWarning.classList.add(
+            "animate__animated",
+            "animate__shakeX"
+        );
+
+
+
+        balanceWarning.innerHTML =
+        `
+        <i class="fas fa-exclamation-triangle me-1"></i>
+
+        Insufficient balance!
+
+        Available:
+
+        <b>
+        $${availableBalance.toFixed(2)}
+        </b>
+
+        `;
+
+
+
+        submitBtn.disabled=true;
+
+
+
+
+    }
+
+    else{
+
+
+        hideWarning();
+
 
 
     }
@@ -490,6 +595,80 @@ function validateBalance(){
 
 
 }
+
+
+
+
+
+
+
+function hideWarning(){
+
+
+    balanceWarning.style.display =
+    "none";
+
+
+    submitBtn.disabled=false;
+
+
+}
+
+
+
+
+
+
+
+/*
+====================================
+ AUTO TYPE COLORS
+====================================
+*/
+
+
+function updateTypeColor(){
+
+
+    if(
+        typeSelect.value==="expense"
+    ){
+
+
+        typeSelect.classList.remove(
+            "border-success"
+        );
+
+
+        typeSelect.classList.add(
+            "border-danger"
+        );
+
+
+    }
+
+    else{
+
+
+        typeSelect.classList.remove(
+            "border-danger"
+        );
+
+
+        typeSelect.classList.add(
+            "border-success"
+        );
+
+
+    }
+
+
+
+}
+
+
+
+
 
 
 
@@ -503,55 +682,107 @@ function validateBalance(){
 
 
 typeSelect.addEventListener(
-    "change",
-    function(){
+"change",
+()=>{
 
 
-        filterCategories();
+    filterCategories();
+
+    validateBalance();
+
+    updateTypeColor();
 
 
-        validateBalance();
+});
 
-
-    }
-);
 
 
 
 categorySelect.addEventListener(
-    "change",
-    function(){
+"change",
+function(){
 
 
-        updateItems(
-            this.value
-        );
+    updateItems(
+        this.value
+    );
 
 
-    }
-);
+});
+
 
 
 
 accountSelect.addEventListener(
-    "change",
-    function(){
+"change",
+()=>{
 
-        validateBalance();
 
-    }
-);
+    validateBalance();
+
+
+});
+
 
 
 
 amountInput.addEventListener(
-    "input",
-    function(){
+"input",
+()=>{
 
-        validateBalance();
+
+    validateBalance();
+
+
+});
+
+
+
+
+
+
+
+/*
+====================================
+ FORM SUBMIT CHECK
+====================================
+*/
+
+
+document
+.getElementById(
+"editTransactionForm"
+)
+.addEventListener(
+"submit",
+function(e){
+
+
+
+    if(
+        submitBtn.disabled
+    ){
+
+
+        e.preventDefault();
+
+
+        alert(
+        "Please fix balance problem before updating."
+        );
+
+
+        return false;
+
 
     }
-);
+
+
+
+});
+
+
+
 
 
 
@@ -566,19 +797,22 @@ amountInput.addEventListener(
 
 document.addEventListener(
 "DOMContentLoaded",
-function(){
-
+()=>{
 
 
     filterCategories();
 
 
 
-    if(categorySelect.value){
+    if(
+        categorySelect.value
+    ){
+
 
         updateItems(
             categorySelect.value
         );
+
 
     }
 
@@ -588,7 +822,12 @@ function(){
 
 
 
+    updateTypeColor();
+
+
+
 });
+
 
 
 </script>

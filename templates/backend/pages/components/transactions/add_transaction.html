@@ -136,66 +136,404 @@
 </div>
 
 <script>
-    const allCategories = {{ categories | tojson | safe }};
-    const typeSelect = document.getElementById("typeSelect");
-    const categorySelect = document.getElementById("categorySelect");
-    const itemSelect = document.getElementById("itemSelect");
-    const accountSelect = document.getElementById("accountSelect");
-    const amountInput = document.getElementById("amountInput");
-    const balanceError = document.getElementById("balanceError");
-    const submitBtn = document.getElementById("submitBtn");
 
-    // Filter Categories/Items Logic
-    function filterCategories() {
-        const type = typeSelect.value;
-        const filtered = allCategories.filter(c => c.type === type);
-        categorySelect.innerHTML = '<option value="">-- Select Category --</option>';
-        filtered.forEach(cat => {
-            const opt = document.createElement("option");
-            opt.value = cat._id;
-            opt.textContent = cat.name;
-            categorySelect.appendChild(opt);
-        });
-        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-    }
+const allCategories = {{ categories | tojson | safe }};
 
-    categorySelect.addEventListener("change", function () {
-        const cat = allCategories.find(c => c._id === this.value);
-        itemSelect.innerHTML = '<option value="">-- Select Item --</option>';
-        if (cat && cat.items) {
-            cat.items.forEach(item => {
-                const opt = document.createElement("option");
-                opt.value = item;
-                opt.textContent = item;
-                itemSelect.appendChild(opt);
-            });
-        }
+
+const typeSelect = document.getElementById("typeSelect");
+const categorySelect = document.getElementById("categorySelect");
+const itemSelect = document.getElementById("itemSelect");
+
+const accountSelect = document.getElementById("accountSelect");
+const amountInput = document.getElementById("amountInput");
+
+const balanceError = document.getElementById("balanceError");
+const submitBtn = document.getElementById("submitBtn");
+
+
+
+
+// =====================================
+// CATEGORY FILTER
+// =====================================
+
+function filterCategories(){
+
+
+    let type = typeSelect.value;
+
+
+    categorySelect.innerHTML =
+    `
+    <option value="">
+    -- Select Category --
+    </option>
+    `;
+
+
+
+    allCategories
+
+    .filter(
+        c => c.type === type
+    )
+
+    .forEach(cat=>{
+
+
+        let option =
+        document.createElement("option");
+
+
+        option.value =
+        cat._id;
+
+
+        option.textContent =
+        cat.name;
+
+
+        categorySelect.appendChild(option);
+
+
     });
 
-    // Real-time Balance Validation
-    function validateBalance() {
-        if (typeSelect.value === 'expense' && accountSelect.value) {
-            const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-            const balance = parseFloat(selectedOption.getAttribute('data-balance'));
-            const amount = parseFloat(amountInput.value) || 0;
-            
-            if (amount > balance) {
-                balanceError.style.display = 'block';
-                submitBtn.disabled = true;
-            } else {
-                balanceError.style.display = 'none';
-                submitBtn.disabled = false;
-            }
-        } else {
-            balanceError.style.display = 'none';
-            submitBtn.disabled = false;
-        }
+
+
+    itemSelect.innerHTML =
+    `
+    <option value="">
+    -- Select Item --
+    </option>
+    `;
+
+
+}
+
+
+
+
+
+
+
+// =====================================
+// ITEM LOAD
+// =====================================
+
+
+categorySelect.addEventListener(
+"change",
+function(){
+
+
+    let category =
+    allCategories.find(
+
+        c =>
+        c._id === this.value
+
+    );
+
+
+
+    itemSelect.innerHTML =
+    `
+    <option value="">
+    -- Select Item --
+    </option>
+    `;
+
+
+
+    if(category && category.items){
+
+
+        category.items.forEach(item=>{
+
+
+            let option =
+            document.createElement("option");
+
+
+            option.value=item;
+
+            option.textContent=item;
+
+
+            itemSelect.appendChild(option);
+
+
+
+        });
+
+
     }
 
-    typeSelect.addEventListener("change", () => { filterCategories(); validateBalance(); });
-    accountSelect.addEventListener("change", validateBalance);
-    amountInput.addEventListener("input", validateBalance);
-    typeSelect.addEventListener("change", filterCategories);
+
+});
+
+
+
+
+
+
+
+// =====================================
+// ADVANCED BALANCE VALIDATION
+// =====================================
+
+
+function validateBalance(){
+
+
+    let type =
+    typeSelect.value;
+
+
+
+    let option =
+    accountSelect.options[
+        accountSelect.selectedIndex
+    ];
+
+
+
+    if(
+        !option ||
+        !option.value
+    ){
+
+        return;
+
+    }
+
+
+
+    let balance =
+    parseFloat(
+        option.dataset.balance
+    ) || 0;
+
+
+
+    let amount =
+    parseFloat(
+        amountInput.value
+    ) || 0;
+
+
+
+
+
+    // Expense check
+
+    if(type==="expense"){
+
+
+
+        if(amount > balance){
+
+
+
+            balanceError.style.display =
+            "block";
+
+
+
+            balanceError.innerHTML =
+            `
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Insufficient balance!
+            <br>
+            Available:
+            <strong>
+            $${balance.toFixed(2)}
+            </strong>
+            `;
+
+
+
+            submitBtn.disabled=true;
+
+
+
+            amountInput.classList.add(
+                "is-invalid"
+            );
+
+
+
+        }
+
+        else{
+
+
+            balanceError.style.display =
+            "none";
+
+
+            submitBtn.disabled=false;
+
+
+            amountInput.classList.remove(
+                "is-invalid"
+            );
+
+        }
+
+
+
+    }
+
+    else{
+
+
+        balanceError.style.display =
+        "none";
+
+
+        submitBtn.disabled=false;
+
+
+        amountInput.classList.remove(
+            "is-invalid"
+        );
+
+
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// PREVENT INVALID VALUES
+// =====================================
+
+
+amountInput.addEventListener(
+"input",
+function(){
+
+
+    if(this.value < 0){
+
+
+        this.value = "";
+
+
+    }
+
+
+    validateBalance();
+
+
+});
+
+
+
+
+
+
+
+
+
+// =====================================
+// ACCOUNT CHANGE
+// =====================================
+
+
+accountSelect.addEventListener(
+"change",
+function(){
+
+
+    validateBalance();
+
+
+});
+
+
+
+
+
+
+
+// =====================================
+// TYPE CHANGE
+// =====================================
+
+
+typeSelect.addEventListener(
+"change",
+function(){
+
+
     filterCategories();
+
+    validateBalance();
+
+
+});
+
+
+
+
+
+
+
+
+// =====================================
+// FORM SUBMIT PROTECTION
+// =====================================
+
+
+document
+.getElementById("transactionForm")
+.addEventListener(
+"submit",
+function(e){
+
+
+    validateBalance();
+
+
+
+    if(submitBtn.disabled){
+
+
+        e.preventDefault();
+
+
+        alert(
+        "Please check transaction amount."
+        );
+
+
+    }
+
+
+
+});
+
+
+
+
+
+
+
+// INIT
+
+filterCategories();
+
+
 </script>
 {% endblock %}
