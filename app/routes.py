@@ -5819,12 +5819,13 @@ def transaction_list():
     }
 
 
-   # ==================================================
+    # ==================================================
     # ITEM ANALYTICS
     # ==================================================
 
     expense_items = {}
     income_items = {}
+
 
     for transaction in transactions:
 
@@ -5833,12 +5834,14 @@ def transaction_list():
             or "Unknown"
         ).strip()
 
+
         amount = float(
             transaction.get(
                 "amount",
                 0
             )
         )
+
 
         transaction_type = (
             transaction.get(
@@ -5849,12 +5852,14 @@ def transaction_list():
             .strip()
         )
 
+
         if transaction_type == "expense":
 
             expense_items[item] = (
                 expense_items.get(item, 0)
                 + amount
             )
+
 
         elif transaction_type == "income":
 
@@ -5863,52 +5868,96 @@ def transaction_list():
                 + amount
             )
 
-        # next
-        expense_item_list = sorted(
 
-            expense_items.items(),
 
-            key=lambda x: x[1],
+    # ==================================================
+    # SORT ITEMS (OUTSIDE LOOP)
+    # ==================================================
 
-            reverse=True
+    expense_item_list = sorted(
 
-        )
+        expense_items.items(),
 
-        income_item_list = sorted(
+        key=lambda x: x[1],
 
-            income_items.items(),
+        reverse=True
 
-            key=lambda x: x[1],
+    )
 
-            reverse=True
 
-        )
 
-    # wareeg 3
+    income_item_list = sorted(
+
+        income_items.items(),
+
+        key=lambda x: x[1],
+
+        reverse=True
+
+    )
+
+
+
+
+    # ==================================================
+    # BIGGEST EXPENSE ITEM
+    # ==================================================
 
     biggest_expense_item = "-"
+
     biggest_expense_item_amount = 0
+
+
 
     if expense_item_list:
 
-        biggest_expense_item = expense_item_list[0][0]
 
-        biggest_expense_item_amount = expense_item_list[0][1]
+        biggest_expense_item = (
+            expense_item_list[0][0]
+        )
 
+
+        biggest_expense_item_amount = (
+            expense_item_list[0][1]
+        )
+
+
+
+
+
+    # ==================================================
+    # BIGGEST INCOME ITEM
+    # ==================================================
 
     biggest_income_item = "-"
+
     biggest_income_item_amount = 0
+
+
 
     if income_item_list:
 
-        biggest_income_item = income_item_list[0][0]
 
-        biggest_income_item_amount = income_item_list[0][1]
+        biggest_income_item = (
+            income_item_list[0][0]
+        )
 
 
-    #wareeg 4
+        biggest_income_item_amount = (
+            income_item_list[0][1]
+        )
+
+
+
+
+
+    # ==================================================
+    # ITEM RECOMMENDATIONS
+    # ==================================================
 
     item_recommendations = []
+
+
 
     # ===============================
     # EXPENSE
@@ -5916,12 +5965,21 @@ def transaction_list():
 
     if biggest_expense_item_amount > 0:
 
+
         expense_percent = (
+
             biggest_expense_item_amount
-            / max(total_expense, 1)
+
+            /
+
+            max(total_expense, 1)
+
         ) * 100
 
+
+
         if expense_percent >= 50:
+
 
             item_recommendations.append({
 
@@ -5936,7 +5994,10 @@ def transaction_list():
 
             })
 
+
+
         elif expense_percent >= 30:
+
 
             item_recommendations.append({
 
@@ -5948,6 +6009,45 @@ def transaction_list():
                     f"{biggest_expense_item} accounts for "
                     f"{expense_percent:.1f}% "
                     "of total expenses."
+
+            })
+
+
+
+
+
+    # ===============================
+    # INCOME
+    # ===============================
+
+    if biggest_income_item_amount > 0:
+
+
+        income_percent = (
+
+            biggest_income_item_amount
+
+            /
+
+            max(total_income,1)
+
+        ) * 100
+
+
+
+        if income_percent >= 50:
+
+
+            item_recommendations.append({
+
+                "type": "success",
+
+                "title": "Main Income Source",
+
+                "message":
+                    f"{biggest_income_item} generates "
+                    f"{income_percent:.1f}% "
+                    "of your income."
 
             })
 
