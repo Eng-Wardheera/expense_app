@@ -8285,98 +8285,252 @@ def delete_transaction(id):
     return redirect(url_for("main.transaction_list"))
 
 
-
 @bp.route("/add-saving", methods=["GET", "POST"])
 @login_required
 def add_saving():
 
-    # ==========================
-    # GET USER ACCOUNTS
-    # ==========================
+    # ==========================================
+    # USER ID
+    # ==========================================
+    user_id = ObjectId(current_user.id)
+
+    # ==========================================
+    # USER ACCOUNTS
+    # ==========================================
     accounts = list(
-        mongo.db.accounts.find({
-            "user_id": ObjectId(current_user.id)
-        })
+        mongo.db.accounts.find(
+            {
+                "user_id": user_id
+            }
+        )
     )
 
     if request.method == "POST":
 
-        title = request.form.get("title", "").strip()
-        description = request.form.get("description", "").strip()
-        target_amount = request.form.get("target_amount", "").strip()
-        account_id = request.form.get("account_id", "").strip()
-        start_date = request.form.get("start_date")
-        maturity_date = request.form.get("maturity_date")
+        # ==========================================
+        # FORM DATA
+        # ==========================================
+        title = request.form.get(
+            "title",
+            ""
+        ).strip()
 
-        # ==========================
+        description = request.form.get(
+            "description",
+            ""
+        ).strip()
+
+        target_amount = request.form.get(
+            "target_amount",
+            ""
+        ).strip()
+
+        account_id = request.form.get(
+            "account_id",
+            ""
+        ).strip()
+
+        start_date = request.form.get(
+            "start_date",
+            ""
+        ).strip()
+
+        maturity_date = request.form.get(
+            "maturity_date",
+            ""
+        ).strip()
+
+        status = request.form.get(
+            "status",
+            "active"
+        ).strip().lower()
+
+        # ==========================================
         # VALIDATION
-        # ==========================
+        # ==========================================
         if not title:
-            flash("Saving title is required.", "danger")
-            return redirect(url_for("main.add_saving"))
+
+            flash(
+                "Saving title is required.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
 
         if not target_amount:
-            flash("Target amount is required.", "danger")
-            return redirect(url_for("main.add_saving"))
+
+            flash(
+                "Target amount is required.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
 
         if not account_id:
-            flash("Please select an account.", "danger")
-            return redirect(url_for("main.add_saving"))
 
-        # ==========================
+            flash(
+                "Please select account.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
+
+        # ==========================================
         # TARGET AMOUNT
-        # ==========================
+        # ==========================================
         try:
-            target_amount = Decimal(target_amount).quantize(Decimal("0.01"))
+
+            target_amount = float(
+                Decimal(target_amount).quantize(
+                    Decimal("0.01")
+                )
+            )
+
         except InvalidOperation:
-            flash("Invalid target amount.", "danger")
-            return redirect(url_for("main.add_saving"))
+
+            flash(
+                "Invalid target amount.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
 
         if target_amount <= 0:
-            flash("Target amount must be greater than zero.", "danger")
-            return redirect(url_for("main.add_saving"))
 
-        # ==========================
-        # ACCOUNT CHECK
-        # ==========================
+            flash(
+                "Target amount must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
+
+        # ==========================================
+        # ACCOUNT VALIDATION
+        # ==========================================
         try:
-            account = mongo.db.accounts.find_one({
-                "_id": ObjectId(account_id),
-                "user_id": ObjectId(current_user.id)
-            })
+
+            account = mongo.db.accounts.find_one(
+                {
+                    "_id": ObjectId(account_id),
+                    "user_id": user_id
+                }
+            )
+
         except Exception:
+
             account = None
 
         if not account:
-            flash("Invalid account selected.", "danger")
-            return redirect(url_for("main.add_saving"))
 
-        # ==========================
-        # CREATE SAVING
-        # ==========================
+            flash(
+                "Invalid account selected.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.add_saving")
+            )
+
+        # ==========================================
+        # DATE CONVERSION
+        # ==========================================
+        try:
+
+            if start_date:
+
+                start_date = datetime.strptime(
+                    start_date,
+                    "%Y-%m-%d"
+                )
+
+            else:
+
+                start_date = datetime.utcnow()
+
+        except:
+
+            start_date = datetime.utcnow()
+
+        try:
+
+            if maturity_date:
+
+                maturity_date = datetime.strptime(
+                    maturity_date,
+                    "%Y-%m-%d"
+                )
+
+            else:
+
+                maturity_date = None
+
+        except:
+
+            maturity_date = None
+
+        # ==========================================
+        # STATUS VALIDATION
+        # ==========================================
+        if status not in [
+            "active",
+            "completed",
+            "paused"
+        ]:
+
+            status = "active"
+
+        # ==========================================
+        # CREATE MODEL
+        # ==========================================
         saving = Saving()
 
         data = saving.add(
             user_id=current_user.id,
             title=title,
             description=description,
-            target_amount=float(target_amount),   # 2 decimal only
-            account_id=account_id,
+            target_amount=target_amount,
+            account_id=ObjectId(account_id),
             start_date=start_date,
-            maturity_date=maturity_date
+            maturity_date=maturity_date,
+            status=status
         )
 
-        data["user_id"] = ObjectId(current_user.id)
+        # ==========================================
+        # MONGODB TYPES
+        # ==========================================
+        data["user_id"] = user_id
         data["account_id"] = ObjectId(account_id)
-        data["target_amount"] = float(target_amount)
+        data["target_amount"] = target_amount
+        data["current_balance"] = 0.00
+        data["status"] = status
+        data["created_at"] = datetime.utcnow()
+        data["updated_at"] = datetime.utcnow()
 
-        # ==========================
-        # SAVE
-        # ==========================
-        mongo.db.savings.insert_one(data)
+        # ==========================================
+        # INSERT
+        # ==========================================
+        mongo.db.savings.insert_one(
+            data
+        )
 
-        flash("Saving goal created successfully.", "success")
-        return redirect(url_for("main.saving_list"))
+        flash(
+            "Saving goal created successfully.",
+            "success"
+        )
+
+        return redirect(
+            url_for("main.saving_list")
+        )
 
     return render_template(
         "backend/pages/components/savings/add_saving.html",
@@ -8438,79 +8592,305 @@ def saving_list():
 @login_required
 def edit_saving(id):
 
-    saving = mongo.db.savings.find_one({
-        "_id": ObjectId(id),
-        "user_id": ObjectId(current_user.id)
-    })
+    user_id = ObjectId(current_user.id)
 
-    if not saving:
-        flash("Saving goal not found.", "danger")
-        return redirect(url_for("main.saving_list"))
+    # ==========================================
+    # GET SAVING
+    # ==========================================
+    try:
 
-    accounts = list(mongo.db.accounts.find({
-        "user_id": ObjectId(current_user.id)
-    }))
-
-    if request.method == "POST":
-
-        title = request.form.get("title")
-        description = request.form.get("description")
-        target_amount = request.form.get("target_amount")
-        account_id = request.form.get("account_id")
-        maturity_date = request.form.get("maturity_date")
-        status = request.form.get("status")
-
-
-
-        try:
-            target_amount = float(target_amount)
-        except:
-            flash("Invalid target amount.", "danger")
-            return redirect(request.url)
-
-        update_data = {
-            "title": title,
-            "description": description,
-            "target_amount": target_amount,
-            "account_id": ObjectId(account_id),
-            "status": status,
-            "updated_at": datetime.utcnow()
-        }
-
-        saving = mongo.db.savings.find_one({
-            "_id": ObjectId(id),
-            "user_id": ObjectId(current_user.id)
-        })
-
-        if not saving:
-            flash("Saving goal not found.", "danger")
-            return redirect(url_for("main.saving_list"))
-
-        # Convert maturity_date haddii uu string yahay
-        if saving.get("maturity_date") and isinstance(saving["maturity_date"], str):
-            try:
-                saving["maturity_date"] = datetime.strptime(
-                    saving["maturity_date"],
-                    "%Y-%m-%d"
-                )
-            except:
-                saving["maturity_date"] = None
-
-        mongo.db.savings.update_one(
-            {"_id": ObjectId(id)},
-            {"$set": update_data}
+        saving = mongo.db.savings.find_one(
+            {
+                "_id": ObjectId(id),
+                "user_id": user_id
+            }
         )
 
-        flash("Saving updated successfully.", "success")
-        return redirect(url_for("main.saving_list"))
+    except Exception:
 
-    return render_template(
-        "backend/pages/components/savings/edit_saving.html",
-        saving=saving,
-        accounts=accounts
+        saving = None
+
+    if not saving:
+
+        flash(
+            "Saving goal not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.saving_list")
+        )
+
+    # ==========================================
+    # USER ACCOUNTS
+    # ==========================================
+    accounts = list(
+        mongo.db.accounts.find(
+            {
+                "user_id": user_id
+            }
+        )
     )
 
+    # ==========================================
+    # POST
+    # ==========================================
+    if request.method == "POST":
 
+        title = request.form.get(
+            "title",
+            ""
+        ).strip()
+
+        description = request.form.get(
+            "description",
+            ""
+        ).strip()
+
+        target_amount = request.form.get(
+            "target_amount",
+            ""
+        ).strip()
+
+        account_id = request.form.get(
+            "account_id",
+            ""
+        ).strip()
+
+        start_date = request.form.get(
+            "start_date",
+            ""
+        ).strip()
+
+        maturity_date = request.form.get(
+            "maturity_date",
+            ""
+        ).strip()
+
+        status = request.form.get(
+            "status",
+            "active"
+        ).strip().lower()
+
+        # ==========================================
+        # VALIDATION
+        # ==========================================
+        if not title:
+
+            flash(
+                "Saving title is required.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        if not target_amount:
+
+            flash(
+                "Target amount is required.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        if not account_id:
+
+            flash(
+                "Please select account.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        # ==========================================
+        # TARGET AMOUNT
+        # ==========================================
+        try:
+
+            target_amount = float(
+                Decimal(target_amount).quantize(
+                    Decimal("0.01")
+                )
+            )
+
+        except InvalidOperation:
+
+            flash(
+                "Invalid target amount.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        if target_amount <= 0:
+
+            flash(
+                "Target amount must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        # ==========================================
+        # ACCOUNT CHECK
+        # ==========================================
+        try:
+
+            account = mongo.db.accounts.find_one(
+                {
+                    "_id": ObjectId(account_id),
+                    "user_id": user_id
+                }
+            )
+
+        except Exception:
+
+            account = None
+
+        if not account:
+
+            flash(
+                "Invalid account selected.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+        # ==========================================
+        # START DATE
+        # ==========================================
+        try:
+
+            if start_date:
+
+                start_date = datetime.strptime(
+                    start_date,
+                    "%Y-%m-%d"
+                )
+
+            else:
+
+                start_date = saving.get("start_date")
+
+        except:
+
+            start_date = saving.get("start_date")
+
+        # ==========================================
+        # MATURITY DATE
+        # ==========================================
+        try:
+
+            if maturity_date:
+
+                maturity_date = datetime.strptime(
+                    maturity_date,
+                    "%Y-%m-%d"
+                )
+
+            else:
+
+                maturity_date = None
+
+        except:
+
+            maturity_date = None
+
+        # ==========================================
+        # STATUS
+        # ==========================================
+        if status not in [
+            "active",
+            "paused",
+            "completed"
+        ]:
+
+            status = "active"
+
+        # ==========================================
+        # UPDATE DATA
+        # ==========================================
+        update_data = {
+
+            "title": title,
+
+            "description": description,
+
+            "target_amount": target_amount,
+
+            "account_id": ObjectId(account_id),
+
+            "start_date": start_date,
+
+            "maturity_date": maturity_date,
+
+            "status": status,
+
+            # current_balance lama taabanayo
+
+            "updated_at": datetime.utcnow()
+
+        }
+
+        # ==========================================
+        # UPDATE
+        # ==========================================
+        mongo.db.savings.update_one(
+
+            {
+                "_id": ObjectId(id),
+                "user_id": user_id
+            },
+
+            {
+                "$set": update_data
+            }
+
+        )
+
+        flash(
+            "Saving goal updated successfully.",
+            "success"
+        )
+
+        return redirect(
+            url_for("main.saving_list")
+        )
+
+    # ==========================================
+    # DATE FORMAT FOR INPUT TYPE=date
+    # ==========================================
+    if saving.get("start_date"):
+
+        if isinstance(
+            saving["start_date"],
+            datetime
+        ):
+
+            saving["start_date"] = saving[
+                "start_date"
+            ].strftime("%Y-%m-%d")
+
+    if saving.get("maturity_date"):
+
+        if isinstance(
+            saving["maturity_date"],
+            datetime
+        ):
+
+            saving["maturity_date"] = saving[
+                "maturity_date"
+            ].strftime("%Y-%m-%d")
+
+    return render_template(
+
+        "backend/pages/components/savings/edit_saving.html",
+
+        saving=saving,
+
+        accounts=accounts
+
+    )
 
 # ===============================
 # DELETE SAVING

@@ -46,203 +46,422 @@
 
 <div class="main-content">
 <div class="row">
-    <form method="POST">
+  <form method="POST">
 
-<div class="card shadow-sm">
+    {% if csrf_token %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
 
-    <!-- Header -->
-    <div class="card-header">
-        <h4 class="mb-0">
-            Edit Saving Goal
-        </h4>
+    <div class="row">
+
+        <!-- ================================= -->
+        <!-- LEFT -->
+        <!-- ================================= -->
+
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-white">
+
+                    <h5 class="mb-0">
+
+                        <i class="feather-edit me-2 text-primary"></i>
+
+                        Edit Saving Goal
+
+                    </h5>
+
+                </div>
+
+                <div class="card-body">
+
+                    <!-- TITLE -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Saving Title
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                type="text"
+                                name="title"
+                                class="form-control"
+                                value="{{ request.form.get('title', saving.title) }}"
+                                required>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ACCOUNT -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Account
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <select
+                                id="accountSelect"
+                                name="account_id"
+                                class="form-select"
+                                required>
+
+                                {% for account in accounts %}
+
+                                <option
+                                    value="{{ account._id }}"
+                                    data-balance="{{ account.balance }}"
+                                    data-currency="{{ account.currency }}"
+                                    {% if request.form.get('account_id', saving.account_id|string)==account._id|string %}
+                                    selected
+                                    {% endif %}>
+
+                                    {{ account.name }}
+
+                                    ({{ "{:,.2f}".format(account.balance|float) }}
+
+                                    {{ account.currency }})
+
+                                </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                            <small class="text-muted">
+
+                                Account Balance :
+
+                                <span
+                                    id="accountBalance"
+                                    class="fw-bold text-success">
+
+                                </span>
+
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <!-- TARGET -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Target Amount
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                id="targetAmount"
+                                type="number"
+                                name="target_amount"
+                                class="form-control"
+                                min="0.01"
+                                step="0.01"
+                                value="{{ request.form.get('target_amount', saving.target_amount) }}"
+                                required>
+
+                        </div>
+
+                    </div>
+
+                    <!-- CURRENT BALANCE -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Current Balance
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                type="text"
+                                class="form-control bg-light"
+                                readonly
+                                value="{{ '{:,.2f}'.format(saving.current_balance|float) }}">
+
+                        </div>
+
+                    </div>
+
+                    <!-- START DATE -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Start Date
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                type="date"
+                                name="start_date"
+                                class="form-control"
+                                value="{{ request.form.get('start_date', saving.start_date) }}">
+
+                        </div>
+
+                    </div>
+
+                    <!-- TARGET DATE -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Target Date
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                id="targetDate"
+                                type="date"
+                                name="maturity_date"
+                                class="form-control"
+                                value="{{ request.form.get('maturity_date', saving.maturity_date) }}">
+
+                        </div>
+
+                    </div>
+
+                    <!-- STATUS -->
+
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Status
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <select
+                                class="form-select"
+                                name="status">
+
+                                <option
+                                    value="active"
+                                    {% if request.form.get("status", saving.status)=="active" %}
+                                    selected
+                                    {% endif %}>
+
+                                    Active
+
+                                </option>
+
+                                <option
+                                    value="paused"
+                                    {% if request.form.get("status", saving.status)=="paused" %}
+                                    selected
+                                    {% endif %}>
+
+                                    Paused
+
+                                </option>
+
+                                <option
+                                    value="completed"
+                                    {% if request.form.get("status", saving.status)=="completed" %}
+                                    selected
+                                    {% endif %}>
+
+                                    Completed
+
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="row">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+
+                            Description
+
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <textarea
+                                class="form-control"
+                                rows="5"
+                                name="description">{{ request.form.get("description", saving.description) }}</textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- ================================= -->
+        <!-- RIGHT -->
+        <!-- ================================= -->
+
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm border-0">
+
+                <div class="card-header bg-primary text-white">
+
+                    Saving Summary
+
+                </div>
+
+                <div class="card-body">
+
+                    <p class="mb-2 text-muted">
+
+                        Target Amount
+
+                    </p>
+
+                    <h3 id="summaryTarget">
+
+                        ${{ "{:,.2f}".format(saving.target_amount|float) }}
+
+                    </h3>
+
+                    <hr>
+
+                    <p class="mb-2 text-muted">
+
+                        Current Progress
+
+                    </p>
+
+                    {% set progress=((saving.current_balance|float)/(saving.target_amount|float)*100) if saving.target_amount else 0 %}
+
+                    <div class="progress mb-2">
+
+                        <div
+                            class="progress-bar bg-success"
+                            style="width:{{ progress if progress<100 else 100 }}%;">
+
+                            {{ "%.0f"|format(progress) }}%
+
+                        </div>
+
+                    </div>
+
+                    <p>
+
+                        {{ "{:,.2f}".format(saving.current_balance|float) }}
+
+                        /
+
+                        {{ "{:,.2f}".format(saving.target_amount|float) }}
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <!-- Body -->
-    <div class="card-body">
+    <div class="card mt-4 shadow-sm border-0">
 
-        <!-- Title -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label">
-                Saving Title
-            </label>
+        <div class="card-footer bg-white">
 
-            <div class="col-lg-9">
-                <input
-                    type="text"
-                    name="title"
-                    class="form-control"
-                    value="{{ saving.title }}"
-                    required>
-            </div>
-        </div>
+            <div class="d-flex justify-content-end gap-2">
 
-        <!-- Target Amount -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label">
-                Target Amount
-            </label>
+                <a
+                    href="{{ url_for('main.saving_list') }}"
+                    class="btn btn-light">
 
-            <div class="col-lg-9">
-                <input
-                    type="number"
-                    step="0.01"
-                    name="target_amount"
-                    class="form-control"
-                    value="{{ saving.target_amount }}"
-                    required>
-            </div>
-        </div>
+                    <i class="feather-x me-2"></i>
 
-        <!-- Current Balance -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label">
-                Current Balance
-            </label>
+                    Cancel
 
-            <div class="col-lg-9">
-                <input
-                    type="text"
-                    class="form-control"
-                    value="{{ saving.current_balance }}"
-                    readonly>
-            </div>
-        </div>
+                </a>
 
-        <!-- Account -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label">
-                Account
-            </label>
+                <button
+                    type="submit"
+                    class="btn btn-primary">
 
-            <div class="col-lg-9">
+                    <i class="feather-save me-2"></i>
 
-                <select
-                    name="account_id"
-                    class="form-select"
-                    required>
+                    Update Saving
 
-                    {% for account in accounts %}
-
-                    <option
-                        value="{{ account._id }}"
-                        {% if saving.account_id|string == account._id|string %}
-                        selected
-                        {% endif %}>
-
-                        {{ account.name }}
-                        ({{ account.balance }} {{ account.currency }})
-
-                    </option>
-
-                    {% endfor %}
-
-                </select>
-
-            </div>
-        </div>
-
-        <!-- Status -->
-        <div class="row mb-3">
-
-            <label class="col-lg-3 col-form-label">
-                Status
-            </label>
-
-            <div class="col-lg-9">
-
-                <select
-                    name="status"
-                    class="form-select">
-
-                    <option
-                        value="active"
-                        {% if saving.status=="active" %}
-                        selected
-                        {% endif %}>
-                        Active
-                    </option>
-
-                    <option
-                        value="paused"
-                        {% if saving.status=="paused" %}
-                        selected
-                        {% endif %}>
-                        Paused
-                    </option>
-
-                    <option
-                        value="completed"
-                        {% if saving.status=="completed" %}
-                        selected
-                        {% endif %}>
-                        Completed
-                    </option>
-
-                </select>
-
-            </div>
-
-        </div>
-
-        <!-- Maturity Date -->
-        <div class="row mb-3">
-
-            <label class="col-lg-3 col-form-label">
-                Maturity Date
-            </label>
-
-            <div class="col-lg-9">
-
-               <input
-                type="date"
-                name="maturity_date"
-                class="form-control"
-                value="{{ saving.maturity_date if saving.maturity_date else '' }}">
-
-            </div>
-
-        </div>
-
-        <!-- Description -->
-        <div class="row mb-3">
-
-            <label class="col-lg-3 col-form-label">
-                Description
-            </label>
-
-            <div class="col-lg-9">
-
-                <textarea
-                    name="description"
-                    rows="4"
-                    class="form-control">{{ saving.description }}</textarea>
+                </button>
 
             </div>
 
         </div>
 
     </div>
-
-   <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
-
-    <a
-        href="{{ url_for('main.saving_list') }}"
-        class="btn btn-secondary">
-        Cancel
-    </a>
-
-    <button
-        type="submit"
-        class="btn btn-primary">
-        Update Saving
-    </button>
-
-</div>
-    
-
-</div>
 
 </form>
+
+<script>
+
+const account=document.getElementById("accountSelect");
+const balance=document.getElementById("accountBalance");
+
+function updateAccount(){
+
+    let option=account.options[account.selectedIndex];
+
+    if(option){
+
+        balance.innerHTML=
+            Number(option.dataset.balance).toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits:2
+                }
+            )
+            +" "+
+            option.dataset.currency;
+
+    }
+
+}
+
+account.addEventListener(
+    "change",
+    updateAccount
+);
+
+updateAccount();
+
+</script>
 </div>
 
 

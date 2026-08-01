@@ -46,164 +46,439 @@
 
 <div class="main-content mt-4">
 <div class="row">
-    <form method="POST">
+ <form method="POST">
 
-<div class="card shadow-sm">
+    {% if csrf_token %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% endif %}
 
-    <!-- HEADER -->
-    <div class="card-header bg-white">
-        <h5 class="mb-0">Create Saving Goal</h5>
-    </div>
+    <div class="row">
 
-    <!-- BODY -->
-    <div class="card-body">
+        <!-- ================================= -->
+        <!-- LEFT SIDE -->
+        <!-- ================================= -->
+        <div class="col-lg-8">
 
-        <!-- TITLE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Saving Title
-            </label>
+            <div class="card shadow-sm border-0">
 
-            <div class="col-lg-9">
-                <input type="text"
-                       name="title"
-                       class="form-control"
-                       placeholder="Example: Buy New Laptop"
-                       required>
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="feather-target text-primary me-2"></i>
+                        Create Saving Goal
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    <!-- TITLE -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Saving Title
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                type="text"
+                                name="title"
+                                class="form-control"
+                                placeholder="Example: Buy New Laptop"
+                                value="{{ request.form.get('title','') }}"
+                                required>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ACCOUNT -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Account
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <select
+                                class="form-select"
+                                id="accountSelect"
+                                name="account_id"
+                                required>
+
+                                <option value="">
+                                    -- Select Account --
+                                </option>
+
+                                {% for account in accounts %}
+
+                                <option
+                                    value="{{ account._id }}"
+                                    data-balance="{{ account.balance }}"
+                                    data-currency="{{ account.currency }}"
+                                    {% if request.form.get("account_id")==account._id|string %}
+                                    selected
+                                    {% endif %}>
+
+                                    {{ account.name }}
+                                    ({{ "{:,.2f}".format(account.balance|float) }}
+                                    {{ account.currency }})
+
+                                </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                            <small class="text-muted mt-2 d-block">
+
+                                Available Balance :
+
+                                <span
+                                    id="accountBalance"
+                                    class="fw-bold text-success">
+
+                                    --
+
+                                </span>
+
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <!-- TARGET -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Target Amount
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                id="targetAmount"
+                                type="number"
+                                class="form-control"
+                                name="target_amount"
+                                min="0.01"
+                                step="0.01"
+                                placeholder="0.00"
+                                value="{{ request.form.get('target_amount','') }}"
+                                required>
+
+                        </div>
+
+                    </div>
+
+                    <!-- START DATE -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Start Date
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                id="startDate"
+                                type="date"
+                                class="form-control"
+                                name="start_date"
+                                value="{{ request.form.get('start_date','') }}">
+
+                        </div>
+
+                    </div>
+
+                    <!-- TARGET DATE -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Target Date
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <input
+                                id="targetDate"
+                                type="date"
+                                class="form-control"
+                                name="maturity_date"
+                                value="{{ request.form.get('maturity_date','') }}">
+
+                        </div>
+
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="row mb-4">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Status
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <select
+                                class="form-select"
+                                name="status">
+
+                                <option value="active"
+                                    {% if request.form.get("status","active")=="active" %}
+                                    selected
+                                    {% endif %}>
+                                    Active
+                                </option>
+
+                                <option value="paused"
+                                    {% if request.form.get("status")=="paused" %}
+                                    selected
+                                    {% endif %}>
+                                    Paused
+                                </option>
+
+                                <option value="completed"
+                                    {% if request.form.get("status")=="completed" %}
+                                    selected
+                                    {% endif %}>
+                                    Completed
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                    </div>
+
+                    <!-- DESCRIPTION -->
+                    <div class="row">
+
+                        <label class="col-lg-3 col-form-label fw-bold">
+                            Description
+                        </label>
+
+                        <div class="col-lg-9">
+
+                            <textarea
+                                rows="5"
+                                class="form-control"
+                                name="description"
+                                placeholder="Write something about this goal...">{{ request.form.get("description","") }}</textarea>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
+
         </div>
 
-        <!-- ACCOUNT -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Account
-            </label>
+        <!-- ================================= -->
+        <!-- RIGHT SIDE -->
+        <!-- ================================= -->
 
-            <div class="col-lg-9">
+        <div class="col-lg-4">
 
-                <select name="account_id"
-                        class="form-select"
-                        required>
+            <div class="card shadow-sm border-0">
 
-                    <option value="">
-                        -- Select Account --
-                    </option>
-                    {% for account in accounts %}
-                    <option value="{{ account._id }}">
-                        {{ account.name }}
-                        ({{ "{:,.2f}".format(account.balance|float) }} {{ account.currency }})
-                    </option>
-                    {% endfor %}
-                </select>
+                <div class="card-header bg-primary text-white">
 
-            </div>
-        </div>
+                    Goal Summary
 
-        <!-- TARGET -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Target Amount
-            </label>
+                </div>
 
-            <div class="col-lg-9">
-                <input type="number"
-                       name="target_amount"
-                       step="0.01"
-                       min="1"
-                       class="form-control"
-                       placeholder="0.00"
-                       required>
-            </div>
-        </div>
+                <div class="card-body">
 
-        <!-- START DATE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Start Date
-            </label>
+                    <div class="mb-4">
 
-            <div class="col-lg-9">
-                <input type="date"
-                       name="start_date"
-                       class="form-control">
-            </div>
-        </div>
+                        <small class="text-muted">
 
-        <!-- MATURITY -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Target Date
-            </label>
+                            Target Amount
 
-            <div class="col-lg-9">
-                <input type="date"
-                       name="maturity_date"
-                       class="form-control">
-            </div>
-        </div>
+                        </small>
 
-        <!-- STATUS -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Status
-            </label>
+                        <h3
+                            id="summaryTarget"
+                            class="fw-bold">
 
-            <div class="col-lg-9">
+                            $0.00
 
-                <select name="status"
-                        class="form-select">
+                        </h3>
 
-                    <option value="active">
-                        Active
-                    </option>
+                    </div>
 
-                    <option value="paused">
-                        Paused
-                    </option>
+                    <div class="mb-4">
 
-                    <option value="completed">
-                        Completed
-                    </option>
+                        <small class="text-muted">
 
-                </select>
+                            Progress
+
+                        </small>
+
+                        <div class="progress mt-2">
+
+                            <div
+                                class="progress-bar bg-success"
+                                style="width:0%;">
+
+                                0%
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mb-4">
+
+                        <small class="text-muted">
+
+                            Estimated Monthly Saving
+
+                        </small>
+
+                        <h5 id="monthlySaving">
+
+                            --
+
+                        </h5>
+
+                    </div>
+
+                    <div>
+
+                        <small class="text-muted">
+
+                            Days Remaining
+
+                        </small>
+
+                        <h5 id="daysRemaining">
+
+                            --
+
+                        </h5>
+
+                    </div>
+
+                </div>
 
             </div>
-        </div>
 
-        <!-- DESCRIPTION -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">
-                Description
-            </label>
-
-            <div class="col-lg-9">
-                <textarea name="description"
-                          class="form-control"
-                          rows="4"
-                          placeholder="Write something about this saving goal..."></textarea>
-            </div>
         </div>
 
     </div>
 
     <!-- FOOTER -->
-   <div class="card-footer text-end d-flex justify-content-end" style="gap: 10px;">
 
-        <button type="submit"
-                class="btn btn-primary px-4">
-            Save Goal
-        </button>
+    <div class="card shadow-sm border-0 mt-4">
 
-        <a href="{{ url_for('main.saving_list') }}"
-           class="btn btn-secondary px-4">
-            Cancel
-        </a>
+        <div class="card-footer bg-white">
+
+            <div class="d-flex justify-content-end gap-2">
+
+                <a
+                    href="{{ url_for('main.saving_list') }}"
+                    class="btn btn-light">
+
+                    <i class="feather-x me-2"></i>
+
+                    Cancel
+
+                </a>
+
+                <button
+                    class="btn btn-primary"
+                    type="submit">
+
+                    <i class="feather-save me-2"></i>
+
+                    Save Goal
+
+                </button>
+
+            </div>
+
+        </div>
 
     </div>
 
-</div>
-
 </form>
+
+<script>
+
+const target=document.getElementById("targetAmount");
+const summary=document.getElementById("summaryTarget");
+const targetDate=document.getElementById("targetDate");
+const monthly=document.getElementById("monthlySaving");
+const days=document.getElementById("daysRemaining");
+const account=document.getElementById("accountSelect");
+const balance=document.getElementById("accountBalance");
+
+function updateSummary(){
+
+    let amount=parseFloat(target.value)||0;
+
+    summary.innerHTML="$"+amount.toLocaleString(undefined,{
+        minimumFractionDigits:2
+    });
+
+    if(targetDate.value){
+
+        let today=new Date();
+
+        let end=new Date(targetDate.value);
+
+        let diff=Math.ceil(
+            (end-today)/(1000*60*60*24)
+        );
+
+        days.innerHTML=diff>0?diff+" Days":"Expired";
+
+        let months=Math.max(diff/30,1);
+
+        monthly.innerHTML="$"+(amount/months).toFixed(2);
+
+    }
+
+}
+
+function updateAccount(){
+
+    let opt=account.options[
+        account.selectedIndex
+    ];
+
+    if(opt.dataset.balance){
+
+        balance.innerHTML=
+            Number(opt.dataset.balance).toLocaleString()+
+            " "+
+            opt.dataset.currency;
+
+    }else{
+
+        balance.innerHTML="--";
+
+    }
+
+}
+
+target.addEventListener("input",updateSummary);
+
+targetDate.addEventListener("change",updateSummary);
+
+account.addEventListener("change",updateAccount);
+
+updateSummary();
+
+updateAccount();
+
+</script>
 </div>
 
 
