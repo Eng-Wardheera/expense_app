@@ -553,8 +553,895 @@ ${{ "{:,.2f}".format(biggest_expense_amount) }}
 
 </div>
 
+<!-- hab start  -->
+ 
+
+<style>
+
+/* ======================================
+   ANALYTICS CONTAINER
+====================================== */
+
+.analytics-wrapper{
+
+    max-width:1100px;
+    margin:auto;
+
+}
 
 
+
+/* ======================================
+   CARD DESIGN
+====================================== */
+
+.analytics-box{
+
+    border-radius:24px;
+    overflow:hidden;
+    transition:.35s;
+
+}
+
+
+.analytics-box:hover{
+
+    transform:translateY(-6px);
+
+    box-shadow:
+    0 20px 45px rgba(0,0,0,.12)!important;
+
+}
+
+
+
+/* ======================================
+   HEADER
+====================================== */
+
+.analytics-title{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+}
+
+
+
+/* ======================================
+   ITEM CARD
+====================================== */
+
+
+.item-card{
+
+    background:#f8f9fa;
+
+    border-radius:18px;
+
+    padding:15px;
+
+    margin-bottom:15px;
+
+    transition:.3s;
+
+}
+
+
+
+.item-card:hover{
+
+    background:white;
+
+    box-shadow:
+    0 8px 25px rgba(0,0,0,.08);
+
+}
+
+
+
+/* ======================================
+   MONEY BADGE
+====================================== */
+
+
+.money-badge{
+
+    padding:8px 16px;
+
+    border-radius:50px;
+
+    font-size:14px;
+
+    font-weight:700;
+
+}
+
+
+
+.expense-money{
+
+    background:#ffe2e2;
+
+    color:#dc3545;
+
+}
+
+
+
+.income-money{
+
+    background:#dcffed;
+
+    color:#198754;
+
+}
+
+
+
+/* ======================================
+   PROGRESS BAR
+====================================== */
+
+
+.progress{
+
+    height:12px;
+
+    background:#e9ecef;
+
+    border-radius:50px;
+
+    overflow:hidden;
+
+}
+
+
+
+.expense-progress{
+
+    background:
+    linear-gradient(
+        90deg,
+        #ff416c,
+        #ff4b2b
+    );
+
+    border-radius:50px;
+
+    animation:
+    load 1.5s ease;
+
+}
+
+
+
+.income-progress{
+
+    background:
+    linear-gradient(
+        90deg,
+        #11998e,
+        #38ef7d
+    );
+
+    border-radius:50px;
+
+    animation:
+    load 1.5s ease;
+
+}
+
+
+
+@keyframes load{
+
+from{
+
+width:0;
+
+}
+
+}
+
+
+
+/* ======================================
+   HIDE ITEMS
+====================================== */
+
+
+.item-hidden{
+
+    display:none;
+
+}
+
+
+
+/* ======================================
+   BUTTON
+====================================== */
+
+
+.view-btn{
+
+    border-radius:50px;
+
+    padding:8px 25px;
+
+    font-weight:600;
+
+    transition:.3s;
+
+}
+
+
+
+.view-btn:hover{
+
+    transform:scale(1.05);
+
+}
+
+
+
+/* ======================================
+   RECOMMENDATION
+====================================== */
+
+
+.recommend-card{
+
+    border-radius:18px;
+
+    padding:18px;
+
+}
+
+
+
+</style>
+
+
+
+
+
+<div class="analytics-wrapper mt-4">
+
+
+<div class="row g-4">
+
+
+
+<!-- =====================================
+        EXPENSE ITEMS
+===================================== -->
+
+
+<div class="col-xl-6 col-lg-6 col-md-12">
+
+
+<div class="card border-0 shadow-sm analytics-box">
+
+
+<div class="card-header bg-white py-3">
+
+
+<div class="analytics-title">
+
+
+<h5 class="mb-0 text-danger">
+
+<i class="bi bi-cart-x-fill me-2"></i>
+
+Expense Items
+
+</h5>
+
+
+<span class="badge bg-danger rounded-pill">
+
+{{ expense_item_list|length }}
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="card-body">
+
+
+
+{% if expense_item_list %}
+
+
+
+{% set max_expense = expense_item_list[0][1] %}
+
+
+
+
+{% for item,amount in expense_item_list %}
+
+
+
+{% set percentage =
+((amount / max_expense) * 100)|round
+%}
+
+
+
+<div class="item-card expense-item
+
+{% if loop.index > 1 %}
+item-hidden
+{% endif %}
+
+">
+
+
+
+<div class="d-flex justify-content-between align-items-center">
+
+
+<div>
+
+
+<h6 class="mb-1">
+
+
+<i class="bi bi-tag-fill text-danger me-2"></i>
+
+{{ item }}
+
+
+</h6>
+
+
+<small class="text-muted">
+
+Expense Spending
+
+</small>
+
+
+</div>
+
+
+
+
+<span class="money-badge expense-money">
+
+${{ "{:,.2f}".format(amount) }}
+
+</span>
+
+
+</div>
+
+
+
+
+<div class="d-flex justify-content-between mt-3 mb-1">
+
+
+<span class="text-danger fw-bold">
+
+{{percentage}}%
+
+</span>
+
+
+<small class="text-muted">
+
+highest expense
+
+</small>
+
+
+</div>
+
+
+
+<div class="progress">
+
+
+<div class="progress-bar expense-progress"
+
+style="width:{{percentage}}%">
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+
+
+
+
+{% if expense_item_list|length > 1 %}
+
+
+<div class="text-center mt-3">
+
+
+<button
+
+class="btn btn-outline-danger view-btn"
+
+onclick="toggleItems('expense-item',this)">
+
+
+<i class="bi bi-eye me-1"></i>
+
+View More
+
+
+</button>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+{% else %}
+
+
+
+<div class="text-center p-4 text-muted">
+
+
+<i class="bi bi-inbox fs-1"></i>
+
+<p>
+
+No Expense Data
+
+</p>
+
+
+</div>
+
+
+
+{% endif %}
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<!-- =====================================
+        INCOME ITEMS
+===================================== -->
+
+
+<div class="col-xl-6 col-lg-6 col-md-12">
+
+
+<div class="card border-0 shadow-sm analytics-box">
+
+
+<div class="card-header bg-white py-3">
+
+
+<div class="analytics-title">
+
+
+<h5 class="mb-0 text-success">
+
+
+<i class="bi bi-cash-stack me-2"></i>
+
+
+Income Items
+
+</h5>
+
+
+
+<span class="badge bg-success rounded-pill">
+
+{{ income_item_list|length }}
+
+</span>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<div class="card-body">
+
+
+
+{% if income_item_list %}
+
+
+
+{% set max_income = income_item_list[0][1] %}
+
+
+
+
+
+{% for item,amount in income_item_list %}
+
+
+
+{% set percentage =
+((amount / max_income) * 100)|round
+%}
+
+
+
+
+<div class="item-card income-item
+
+{% if loop.index > 1 %}
+item-hidden
+{% endif %}
+
+">
+
+
+
+<div class="d-flex justify-content-between align-items-center">
+
+
+<div>
+
+
+<h6 class="mb-1">
+
+
+<i class="bi bi-wallet-fill text-success me-2"></i>
+
+
+{{item}}
+
+
+</h6>
+
+
+
+<small class="text-muted">
+
+Income Source
+
+</small>
+
+
+</div>
+
+
+
+
+<span class="money-badge income-money">
+
+${{ "{:,.2f}".format(amount) }}
+
+</span>
+
+
+
+</div>
+
+
+
+
+
+<div class="d-flex justify-content-between mt-3 mb-1">
+
+
+<span class="text-success fw-bold">
+
+{{percentage}}%
+
+</span>
+
+
+<small class="text-muted">
+
+highest income
+
+</small>
+
+
+</div>
+
+
+
+
+<div class="progress">
+
+
+<div class="progress-bar income-progress"
+
+style="width:{{percentage}}%">
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+
+
+
+{% if income_item_list|length > 1 %}
+
+
+<div class="text-center mt-3">
+
+
+<button
+
+class="btn btn-outline-success view-btn"
+
+onclick="toggleItems('income-item',this)">
+
+
+<i class="bi bi-eye me-1"></i>
+
+View More
+
+
+</button>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+{% else %}
+
+
+
+<div class="text-center p-4 text-muted">
+
+
+<i class="bi bi-wallet2 fs-1"></i>
+
+
+<p>
+
+No Income Data
+
+</p>
+
+
+</div>
+
+
+
+{% endif %}
+
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+<!-- =====================================
+       RECOMMENDATIONS
+===================================== -->
+
+
+<div class="row mt-4 g-3">
+
+
+{% for rec in item_recommendations %}
+
+
+
+<div class="col-xl-4 col-md-6">
+
+
+<div class="alert alert-{{rec.type}} shadow-sm recommend-card">
+
+
+<h6 class="fw-bold">
+
+
+<i class="bi bi-lightbulb-fill me-2"></i>
+
+
+{{rec.title}}
+
+
+</h6>
+
+
+<p class="mb-0">
+
+{{rec.message}}
+
+</p>
+
+
+</div>
+
+
+</div>
+
+
+
+{% endfor %}
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+<script>
+
+
+function toggleItems(className,button){
+
+
+let items=document.querySelectorAll(
+"." + className
+);
+
+
+
+let hidden=false;
+
+
+items.forEach(function(item){
+
+
+if(item.classList.contains("item-hidden")){
+
+hidden=true;
+
+}
+
+
+});
+
+
+
+
+if(hidden){
+
+
+items.forEach(function(item){
+
+
+item.classList.remove(
+"item-hidden"
+);
+
+
+});
+
+
+button.innerHTML=
+`
+<i class="bi bi-eye-slash me-1"></i>
+Hide
+`;
+
+
+
+}
+
+else{
+
+
+items.forEach(function(item,index){
+
+
+if(index>=1){
+
+
+item.classList.add(
+"item-hidden"
+);
+
+
+}
+
+
+});
+
+
+
+button.innerHTML=
+`
+<i class="bi bi-eye me-1"></i>
+View More
+`;
+
+
+
+}
+
+
+}
+
+
+
+</script>
+
+
+
+
+<!-- hab end  -->
 
 </div>
 

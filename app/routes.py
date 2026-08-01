@@ -5481,7 +5481,10 @@ def transaction_list():
 
     )
 
+ 
 
+
+    #waa gii hore
 
     total_income = summary["income"]
 
@@ -5578,6 +5581,8 @@ def transaction_list():
 
 
 
+
+
     # ==================================================
     # MONTH CARD
     # ==================================================
@@ -5613,6 +5618,167 @@ def transaction_list():
     }
 
 
+   # ==================================================
+    # ITEM ANALYTICS
+    # ==================================================
+
+    expense_items = {}
+    income_items = {}
+
+    for transaction in transactions:
+
+        item = (
+            transaction.get("item")
+            or "Unknown"
+        ).strip()
+
+        amount = float(
+            transaction.get(
+                "amount",
+                0
+            )
+        )
+
+        transaction_type = (
+            transaction.get(
+                "transaction_type",
+                ""
+            )
+            .lower()
+            .strip()
+        )
+
+        if transaction_type == "expense":
+
+            expense_items[item] = (
+                expense_items.get(item, 0)
+                + amount
+            )
+
+        elif transaction_type == "income":
+
+            income_items[item] = (
+                income_items.get(item, 0)
+                + amount
+            )
+
+        # next
+        expense_item_list = sorted(
+
+            expense_items.items(),
+
+            key=lambda x: x[1],
+
+            reverse=True
+
+        )
+
+        income_item_list = sorted(
+
+            income_items.items(),
+
+            key=lambda x: x[1],
+
+            reverse=True
+
+        )
+
+    # wareeg 3
+
+    biggest_expense_item = "-"
+    biggest_expense_item_amount = 0
+
+    if expense_item_list:
+
+        biggest_expense_item = expense_item_list[0][0]
+
+        biggest_expense_item_amount = expense_item_list[0][1]
+
+
+    biggest_income_item = "-"
+    biggest_income_item_amount = 0
+
+    if income_item_list:
+
+        biggest_income_item = income_item_list[0][0]
+
+        biggest_income_item_amount = income_item_list[0][1]
+
+
+    #wareeg 4
+
+    item_recommendations = []
+
+    # ===============================
+    # EXPENSE
+    # ===============================
+
+    if biggest_expense_item_amount > 0:
+
+        expense_percent = (
+            biggest_expense_item_amount
+            / max(total_expense, 1)
+        ) * 100
+
+        if expense_percent >= 50:
+
+            item_recommendations.append({
+
+                "type": "danger",
+
+                "title": "High Spending Item",
+
+                "message":
+                    f"{biggest_expense_item} consumed "
+                    f"{expense_percent:.1f}% "
+                    "of your expenses."
+
+            })
+
+        elif expense_percent >= 30:
+
+            item_recommendations.append({
+
+                "type": "warning",
+
+                "title": "Monitor Spending",
+
+                "message":
+                    f"{biggest_expense_item} accounts for "
+                    f"{expense_percent:.1f}% "
+                    "of total expenses."
+
+            })
+
+
+    # ===============================
+    # INCOME
+    # ===============================
+
+    if biggest_income_item_amount > 0:
+
+        income_percent = (
+            biggest_income_item_amount
+            / max(total_income, 1)
+        ) * 100
+
+        if income_percent >= 60:
+
+            item_recommendations.append({
+
+                "type": "info",
+
+                "title": "Income Concentration",
+
+                "message":
+                    f"{biggest_income_item} generates "
+                    f"{income_percent:.1f}% "
+                    "of your income."
+
+            })
+
+
+    # wareeg 5
 
 
 
@@ -5702,6 +5868,19 @@ def transaction_list():
 
         selected_item=item,
 
+        expense_item_list=expense_item_list,
+
+income_item_list=income_item_list,
+
+biggest_expense_item=biggest_expense_item,
+
+biggest_expense_item_amount=biggest_expense_item_amount,
+
+biggest_income_item=biggest_income_item,
+
+biggest_income_item_amount=biggest_income_item_amount,
+
+item_recommendations=item_recommendations,
 
 
         month_name=month_start.strftime(
