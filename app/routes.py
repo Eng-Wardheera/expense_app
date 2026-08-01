@@ -5236,6 +5236,7 @@ def transaction_list():
 
 
 
+
     # ==================================================
     # MONTH / YEAR FILTER
     # ==================================================
@@ -5262,41 +5263,77 @@ def transaction_list():
 
 
 
-    # Default system start
+    # Default start
     SYSTEM_START_MONTH = 1
+
+    FIRST_YEAR = now.year
+
 
 
     if first_transaction:
+
 
         first_date = first_transaction.get("date")
 
 
         if first_date:
 
+
             SYSTEM_START_MONTH = first_date.month
+
+            FIRST_YEAR = first_date.year
+
 
 
 
 
 
     # ==========================================
-    # CURRENT SELECTED MONTH / YEAR
+    # CURRENT SELECTED FILTER
     # ==========================================
 
     year = int(
+
         request.args.get(
+
             "year",
+
             now.year
+
         )
+
     )
+
 
 
     month = int(
+
         request.args.get(
+
             "month",
+
             now.month
+
         )
+
     )
+
+
+
+    # ==========================================
+    # PREVENT FUTURE DATE
+    # ==========================================
+
+    if year > now.year:
+
+        year = now.year
+
+
+
+    if year == now.year and month > now.month:
+
+        month = now.month
+
 
 
 
@@ -5307,8 +5344,11 @@ def transaction_list():
     # ==================================================
 
     month_start, month_end = get_month_range(
+
         year,
+
         month
+
     )
 
 
@@ -5354,13 +5394,31 @@ def transaction_list():
 
 
 
+        # ===============================
+        # REMOVE FUTURE MONTHS
+        # ===============================
+
+        if year == now.year and month_number > now.month:
+
+            continue
+
+
+
+        # ===============================
+        # REMOVE BEFORE FIRST TRANSACTION
+        # ===============================
+
+        if year == FIRST_YEAR and month_number < SYSTEM_START_MONTH:
+
+            continue
+
+
+
         months.append({
 
             "number": month_number,
 
-            "name": month_names[
-                month_number - 1
-            ]
+            "name": month_names[month_number - 1]
 
         })
 
@@ -5369,32 +5427,15 @@ def transaction_list():
 
 
 
-
     # ==================================================
-    # YEAR FILTER
+    # YEAR LIST
     # ==================================================
-
-
-    start_year = now.year - 5
-
-
-    if first_transaction:
-
-        first_date = first_transaction.get("date")
-
-        if first_date:
-
-            start_year = first_date.year
-
-
-
-
 
     years = list(
 
         range(
 
-            start_year,
+            FIRST_YEAR,
 
             now.year + 1
 
