@@ -327,71 +327,483 @@
 
         </div>
 
-        <!-- ================================= -->
-        <!-- RIGHT -->
-        <!-- ================================= -->
+      <!-- ================================= -->
+<!-- RIGHT SUMMARY -->
+<!-- ================================= -->
 
-        <div class="col-lg-4">
+<div class="col-lg-4">
 
-            <div class="card shadow-sm border-0">
 
-                <div class="card-header bg-primary text-white">
+<div class="card shadow-sm border-0 mb-4">
 
-                    Saving Summary
 
-                </div>
+<div class="card-header bg-primary text-white">
 
-                <div class="card-body">
+<h6 class="mb-0">
 
-                    <p class="mb-2 text-muted">
+<i class="feather-pie-chart me-2"></i>
 
-                        Target Amount
+Saving Goal Summary
 
-                    </p>
+</h6>
 
-                    <h3 id="summaryTarget">
+</div>
 
-                        ${{ "{:,.2f}".format(saving.target_amount|float) }}
 
-                    </h3>
 
-                    <hr>
+<div class="card-body">
 
-                    <p class="mb-2 text-muted">
 
-                        Current Progress
+<!-- STATUS -->
 
-                    </p>
+<div class="d-flex justify-content-between align-items-center mb-3">
 
-                    {% set progress=((saving.current_balance|float)/(saving.target_amount|float)*100) if saving.target_amount else 0 %}
 
-                    <div class="progress mb-2">
+<span class="text-muted">
+Status
+</span>
 
-                        <div
-                            class="progress-bar bg-success"
-                            style="width:{{ progress if progress<100 else 100 }}%;">
 
-                            {{ "%.0f"|format(progress) }}%
 
-                        </div>
+{% if saving.status == "completed" %}
 
-                    </div>
+<span class="badge bg-success">
+Completed
+</span>
 
-                    <p>
 
-                        {{ "{:,.2f}".format(saving.current_balance|float) }}
+{% elif saving.status == "paused" %}
 
-                        /
+<span class="badge bg-warning">
+Paused
+</span>
 
-                        {{ "{:,.2f}".format(saving.target_amount|float) }}
 
-                    </p>
+{% else %}
 
-                </div>
+<span class="badge bg-primary">
+Active
+</span>
 
-            </div>
+{% endif %}
 
-        </div>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+
+<!-- TARGET -->
+
+<div class="mb-3">
+
+<small class="text-muted">
+Target Amount
+</small>
+
+
+<h4 class="fw-bold text-primary"
+id="summaryTarget">
+
+
+${{ "{:,.2f}".format(
+saving.target_amount|float
+) }}
+
+
+</h4>
+
+
+</div>
+
+
+
+
+
+<!-- SAVED -->
+
+<div class="mb-3">
+
+<small class="text-muted">
+Saved Amount
+</small>
+
+
+<h4 class="fw-bold text-success">
+
+
+${{ "{:,.2f}".format(
+saving.current_balance|float
+) }}
+
+
+</h4>
+
+
+</div>
+
+
+
+
+
+
+<!-- REMAINING -->
+
+<div class="mb-3">
+
+<small class="text-muted">
+Remaining
+</small>
+
+
+<h4 class="fw-bold text-danger"
+id="remainingAmount">
+
+
+${{
+"{:,.2f}".format(
+(saving.target_amount|float)
+-
+(saving.current_balance|float)
+)
+}}
+
+
+</h4>
+
+
+</div>
+
+
+
+
+
+
+<hr>
+
+
+
+
+
+<!-- PROGRESS -->
+
+{% set progress =
+(
+(saving.current_balance|float)
+/
+(saving.target_amount|float)
+*100
+)
+if saving.target_amount else 0
+%}
+
+
+
+
+<div class="d-flex justify-content-between mb-2">
+
+
+<span class="text-muted">
+Progress
+</span>
+
+
+<strong id="progressText">
+
+{{ "%.1f"|format(progress) }}%
+
+</strong>
+
+
+</div>
+
+
+
+
+<div class="progress"
+style="height:12px;">
+
+
+<div
+
+id="progressBar"
+
+class="progress-bar bg-success"
+
+style="width:
+{{ progress if progress < 100 else 100 }}%">
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<hr>
+
+
+
+
+
+<!-- ACCOUNT BALANCE -->
+
+<div class="mb-3">
+
+
+<small class="text-muted">
+
+Selected Account Balance
+
+</small>
+
+
+<h5 class="fw-bold text-dark"
+id="accountSummary">
+
+-
+
+</h5>
+
+
+</div>
+
+
+
+
+
+<!-- TARGET DATE -->
+
+<div>
+
+
+<small class="text-muted">
+
+Target Date
+
+</small>
+
+
+<h6 class="fw-bold">
+
+{{ saving.maturity_date or "No Date" }}
+
+</h6>
+
+
+</div>
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- ================================= -->
+<!-- SAVING PLAN ANALYTICS -->
+<!-- ================================= -->
+
+
+<div class="card shadow-sm border-0">
+
+
+
+<div class="card-header bg-light">
+
+
+<h6 class="mb-0">
+
+
+<i class="feather-calendar me-2"></i>
+
+
+Saving Plan Analytics
+
+
+</h6>
+
+
+</div>
+
+
+
+
+
+<div class="card-body">
+
+
+
+
+
+<!-- DAYS + REMAINING -->
+
+<div class="row mb-3">
+
+
+<div class="col-6">
+
+
+<small class="text-muted">
+
+Days Remaining
+
+</small>
+
+
+<h5 class="fw-bold text-dark"
+id="daysRemaining">
+
+-
+
+</h5>
+
+
+</div>
+
+
+
+
+<div class="col-6">
+
+
+<small class="text-muted">
+
+Remaining Amount
+
+</small>
+
+
+<h5 class="fw-bold text-danger"
+id="planRemaining">
+
+-
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<hr>
+
+
+
+
+
+
+<!-- DAILY -->
+
+<div class="mb-3">
+
+
+<small class="text-muted">
+
+Required Daily Saving
+
+</small>
+
+
+<h5 class="fw-bold text-primary"
+id="dailySaving">
+
+-
+
+</h5>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- WEEKLY -->
+
+<div class="mb-3">
+
+
+<small class="text-muted">
+
+Required Weekly Saving
+
+</small>
+
+
+<h5 class="fw-bold text-info"
+id="weeklySaving">
+
+-
+
+</h5>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- MONTHLY -->
+
+<div>
+
+
+<small class="text-muted">
+
+Required Monthly Saving
+
+</small>
+
+
+<h5 class="fw-bold text-success"
+id="monthlySaving">
+
+-
+
+</h5>
+
+
+</div>
+
+
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
 
     </div>
 
@@ -429,42 +841,198 @@
 
 </form>
 
+
+</div>
+
+
+
+</div>
 <script>
 
-const account=document.getElementById("accountSelect");
-const balance=document.getElementById("accountBalance");
+const targetAmount =
+Number("{{ saving.target_amount or 0 }}");
 
-function updateAccount(){
 
-    let option=account.options[account.selectedIndex];
+const currentBalance =
+Number("{{ saving.current_balance or 0 }}");
 
-    if(option){
 
-        balance.innerHTML=
-            Number(option.dataset.balance).toLocaleString(
-                undefined,
-                {
-                    minimumFractionDigits:2
-                }
-            )
-            +" "+
-            option.dataset.currency;
+const maturityDate =
+new Date("{{ saving.maturity_date }}");
 
-    }
+
+const today =
+new Date();
+
+
+
+const remaining =
+Math.max(
+targetAmount - currentBalance,
+0
+);
+
+
+
+document.getElementById(
+"planRemaining"
+).innerHTML =
+"$" + remaining.toLocaleString(
+undefined,
+{
+minimumFractionDigits:2
+}
+);
+
+
+
+if(!isNaN(maturityDate)){
+
+
+const days =
+Math.ceil(
+(maturityDate - today)
+/
+(1000*60*60*24)
+);
+
+
+
+document.getElementById(
+"daysRemaining"
+).innerHTML =
+days > 0
+?
+days+" Days"
+:
+"Expired";
+
+
+
+if(days > 0){
+
+
+const daily =
+remaining / days;
+
+
+const weekly =
+daily * 7;
+
+
+const monthly =
+daily * 30;
+
+
+
+document.getElementById(
+"dailySaving"
+).innerHTML =
+"$"+daily.toLocaleString(
+undefined,
+{
+minimumFractionDigits:2
+}
+);
+
+
+
+document.getElementById(
+"weeklySaving"
+).innerHTML =
+"$"+weekly.toLocaleString(
+undefined,
+{
+minimumFractionDigits:2
+}
+);
+
+
+
+document.getElementById(
+"monthlySaving"
+).innerHTML =
+"$"+monthly.toLocaleString(
+undefined,
+{
+minimumFractionDigits:2
+}
+);
+
+
 
 }
 
-account.addEventListener(
-    "change",
-    updateAccount
+
+
+}
+
+
+
+
+// ACCOUNT BALANCE
+
+const account =
+document.getElementById(
+"accountSelect"
 );
+
+
+
+function updateAccount(){
+
+
+let option =
+account.options[
+account.selectedIndex
+];
+
+
+if(option){
+
+
+document.getElementById(
+"accountSummary"
+).innerHTML =
+
+
+Number(
+option.dataset.balance
+)
+.toLocaleString(
+undefined,
+{
+minimumFractionDigits:2
+}
+)
+
++" "
+
++
+
+option.dataset.currency;
+
+
+}
+
+
+}
+
+
+
+if(account){
+
+account.addEventListener(
+"change",
+updateAccount
+);
+
 
 updateAccount();
 
+}
+
+
+
 </script>
-</div>
-
-
-</div>
-
 {% endblock %}
