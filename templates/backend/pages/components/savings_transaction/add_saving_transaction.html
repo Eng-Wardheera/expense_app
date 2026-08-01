@@ -1,195 +1,1005 @@
 {% extends 'backend/home/base.html' %}
 
-{% block title %}Add Saving Transaction{% endblock %}
+
+{% block title %}
+Add Saving Transaction
+{% endblock %}
+
+
 
 {% block content %}
 
- <!-- [ page-header ] start -->
+
+
+<style>
+
+
+.saving-card{
+
+    border-radius:22px;
+
+    overflow:hidden;
+
+}
+
+
+
+.summary-box{
+
+    border-radius:18px;
+
+    padding:18px;
+
+    background:#f8f9fa;
+
+    transition:.3s;
+
+}
+
+
+.summary-box:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:
+    0 10px 25px rgba(0,0,0,.08);
+
+}
+
+
+
+.summary-icon{
+
+    width:45px;
+
+    height:45px;
+
+    border-radius:50%;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:20px;
+
+}
+
+
+
+.progress{
+
+    height:12px;
+
+    border-radius:30px;
+
+}
+
+
+
+.progress-bar{
+
+    border-radius:30px;
+
+    transition:.5s;
+
+}
+
+
+
+.warning-box{
+
+    display:none;
+
+    border-radius:15px;
+
+}
+
+
+
+.form-control,
+.form-select{
+
+    border-radius:12px;
+
+    padding:12px;
+
+}
+
+
+
+.btn{
+
+    border-radius:12px;
+
+}
+
+
+
+</style>
+
+
+
+
+
+<!-- HEADER -->
+
 <div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Savings Transactions </h5>
-        </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">Add Saving Transactions </li>
-        </ul>
-    </div>
-    <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                    <i class="feather-bar-chart"></i>
-                </a>
-              
-                
-                <a href="leads-create.html" class="btn btn-primary">
-                    <i class="feather-plus me-2"></i>
-                    <span>Create Lead</span>
-                </a>
-            </div>
-        </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
-            </a>
-        </div>
-    </div>
+
+
+<div class="page-header-left d-flex align-items-center">
+
+
+<div class="page-header-title">
+
+<h5 class="m-b-10">
+
+Savings Transactions
+
+</h5>
+
 </div>
 
-<div class="main-content ">
+
+<ul class="breadcrumb">
+
+<li class="breadcrumb-item">
+
+<a href="#">
+
+Home
+
+</a>
+
+</li>
+
+
+<li class="breadcrumb-item">
+
+Add Saving Transaction
+
+</li>
+
+</ul>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="main-content">
+
+
 <div class="row">
-   <form method="POST">
 
-<div class="card shadow-sm">
 
-    <!-- HEADER -->
-    <div class="card-header">
-        <h5 class="mb-0">Add Saving Transaction</h5>
-    </div>
+<div class="col-12">
 
-    <div class="card-body">
 
-        <!-- SAVING TITLE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Saving Goal</label>
-            <div class="col-lg-9">
-                <input type="text"
-                       class="form-control"
-                       value="{{ saving.title if saving else '' }}"
-                       readonly>
-            </div>
-        </div>
 
-        <!-- CURRENT BALANCE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Saving Balance</label>
-            <div class="col-lg-9">
-                <input type="text"
-                       class="form-control"
-                       value="{{ saving.current_balance if saving else 0 }}"
-                       readonly>
-            </div>
-        </div>
+<form method="POST" id="savingTransactionForm">
 
-        <!-- TARGET -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Target Amount</label>
-            <div class="col-lg-9">
-                <input type="text"
-                       class="form-control"
-                       value="{{ saving.target_amount if saving else 0 }}"
-                       readonly>
-            </div>
-        </div>
 
-        <!-- ACCOUNT SELECT -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Account</label>
-            <div class="col-lg-9">
 
-                <select name="account_id" class="form-select" required>
-                    <option value="">-- Select Account --</option>
 
-                    {% for account in accounts or [] %}
-                        <option value="{{ account._id }}"
-                            {% if saving and saving.account_id == account._id %}
-                                selected
-                            {% endif %}>
 
-                            {{ account.name }} | {{ account.balance }} {{ account.currency }}
-                        </option>
-                    {% endfor %}
+<div class="card border-0 shadow-sm saving-card">
 
-                </select>
 
-            </div>
-        </div>
 
-        <!-- TRANSACTION TYPE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Transaction Type</label>
-            <div class="col-lg-9">
 
-                <select name="transaction_type" class="form-select" required>
-                    <option value="deposit">Deposit</option>
-                    <option value="withdrawal">Withdrawal</option>
-                </select>
 
-            </div>
-        </div>
+<!-- HEADER -->
 
-        <!-- AMOUNT -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Amount</label>
-            <div class="col-lg-9">
-                <input type="number"
-                       step="0.01"
-                       name="amount"
-                       class="form-control"
-                       required>
-            </div>
-        </div>
+<div class="card-header bg-white py-4">
 
-        <!-- DESCRIPTION -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Description</label>
-            <div class="col-lg-9">
-                <textarea name="description"
-                          class="form-control"
-                          rows="3"></textarea>
-            </div>
-        </div>
 
-        <!-- NOTE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Note</label>
-            <div class="col-lg-9">
-                <textarea name="note"
-                          class="form-control"
-                          rows="3"></textarea>
-            </div>
-        </div>
+<div class="d-flex justify-content-between align-items-center">
 
-        <!-- REFERENCE -->
-        <div class="row mb-3">
-            <label class="col-lg-3 col-form-label fw-bold">Reference No</label>
-            <div class="col-lg-9">
-                <input type="text"
-                       name="reference_no"
-                       class="form-control"
-                       placeholder="Optional">
-            </div>
-        </div>
 
-    </div>
+<div>
 
-    <!-- FOOTER -->
-    <div class="card-footer text-end d-flex justify-content-end gap-2">
 
-        <button type="submit" class="btn btn-success">
-            Save Transaction
-        </button>
+<h4 class="fw-bold text-primary mb-1">
 
-        <a href="{{ url_for('main.saving_list') }}"
-           class="btn btn-secondary">
-            Cancel
-        </a>
+<i class="bi bi-piggy-bank-fill me-2"></i>
 
-    </div>
+Add Saving Transaction
+
+</h4>
+
+
+<small class="text-muted">
+
+{{ saving.title }}
+
+</small>
+
 
 </div>
 
-</form> 
+
+
+<span class="badge bg-success px-3 py-2">
+
+Active Saving
+
+</span>
+
+
 </div>
 
 
 </div>
+
+
+
+
+
+
+
+<div class="card-body">
+
+
+
+
+
+<!-- SUMMARY -->
+
+<div class="row g-3 mb-4">
+
+
+
+<div class="col-md-4">
+
+
+<div class="summary-box">
+
+
+<div class="d-flex align-items-center gap-3">
+
+
+<div class="summary-icon bg-primary text-white">
+
+<i class="bi bi-wallet2"></i>
+
+</div>
+
+
+<div>
+
+
+small class="text-muted">
+Current Balance
+</small>
+
+
+<h5 class="mb-0">
+
+${{ "%.2f"|format(saving.current_balance or 0) }}
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-md-4">
+
+
+<div class="summary-box">
+
+
+<div class="d-flex align-items-center gap-3">
+
+
+<div class="summary-icon bg-success text-white">
+
+<i class="bi bi-bullseye"></i>
+
+</div>
+
+
+<div>
+
+
+<small class="text-muted">
+
+Target
+
+</small>
+
+
+<h5 class="mb-0">
+
+${{ "%.2f"|format(saving.target_amount or 0) }}
+
+</h5>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+<div class="col-md-4">
+
+
+<div class="summary-box">
+
+
+<small class="text-muted">
+
+Progress
+
+</small>
+
+
+<div class="progress mt-2">
+
+
+{% set percent =
+((saving.current_balance / saving.target_amount)*100)
+if saving.target_amount else 0
+%}
+
+
+<div class="progress-bar bg-success"
+style="width:{{percent if percent < 100 else 100}}%">
+
+
+</div>
+
+
+</div>
+
+
+<small class="fw-bold">
+
+{{ "%.1f"|format(percent) }}%
+
+</small>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+<!-- ACCOUNT -->
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Account
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<select
+
+name="account_id"
+
+id="accountSelect"
+
+class="form-select"
+
+required>
+
+
+<option value="">
+
+-- Select Account --
+
+</option>
+
+
+
+{% for account in accounts %}
+
+
+<option
+
+value="{{account._id}}"
+
+data-balance="{{account.balance}}">
+
+
+{{account.name}}
+
+|
+
+{{"%.2f"|format(account.balance)}}
+
+{{account.currency}}
+
+
+</option>
+
+
+
+{% endfor %}
+
+
+</select>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- TYPE -->
+
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Transaction Type
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<select
+
+name="transaction_type"
+
+id="transactionType"
+
+class="form-select"
+
+required>
+
+
+
+<option value="deposit">
+
+Deposit
+
+(+)
+
+</option>
+
+
+<option value="withdrawal">
+
+Withdrawal
+
+(-)
+
+</option>
+
+
+
+</select>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- AMOUNT -->
+
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Amount
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<div class="input-group">
+
+
+<span class="input-group-text">
+
+$
+
+</span>
+
+
+<input
+
+type="number"
+
+step="0.01"
+
+min="0"
+
+name="amount"
+
+id="amountInput"
+
+class="form-control"
+
+placeholder="0.00"
+
+required>
+
+
+</div>
+
+
+
+
+
+<div
+
+id="warningBox"
+
+class="alert alert-danger warning-box mt-3">
+
+
+<i class="bi bi-exclamation-triangle-fill me-2"></i>
+
+<span id="warningText"></span>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- DESCRIPTION -->
+
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Description
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<textarea
+
+name="description"
+
+class="form-control"
+
+rows="3"
+
+placeholder="Transaction description..."></textarea>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- NOTE -->
+
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Note
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<textarea
+
+name="note"
+
+class="form-control"
+
+rows="3"
+
+placeholder="Additional note..."></textarea>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- REFERENCE -->
+
+
+<div class="row mb-3">
+
+
+<label class="col-lg-3 col-form-label fw-bold">
+
+Reference No
+
+</label>
+
+
+<div class="col-lg-9">
+
+
+<input
+
+type="text"
+
+name="reference_no"
+
+class="form-control"
+
+placeholder="Optional reference number">
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+<div class="card-footer bg-white d-flex justify-content-end gap-2">
+
+
+<a href="{{url_for('main.saving_list')}}"
+
+class="btn btn-secondary">
+
+
+Cancel
+
+</a>
+
+
+
+<button
+
+type="submit"
+
+id="saveBtn"
+
+class="btn btn-success">
+
+
+<i class="bi bi-check-circle me-1"></i>
+
+Save Transaction
+
+
+</button>
+
+
+
+</div>
+
+
+
+
+
+
+</div>
+
+
+
+</form>
+
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<script>
+
+
+const accountSelect =
+document.getElementById(
+"accountSelect"
+);
+
+
+const typeSelect =
+document.getElementById(
+"transactionType"
+);
+
+
+const amountInput =
+document.getElementById(
+"amountInput"
+);
+
+
+const warningBox =
+document.getElementById(
+"warningBox"
+);
+
+
+const warningText =
+document.getElementById(
+"warningText"
+);
+
+
+const saveBtn =
+document.getElementById(
+"saveBtn"
+);
+
+
+
+
+const savingBalance =
+parseFloat(
+"{{saving.current_balance or 0}}"
+);
+
+
+
+
+
+
+function validateTransaction(){
+
+
+let amount =
+parseFloat(
+amountInput.value
+) || 0;
+
+
+
+let type =
+typeSelect.value;
+
+
+
+let accountBalance = 0;
+
+
+
+if(accountSelect.value){
+
+
+let option =
+accountSelect.options[
+accountSelect.selectedIndex
+];
+
+
+accountBalance =
+parseFloat(
+option.dataset.balance
+) || 0;
+
+
+}
+
+
+
+
+warningBox.style.display="none";
+
+saveBtn.disabled=false;
+
+
+
+
+
+
+if(type==="deposit"){
+
+
+
+if(amount > accountBalance){
+
+
+warningText.innerHTML =
+"Account balance is insufficient for this deposit.";
+
+
+warningBox.style.display="block";
+
+
+saveBtn.disabled=true;
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+if(type==="withdrawal"){
+
+
+
+if(amount > savingBalance){
+
+
+
+warningText.innerHTML =
+"Saving balance is insufficient for this withdrawal.";
+
+
+
+warningBox.style.display="block";
+
+
+
+saveBtn.disabled=true;
+
+
+
+}
+
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+accountSelect.addEventListener(
+"change",
+validateTransaction
+);
+
+
+typeSelect.addEventListener(
+"change",
+validateTransaction
+);
+
+
+amountInput.addEventListener(
+"input",
+validateTransaction
+);
+
+
+
+</script>
+
+
 
 {% endblock %}

@@ -9304,171 +9304,523 @@ def delete_saving(id):
 @login_required
 def add_saving_transaction(id):
 
+    user_id = ObjectId(current_user.id)
+
+
+    # ==============================
+    # CHECK SAVING ID
+    # ==============================
+
     try:
-        saving_obj_id = ObjectId(id)
+
+        saving_id = ObjectId(id)
+
     except:
-        flash("Invalid saving ID.", "danger")
-        return redirect(url_for("main.saving_list"))
 
-    # ------------------------
-    # GET SAVING
-    # ------------------------
-    saving = mongo.db.savings.find_one({
-        "_id": saving_obj_id,
-        "user_id": ObjectId(current_user.id)
-    })
-
-    if not saving:
-        flash("Saving goal not found.", "danger")
-        return redirect(url_for("main.saving_list"))
-
-    # ------------------------
-    # GET ACCOUNTS
-    # ------------------------
-    accounts = list(mongo.db.accounts.find({
-        "user_id": ObjectId(current_user.id)
-    }))
-
-    # ------------------------
-    # POST LOGIC
-    # ------------------------
-    if request.method == "POST":
-
-        account_id = request.form.get("account_id")
-        transaction_type = request.form.get("transaction_type")
-        amount = request.form.get("amount")
-        description = request.form.get("description", "")
-        note = request.form.get("note", "")
-        reference_no = request.form.get("reference_no")
-
-        # validate required
-        if not account_id or not amount:
-            flash("Account and Amount are required.", "danger")
-            return redirect(request.url)
-
-        # validate amount
-        try:
-            amount = float(amount)
-        except:
-            flash("Invalid amount.", "danger")
-            return redirect(request.url)
-
-        if amount <= 0:
-            flash("Amount must be greater than 0.", "danger")
-            return redirect(request.url)
-
-        # validate account
-        try:
-            account_obj_id = ObjectId(account_id)
-        except:
-            flash("Invalid account ID.", "danger")
-            return redirect(request.url)
-
-        account = mongo.db.accounts.find_one({
-            "_id": account_obj_id,
-            "user_id": ObjectId(current_user.id)
-        })
-
-        if not account:
-            flash("Account not found.", "danger")
-            return redirect(request.url)
-
-        # ------------------------
-        # BALANCE VALIDATION
-        # ------------------------
-        if transaction_type == "deposit":
-            if account.get("balance", 0) < amount:
-                flash("Account balance is insufficient.", "danger")
-                return redirect(request.url)
-
-        elif transaction_type == "withdrawal":
-            if saving.get("current_balance", 0) < amount:
-                flash("Saving balance is insufficient.", "danger")
-                return redirect(request.url)
-
-        else:
-            flash("Invalid transaction type.", "danger")
-            return redirect(request.url)
-
-        # ------------------------
-        # CREATE TRANSACTION DATA
-        # ------------------------
-        trx = SavingTransaction()
-
-        data = trx.add(
-            user_id=current_user.id,
-            saving_id=id,
-            account_id=account_id,
-            transaction_type=transaction_type,
-            amount=amount,
-            description=description,
-            note=note,
-            reference_no=reference_no
+        flash(
+            "Invalid saving ID.",
+            "danger"
         )
 
-        data["user_id"] = ObjectId(current_user.id)
-        data["saving_id"] = saving_obj_id
-        data["account_id"] = account_obj_id
+        return redirect(
+            url_for("main.saving_list")
+        )
 
-        mongo.db.saving_transactions.insert_one(data)
 
-        # ------------------------
-        # UPDATE BALANCES
-        # ------------------------
+
+    # ==============================
+    # GET SAVING
+    # ==============================
+
+    saving = mongo.db.savings.find_one({
+
+        "_id": saving_id,
+
+        "user_id": user_id
+
+    })
+
+
+    if not saving:
+
+        flash(
+            "Saving goal not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.saving_list")
+        )
+
+
+
+
+    # ==============================
+    # ACCOUNTS
+    # ==============================
+
+
+    accounts = list(
+        mongo.db.accounts.find({
+
+            "user_id": user_id,
+
+            "status": True
+
+        })
+    )
+
+
+
+
+
+    # ==============================
+    # POST
+    # ==============================
+
+
+    if request.method == "POST":
+
+
+
+        account_id = request.form.get(
+            "account_id"
+        )
+
+
+        transaction_type = request.form.get(
+            "transaction_type"
+        )
+
+
+        amount = request.form.get(
+            "amount"
+        )
+
+
+        description = request.form.get(
+            "description",
+            ""
+        )
+
+
+        note = request.form.get(
+            "note",
+            ""
+        )
+
+
+        reference_no = request.form.get(
+            "reference_no"
+        )
+
+
+
+
+        # REQUIRED
+
+        if not account_id or not amount:
+
+
+            flash(
+                "Account and amount are required.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+        # AMOUNT
+
+        try:
+
+            amount = float(amount)
+
+        except:
+
+
+            flash(
+                "Invalid amount.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+        if amount <= 0:
+
+
+            flash(
+                "Amount must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        # ACCOUNT ID
+
+
+        try:
+
+            account_obj_id = ObjectId(
+                account_id
+            )
+
+        except:
+
+
+            flash(
+                "Invalid account.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        account = mongo.db.accounts.find_one({
+
+            "_id": account_obj_id,
+
+            "user_id": user_id
+
+        })
+
+
+
+        if not account:
+
+
+            flash(
+                "Account not found.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        account_balance = float(
+            account.get(
+                "balance",
+                0
+            )
+        )
+
+
+
+        saving_balance = float(
+            saving.get(
+                "current_balance",
+                0
+            )
+        )
+
+
+
+
+
+        # ==============================
+        # BALANCE CHECK
+        # ==============================
+
+
         if transaction_type == "deposit":
 
-            mongo.db.accounts.update_one(
-                {"_id": account_obj_id},
-                {"$inc": {"balance": -amount}}
-            )
 
-            mongo.db.savings.update_one(
-                {"_id": saving_obj_id},
-                {"$inc": {"current_balance": amount}}
-            )
+            if amount > account_balance:
+
+
+                flash(
+                    "Insufficient account balance.",
+                    "danger"
+                )
+
+                return redirect(request.url)
+
+
 
         elif transaction_type == "withdrawal":
 
-            mongo.db.savings.update_one(
-                {"_id": saving_obj_id},
-                {"$inc": {"current_balance": -amount}}
+
+            if amount > saving_balance:
+
+
+                flash(
+                    "Insufficient saving balance.",
+                    "danger"
+                )
+
+                return redirect(request.url)
+
+
+
+        else:
+
+
+            flash(
+                "Invalid transaction type.",
+                "danger"
             )
+
+            return redirect(request.url)
+
+
+
+
+
+
+
+        # ==============================
+        # CREATE TRANSACTION
+        # ==============================
+
+
+        trx = SavingTransaction()
+
+
+        data = trx.add(
+
+            user_id=user_id,
+
+            saving_id=saving_id,
+
+            account_id=account_obj_id,
+
+            transaction_type=transaction_type,
+
+            amount=amount,
+
+            description=description,
+
+            note=note,
+
+            reference_no=reference_no
+
+        )
+
+
+
+        data["user_id"] = user_id
+
+        data["saving_id"] = saving_id
+
+        data["account_id"] = account_obj_id
+
+
+
+        mongo.db.saving_transactions.insert_one(
+            data
+        )
+
+
+
+
+
+
+
+        # ==============================
+        # UPDATE BALANCE
+        # ==============================
+
+
+        if transaction_type == "deposit":
+
+
 
             mongo.db.accounts.update_one(
-                {"_id": account_obj_id},
-                {"$inc": {"balance": amount}}
-            )
 
-        # ------------------------
-        # AUTO COMPLETE SAVING
-        # ------------------------
-        updated = mongo.db.savings.find_one({"_id": saving_obj_id})
-
-        if updated.get("current_balance", 0) >= updated.get("target_amount", 0):
-
-            mongo.db.savings.update_one(
-                {"_id": saving_obj_id},
                 {
-                    "$set": {
-                        "status": "completed",
-                        "updated_at": datetime.utcnow()
+                    "_id": account_obj_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        -amount
                     }
                 }
+
             )
 
-        flash("Saving transaction added successfully.", "success")
 
-        return redirect(url_for("main.saving_transaction_list"))
 
-    # ------------------------
-    # RENDER PAGE
-    # ------------------------
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        amount
+                    },
+
+                    "$set":
+                    {
+                        "updated_at":
+                        datetime.utcnow()
+                    }
+                }
+
+            )
+
+
+
+
+        elif transaction_type == "withdrawal":
+
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        -amount
+                    },
+
+                    "$set":
+                    {
+                        "updated_at":
+                        datetime.utcnow()
+                    }
+                }
+
+            )
+
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": account_obj_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        amount
+                    }
+                }
+
+            )
+
+
+
+
+
+
+
+
+        # ==============================
+        # AUTO COMPLETE
+        # ==============================
+
+
+        updated_saving = mongo.db.savings.find_one({
+
+            "_id": saving_id
+
+        })
+
+
+
+        if (
+
+            updated_saving.get(
+                "current_balance",
+                0
+            )
+
+            >=
+
+            updated_saving.get(
+                "target_amount",
+                0
+            )
+
+        ):
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+
+                    "$set":
+                    {
+
+                        "status":
+                        "completed",
+
+                        "updated_at":
+                        datetime.utcnow()
+
+                    }
+
+                }
+
+            )
+
+
+
+
+        flash(
+            "Saving transaction added successfully.",
+            "success"
+        )
+
+
+
+        return redirect(
+
+            url_for(
+                "main.saving_transaction_list",
+                saving_id=id
+            )
+
+        )
+
+
+
+
+
+
     return render_template(
-        "backend/pages/components/savings_transaction/add_saving_transaction.html",
-        saving=saving,
-        accounts=accounts
-    )
 
+        "backend/pages/components/savings_transaction/add_saving_transaction.html",
+
+        saving=saving,
+
+        accounts=accounts
+
+    )
 
 
 @bp.route("/saving-transactions")
@@ -9549,104 +9901,626 @@ def saving_transaction_list():
     )
 
 
-
 @bp.route("/saving-transaction/edit/<id>", methods=["GET", "POST"])
 @login_required
 def edit_saving_transaction(id):
 
+    try:
+        trx_id = ObjectId(id)
+
+    except Exception:
+        flash("Invalid transaction ID.", "danger")
+        return redirect(
+            url_for("main.saving_transaction_list")
+        )
+
+
+
+    user_id = ObjectId(current_user.id)
+
+
+
+    # ==========================================
+    # GET TRANSACTION
+    # ==========================================
+
     trx = mongo.db.saving_transactions.find_one({
-        "_id": ObjectId(id),
-        "user_id": ObjectId(current_user.id)
+
+        "_id": trx_id,
+
+        "user_id": user_id
+
     })
 
-    if not trx:
-        flash("Transaction not found.", "danger")
-        return redirect(url_for("main.saving_transaction_list"))
 
-    accounts = list(mongo.db.accounts.find({
-        "user_id": ObjectId(current_user.id)
-    }))
+
+    if not trx:
+
+        flash(
+            "Saving transaction not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.saving_transaction_list")
+        )
+
+
+
+
+    # ==========================================
+    # ACCOUNTS
+    # ==========================================
+
+    accounts = list(
+        mongo.db.accounts.find({
+
+            "user_id": user_id
+
+        })
+    )
+
+
+
+
+
+    # ==========================================
+    # POST
+    # ==========================================
 
     if request.method == "POST":
 
-        new_account = request.form.get("account_id")
-        new_type = request.form.get("transaction_type")
-        new_amount = float(request.form.get("amount"))
-        description = request.form.get("description")
-        note = request.form.get("note")
-        reference_no = request.form.get("reference_no")
 
-        old_account = trx["account_id"]
-        old_amount = float(trx["amount"])
-        old_type = trx["transaction_type"]
-        saving_id = trx["saving_id"]
+        try:
 
-        # Reverse old balances
-        if old_type == "deposit":
-            mongo.db.accounts.update_one(
-                {"_id": old_account},
-                {"$inc": {"balance": old_amount}}
-            )
-            mongo.db.savings.update_one(
-                {"_id": saving_id},
-                {"$inc": {"current_balance": -old_amount}}
+
+            new_account_id = request.form.get(
+                "account_id"
             )
 
-        else:
-            mongo.db.accounts.update_one(
-                {"_id": old_account},
-                {"$inc": {"balance": -old_amount}}
-            )
-            mongo.db.savings.update_one(
-                {"_id": saving_id},
-                {"$inc": {"current_balance": old_amount}}
+
+            new_type = request.form.get(
+                "transaction_type"
             )
 
-        # Apply new balances
-        if new_type == "deposit":
-            mongo.db.accounts.update_one(
-                {"_id": ObjectId(new_account)},
-                {"$inc": {"balance": -new_amount}}
-            )
-            mongo.db.savings.update_one(
-                {"_id": saving_id},
-                {"$inc": {"current_balance": new_amount}}
+
+            new_amount = float(
+                request.form.get(
+                    "amount",
+                    0
+                )
             )
 
-        else:
-            mongo.db.accounts.update_one(
-                {"_id": ObjectId(new_account)},
-                {"$inc": {"balance": new_amount}}
-            )
-            mongo.db.savings.update_one(
-                {"_id": saving_id},
-                {"$inc": {"current_balance": -new_amount}}
+
+
+        except:
+
+
+            flash(
+                "Invalid amount.",
+                "danger"
             )
 
-        mongo.db.saving_transactions.update_one(
-            {"_id": ObjectId(id)},
-            {
-                "$set": {
-                    "account_id": ObjectId(new_account),
-                    "transaction_type": new_type,
-                    "amount": new_amount,
-                    "description": description,
-                    "note": note,
-                    "reference_no": reference_no,
-                    "updated_at": datetime.utcnow()
-                }
-            }
+            return redirect(request.url)
+
+
+
+
+        description = request.form.get(
+            "description",
+            ""
         )
 
-        flash("Transaction updated successfully.", "success")
-        return redirect(url_for("main.saving_transaction_list"))
+
+        note = request.form.get(
+            "note",
+            ""
+        )
+
+
+        reference_no = request.form.get(
+            "reference_no"
+        )
+
+
+
+
+        if not new_account_id:
+
+
+            flash(
+                "Account required.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        if new_amount <= 0:
+
+
+            flash(
+                "Amount must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        if new_type not in [
+            "deposit",
+            "withdrawal"
+        ]:
+
+
+            flash(
+                "Invalid transaction type.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+        try:
+
+            new_account_obj = ObjectId(
+                new_account_id
+            )
+
+        except:
+
+
+            flash(
+                "Invalid account.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        # ==========================================
+        # CHECK ACCOUNT OWNER
+        # ==========================================
+
+        account = mongo.db.accounts.find_one({
+
+            "_id": new_account_obj,
+
+            "user_id": user_id
+
+        })
+
+
+        if not account:
+
+
+            flash(
+                "Account not found.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+
+        old_account = trx["account_id"]
+
+        old_amount = float(
+            trx.get(
+                "amount",
+                0
+            )
+        )
+
+        old_type = trx["transaction_type"]
+
+
+        saving_id = trx["saving_id"]
+
+
+
+
+
+
+        saving = mongo.db.savings.find_one({
+
+            "_id": saving_id,
+
+            "user_id": user_id
+
+        })
+
+
+
+        if not saving:
+
+
+            flash(
+                "Saving goal not found.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+
+
+        # ==========================================
+        # REMOVE OLD TRANSACTION EFFECT
+        # ==========================================
+
+
+        if old_type == "deposit":
+
+
+            # return money to account
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": old_account
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        old_amount
+                    }
+                }
+
+            )
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        -old_amount
+                    }
+                }
+
+            )
+
+
+
+        else:
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": old_account
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        -old_amount
+                    }
+                }
+
+            )
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        old_amount
+                    }
+                }
+
+            )
+
+
+
+
+
+
+
+        # ==========================================
+        # APPLY NEW TRANSACTION
+        # ==========================================
+
+
+        if new_type == "deposit":
+
+
+
+            if account.get(
+                "balance",
+                0
+            ) < new_amount:
+
+
+                flash(
+                    "Insufficient account balance.",
+                    "danger"
+                )
+
+
+                return redirect(request.url)
+
+
+
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": new_account_obj
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        -new_amount
+                    }
+                }
+
+            )
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        new_amount
+                    }
+                }
+
+            )
+
+
+
+
+
+        else:
+
+
+
+            if saving.get(
+                "current_balance",
+                0
+            ) < new_amount:
+
+
+                flash(
+                    "Saving balance insufficient.",
+                    "danger"
+                )
+
+
+                return redirect(request.url)
+
+
+
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": new_account_obj
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        new_amount
+                    }
+                }
+
+            )
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        -new_amount
+                    }
+                }
+
+            )
+
+
+
+
+
+
+
+
+        # ==========================================
+        # UPDATE TRANSACTION
+        # ==========================================
+
+
+        mongo.db.saving_transactions.update_one(
+
+            {
+                "_id": trx_id
+            },
+
+            {
+
+                "$set":
+
+                {
+
+                    "account_id":
+                    new_account_obj,
+
+
+                    "transaction_type":
+                    new_type,
+
+
+                    "amount":
+                    new_amount,
+
+
+                    "description":
+                    description,
+
+
+                    "note":
+                    note,
+
+
+                    "reference_no":
+                    reference_no,
+
+
+                    "updated_at":
+                    datetime.utcnow()
+
+                }
+
+            }
+
+        )
+
+
+
+
+
+
+
+        # ==========================================
+        # UPDATE SAVING STATUS
+        # ==========================================
+
+
+        updated_saving = mongo.db.savings.find_one({
+
+            "_id": saving_id
+
+        })
+
+
+
+        if updated_saving.get(
+            "current_balance",
+            0
+        ) >= updated_saving.get(
+            "target_amount",
+            0
+        ):
+
+
+            status = "completed"
+
+
+        else:
+
+
+            status = "active"
+
+
+
+
+
+        mongo.db.savings.update_one(
+
+            {
+                "_id": saving_id
+            },
+
+            {
+
+                "$set":
+                {
+
+                    "status":
+                    status,
+
+                    "updated_at":
+                    datetime.utcnow()
+
+                }
+
+            }
+
+        )
+
+
+
+
+
+        flash(
+            "Saving transaction updated successfully.",
+            "success"
+        )
+
+
+        return redirect(
+            url_for(
+                "main.saving_transaction_list"
+            )
+        )
+
+
+
+
+
+
 
     return render_template(
-        "backend/pages/components/savings_transaction/edit_saving_transaction.html",
-        trx=trx,
-        accounts=accounts
-    )
 
+        "backend/pages/components/savings_transaction/edit_saving_transaction.html",
+
+        trx=trx,
+
+        accounts=accounts
+
+    )
 
 @bp.route("/saving-transaction/delete/<id>")
 @login_required
