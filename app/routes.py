@@ -4960,38 +4960,61 @@ def clean_category(cat):
 
 
 
-def get_month_range(year, month):
 
-    from datetime import datetime
+def get_month_range(year=None, month=None):
+
+    # ==========================
+    # CURRENT DATE DEFAULT
+    # ==========================
+
+    now = datetime.utcnow()
 
 
-    start=datetime(
-        year,
-        month,
+    if not year:
+
+        year = now.year
+
+
+    if not month:
+
+        month = now.month
+
+
+
+    # ==========================
+    # MONTH START
+    # ==========================
+
+    start = datetime(
+        int(year),
+        int(month),
         1
     )
 
 
-    if month == 12:
 
-        end=datetime(
-            year+1,
+    # ==========================
+    # NEXT MONTH
+    # ==========================
+
+    if int(month) == 12:
+
+        end = datetime(
+            int(year) + 1,
             1,
             1
         )
 
     else:
 
-        end=datetime(
-            year,
-            month+1,
+        end = datetime(
+            int(year),
+            int(month) + 1,
             1
         )
 
 
-    return start,end
-
-
+    return start, end
 
 
 
@@ -5220,6 +5243,46 @@ def transaction_list():
     now = datetime.utcnow()
 
 
+    # ==========================================
+    # FIRST TRANSACTION OF USER
+    # ==========================================
+
+    first_transaction = mongo.db.transactions.find_one(
+
+        {
+            "user_id": ObjectId(current_user.id),
+            "status": True
+        },
+
+        sort=[
+            ("date", 1)
+        ]
+
+    )
+
+
+
+    # Default system start
+    SYSTEM_START_MONTH = 1
+
+
+    if first_transaction:
+
+        first_date = first_transaction.get("date")
+
+
+        if first_date:
+
+            SYSTEM_START_MONTH = first_date.month
+
+
+
+
+
+    # ==========================================
+    # CURRENT SELECTED MONTH / YEAR
+    # ==========================================
+
     year = int(
         request.args.get(
             "year",
@@ -5236,11 +5299,108 @@ def transaction_list():
     )
 
 
+
+
+
+    # ==================================================
+    # MONTH RANGE
+    # ==================================================
+
     month_start, month_end = get_month_range(
         year,
         month
     )
 
+
+
+
+
+
+    # ==================================================
+    # MONTH LIST
+    # ==================================================
+
+    month_names = [
+
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+
+    ]
+
+
+
+    months = []
+
+
+
+    for i in range(12):
+
+
+        month_number = (
+
+            SYSTEM_START_MONTH + i - 1
+
+        ) % 12 + 1
+
+
+
+        months.append({
+
+            "number": month_number,
+
+            "name": month_names[
+                month_number - 1
+            ]
+
+        })
+
+
+
+
+
+
+
+    # ==================================================
+    # YEAR FILTER
+    # ==================================================
+
+
+    start_year = now.year - 5
+
+
+    if first_transaction:
+
+        first_date = first_transaction.get("date")
+
+        if first_date:
+
+            start_year = first_date.year
+
+
+
+
+
+    years = list(
+
+        range(
+
+            start_year,
+
+            now.year + 1
+
+        )
+
+    )
 
 
     # ==================================================
@@ -5804,6 +5964,9 @@ def transaction_list():
         year=year,
 
         month=month,
+
+        months=months,
+years=years,
 
 
         monthly_card=monthly_card,
