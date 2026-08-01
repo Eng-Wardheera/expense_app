@@ -4924,17 +4924,270 @@ def saving_withdraw():
     return jsonify({"message": "Money moved from Saving → Account"})
 
 
-
-
 def clean_category(cat):
+
     return {
-        "_id": str(cat["_id"]),
-        "name": cat.get("name", ""),
-        "type": cat.get("type", ""),
-        "items": [str(i) for i in (cat.get("items") or []) if i]
+
+        "_id": str(
+            cat.get("_id")
+        ),
+
+        "name": cat.get(
+            "name",
+            ""
+        ),
+
+        "type": cat.get(
+            "type",
+            ""
+        ),
+
+        "items":[
+
+            str(i)
+
+            for i in (
+                cat.get("items") or []
+            )
+
+            if i
+
+        ]
+
     }
 
 
+
+
+
+def get_month_range(year, month):
+
+    from datetime import datetime
+
+
+    start=datetime(
+        year,
+        month,
+        1
+    )
+
+
+    if month == 12:
+
+        end=datetime(
+            year+1,
+            1,
+            1
+        )
+
+    else:
+
+        end=datetime(
+            year,
+            month+1,
+            1
+        )
+
+
+    return start,end
+
+
+
+
+
+def calculate_savings_balance(records):
+
+
+    total=0
+
+    deposits=0
+
+    withdrawals=0
+
+
+
+    for item in records:
+
+
+        amount=float(
+            item.get(
+                "amount",
+                0
+            )
+        )
+
+
+        if item.get(
+            "transaction_type"
+        )=="deposit":
+
+
+            deposits += amount
+
+            total += amount
+
+
+
+        elif item.get(
+            "transaction_type"
+        )=="withdrawal":
+
+
+            withdrawals += amount
+
+            total -= amount
+
+
+
+    return {
+
+        "balance":total,
+
+        "deposit":deposits,
+
+        "withdrawal":withdrawals
+
+    }
+
+
+
+
+
+def calculate_transaction_summary(transactions):
+
+
+    result={
+
+        "income":0,
+
+        "expense":0,
+
+        "income_categories":defaultdict(float),
+
+        "expense_categories":defaultdict(float),
+
+        "largest_income":None,
+
+        "largest_expense":None
+
+    }
+
+
+
+    for trx in transactions:
+
+
+        amount=float(
+            trx.get(
+                "amount",
+                0
+            )
+        )
+
+
+        trx_type=trx.get(
+            "transaction_type"
+        )
+
+
+        category=trx.get(
+            "category",
+            "Unknown"
+        )
+
+
+
+        if trx_type=="income":
+
+
+            result["income"] += amount
+
+
+            result[
+                "income_categories"
+            ][category]+=amount
+
+
+
+            if (
+
+                result["largest_income"] is None
+
+                or amount >
+
+                result["largest_income"]["amount"]
+
+            ):
+
+                result["largest_income"]={
+
+                    "amount":amount,
+
+                    "data":trx
+
+                }
+
+
+
+
+        elif trx_type=="expense":
+
+
+            result["expense"] += amount
+
+
+            result[
+                "expense_categories"
+            ][category]+=amount
+
+
+
+            if (
+
+                result["largest_expense"] is None
+
+                or amount >
+
+                result["largest_expense"]["amount"]
+
+            ):
+
+
+                result["largest_expense"]={
+
+                    "amount":amount,
+
+                    "data":trx
+
+                }
+
+
+    return result
+
+
+
+
+
+
+def get_biggest_category(data):
+
+
+    if not data:
+
+        return None,0
+
+
+
+    key=max(
+
+        data,
+
+        key=data.get
+
+    )
+
+
+    return key,data[key]
 
 
 
@@ -4942,69 +5195,121 @@ def clean_category(cat):
 @login_required
 def transaction_list():
 
-    user_object_id = ObjectId(current_user.id)
+    from datetime import datetime
+    from bson import ObjectId
 
 
-    transaction_type = request.args.get("type")
-    account_id = request.args.get("account_id")
-    category = request.args.get("category")
-    item = request.args.get("item")
+    # ==================================================
+    # USER
+    # ==================================================
 
+    user_object_id = ObjectId(
+        current_user.id
+    )
 
-
-    # =====================================
-    # CURRENT MONTH RANGE
-    # =====================================
-
-    now = datetime.utcnow()
-
-    month_start = datetime(
-        now.year,
-        now.month,
-        1
+    user_string_id = str(
+        current_user.id
     )
 
 
-    if now.month == 12:
 
-        month_end = datetime(
-            now.year + 1,
-            1,
-            1
+    # ==================================================
+    # MONTH / YEAR FILTER
+    # ==================================================
+
+    now = datetime.utcnow()
+
+
+    year = int(
+        request.args.get(
+            "year",
+            now.year
         )
+    )
 
-    else:
 
-        month_end = datetime(
-            now.year,
-            now.month + 1,
-            1
+    month = int(
+        request.args.get(
+            "month",
+            now.month
         )
+    )
+
+
+    month_start, month_end = get_month_range(
+        year,
+        month
+    )
 
 
 
-    # =====================================
-    # QUERY
-    # =====================================
+    # ==================================================
+    # FILTERS
+    # ==================================================
 
-    query = {
+    transaction_type = request.args.get(
+        "type"
+    )
+
+
+    account_id = request.args.get(
+        "account_id"
+    )
+
+
+    category = request.args.get(
+        "category"
+    )
+
+
+    item = request.args.get(
+        "item"
+    )
+
+
+
+    # ==================================================
+    # TRANSACTION QUERY
+    # ==================================================
+
+    transaction_query = {
 
         "user_id": user_object_id,
 
         "status": True,
 
         "date": {
+
             "$gte": month_start,
+
             "$lt": month_end
+
         }
 
     }
 
 
 
-    if transaction_type:
+    filters = {
 
-        query["transaction_type"] = transaction_type
+        "transaction_type":
+        transaction_type,
+
+        "category":
+        category,
+
+        "item":
+        item
+
+    }
+
+
+
+    for key,value in filters.items():
+
+        if value:
+
+            transaction_query[key]=value
 
 
 
@@ -5012,7 +5317,9 @@ def transaction_list():
 
         try:
 
-            query["account_id"] = ObjectId(account_id)
+            transaction_query["account_id"] = ObjectId(
+                account_id
+            )
 
         except:
 
@@ -5020,35 +5327,28 @@ def transaction_list():
 
 
 
-    if category:
 
-        query["category"] = category
-
-
-
-    if item:
-
-        query["item"] = item
-
-
-
-
-    # =====================================
+    # ==================================================
     # TRANSACTIONS
-    # =====================================
+    # ==================================================
 
     transactions = list(
 
-        mongo.db.transactions.find(query)
-        .sort("date",-1)
+        mongo.db.transactions.find(
+            transaction_query
+        )
+        .sort(
+            "date",
+            -1
+        )
 
     )
 
 
 
-    # =====================================
+    # ==================================================
     # ACCOUNTS
-    # =====================================
+    # ==================================================
 
     accounts = list(
 
@@ -5063,206 +5363,130 @@ def transaction_list():
     )
 
 
+
     account_map = {
 
-        str(a["_id"]):a.get("name")
+        str(account["_id"]):
 
-        for a in accounts
+        account.get(
+            "name",
+            "Unknown"
+        )
+
+        for account in accounts
 
     }
 
 
 
-    for t in transactions:
+    for transaction in transactions:
 
-        t["account_name"] = account_map.get(
+        transaction["account_name"] = (
 
-            str(t.get("account_id")),
+            account_map.get(
 
-            "Unknown"
+                str(
+                    transaction.get(
+                        "account_id"
+                    )
+                ),
+
+                "Unknown"
+
+            )
 
         )
 
 
 
 
-    # =====================================
+
+    # ==================================================
     # CATEGORIES
-    # =====================================
-
-    categories_raw = list(
-
-        mongo.db.categories.find({
-
-            "user_id": user_object_id,
-
-            "status": True
-
-        })
-
-    )
-
+    # ==================================================
 
     categories = [
 
-        clean_category(c)
+        clean_category(category)
 
-        for c in categories_raw
+        for category in mongo.db.categories.find({
+
+            "$or":[
+
+                {
+                    "user_id":user_object_id
+                },
+
+                {
+                    "user_id":user_string_id
+                }
+
+            ],
+
+            "status":True
+
+        })
 
     ]
 
 
 
 
-    # =====================================
+
+    # ==================================================
     # SAVINGS
-    # =====================================
+    # ==================================================
 
-    savings = list(
+    saving_transactions=list(
 
-        mongo.db.savings.find({
+        mongo.db.saving_transactions.find({
 
-            "user_id":str(current_user.id)
+            "$or":[
+
+                {
+                    "user_id":user_object_id
+                },
+
+                {
+                    "user_id":user_string_id
+                }
+
+            ],
+
+            "status":True
 
         })
 
     )
 
 
-    total_savings = sum(
 
-        float(s.get("current_balance",0))
+    saving_summary = calculate_savings_balance(
 
-        for s in savings
-
-    )
-
-
-
-
-    # =====================================
-    # ACCOUNT BALANCE
-    # =====================================
-
-    total_balance = sum(
-
-        float(a.get("balance",0))
-
-        for a in accounts
+        saving_transactions
 
     )
 
 
 
 
-    # =====================================
-    # SUMMARY
-    # =====================================
 
-    total_income = 0
+    # ==================================================
+    # ANALYTICS
+    # ==================================================
 
-    total_expense = 0
+    summary = calculate_transaction_summary(
 
+        transactions
 
-    income_categories = defaultdict(float)
-
-    expense_categories = defaultdict(float)
+    )
 
 
 
-    largest_income = None
+    total_income = summary["income"]
 
-    largest_expense = None
+    total_expense = summary["expense"]
 
-
-
-
-    for t in transactions:
-
-
-        amount = float(
-
-            t.get("amount",0)
-
-        )
-
-
-        trx_type = t.get(
-            "transaction_type"
-        )
-
-
-        cat = t.get(
-            "category",
-            "Unknown"
-        )
-
-
-
-        if trx_type == "income":
-
-
-            total_income += amount
-
-
-            income_categories[cat]+=amount
-
-
-
-            if (
-
-                largest_income is None
-
-                or amount >
-
-                float(
-                    largest_income.get(
-                        "amount",
-                        0
-                    )
-                )
-
-            ):
-
-                largest_income=t
-
-
-
-
-        elif trx_type == "expense":
-
-
-            total_expense += amount
-
-
-            expense_categories[cat]+=amount
-
-
-
-            if (
-
-                largest_expense is None
-
-                or amount >
-
-                float(
-                    largest_expense.get(
-                        "amount",
-                        0
-                    )
-                )
-
-            ):
-
-                largest_expense=t
-
-
-
-
-
-    # =====================================
-    # PROFIT
-    # =====================================
 
     net_profit = (
 
@@ -5276,84 +5500,50 @@ def transaction_list():
 
 
 
-    total_transactions = len(
-        transactions
+    total_balance = sum(
+
+        float(
+
+            account.get(
+                "balance",
+                0
+            )
+
+        )
+
+        for account in accounts
+
+    )
+
+
+
+    income_category, income_amount = get_biggest_category(
+
+        summary["income_categories"]
+
+    )
+
+
+
+    expense_category, expense_amount = get_biggest_category(
+
+        summary["expense_categories"]
+
     )
 
 
 
 
-    # =====================================
-    # BIGGEST CATEGORY
-    # =====================================
 
-
-    biggest_income_category=None
-
-    biggest_income_amount=0
-
-
-    if income_categories:
-
-
-        biggest_income_category=max(
-
-            income_categories,
-
-            key=income_categories.get
-
-        )
-
-
-        biggest_income_amount = (
-
-            income_categories[
-                biggest_income_category
-            ]
-
-        )
-
-
-
-
-    biggest_expense_category=None
-
-    biggest_expense_amount=0
-
-
-    if expense_categories:
-
-
-        biggest_expense_category=max(
-
-            expense_categories,
-
-            key=expense_categories.get
-
-        )
-
-
-        biggest_expense_amount=(
-
-            expense_categories[
-                biggest_expense_category
-            ]
-
-        )
-
-
-
-
-    # =====================================
-    # WARNINGS
-    # =====================================
+    # ==================================================
+    # ALERTS
+    # ==================================================
 
     warnings=[]
 
 
 
     if total_balance < 10:
-
 
         warnings.append({
 
@@ -5362,14 +5552,15 @@ def transaction_list():
             "title":"Low Balance",
 
             "message":
-            f"Available balance is only ${total_balance:.2f}"
+
+            f"Available balance ${total_balance:.2f}"
 
         })
 
 
 
-    if total_expense > total_income:
 
+    if total_expense > total_income:
 
         warnings.append({
 
@@ -5378,17 +5569,56 @@ def transaction_list():
             "title":"Overspending",
 
             "message":
-            "Expenses are higher than income."
+
+            "Expense is higher than income"
 
         })
 
-   
 
 
-   
-    # =====================================
+
+
+    # ==================================================
+    # MONTH CARD
+    # ==================================================
+
+    monthly_card={
+
+        "month":
+        month_start.strftime(
+            "%B %Y"
+        ),
+
+        "income":
+        total_income,
+
+        "expense":
+        total_expense,
+
+        "profit":
+        net_profit,
+
+        "transactions":
+        len(transactions),
+
+        "saving":
+        saving_summary["balance"],
+
+        "deposit":
+        saving_summary["deposit"],
+
+        "withdrawal":
+        saving_summary["withdrawal"]
+
+    }
+
+
+
+
+
+    # ==================================================
     # RENDER
-    # =====================================
+    # ==================================================
 
     return render_template(
 
@@ -5404,6 +5634,66 @@ def transaction_list():
         categories=categories,
 
 
+
+        year=year,
+
+        month=month,
+
+
+        monthly_card=monthly_card,
+
+
+
+        total_balance=total_balance,
+
+        current_balance=total_balance,
+
+
+        total_income=total_income,
+
+        total_expense=total_expense,
+
+
+        net_profit=net_profit,
+
+
+
+        total_savings=saving_summary["balance"],
+
+
+        total_deposit=saving_summary["deposit"],
+
+
+        total_withdrawal=saving_summary["withdrawal"],
+
+
+
+        total_transactions=len(transactions),
+
+
+
+        biggest_income_category=income_category,
+
+        biggest_income_amount=income_amount,
+
+
+
+        biggest_expense_category=expense_category,
+
+        biggest_expense_amount=expense_amount,
+
+
+
+        largest_income=summary["largest_income"],
+
+        largest_expense=summary["largest_expense"],
+
+
+
+        warnings=warnings,
+
+
+
         selected_type=transaction_type,
 
         selected_account=account_id,
@@ -5414,61 +5704,11 @@ def transaction_list():
 
 
 
-        total_balance=total_balance,
-
-
-        total_income=total_income,
-
-
-        total_expense=total_expense,
-
-
-        current_balance=total_balance,
-
-
-        available_cash=total_balance,
-
-
-        net_profit=net_profit,
-
-
-        total_savings=total_savings,
-
-
-        total_transactions=total_transactions,
-
-
-
-        biggest_income_category=biggest_income_category,
-
-        biggest_income_amount=biggest_income_amount,
-
-
-
-        biggest_expense_category=biggest_expense_category,
-
-        biggest_expense_amount=biggest_expense_amount,
-
-
-
-        largest_income=largest_income,
-
-
-        largest_expense=largest_expense,
-
-
-        savings=savings,
-
-
-        warnings=warnings,
-
-
-        month_name=now.strftime("%B %Y"),
-
-
+        month_name=month_start.strftime(
+            "%B %Y"
+        )
 
     )
-
 
 
 

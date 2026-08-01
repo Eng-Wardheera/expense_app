@@ -1,393 +1,936 @@
 {% extends 'backend/home/base.html' %}
 
-{% block title %}Transactions{% endblock %}
+
+{% block title %}
+Transactions Dashboard
+{% endblock %}
+
+
 
 {% block content %}
 
- <!-- [ page-header ] start -->
+
+<!-- ================================
+PAGE HEADER
+================================ -->
+
 <div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Transactions View</h5>
-        </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">All Transactions View</li>
-        </ul>
-    </div>
-    <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                    <i class="feather-bar-chart"></i>
-                </a>
-              
-                
-                <a href="leads-create.html" class="btn btn-primary">
-                    <i class="feather-plus me-2"></i>
-                    <span>Create Lead</span>
-                </a>
-            </div>
-        </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
-            </a>
-        </div>
-    </div>
+
+<div class="page-header-left">
+
+<div class="page-header-title">
+
+<h5 class="m-b-10">
+
+<i class="feather-dollar-sign"></i>
+
+Finance Transactions Dashboard
+
+</h5>
+
 </div>
+
+
+<ul class="breadcrumb">
+
+<li class="breadcrumb-item">
+<a href="#">
+Home
+</a>
+</li>
+
+
+<li class="breadcrumb-item">
+Transactions
+</li>
+
+</ul>
+
+</div>
+
+
+
+<div class="page-header-right ms-auto">
+
+
+<a href="{{ url_for('main.transaction_list') }}"
+class="btn btn-light">
+
+<i class="feather-refresh-cw"></i>
+
+Refresh
+
+</a>
+
+
+</div>
+
+
+</div>
+
+
+
+
 
 <div class="main-content">
-<div class="row">
-  <div class="card shadow-sm">
-
-    <div class="row mb-4 p-3">
-
-    <div class="col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <small>Total Balance</small>
-                <h3 class="text-primary">
-                    ${{ "{:,.2f}".format(current_balance) }}
-                </h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <small>Total Income</small>
-                <h3 class="text-success">
-                    ${{ "{:,.2f}".format(total_income) }}
-                </h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <small>Total Expense</small>
-                <h3 class="text-danger">
-                    ${{ "{:,.2f}".format(total_expense) }}
-                </h3>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-3">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <small>Transactions</small>
-                <h3>
-                    {{ total_transactions }}
-                </h3>
-            </div>
-        </div>
-    </div>
-
-</div>
 
 
-<div class="row mb-3">
 
-    <div class="col-lg-6">
-
-        <div class="alert alert-danger">
-
-            <strong>Highest Expense Category</strong>
-
-            <br>
-
-            {{ biggest_expense_category or "-" }}
-
-            <br>
-
-            <strong>
-
-                ${{ "{:,.2f}".format(biggest_expense_amount) }}
-
-            </strong>
-
-        </div>
-
-    </div>
-
-    <div class="col-lg-6">
-
-        <div class="alert alert-success">
-
-            <strong>Highest Income Category</strong>
-
-            <br>
-
-            {{ biggest_income_category or "-" }}
-
-            <br>
-
-            <strong>
-
-                ${{ "{:,.2f}".format(biggest_income_amount) }}
-
-            </strong>
-
-        </div>
-
-    </div>
-
-</div>
+<!-- ================================
+MONTH HEADER CARD
+================================ -->
 
 
-<div class="row mb-3">
+<div class="card shadow-sm border-0 mb-4">
 
-    <div class="col-md-6">
 
-        <div class="card">
+<div class="card-body">
 
-            <div class="card-body">
 
-                <h6>Largest Income</h6>
+<div class="row align-items-center">
 
-                {% if largest_income %}
 
-                    {{ largest_income.item }}
+<div class="col-md-8">
 
-                    <br>
 
-                    ${{ largest_income.amount }}
+<h4 class="fw-bold mb-1">
 
-                {% else %}
+{{ month_name }}
 
-                    -
+</h4>
 
-                {% endif %}
 
-            </div>
+<p class="text-muted mb-0">
 
-        </div>
+Monthly Financial Performance Report
 
-    </div>
+</p>
 
-    <div class="col-md-6">
-
-        <div class="card">
-
-            <div class="card-body">
-
-                <h6>Largest Expense</h6>
-
-                {% if largest_expense %}
-
-                    {{ largest_expense.item }}
-
-                    <br>
-
-                    ${{ largest_expense.amount }}
-
-                {% else %}
-
-                    -
-
-                {% endif %}
-
-            </div>
-
-        </div>
-
-    </div>
 
 </div>
 
 
 
+<div class="col-md-4 text-end">
+
+
+<form method="GET"
+class="d-flex gap-2 justify-content-end">
+
+
+<select name="month"
+class="form-select">
+
+
+{% for m in range(1,13) %}
+
+<option value="{{m}}"
+{% if month == m %}selected{% endif %}>
+
+{{ 
+["January","February","March",
+"April","May","June",
+"July","August","September",
+"October","November","December"][m-1]
+}}
+
+</option>
+
+
+{% endfor %}
+
+</select>
 
 
 
+<select name="year"
+class="form-select">
 
-{% for warning in warnings %}
 
-<div class="alert alert-{{ warning.type }}">
+{% for y in range(year-5,year+1) %}
 
-    <strong>{{ warning.title }}</strong>
+<option value="{{y}}"
+{% if year==y %}selected{% endif %}>
 
-    <br>
+{{y}}
 
-    {{ warning.message }}
-
-</div>
+</option>
 
 {% endfor %}
 
 
+</select>
 
 
+<button class="btn btn-primary">
+
+View
+
+</button>
 
 
-    <!-- HEADER -->
-<div class="card-header bg-white py-3">
-    <div class="row align-items-end g-2">
-        <div class="col-lg-2">
-            <h5 class="mb-0 fw-bold">All Transactions</h5>
-        </div>
+</form>
 
-        <div class="col-lg-10">
-            <form method="GET" class="row g-2 align-items-end">
-                
-                <div class="col-md-9">
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Type</label>
-                            <select name="type" class="form-select form-select-sm">
-                                <option value="">All Type</option>
-                                <option value="income" {% if selected_type == "income" %}selected{% endif %}>Income</option>
-                                <option value="expense" {% if selected_type == "expense" %}selected{% endif %}>Expense</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Account</label>
-                            <select name="account_id" class="form-select form-select-sm">
-                                <option value="">All Accounts</option>
-                                {% for acc in accounts %}
-                                    <option value="{{ acc._id }}" {% if selected_account == acc._id|string %}selected{% endif %}>{{ acc.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Category</label>
-                            <select name="category" id="categorySelect" class="form-select form-select-sm">
-                                <option value="">All Categories</option>
-                                {% for cat in categories %}
-                                    <option value="{{ cat.name }}" {% if selected_category == cat.name %}selected{% endif %}>{{ cat.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="small fw-bold">Item</label>
-                            <select name="item" id="itemSelect" class="form-select form-select-sm">
-                                <option value="">All Items</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="col-md-3 d-flex justify-content-end gap-2">
-                    <a href="{{ url_for('main.transaction_list') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
-                    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
-    <!-- TABLE -->
-    <div class="card-body p-0">
 
-        <div class="table-responsive" >
+</div>
 
-            <table class="table table-hover align-middle mb-0" id="leadList">
 
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Account</th>
-                        <th>Type</th>
-                        <th>Category</th>
-                        <th>Item</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
+</div>
 
-                <tbody>
 
-                    {% for trx in transactions %}
+</div>
 
-                    <tr>
 
-                        <!-- INDEX -->
-                        <td>{{ loop.index }}</td>
 
-                        <!-- ACCOUNT -->
-                        <td>
-                            {{ trx.account_name }}
-                        </td>
 
-                        <!-- TYPE -->
-                        <td>
-                            {% if trx.transaction_type == "income" %}
-                                <span class="badge bg-success">Income</span>
-                            {% else %}
-                                <span class="badge bg-danger">Expense</span>
-                            {% endif %}
-                        </td>
 
-                        <!-- CATEGORY -->
-                        <td>{{ trx.category }}</td>
 
-                        <!-- ITEM -->
-                        <td>{{ trx.item }}</td>
 
-                        <!-- AMOUNT -->
-                        <td class="fw-bold">
-                            ${{ trx.amount }}
-                        </td>
+<!-- ================================
+MAIN KPI CARDS
+================================ -->
 
-                        <!-- DATE -->
-                        <td>
-                            {% if trx.date %}
-                                {{ trx.date.strftime('%Y-%m-%d') }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
 
-                        <!-- STATUS -->
-                        <td>
-                            {% if trx.status %}
-                                <span class="badge bg-success">Active</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Inactive</span>
-                            {% endif %}
-                        </td>
+<div class="row g-3 mb-4">
 
-                        <!-- ACTIONS -->
-                        <td class="text-end">
 
-                            <a href="{{ url_for('main.edit_transaction', id=trx._id) }}"
-                               class="btn btn-warning btn-sm">
-                                Edit
-                            </a>
 
-                            <a href="{{ url_for('main.delete_transaction', id=trx._id) }}"
-                               class="btn btn-danger btn-sm"
-                               onclick="return confirm('Delete this transaction?')">
-                                Delete
-                            </a>
+<div class="col-xl-3 col-md-6">
 
-                        </td>
 
-                    </tr>
+<div class="card shadow-sm border-0">
 
-                    {% endfor %}
 
-                </tbody>
+<div class="card-body">
 
-            </table>
 
-        </div>
+<div class="d-flex justify-content-between">
 
-    </div>
 
-</div>  
+<div>
+
+<small>
+Available Balance
+</small>
+
+
+<h3 class="text-primary fw-bold">
+
+${{ "{:,.2f}".format(total_balance) }}
+
+</h3>
+
+
+</div>
+
+
+<i class="feather-wallet fs-2 text-primary"></i>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-xl-3 col-md-6">
+
+
+<div class="card shadow-sm border-0">
+
+
+<div class="card-body">
+
+
+<div class="d-flex justify-content-between">
+
+
+<div>
+
+<small>
+Total Income
+</small>
+
+
+<h3 class="text-success fw-bold">
+
+${{ "{:,.2f}".format(total_income) }}
+
+</h3>
+
+
+</div>
+
+
+<i class="feather-trending-up fs-2 text-success"></i>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-xl-3 col-md-6">
+
+
+<div class="card shadow-sm border-0">
+
+
+<div class="card-body">
+
+
+<div class="d-flex justify-content-between">
+
+
+<div>
+
+<small>
+Total Expense
+</small>
+
+
+<h3 class="text-danger fw-bold">
+
+${{ "{:,.2f}".format(total_expense) }}
+
+</h3>
+
+
+</div>
+
+
+<i class="feather-shopping-cart fs-2 text-danger"></i>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<div class="col-xl-3 col-md-6">
+
+
+<div class="card shadow-sm border-0">
+
+
+<div class="card-body">
+
+
+<div class="d-flex justify-content-between">
+
+
+<div>
+
+<small>
+Net Profit
+</small>
+
+
+<h3 class="
+{% if net_profit >=0 %}
+text-success
+{% else %}
+text-danger
+{% endif %}
+fw-bold">
+
+${{ "{:,.2f}".format(net_profit) }}
+
+</h3>
+
+
+</div>
+
+
+<i class="feather-bar-chart fs-2"></i>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+<!-- ================================
+ANALYTICS CARDS
+================================ -->
+
+
+<div class="row g-3 mb-4">
+
+
+
+<div class="col-lg-4">
+
+
+<div class="card border-0 shadow-sm">
+
+
+<div class="card-body">
+
+
+<h6>
+
+Monthly Activity
+
+</h6>
+
+
+<hr>
+
+
+<p>
+Transactions:
+
+<strong>
+{{total_transactions}}
+</strong>
+
+</p>
+
+
+
+<p>
+
+Savings:
+
+<strong>
+
+${{ "{:,.2f}".format(total_savings) }}
+
+</strong>
+
+
+</p>
+
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-lg-4">
+
+
+<div class="card border-0 shadow-sm">
+
+
+<div class="card-body">
+
+
+<h6 class="text-success">
+
+Highest Income Category
+
+</h6>
+
+
+<h5>
+
+{{ biggest_income_category or '-' }}
+
+</h5>
+
+
+<strong>
+
+${{ "{:,.2f}".format(biggest_income_amount) }}
+
+</strong>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+<div class="col-lg-4">
+
+
+<div class="card border-0 shadow-sm">
+
+
+<div class="card-body">
+
+
+<h6 class="text-danger">
+
+Highest Expense Category
+
+</h6>
+
+
+<h5>
+
+{{ biggest_expense_category or '-' }}
+
+</h5>
+
+
+<strong>
+
+${{ "{:,.2f}".format(biggest_expense_amount) }}
+
+</strong>
+
+
+</div>
+
+</div>
+
+
+</div>
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- ================================
+WARNING CENTER
+================================ -->
+
+
+{% if warnings %}
+
+
+<div class="card border-0 shadow-sm mb-4">
+
+
+<div class="card-header bg-light">
+
+
+<h6 class="mb-0">
+
+<i class="feather-alert-triangle"></i>
+
+Financial Alerts
+
+</h6>
+
+
+</div>
+
+
+<div class="card-body">
+
+
+{% for alert in warnings %}
+
+
+<div class="alert alert-{{alert.type}}">
+
+<strong>
+
+{{alert.title}}
+
+</strong>
+
+
+<br>
+
+
+{{alert.message}}
+
+
+</div>
+
+
+{% endfor %}
+
+
+</div>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+
+
+
+<!-- ================================
+FILTER SECTION
+================================ -->
+<!-- ==========================================
+     TRANSACTION FILTER
+========================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+
+<div class="card-header bg-light">
+
+<h5 class="mb-0 fw-bold">
+
+<i class="feather-filter"></i>
+
+Transaction Filter
+
+</h5>
+
+</div>
+
+
+
+<div class="card-body">
+
+
+<form method="GET">
+
+
+<input type="hidden"
+name="month"
+value="{{ month }}">
+
+
+<input type="hidden"
+name="year"
+value="{{ year }}">
+
+
+
+<div class="row g-3">
+
+
+
+<!-- TYPE -->
+
+<div class="col-md-3">
+
+
+<label class="form-label fw-bold">
+
+Type
+
+</label>
+
+
+<select name="type"
+class="form-select">
+
+
+<option value="">
+
+All Type
+
+</option>
+
+
+<option value="income"
+
+{% if selected_type=="income" %}
+selected
+{% endif %}
+
+>
+
+Income
+
+</option>
+
+
+
+<option value="expense"
+
+{% if selected_type=="expense" %}
+selected
+{% endif %}
+
+>
+
+Expense
+
+</option>
+
+
+</select>
+
+
+</div>
+
+
+
+
+
+
+
+<!-- ACCOUNT -->
+
+<div class="col-md-3">
+
+
+<label class="form-label fw-bold">
+
+Account
+
+</label>
+
+
+<select name="account_id"
+class="form-select">
+
+
+<option value="">
+
+All Accounts
+
+</option>
+
+
+{% for acc in accounts %}
+
+
+<option value="{{ acc._id }}"
+
+{% if selected_account == acc._id|string %}
+
+selected
+
+{% endif %}
+
+>
+
+
+{{ acc.name }}
+
+</option>
+
+
+{% endfor %}
+
+
+</select>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- CATEGORY -->
+
+<div class="col-md-3">
+
+
+<label class="form-label fw-bold">
+
+Category
+
+</label>
+
+
+
+<select name="category"
+id="categorySelect"
+class="form-select">
+
+
+<option value="">
+
+All Categories
+
+</option>
+
+
+{% for cat in categories %}
+
+
+<option value="{{cat.name}}"
+
+{% if selected_category == cat.name %}
+
+selected
+
+{% endif %}
+
+>
+
+{{cat.name}}
+
+</option>
+
+
+{% endfor %}
+
+
+</select>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- ITEM -->
+
+<div class="col-md-3">
+
+
+<label class="form-label fw-bold">
+
+Item
+
+</label>
+
+
+
+<select name="item"
+id="itemSelect"
+class="form-select">
+
+
+<option value="">
+
+All Items
+
+</option>
+
+
+</select>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- BUTTON -->
+
+<div class="col-md-12">
+
+
+<div class="d-flex gap-2">
+
+
+<button class="btn btn-primary">
+
+<i class="feather-search"></i>
+
+Filter
+
+</button>
+
+
+
+<a href="{{ url_for('main.transaction_list') }}"
+
+class="btn btn-outline-secondary">
+
+Clear
+
+</a>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+</form>
+
+
 </div>
 
 
@@ -395,50 +938,528 @@
 
 
 <script>
-    // 1. Loading data
-    const categories = {{ categories | tojson | safe }};
-    const categorySelect = document.getElementById("categorySelect");
-    const itemSelect = document.getElementById("itemSelect");
 
-    // 2. Function-ka ugu muhiimsan
-    function loadItems(categoryName) {
-        const cat = categories.find(c => c.name === categoryName);
-        let items = cat ? cat.items : [];
 
-        itemSelect.innerHTML = '<option value="">All Items</option>';
+// ==========================================
+// CATEGORY DATA FROM FLASK
+// ==========================================
 
-        items.forEach(item => {
-            // Nadiifinta xogta:
-            // - Waxaan ka saaraynaa "[" , "]" , iyo calaamadaha qoraalka "
-            // - Waxaan isticmaalnaa trim() si aan u saarno boosaska bannaan
-            let cleanItem = String(item).replace(/[\[\]"']/g, '').trim();
-            
-            // Hubi in item-ku uusan ahayn madhan
-            if (cleanItem && cleanItem !== 'null' && cleanItem !== 'undefined') {
-                const opt = document.createElement("option");
-                opt.value = cleanItem;
-                opt.textContent = cleanItem;
-                
-                // Haddii uu jiro item hore loo xushay (marka Edit la samaynayo)
-                if (cleanItem === "{{ selected_item | default('') }}") {
-                    opt.selected = true;
+
+const categoriesData = {{ categories | tojson | safe }};
+
+
+
+const categorySelect = 
+document.getElementById(
+    "categorySelect"
+);
+
+
+
+const itemSelect = 
+document.getElementById(
+    "itemSelect"
+);
+
+
+
+// ==========================================
+// CLEAN ITEM FUNCTION
+// ==========================================
+
+
+function cleanItemValue(item){
+
+
+    return String(item)
+
+        .replace(/[\[\]"']/g, "")
+
+        .trim();
+
+}
+
+
+
+
+
+// ==========================================
+// LOAD ITEMS BY CATEGORY
+// ==========================================
+
+
+function loadItems(categoryName){
+
+
+
+    // RESET ITEMS
+
+    itemSelect.innerHTML = `
+
+        <option value="">
+            All Items
+        </option>
+
+    `;
+
+
+
+
+    // FIND CATEGORY
+
+
+    const category = categoriesData.find(
+
+        function(cat){
+
+            return cat.name === categoryName;
+
+        }
+
+    );
+
+
+
+    if(!category){
+
+        return;
+
+    }
+
+
+
+
+    let items = category.items || [];
+
+
+
+
+
+    // ======================================
+    // FIX STRING ARRAY FROM DATABASE
+    // ======================================
+
+
+    if(typeof items === "string"){
+
+
+
+        try{
+
+
+            items = JSON.parse(items);
+
+
+
+        }
+
+        catch(error){
+
+
+
+            items = [
+
+                items
+
+            ];
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+    // ======================================
+    // CREATE OPTIONS
+    // ======================================
+
+
+    items.forEach(
+
+        function(item){
+
+
+
+            let cleanItem =
+            cleanItemValue(item);
+
+
+
+
+
+            if(
+
+                cleanItem &&
+
+                cleanItem !== "null" &&
+
+                cleanItem !== "undefined"
+
+            ){
+
+
+
+                const option =
+                document.createElement(
+                    "option"
+                );
+
+
+
+                option.value =
+                cleanItem;
+
+
+
+                option.textContent =
+                cleanItem;
+
+
+
+
+
+                // KEEP SELECTED ITEM AFTER FILTER
+
+
+                if(
+
+                    cleanItem ===
+                    "{{ selected_item or '' }}"
+
+                ){
+
+                    option.selected=true;
+
                 }
-                
-                itemSelect.appendChild(opt);
+
+
+
+
+                itemSelect.appendChild(
+                    option
+                );
+
+
+
             }
-        });
+
+
+
+        }
+
+    );
+
+
+
+}
+
+
+
+
+
+
+
+// ==========================================
+// CATEGORY CHANGE EVENT
+// ==========================================
+
+
+if(categorySelect){
+
+
+
+    categorySelect.addEventListener(
+
+        "change",
+
+        function(){
+
+
+            loadItems(
+
+                this.value
+
+            );
+
+
+        }
+
+    );
+
+
+
+}
+
+
+
+
+
+
+
+// ==========================================
+// INITIAL LOAD
+// ==========================================
+
+
+document.addEventListener(
+
+"DOMContentLoaded",
+
+function(){
+
+
+
+    if(
+
+        categorySelect &&
+
+        categorySelect.value
+
+    ){
+
+
+
+        loadItems(
+
+            categorySelect.value
+
+        );
+
+
+
     }
 
-    // 3. Event Listeners
-    categorySelect.addEventListener("change", function () {
-        loadItems(this.value);
-    });
 
-    // 4. Initial load (marka boggu soo shubmo)
-    if (categorySelect.value) {
-        loadItems(categorySelect.value);
-    }
+
+}
+
+);
+
+
+
+
+
 </script>
+
+
+
+
+
+
+
+<!-- ================================
+TRANSACTION TABLE
+================================ -->
+
+
+<div class="card shadow-sm border-0">
+
+
+<div class="card-header">
+
+
+<h5 class="mb-0">
+
+All Transactions
+
+</h5>
+
+
+</div>
+
+
+
+<div class="table-responsive">
+
+
+<table class="table table-hover mb-0">
+
+
+<thead class="table-light">
+
+
+<tr>
+
+<th>#</th>
+
+<th>Account</th>
+
+<th>Type</th>
+
+<th>Category</th>
+
+<th>Item</th>
+
+<th>Amount</th>
+
+<th>Date</th>
+
+<th>Action</th>
+
+
+</tr>
+
+
+</thead>
+
+
+
+<tbody>
+
+
+{% for trx in transactions %}
+
+
+<tr>
+
+
+<td>
+{{loop.index}}
+</td>
+
+
+<td>
+{{trx.account_name}}
+</td>
+
+
+
+<td>
+
+
+{% if trx.transaction_type=="income" %}
+
+<span class="badge bg-success">
+
+Income
+
+</span>
+
+
+{% else %}
+
+<span class="badge bg-danger">
+
+Expense
+
+</span>
+
+
+{% endif %}
+
+
+</td>
+
+
+
+
+<td>
+
+{{trx.category}}
+
+</td>
+
+
+
+<td>
+
+{{trx.item}}
+
+</td>
+
+
+
+<td class="fw-bold">
+
+${{trx.amount}}
+
+</td>
+
+
+
+
+<td>
+
+{{trx.date.strftime('%d %b %Y')}}
+
+</td>
+
+
+
+
+<td>
+
+
+<a href="{{url_for('main.edit_transaction',id=trx._id)}}"
+class="btn btn-sm btn-warning">
+
+Edit
+
+</a>
+
+
+
+<a href="{{url_for('main.delete_transaction',id=trx._id)}}"
+onclick="return confirm('Delete?')"
+class="btn btn-sm btn-danger">
+
+Delete
+
+</a>
+
+
+</td>
+
+
+
+</tr>
+
+
+{% else %}
+
+
+<tr>
+
+<td colspan="8"
+class="text-center py-5">
+
+
+No transactions found
+
+
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
 
 
 {% endblock %}
