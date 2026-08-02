@@ -190,13 +190,14 @@ Add Saving Transaction
 <form method="POST" id="savingTransactionForm">
 
 
+<input 
+type="hidden"
+name="saving_id"
+value="{{ saving._id }}">
 
 
 
 <div class="card border-0 shadow-sm saving-card">
-
-
-
 
 
 <!-- HEADER -->
@@ -208,7 +209,6 @@ Add Saving Transaction
 
 
 <div>
-
 
 <h4 class="fw-bold text-primary mb-1">
 
@@ -232,7 +232,7 @@ Add Saving Transaction
 
 <span class="badge bg-success px-3 py-2">
 
-Active Saving
+{{ saving.status|capitalize }}
 
 </span>
 
@@ -241,8 +241,6 @@ Active Saving
 
 
 </div>
-
-
 
 
 
@@ -262,45 +260,32 @@ Active Saving
 
 <div class="col-md-4">
 
-
 <div class="summary-box">
 
 
-<div class="d-flex align-items-center gap-3">
-
-
-<div class="summary-icon bg-primary text-white">
-
-<i class="bi bi-wallet2"></i>
-
-</div>
-
-
-<div>
-
-
 <small class="text-muted">
+
 Current Balance
+
 </small>
 
 
-<h5 class="mb-0">
+<h5 class="text-success mb-0">
 
-${{ "%.2f"|format(saving.current_balance or 0) }}
+${{
+"%.2f"|format(
+saving.current_balance|default(0)|float
+)
+}}
 
 </h5>
 
 
 </div>
 
-
 </div>
 
 
-</div>
-
-
-</div>
 
 
 
@@ -312,19 +297,6 @@ ${{ "%.2f"|format(saving.current_balance or 0) }}
 <div class="summary-box">
 
 
-<div class="d-flex align-items-center gap-3">
-
-
-<div class="summary-icon bg-success text-white">
-
-<i class="bi bi-bullseye"></i>
-
-</div>
-
-
-<div>
-
-
 <small class="text-muted">
 
 Target
@@ -334,7 +306,11 @@ Target
 
 <h5 class="mb-0">
 
-${{ "%.2f"|format(saving.target_amount or 0) }}
+${{
+"%.2f"|format(
+saving.target_amount|default(0)|float
+)
+}}
 
 </h5>
 
@@ -344,11 +320,6 @@ ${{ "%.2f"|format(saving.target_amount or 0) }}
 
 </div>
 
-
-</div>
-
-
-</div>
 
 
 
@@ -368,17 +339,51 @@ Progress
 </small>
 
 
-<div class="progress mt-2">
-
 
 {% set percent =
-((saving.current_balance / saving.target_amount)*100)
-if saving.target_amount else 0
+
+(
+saving.current_balance|default(0)|float
+/
+
+saving.target_amount|default(1)|float
+
+) * 100
+
 %}
 
 
-<div class="progress-bar bg-success"
-style="width:{{percent if percent < 100 else 100}}%">
+
+{% if percent > 100 %}
+
+{% set percent = 100 %}
+
+{% endif %}
+
+
+
+
+
+<div class="progress mt-2">
+
+
+<div
+
+class="progress-bar bg-success"
+
+style="width:{{percent}}%">
+
+</div>
+
+
+</div>
+
+
+<strong>
+
+{{"%.1f"|format(percent)}}%
+
+</strong>
 
 
 </div>
@@ -387,22 +392,8 @@ style="width:{{percent if percent < 100 else 100}}%">
 </div>
 
 
-<small class="fw-bold">
-
-{{ "%.1f"|format(percent) }}%
-
-</small>
-
 
 </div>
-
-
-</div>
-
-
-
-</div>
-
 
 
 
@@ -427,6 +418,7 @@ Account
 <div class="col-lg-9">
 
 
+
 <select
 
 name="account_id"
@@ -438,6 +430,7 @@ class="form-select"
 required>
 
 
+
 <option value="">
 
 -- Select Account --
@@ -446,21 +439,39 @@ required>
 
 
 
+
 {% for account in accounts %}
 
 
 <option
 
-value="{{account._id}}"
 
-data-balance="{{account.balance}}">
+value="{{account._id|string}}"
+
+
+data-balance="{{account.balance|float}}"
+
+
+data-currency="{{account.currency}}"
+
+
+
+{% if selected_account_id 
+and selected_account_id == account._id|string %}
+
+selected
+
+{% endif %}
+
+
+>
 
 
 {{account.name}}
 
 |
 
-{{"%.2f"|format(account.balance)}}
+$ {{ "%.2f"|format(account.balance|float) }}
 
 {{account.currency}}
 
@@ -472,14 +483,17 @@ data-balance="{{account.balance}}">
 {% endfor %}
 
 
+
+
 </select>
 
 
-
 </div>
 
 
 </div>
+
+
 
 
 
@@ -503,6 +517,7 @@ Transaction Type
 <div class="col-lg-9">
 
 
+
 <select
 
 name="transaction_type"
@@ -519,16 +534,13 @@ required>
 
 Deposit
 
-(+)
-
 </option>
+
 
 
 <option value="withdrawal">
 
 Withdrawal
-
-(-)
 
 </option>
 
@@ -537,11 +549,11 @@ Withdrawal
 </select>
 
 
-
 </div>
 
 
 </div>
+
 
 
 
@@ -563,6 +575,7 @@ Amount
 </label>
 
 
+
 <div class="col-lg-9">
 
 
@@ -578,19 +591,27 @@ $
 
 <input
 
+
 type="number"
+
 
 step="0.01"
 
-min="0"
+
+min="0.01"
+
 
 name="amount"
 
+
 id="amountInput"
+
 
 class="form-control"
 
+
 placeholder="0.00"
+
 
 required>
 
@@ -605,15 +626,19 @@ required>
 
 id="warningBox"
 
-class="alert alert-danger warning-box mt-3">
+style="display:none"
+
+class="alert alert-danger mt-3 mb-0">
 
 
 <i class="bi bi-exclamation-triangle-fill me-2"></i>
+
 
 <span id="warningText"></span>
 
 
 </div>
+
 
 
 
@@ -654,13 +679,17 @@ class="form-control"
 
 rows="3"
 
-placeholder="Transaction description..."></textarea>
+placeholder="Transaction description">
+
+</textarea>
 
 
 </div>
 
 
 </div>
+
+
 
 
 
@@ -692,13 +721,16 @@ class="form-control"
 
 rows="3"
 
-placeholder="Additional note..."></textarea>
+placeholder="Additional note">
+
+</textarea>
 
 
 </div>
 
 
 </div>
+
 
 
 
@@ -725,11 +757,15 @@ Reference No
 
 <input
 
+
 type="text"
+
 
 name="reference_no"
 
+
 class="form-control"
+
 
 placeholder="Optional reference number">
 
@@ -743,7 +779,6 @@ placeholder="Optional reference number">
 
 
 
-
 </div>
 
 
@@ -752,17 +787,21 @@ placeholder="Optional reference number">
 
 
 
-<div class="card-footer bg-white d-flex justify-content-end gap-2">
 
 
-<a href="{{url_for('main.saving_list')}}"
+<div class="card-footer bg-white d-flex justify-content-end">
 
-class="btn btn-secondary">
 
+<a
+
+href="{{url_for('main.saving_list')}}"
+
+class="btn btn-secondary me-2">
 
 Cancel
 
 </a>
+
 
 
 
@@ -777,13 +816,13 @@ class="btn btn-success">
 
 <i class="bi bi-check-circle me-1"></i>
 
+
 Save Transaction
 
 
 </button>
 
 
-
 </div>
 
 
@@ -792,11 +831,9 @@ Save Transaction
 
 
 </div>
-
 
 
 </form>
-
 
 
 </div>
@@ -1127,11 +1164,23 @@ document.getElementById(
 
 
 
+// ============================
+// CURRENT SAVING BALANCE
+// ============================
+
 
 const savingBalance =
-Number(
+
+roundMoney(
+
+parseFloat(
 "{{ saving.current_balance|default(0) }}"
-) || 0;
+)
+
+||0
+
+);
+
 
 
 
@@ -1145,9 +1194,21 @@ Number(
 
 function money(value){
 
+return "$"+
 
-return "$" + Number(value).toFixed(2);
+Number(value).toLocaleString(
 
+undefined,
+
+{
+
+minimumFractionDigits:2,
+
+maximumFractionDigits:2
+
+}
+
+);
 
 }
 
@@ -1157,8 +1218,9 @@ return "$" + Number(value).toFixed(2);
 
 
 
+
 // ============================
-// ROUND MONEY
+// ROUND
 // ============================
 
 
@@ -1166,8 +1228,10 @@ function roundMoney(value){
 
 
 return Math.round(
-    value * 100
-) / 100;
+
+(Number(value)+Number.EPSILON)*100
+
+)/100;
 
 
 }
@@ -1180,23 +1244,50 @@ return Math.round(
 
 
 
+
+// ============================
+// VALIDATION
+// ============================
+
+
 function validateTransaction(){
 
 
 
-let amount = roundMoney(
+let amount =
 
-    parseFloat(
-        amountInput.value
-    ) || 0
+roundMoney(
+
+parseFloat(
+amountInput.value
+)
+
+||0
 
 );
 
 
 
 
+
 let type =
+
 typeSelect.value;
+
+
+
+
+
+
+let option =
+
+accountSelect.options[
+
+accountSelect.selectedIndex
+
+];
+
+
 
 
 
@@ -1206,24 +1297,20 @@ let accountBalance = 0;
 
 
 
-
-let option =
-accountSelect.options[
-accountSelect.selectedIndex
-];
-
-
-
-
-
 if(option){
 
 
-accountBalance = roundMoney(
+accountBalance =
 
-    parseFloat(
-        option.dataset.balance
-    ) || 0
+roundMoney(
+
+parseFloat(
+
+option.dataset.balance
+
+)
+
+||0
 
 );
 
@@ -1254,17 +1341,52 @@ false;
 
 
 
+// ============================
+// SELECT TYPE CHECK
+// ============================
+
+
+if(!type){
+
+
+warningText.innerHTML =
+
+"Please select transaction type.";
+
+
+warningBox.style.display =
+"block";
+
+
+saveBtn.disabled =
+true;
+
+
+return;
+
+
+}
+
+
+
+
+
+
+
 
 // ============================
 // AMOUNT CHECK
 // ============================
 
 
-if(amount <= 0){
+if(amount <=0){
+
 
 
 warningText.innerHTML =
+
 "Please enter amount greater than zero.";
+
 
 
 warningBox.style.display =
@@ -1288,13 +1410,13 @@ return;
 
 
 
-// ============================
+// =================================================
 // DEPOSIT
-// Account --> Saving
-// ============================
+// ACCOUNT ---> SAVING
+// =================================================
 
 
-if(type === "deposit"){
+if(type==="deposit"){
 
 
 
@@ -1302,13 +1424,16 @@ if(amount > accountBalance){
 
 
 
-warningText.innerHTML = `
+warningText.innerHTML =
+
+
+`
 
 Insufficient account balance.
 
-<br>
+<br><br>
 
-Available Account Balance:
+Available Account:
 
 <strong>
 ${money(accountBalance)}
@@ -1338,6 +1463,31 @@ true;
 
 }
 
+else{
+
+
+
+warningText.innerHTML =
+
+
+`
+
+Transfer:
+
+<strong>
+${money(amount)}
+</strong>
+
+<br>
+
+Account → Saving
+
+`;
+
+
+
+}
+
 
 
 }
@@ -1350,22 +1500,23 @@ true;
 
 
 
-
-
-// ============================
+// =================================================
 // WITHDRAWAL
-// Saving --> Account
-// ============================
+// SAVING ---> ACCOUNT
+// =================================================
 
 
-if(type === "withdrawal"){
+if(type==="withdrawal"){
 
 
 
 let availableSaving =
+
 roundMoney(
-    savingBalance
+savingBalance
 );
+
+
 
 
 
@@ -1373,13 +1524,16 @@ if(amount > availableSaving){
 
 
 
-warningText.innerHTML = `
+warningText.innerHTML =
+
+
+`
 
 Insufficient saving balance.
 
-<br>
+<br><br>
 
-Available Saving Balance:
+Available Saving:
 
 <strong>
 ${money(availableSaving)}
@@ -1409,6 +1563,37 @@ true;
 
 }
 
+else{
+
+
+
+warningText.innerHTML =
+
+
+`
+
+Transfer:
+
+<strong>
+${money(amount)}
+</strong>
+
+<br>
+
+Saving → Account
+
+`;
+
+
+
+}
+
+
+
+}
+
+
+
 
 
 }
@@ -1419,13 +1604,11 @@ true;
 
 
 
-}
 
 
-
-
-
-
+// ============================
+// EVENTS
+// ============================
 
 
 accountSelect.addEventListener(
@@ -1460,9 +1643,11 @@ validateTransaction
 
 
 
+
+
+// FIRST LOAD
+
 validateTransaction();
-
-
 
 
 

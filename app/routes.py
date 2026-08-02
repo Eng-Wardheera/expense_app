@@ -9399,7 +9399,6 @@ def delete_saving(id):
 
     return redirect(url_for("main.saving_list"))
 
-
 @bp.route("/saving/<id>/add-transaction", methods=["GET", "POST"])
 @login_required
 def add_saving_transaction(id):
@@ -9435,11 +9434,9 @@ def add_saving_transaction(id):
     saving = mongo.db.savings.find_one({
 
         "_id": saving_id,
-
         "user_id": user_id
 
     })
-
 
 
     if not saving:
@@ -9456,7 +9453,6 @@ def add_saving_transaction(id):
 
 
 
-
     # ==================================
     # ACCOUNTS
     # ==================================
@@ -9465,12 +9461,44 @@ def add_saving_transaction(id):
         mongo.db.accounts.find({
 
             "user_id": user_id,
-
             "status": True
 
         })
     )
 
+
+
+    # ==================================
+    # LAST SAVING ACCOUNT
+    # ==================================
+
+    last_transaction = mongo.db.saving_transactions.find_one(
+
+        {
+            "saving_id": saving_id,
+            "user_id": user_id
+        },
+
+        sort=[
+            ("created_at",-1)
+        ]
+
+    )
+
+
+    selected_account_id = None
+
+
+    if last_transaction:
+
+
+        selected_account_id = str(
+
+            last_transaction.get(
+                "account_id"
+            )
+
+        )
 
 
 
@@ -9510,9 +9538,9 @@ def add_saving_transaction(id):
 
 
         reference_no = request.form.get(
-            "reference_no"
+            "reference_no",
+            ""
         )
-
 
 
 
@@ -9529,11 +9557,10 @@ def add_saving_transaction(id):
 
 
 
-
-
         try:
 
             amount = float(amount)
+
 
         except:
 
@@ -9548,27 +9575,11 @@ def add_saving_transaction(id):
 
 
 
-        if amount <= 0:
-
-
-            flash(
-                "Amount must be greater than zero.",
-                "danger"
-            )
-
-            return redirect(request.url)
-
-
-
-
-
-
         try:
 
             account_obj_id = ObjectId(
                 account_id
             )
-
 
         except:
 
@@ -9584,16 +9595,9 @@ def add_saving_transaction(id):
 
 
 
-
-
-        # ==================================
-        # GET ACCOUNT
-        # ==================================
-
         account = mongo.db.accounts.find_one({
 
             "_id": account_obj_id,
-
             "user_id": user_id
 
         })
@@ -9613,30 +9617,32 @@ def add_saving_transaction(id):
 
 
 
-
         account_balance = float(
+
             account.get(
                 "balance",
                 0
             )
+
         )
 
 
 
         saving_balance = float(
+
             saving.get(
                 "current_balance",
                 0
             )
-        )
 
+        )
 
 
 
 
 
         # ==================================
-        # BALANCE VALIDATION
+        # VALIDATION
         # ==================================
 
 
@@ -9647,25 +9653,29 @@ def add_saving_transaction(id):
 
 
                 flash(
+
                     f"Insufficient account balance. Available ${account_balance:,.2f}",
+
                     "danger"
+
                 )
 
                 return redirect(request.url)
 
 
 
-
         elif transaction_type == "withdrawal":
-
 
 
             if amount > saving_balance:
 
 
                 flash(
+
                     f"Insufficient saving balance. Available ${saving_balance:,.2f}",
+
                     "danger"
+
                 )
 
                 return redirect(request.url)
@@ -9686,10 +9696,8 @@ def add_saving_transaction(id):
 
 
 
-
-
         # ==================================
-        # CREATE TRANSACTION
+        # INSERT TRANSACTION
         # ==================================
 
 
@@ -9725,12 +9733,9 @@ def add_saving_transaction(id):
         data["account_id"] = account_obj_id
 
 
-
-
         mongo.db.saving_transactions.insert_one(
             data
         )
-
 
 
 
@@ -9745,94 +9750,74 @@ def add_saving_transaction(id):
         if transaction_type == "deposit":
 
 
-            # Money leaves account
-
             mongo.db.accounts.update_one(
 
                 {
-                    "_id": account_obj_id
+                    "_id":account_obj_id
                 },
 
                 {
                     "$inc":
                     {
-                        "balance":
-                        -amount
+                        "balance":-amount
                     }
                 }
 
             )
-
-
-
-            # Add to saving
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-
-                    "$inc":
-                    {
-                        "current_balance":
-                        amount
-                    }
-
-                }
-
-            )
-
-
-
-
-        elif transaction_type == "withdrawal":
-
-
-
-            # Money returns account
-
-            mongo.db.accounts.update_one(
-
-                {
-                    "_id": account_obj_id
-                },
-
-                {
-
-                    "$inc":
-                    {
-                        "balance":
-                        amount
-                    }
-
-                }
-
-            )
-
-
 
 
             mongo.db.savings.update_one(
 
                 {
-                    "_id": saving_id
+                    "_id":saving_id
                 },
 
                 {
-
                     "$inc":
                     {
-                        "current_balance":
-                        -amount
+                        "current_balance":amount
                     }
-
                 }
 
             )
 
+
+
+
+        else:
+
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id":account_obj_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":amount
+                    }
+                }
+
+            )
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id":saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":-amount
+                    }
+                }
+
+            )
 
 
 
@@ -9840,65 +9825,89 @@ def add_saving_transaction(id):
 
 
         # ==================================
-        # AUTO COMPLETE
-        # TARGET OR DATE
+        # UPDATE ANALYTICS
         # ==================================
 
 
-        updated_saving = mongo.db.savings.find_one({
+        updated = mongo.db.savings.find_one({
 
-            "_id": saving_id,
-
-            "user_id": user_id
+            "_id":saving_id
 
         })
 
 
 
         current_balance = float(
-            updated_saving.get(
+
+            updated.get(
                 "current_balance",
                 0
             )
+
         )
 
 
         target_amount = float(
-            updated_saving.get(
+
+            updated.get(
                 "target_amount",
                 0
             )
+
         )
 
 
 
-        completed = False
+        remaining_amount = max(
+
+            target_amount-current_balance,
+
+            0
+
+        )
 
 
 
-        # TARGET REACHED
-
-        if current_balance >= target_amount:
+        progress = 0
 
 
-            completed = True
+        if target_amount > 0:
+
+            progress = (
+
+                current_balance /
+
+                target_amount
+
+            ) * 100
+
+
+
+        progress = min(progress,100)
+
+
+
+        days_remaining = 0
+
+        daily_required = 0
+
+        weekly_required = 0
+
+        monthly_required = 0
 
 
 
 
-
-        # DATE REACHED
-
-        maturity_date = updated_saving.get(
+        maturity_date = updated.get(
             "maturity_date"
         )
 
 
 
-        if maturity_date:
+        try:
 
 
-            try:
+            if maturity_date:
 
 
                 if isinstance(
@@ -9906,99 +9915,121 @@ def add_saving_transaction(id):
                     str
                 ):
 
-
                     end_date = datetime.strptime(
+
                         maturity_date,
+
                         "%Y-%m-%d"
+
                     )
 
 
                 else:
 
-
                     end_date = maturity_date
 
 
 
-                if datetime.utcnow().date() >= end_date.date():
+                days_remaining = (
 
+                    end_date.date()
 
-                    completed = True
+                    -
 
+                    datetime.utcnow().date()
 
-
-            except:
-
-
-                pass
-
+                ).days
 
 
 
+                if days_remaining < 0:
 
-        if completed:
-
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-
-                    "$set":
-                    {
-
-                        "status":
-                        "completed",
+                    days_remaining = 0
 
 
-                        "completed_at":
-                        datetime.utcnow(),
+
+                if days_remaining > 0:
 
 
-                        "updated_at":
-                        datetime.utcnow()
+                    daily_required = (
 
-                    }
+                        remaining_amount /
+
+                        days_remaining
+
+                    )
+
+
+                    weekly_required = daily_required * 7
+
+
+                    monthly_required = daily_required * 30
+
+
+
+        except:
+
+            pass
+
+
+
+
+        status="active"
+
+
+        if current_balance >= target_amount:
+
+            status="completed"
+
+
+
+
+        mongo.db.savings.update_one(
+
+            {
+                "_id":saving_id
+            },
+
+            {
+
+                "$set":{
+
+                    "status":status,
+
+                    "progress":round(
+                        progress,
+                        2
+                    ),
+
+                    "remaining_amount":round(
+                        remaining_amount,
+                        2
+                    ),
+
+                    "days_remaining":days_remaining,
+
+                    "daily_required":round(
+                        daily_required,
+                        2
+                    ),
+
+                    "weekly_required":round(
+                        weekly_required,
+                        2
+                    ),
+
+                    "monthly_required":round(
+                        monthly_required,
+                        2
+                    ),
+
+                    "updated_at":datetime.utcnow()
 
                 }
 
-            )
+            }
 
-
-
-        else:
-
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-
-                    "$set":
-                    {
-
-                        "status":
-                        "active",
-
-
-                        "updated_at":
-                        datetime.utcnow()
-
-                    }
-
-                }
-
-            )
-
-
-
-
+        )
 
 
 
@@ -10006,7 +10037,6 @@ def add_saving_transaction(id):
             "Saving transaction added successfully.",
             "success"
         )
-
 
 
         return redirect(
@@ -10019,407 +10049,22 @@ def add_saving_transaction(id):
         )
 
 
-    #code extra
-    
+
+
+
+
     # ==================================
-    # SAVING ANALYTICS
-    # TARGET + DATE + DAILY/WEEKLY/MONTHLY
+    # RENDER
     # ==================================
 
 
-    updated_saving = mongo.db.savings.find_one({
+    saving = mongo.db.savings.find_one({
 
-        "_id": saving_id,
+        "_id":saving_id,
 
-        "user_id": user_id
+        "user_id":user_id
 
     })
-
-
-
-    if not updated_saving:
-
-
-        flash(
-            "Saving goal not found.",
-            "danger"
-        )
-
-        return redirect(request.url)
-
-
-
-
-    # ==============================
-    # BALANCES
-    # ==============================
-
-
-    current_balance = float(
-
-        updated_saving.get(
-            "current_balance",
-            0
-        )
-
-    )
-
-
-
-    target_amount = float(
-
-        updated_saving.get(
-            "target_amount",
-            0
-        )
-
-    )
-
-
-
-    remaining_amount = max(
-
-        target_amount - current_balance,
-
-        0
-
-    )
-
-
-
-
-
-    # ==============================
-    # PROGRESS
-    # ==============================
-
-
-    if target_amount > 0:
-
-
-        progress = (
-
-            current_balance /
-
-            target_amount
-
-        ) * 100
-
-
-    else:
-
-
-        progress = 0
-
-
-
-
-    progress = min(
-
-        progress,
-
-        100
-
-    )
-
-
-
-
-
-
-    # ==============================
-    # DATE ANALYTICS
-    # ==============================
-
-
-    days_remaining = 0
-
-    daily_required = 0
-
-    weekly_required = 0
-
-    monthly_required = 0
-
-
-
-    end_date = None
-
-
-
-    maturity_date = updated_saving.get(
-        "maturity_date"
-    )
-
-
-
-
-    try:
-
-
-        if maturity_date:
-
-
-
-            if isinstance(
-                maturity_date,
-                str
-            ):
-
-
-
-                end_date = datetime.strptime(
-
-                    maturity_date,
-
-                    "%Y-%m-%d"
-
-                )
-
-
-            elif isinstance(
-                maturity_date,
-                datetime
-            ):
-
-
-                end_date = maturity_date
-
-
-
-
-
-            if end_date:
-
-
-
-                today = datetime.utcnow()
-
-
-
-                days_remaining = (
-
-                    end_date.date()
-
-                    -
-
-                    today.date()
-
-                ).days
-
-
-
-
-                if days_remaining < 0:
-
-
-                    days_remaining = 0
-
-
-
-
-
-                if days_remaining > 0 and remaining_amount > 0:
-
-
-
-                    daily_required = (
-
-                        remaining_amount /
-
-                        days_remaining
-
-                    )
-
-
-
-                    weekly_required = (
-
-                        daily_required *
-
-                        7
-
-                    )
-
-
-
-                    monthly_required = (
-
-                        daily_required *
-
-                        30
-
-                    )
-
-
-
-    except Exception as e:
-
-
-        print(
-            "Saving analytics error:",
-            e
-        )
-
-
-
-
-
-
-
-
-
-    # ==============================
-    # STATUS CHECK
-    # ==============================
-
-
-    status = "active"
-
-
-
-    # Target reached
-
-    if (
-
-        current_balance >= target_amount
-
-        and
-
-        target_amount > 0
-
-    ):
-
-
-        status = "completed"
-
-
-
-
-
-    # Date reached
-
-    if end_date:
-
-
-
-        if datetime.utcnow().date() >= end_date.date():
-
-
-            status = "completed"
-
-
-
-
-
-
-
-    # ==============================
-    # SAVE ANALYTICS
-    # ==============================
-
-
-    mongo.db.savings.update_one(
-
-        {
-
-            "_id": saving_id
-
-        },
-
-        {
-
-            "$set":
-
-            {
-
-
-                "status":
-
-                status,
-
-
-
-                "progress":
-
-                round(
-
-                    progress,
-
-                    2
-
-                ),
-
-
-
-
-                "remaining_amount":
-
-                round(
-
-                    remaining_amount,
-
-                    2
-
-                ),
-
-
-
-
-                "days_remaining":
-
-                days_remaining,
-
-
-
-
-                "daily_required":
-
-                round(
-
-                    daily_required,
-
-                    2
-
-                ),
-
-
-
-
-                "weekly_required":
-
-                round(
-
-                    weekly_required,
-
-                    2
-
-                ),
-
-
-
-
-                "monthly_required":
-
-                round(
-
-                    monthly_required,
-
-                    2
-
-                ),
-
-
-
-                "updated_at":
-
-                datetime.utcnow()
-
-
-            }
-
-        }
-
-    )
 
 
 
@@ -10431,29 +10076,29 @@ def add_saving_transaction(id):
 
         accounts=accounts,
 
-         days_remaining=saving.get(
-        "days_remaining",
-        0
-    ),
+        selected_account_id=selected_account_id,
 
-    daily_required=saving.get(
-        "daily_required",
-        0
-    ),
+        days_remaining=saving.get(
+            "days_remaining",
+            0
+        ),
 
-    weekly_required=saving.get(
-        "weekly_required",
-        0
-    ),
+        daily_required=saving.get(
+            "daily_required",
+            0
+        ),
 
-    monthly_required=saving.get(
-        "monthly_required",
-        0
+        weekly_required=saving.get(
+            "weekly_required",
+            0
+        ),
+
+        monthly_required=saving.get(
+            "monthly_required",
+            0
+        )
+
     )
-
-
-    )
-
 
 @bp.route("/saving-transactions")
 @login_required
