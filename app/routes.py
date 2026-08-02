@@ -4651,19 +4651,109 @@ def import_categories():
 @login_required
 def account_list():
 
-    # 🔥 ROLE-BASED FILTER (optional future scaling)
+
+    # ==============================
+    # USER FILTER
+    # ==============================
+
     query = {}
 
+
     if current_user.role != UserRole.superadmin.value:
-        query["user_id"] = ObjectId(current_user.id)
+
+        query["user_id"] = ObjectId(
+            current_user.id
+        )
+
+
+
+    # ==============================
+    # GET ACCOUNTS
+    # ==============================
 
     accounts = list(
-        mongo.db.accounts.find(query).sort("created_at", -1)
+
+        mongo.db.accounts.find(query)
+        .sort(
+            "created_at",
+            -1
+        )
+
     )
 
+
+
+
+    # ==============================
+    # GET SAVINGS
+    # ==============================
+
+
+    saving_query = {}
+
+
+    if current_user.role != UserRole.superadmin.value:
+
+        saving_query["user_id"] = ObjectId(
+            current_user.id
+        )
+
+
+
+    savings = list(
+
+        mongo.db.savings.find(
+            saving_query
+        )
+
+    )
+
+
+
+
+
+    # ==============================
+    # ATTACH SAVING ID TO ACCOUNT
+    # ==============================
+
+
+    active_saving = None
+
+
+    if savings:
+
+        active_saving = savings[0]
+
+
+
+
+
+    for account in accounts:
+
+
+        if active_saving:
+
+            account["saving_id"] = str(
+                active_saving["_id"]
+            )
+
+        else:
+
+            account["saving_id"] = ""
+
+
+
+
+
+
     return render_template(
+
         "backend/pages/components/accounts/all_accounts.html",
-        accounts=accounts
+
+        accounts=accounts,
+
+        savings=savings
+
     )
 
 
@@ -4812,61 +4902,552 @@ def delete_account(id):
     return redirect(url_for("main.account_list"))
 
 
+
+@bp.route("/account/transfer", methods=["POST"])
+@login_required
+def account_transfer():
+
+
+    data = request.get_json()
+
+
+    if not data:
+        return jsonify({
+            "error":"No data provided"
+        }),400
+
+
+
+    from_account = data.get("from_account")
+    to_account = data.get("to_account")
+    amount = data.get("amount")
+
+
+
+    try:
+
+        amount = float(amount)
+
+    except:
+
+        return jsonify({
+            "error":"Invalid amount"
+        }),400
+
+
+
+    try:
+
+        from_id = ObjectId(str(from_account))
+        to_id = ObjectId(str(to_account))
+
+    except:
+
+        return jsonify({
+            "error":"Invalid account id"
+        }),400
+
+
+
+
+
+    # labada nooc isku raadi
+
+    user_id = current_user.id
+
+
+    source = mongo.db.accounts.find_one(
+        {
+            "_id": from_id,
+            "$or":[
+                {
+                    "user_id":str(user_id)
+                },
+                {
+                    "user_id":ObjectId(user_id)
+                }
+            ]
+        }
+    )
+
+
+
+    destination = mongo.db.accounts.find_one(
+        {
+            "_id": to_id,
+            "$or":[
+                {
+                    "user_id":str(user_id)
+                },
+                {
+                    "user_id":ObjectId(user_id)
+                }
+            ]
+        }
+    )
+
+
+
+
+
+    print("FROM ACCOUNT:",from_id)
+    print("SOURCE:",source)
+
+    print("TO ACCOUNT:",to_id)
+    print("DESTINATION:",destination)
+
+
+
+
+
+    if not source:
+
+        return jsonify({
+
+            "error":
+            "Source account not found"
+
+        }),404
+
+
+
+
+
+    if not destination:
+
+        return jsonify({
+
+            "error":
+            "Destination account not found"
+
+        }),404
+
+
+
+
+
+
+    source_balance = float(
+        source.get("balance",0)
+    )
+
+
+
+
+    if amount > source_balance:
+
+
+        return jsonify({
+
+            "error":
+            f"Insufficient balance. Available ${source_balance:,.2f}"
+
+        }),400
+
+
+
+
+
+
+    # REMOVE MONEY
+
+    mongo.db.accounts.update_one(
+
+        {
+            "_id":from_id
+        },
+
+        {
+            "$inc":
+            {
+                "balance":-amount
+            }
+        }
+
+    )
+
+
+
+
+
+
+    # ADD MONEY
+
+    mongo.db.accounts.update_one(
+
+        {
+            "_id":to_id
+        },
+
+        {
+            "$inc":
+            {
+                "balance":amount
+            }
+        }
+
+    )
+
+
+
+
+
+
+
+    mongo.db.account_transfers.insert_one(
+
+        {
+
+            "user_id":str(user_id),
+
+            "from_account":from_id,
+
+            "to_account":to_id,
+
+            "amount":amount,
+
+            "created_at":datetime.utcnow()
+
+        }
+
+    )
+
+
+
+
+
+    return jsonify({
+
+        "message":
+        "Money transferred successfully"
+
+    })
+
+
 @bp.route("/saving-topup", methods=["POST"])
 @login_required
 def saving_topup():
 
     data = request.get_json()
 
+
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+
+        return jsonify({
+            "error":"No data provided"
+        }),400
+
+
+
 
     saving_id = data.get("saving_id")
     account_id = data.get("account_id")
     amount = data.get("amount")
 
-    # validate amount safely
+
+
+
+    # ==========================
+    # AMOUNT VALIDATION
+    # ==========================
+
     try:
+
         amount = float(amount)
+
     except:
-        return jsonify({"error": "Invalid amount"}), 400
+
+        return jsonify({
+            "error":"Invalid amount"
+        }),400
+
+
 
     if amount <= 0:
-        return jsonify({"error": "Amount must be greater than 0"}), 400
 
-    # validate IDs
+        return jsonify({
+            "error":"Amount must be greater than zero"
+        }),400
+
+
+
+
+
+
+
+    # ==========================
+    # OBJECT ID VALIDATION
+    # ==========================
+
     try:
-        saving_obj_id = ObjectId(saving_id)
-        account_obj_id = ObjectId(account_id)
-    except:
-        return jsonify({"error": "Invalid ID format"}), 400
 
-    saving = mongo.db.savings.find_one({"_id": saving_obj_id})
-    account = mongo.db.accounts.find_one({"_id": account_obj_id})
+        saving_obj_id = ObjectId(
+            str(saving_id)
+        )
+
+
+        account_obj_id = ObjectId(
+            str(account_id)
+        )
+
+
+    except:
+
+        return jsonify({
+            "error":"Invalid ID format"
+        }),400
+
+
+
+
+
+
+    user_id = str(
+        current_user.id
+    )
+
+
+
+
+
+
+
+    # ==========================
+    # GET SAVING
+    # ==========================
+
+    saving = mongo.db.savings.find_one(
+
+        {
+            "_id": saving_obj_id,
+
+            "$or":[
+
+                {
+                    "user_id":user_id
+                },
+
+                {
+                    "user_id":ObjectId(user_id)
+                }
+
+            ]
+
+        }
+
+    )
+
+
+
+
 
     if not saving:
-        return jsonify({"error": "Saving not found"}), 404
+
+        return jsonify({
+
+            "error":
+            "Saving not found"
+
+        }),404
+
+
+
+
+
+
+
+    # ==========================
+    # GET ACCOUNT
+    # ==========================
+
+    account = mongo.db.accounts.find_one(
+
+        {
+            "_id":account_obj_id,
+
+            "$or":[
+
+                {
+                    "user_id":user_id
+                },
+
+                {
+                    "user_id":ObjectId(user_id)
+                }
+
+            ]
+
+        }
+
+    )
+
+
+
+
 
     if not account:
-        return jsonify({"error": "Account not found"}), 404
 
-    if account.get("balance", 0) < amount:
-        return jsonify({"error": "Insufficient account balance"}), 400
+        return jsonify({
 
-    # deduct from account
+            "error":
+            "Account not found"
+
+        }),404
+
+
+
+
+
+
+
+    # ==========================
+    # CHECK ACCOUNT BALANCE
+    # ==========================
+
+
+    account_balance = float(
+
+        account.get(
+            "balance",
+            0
+        )
+
+    )
+
+
+
+
+    if amount > account_balance:
+
+
+        return jsonify({
+
+            "error":
+            f"Insufficient account balance. Available ${account_balance:,.2f}"
+
+        }),400
+
+
+
+
+
+
+
+    # ==========================
+    # ACCOUNT - REMOVE MONEY
+    # ==========================
+
+
     mongo.db.accounts.update_one(
-        {"_id": account_obj_id},
-        {"$inc": {"balance": -amount}}
+
+        {
+            "_id":account_obj_id
+        },
+
+        {
+
+            "$inc":
+            {
+
+                "balance":
+                -amount
+
+            }
+
+        }
+
     )
 
-    # add to saving
+
+
+
+
+
+
+    # ==========================
+    # SAVING - ADD MONEY
+    # ==========================
+
+
     mongo.db.savings.update_one(
-        {"_id": saving_obj_id},
-        {"$inc": {"current_balance": amount}}
+
+        {
+            "_id":saving_obj_id
+        },
+
+        {
+
+            "$inc":
+            {
+
+                "current_balance":
+                amount
+
+            }
+
+        }
+
     )
 
-    return jsonify({"message": "Money moved from Account → Saving"})
 
+
+
+
+
+
+
+    # ==========================
+    # SAVE HISTORY
+    # ==========================
+
+
+    mongo.db.saving_transactions.insert_one(
+
+        {
+
+            "user_id":
+            user_id,
+
+
+            "saving_id":
+            saving_obj_id,
+
+
+            "account_id":
+            account_obj_id,
+
+
+            "transaction_type":
+            "deposit",
+
+
+            "amount":
+            amount,
+
+
+            "description":
+            "Account to Saving deposit",
+
+
+            "created_at":
+            datetime.utcnow()
+
+        }
+
+    )
+
+
+
+
+
+
+
+    return jsonify({
+
+        "message":
+        "Money moved from Account → Saving successfully"
+
+    })
 
 @bp.route("/saving-withdraw", methods=["POST"])
 @login_required
@@ -4874,54 +5455,317 @@ def saving_withdraw():
 
     data = request.get_json()
 
+
     if not data:
-        return jsonify({"error": "No data provided"}), 400
+
+        return jsonify({
+            "error":"No data provided"
+        }),400
+
+
 
     saving_id = data.get("saving_id")
     account_id = data.get("account_id")
     amount = data.get("amount")
 
-    # validate amount safely
+
+
+    # ============================
+    # AMOUNT VALIDATION
+    # ============================
+
     try:
+
         amount = float(amount)
+
     except:
-        return jsonify({"error": "Invalid amount"}), 400
+
+        return jsonify({
+            "error":"Invalid amount"
+        }),400
+
+
 
     if amount <= 0:
-        return jsonify({"error": "Amount must be greater than 0"}), 400
 
-    # validate IDs
+        return jsonify({
+            "error":"Amount must be greater than zero"
+        }),400
+
+
+
+
+
+
+    # ============================
+    # ID VALIDATION
+    # ============================
+
     try:
-        saving_obj_id = ObjectId(saving_id)
-        account_obj_id = ObjectId(account_id)
-    except:
-        return jsonify({"error": "Invalid ID format"}), 400
 
-    saving = mongo.db.savings.find_one({"_id": saving_obj_id})
-    account = mongo.db.accounts.find_one({"_id": account_obj_id})
+        saving_obj_id = ObjectId(
+            str(saving_id)
+        )
+
+
+        account_obj_id = ObjectId(
+            str(account_id)
+        )
+
+
+    except:
+
+        return jsonify({
+            "error":"Invalid ID format"
+        }),400
+
+
+
+
+
+
+    user_id = str(
+        current_user.id
+    )
+
+
+
+
+
+    # ============================
+    # GET SAVING
+    # ============================
+
+
+    saving = mongo.db.savings.find_one(
+
+        {
+            "_id":saving_obj_id,
+
+            "$or":[
+                {
+                    "user_id":user_id
+                },
+                {
+                    "user_id":ObjectId(user_id)
+                }
+            ]
+
+        }
+
+    )
+
+
+
+
 
     if not saving:
-        return jsonify({"error": "Saving not found"}), 404
+
+
+        return jsonify({
+
+            "error":
+            "Saving not found"
+
+        }),404
+
+
+
+
+
+
+
+    # ============================
+    # GET ACCOUNT
+    # ============================
+
+
+    account = mongo.db.accounts.find_one(
+
+        {
+            "_id":account_obj_id,
+
+            "$or":[
+                {
+                    "user_id":user_id
+                },
+                {
+                    "user_id":ObjectId(user_id)
+                }
+            ]
+
+        }
+
+    )
+
+
+
+
 
     if not account:
-        return jsonify({"error": "Account not found"}), 404
 
-    if saving.get("current_balance", 0) < amount:
-        return jsonify({"error": "Insufficient saving balance"}), 400
 
-    # deduct from saving
+        return jsonify({
+
+            "error":
+            "Account not found"
+
+        }),404
+
+
+
+
+
+
+
+    # ============================
+    # CHECK SAVING BALANCE
+    # ============================
+
+
+    saving_balance = float(
+
+        saving.get(
+            "current_balance",
+            0
+        )
+
+    )
+
+
+
+
+    if amount > saving_balance:
+
+
+        return jsonify({
+
+            "error":
+            f"Insufficient saving balance. Available ${saving_balance:,.2f}"
+
+        }),400
+
+
+
+
+
+
+
+
+    # ============================
+    # REMOVE FROM SAVING
+    # ============================
+
+
     mongo.db.savings.update_one(
-        {"_id": saving_obj_id},
-        {"$inc": {"current_balance": -amount}}
+
+        {
+            "_id":saving_obj_id
+        },
+
+        {
+
+            "$inc":
+            {
+
+                "current_balance":
+                -amount
+
+            }
+
+        }
+
     )
 
-    # add to account
+
+
+
+
+
+
+    # ============================
+    # ADD TO ACCOUNT
+    # ============================
+
+
     mongo.db.accounts.update_one(
-        {"_id": account_obj_id},
-        {"$inc": {"balance": amount}}
+
+        {
+            "_id":account_obj_id
+        },
+
+        {
+
+            "$inc":
+            {
+
+                "balance":
+                amount
+
+            }
+
+        }
+
     )
 
-    return jsonify({"message": "Money moved from Saving → Account"})
+
+
+
+
+
+
+    # ============================
+    # SAVE TRANSACTION HISTORY
+    # ============================
+
+
+    mongo.db.saving_transactions.insert_one(
+
+        {
+
+            "user_id":
+            user_id,
+
+
+            "saving_id":
+            saving_obj_id,
+
+
+            "account_id":
+            account_obj_id,
+
+
+            "transaction_type":
+            "withdrawal",
+
+
+            "amount":
+            amount,
+
+
+            "description":
+            "Saving withdrawal to account",
+
+
+            "created_at":
+            datetime.utcnow()
+
+        }
+
+    )
+
+
+
+
+
+
+
+    return jsonify({
+
+        "message":
+        "Money moved from Saving → Account successfully"
+
+    })
 
 
 def clean_category(cat):
@@ -9025,45 +9869,145 @@ def add_saving():
 @login_required
 def saving_list():
 
-    # User accounts
+
+    user_id = ObjectId(current_user.id)
+
+
+
+    # ============================
+    # ACCOUNTS
+    # ============================
+
     accounts = list(
-        mongo.db.accounts.find({
-            "user_id": ObjectId(current_user.id)
-        })
+        mongo.db.accounts.find(
+            {
+                "user_id": user_id,
+                "status": True
+            }
+        )
+        .sort(
+            "created_at",
+            -1
+        )
     )
 
-    # Account map
+
+
+
+    # ============================
+    # ACCOUNT MAP
+    # ============================
+
     account_map = {
-        str(acc["_id"]): acc["name"]
-        for acc in accounts
+
+        str(account["_id"]):
+        account.get("name","Unknown")
+
+        for account in accounts
+
     }
 
-    # Savings
+
+
+
+
+    # ============================
+    # SAVINGS
+    # ============================
+
     savings = list(
-        mongo.db.savings.find({
-            "user_id": ObjectId(current_user.id)
-        }).sort("created_at", -1)
+        mongo.db.savings.find(
+            {
+                "user_id": user_id
+            }
+        )
+        .sort(
+            "created_at",
+            -1
+        )
     )
 
-    # Add account name + progress
+
+
+
+
+    # ============================
+    # SAVING DETAILS
+    # ============================
+
     for saving in savings:
 
+
+
         saving["account_name"] = account_map.get(
-            str(saving.get("account_id")),
-            "Unknown"
+
+            str(
+                saving.get("account_id")
+            ),
+
+            "No Account"
+
         )
 
-        target = float(saving.get("target_amount", 0))
-        current = float(saving.get("current_balance", 0))
+
+
+        target = float(
+            saving.get(
+                "target_amount",
+                0
+            )
+        )
+
+
+
+        current = float(
+            saving.get(
+                "current_balance",
+                0
+            )
+        )
+
+
+
 
         if target > 0:
-            saving["progress"] = round((current / target) * 100, 2)
+
+
+            saving["progress"] = round(
+
+                (current / target) * 100,
+
+                2
+
+            )
+
+
         else:
+
             saving["progress"] = 0
 
+
+
+
+
+        # convert ObjectId for JS/Jinja
+
+        saving["_id"] = str(
+            saving["_id"]
+        )
+
+
+
+
+
     return render_template(
+
         "backend/pages/components/savings/all_savings.html",
-        savings=savings
+
+        savings=savings,
+
+        accounts=accounts
+
     )
 
 
