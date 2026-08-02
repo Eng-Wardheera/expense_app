@@ -144,7 +144,7 @@ Edit Saving Transaction
 <div class="row">
 
 
-<div class="col-12">
+<div class="col-8">
 
 
 <form method="POST" id="editSavingForm">
@@ -819,11 +819,402 @@ Update Transaction
 </div>
 
 
+<div class="col-lg-4">
+
+
+<!-- =====================================
+     SAVING GOAL SUMMARY CARD
+===================================== -->
+
+<div class="card shadow-sm border-0 mb-4">
+
+
+<div class="card-header bg-primary text-white">
+
+<h5 class="mb-0">
+
+<i class="bi bi-piggy-bank-fill me-2"></i>
+
+Saving Goal Summary
+
+</h5>
+
+</div>
+
+
+
+<div class="card-body">
+
+
+<div class="mb-3">
+
+<small class="text-muted">
+Saving Goal
+</small>
+
+
+<h5>
+{{ saving.title }}
+</h5>
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+<span>
+Target
+</span>
+
+
+<strong>
+
+${{ "{:,.2f}".format(
+saving.target_amount|float
+) }}
+
+</strong>
+
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+Current
+</span>
+
+
+<strong class="text-success">
+
+${{ "{:,.2f}".format(
+saving.current_balance|float
+) }}
+
+</strong>
+
+
+</div>
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+Remaining
+</span>
+
+
+<strong class="text-danger">
+
+
+${{ "{:,.2f}".format(
+
+saving.remaining_amount
+|default(
+saving.target_amount-saving.current_balance
+)
+|float
+
+) }}
+
+
+</strong>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+Status
+</span>
+
+
+<span class="badge
+
+{% if saving.status=='completed' %}
+
+bg-success
+
+{% elif saving.status=='paused' %}
+
+bg-warning
+
+{% elif saving.status=='expired' %}
+
+bg-danger
+
+{% else %}
+
+bg-primary
+
+{% endif %}
+
+">
+
+
+{{ saving.status|capitalize }}
+
+
+</span>
+
+
 </div>
 
 
 </div>
 
+
+</div>
+
+
+
+
+
+
+
+<!-- =====================================
+     SAVING ANALYTICS CARD
+===================================== -->
+
+
+<div class="card shadow-sm border-0 mb-4">
+
+
+<div class="card-header bg-success text-white">
+
+
+<h5 class="mb-0">
+
+
+<i class="bi bi-bar-chart-fill me-2"></i>
+
+
+Saving Analytics
+
+
+</h5>
+
+
+</div>
+
+
+
+<div class="card-body">
+
+
+
+<div class="mb-3">
+
+
+<small class="text-muted">
+
+Progress
+
+</small>
+
+
+<div class="progress mt-2">
+
+
+<div
+
+class="progress-bar bg-success"
+
+role="progressbar"
+
+style="width: {{progress}}%;"
+
+>
+
+
+{{ "%.1f"|format(progress) }}%
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+
+Days Remaining
+
+</span>
+
+
+<strong class="text-primary">
+
+
+{{ days_remaining }} Days
+
+
+</strong>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+
+Daily Saving
+
+</span>
+
+
+<strong>
+
+
+${{ "%.2f"|format(
+daily_required
+) }}
+
+
+</strong>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+
+Weekly Saving
+
+</span>
+
+
+<strong>
+
+
+${{ "%.2f"|format(
+weekly_required
+) }}
+
+
+</strong>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+
+Monthly Saving
+
+</span>
+
+
+<strong class="text-success">
+
+
+${{ "%.2f"|format(
+monthly_required
+) }}
+
+
+</strong>
+
+
+</div>
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+
+Remaining Amount
+
+</span>
+
+
+<strong class="text-danger">
+
+
+${{ "%.2f"|format(
+remaining_amount
+) }}
+
+
+</strong>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
 
 
 
@@ -836,53 +1227,91 @@ Update Transaction
 
 
 const accountSelect =
-document.getElementById(
-"accountSelect"
-);
+document.getElementById("accountSelect");
 
 
 const typeSelect =
-document.getElementById(
-"transactionType"
-);
+document.getElementById("transactionType");
 
 
 const amountInput =
-document.getElementById(
-"amountInput"
-);
+document.getElementById("amountInput");
 
 
 const warningBox =
-document.getElementById(
-"warningBox"
-);
+document.getElementById("warningBox");
 
 
 const warningText =
-document.getElementById(
-"warningText"
-);
+document.getElementById("warningText");
 
 
 const updateBtn =
-document.getElementById(
-"updateBtn"
-);
+document.getElementById("updateBtn");
 
 
 
+const accountSummary =
+document.getElementById("accountSummary");
+
+
+const progressBar =
+document.getElementById("progressBar");
+
+
+const progressText =
+document.getElementById("progressText");
+
+
+const remainingAmount =
+document.getElementById("remainingAmount");
+
+
+const summaryTarget =
+document.getElementById("summaryTarget");
+
+
+const daysRemaining =
+document.getElementById("daysRemaining");
+
+
+const dailySaving =
+document.getElementById("dailySaving");
+
+
+const weeklySaving =
+document.getElementById("weeklySaving");
+
+
+const monthlySaving =
+document.getElementById("monthlySaving");
+
+
+const planRemaining =
+document.getElementById("planRemaining");
+
+
+
+
+
+
+// =====================================
+// OLD TRANSACTION
+// =====================================
 
 
 const oldAmount =
+
+roundMoney(
 parseFloat(
 "{{trx.amount}}"
-) || 0;
-
+) || 0
+);
 
 
 
 const oldType =
+
 "{{trx.transaction_type}}";
 
 
@@ -890,28 +1319,229 @@ const oldType =
 
 
 
+// =====================================
+// SAVING DATA
+// =====================================
 
-function validate(){
 
+const savingBalance =
 
-let amount =
+roundMoney(
 parseFloat(
-amountInput.value
-) || 0;
+"{{saving.current_balance}}"
+) || 0
+);
 
 
 
-let type =
-typeSelect.value;
+const targetAmount =
+
+roundMoney(
+parseFloat(
+"{{saving.target_amount}}"
+) || 0
+);
 
 
 
-let balance = 0;
 
+const targetDate =
+
+new Date(
+"{{saving.maturity_date}}"
+);
+
+
+
+
+
+
+
+// =====================================
+// MONEY FORMAT
+// =====================================
+
+
+function money(value){
+
+
+return "$" +
+
+Number(value).toLocaleString(
+
+undefined,
+
+{
+
+minimumFractionDigits:2,
+
+maximumFractionDigits:2
+
+}
+
+);
+
+
+}
+
+
+
+
+
+
+
+// =====================================
+// ROUND MONEY FIX
+// =====================================
+
+
+function roundMoney(value){
+
+
+return Math.round(
+
+(Number(value) + Number.EPSILON) * 100
+
+) / 100;
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ACCOUNT BALANCE
+// =====================================
+
+
+function getAccountBalance(){
 
 
 
 let option =
+
+accountSelect.options[
+accountSelect.selectedIndex
+];
+
+
+
+if(!option){
+
+return 0;
+
+}
+
+
+
+
+let balance =
+
+parseFloat(
+option.dataset.balance
+) || 0;
+
+
+
+
+
+// restore old deposit
+
+if(
+oldType === "deposit"
+){
+
+
+balance += oldAmount;
+
+
+}
+
+
+
+
+
+return roundMoney(balance);
+
+
+}
+
+
+
+
+
+
+
+
+
+
+// =====================================
+// SAVING BALANCE
+// =====================================
+
+
+function getSavingBalance(){
+
+
+
+let balance =
+
+savingBalance;
+
+
+
+// restore old withdrawal
+
+if(
+oldType === "withdrawal"
+){
+
+
+balance += oldAmount;
+
+
+}
+
+
+
+return roundMoney(balance);
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ACCOUNT DISPLAY
+// =====================================
+
+
+function updateAccount(){
+
+
+
+if(!accountSummary){
+
+return;
+
+}
+
+
+
+let option =
+
 accountSelect.options[
 accountSelect.selectedIndex
 ];
@@ -920,58 +1550,541 @@ accountSelect.selectedIndex
 
 if(option){
 
-balance =
+
+
+accountSummary.innerHTML =
+
+
+money(
+getAccountBalance()
+)
+
++
+
+" "
+
++
+
+(option.dataset.currency || "");
+
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ANALYTICS
+// =====================================
+
+
+function updateAnalytics(){
+
+
+
+let amount =
+
+roundMoney(
+
 parseFloat(
-option.dataset.balance
-) || 0;
+amountInput.value
+) || 0
+
+);
+
+
+
+
+
+let currentSaving =
+
+savingBalance;
+
+
+
+
+
+
+if(
+typeSelect.value === "deposit"
+){
+
+
+currentSaving =
+
+savingBalance
+
+-
+
+oldAmount
+
++
+
+amount;
+
+
+
+}
+
+else{
+
+
+currentSaving =
+
+
+savingBalance
+
++
+
+oldAmount
+
+-
+
+amount;
+
+
 
 }
 
 
 
-warningBox.style.display="none";
-
-updateBtn.disabled=false;
 
 
 
+currentSaving =
+
+roundMoney(
+currentSaving
+);
 
 
 
-if(type==="deposit"){
 
 
+if(currentSaving < 0){
 
-/*
-
-Deposit lacagtu account-ka ayay ka baxaysaa
-
-dib ayaan ugu darnaa old amount
-
-*/
-
-
-if(oldType==="deposit"){
-
-balance += oldAmount;
+currentSaving = 0;
 
 }
 
 
 
 
-if(amount > balance){
+
+
+
+let remaining =
+
+
+targetAmount
+
+-
+
+currentSaving;
+
+
+
+
+
+remaining =
+
+roundMoney(
+remaining
+);
+
+
+
+
+
+if(remaining < 0){
+
+remaining = 0;
+
+}
+
+
+
+
+
+
+
+
+if(summaryTarget){
+
+summaryTarget.innerHTML =
+
+money(targetAmount);
+
+}
+
+
+
+
+
+
+if(remainingAmount){
+
+remainingAmount.innerHTML =
+
+money(remaining);
+
+}
+
+
+
+
+
+
+if(planRemaining){
+
+planRemaining.innerHTML =
+
+money(remaining);
+
+}
+
+
+
+
+
+
+
+
+
+// progress
+
+
+let progress = 0;
+
+
+
+if(targetAmount > 0){
+
+
+progress =
+
+(currentSaving / targetAmount) * 100;
+
+
+}
+
+
+
+
+if(progress > 100){
+
+progress = 100;
+
+}
+
+
+
+
+
+
+if(progressBar){
+
+progressBar.style.width =
+
+progress + "%";
+
+}
+
+
+
+
+
+
+if(progressText){
+
+progressText.innerHTML =
+
+progress.toFixed(1)+"%";
+
+}
+
+
+
+
+
+
+
+
+
+// days
+
+
+let days = 0;
+
+
+
+if(
+!isNaN(
+targetDate.getTime()
+)
+){
+
+
+
+days = Math.ceil(
+
+(
+
+targetDate -
+
+new Date()
+
+)
+
+/
+
+(1000*60*60*24)
+
+);
+
+
+
+}
+
+
+
+
+
+if(days < 0){
+
+days = 0;
+
+}
+
+
+
+
+
+
+
+if(daysRemaining){
+
+daysRemaining.innerHTML =
+
+days+" Days";
+
+}
+
+
+
+
+
+
+
+
+let daily = 0;
+
+let weekly = 0;
+
+let monthly = 0;
+
+
+
+
+
+if(days > 0){
+
+
+daily =
+
+remaining / days;
+
+
+
+weekly =
+
+daily * 7;
+
+
+
+monthly =
+
+daily * 30;
+
+
+
+}
+
+
+
+
+
+
+
+if(dailySaving){
+
+dailySaving.innerHTML =
+
+money(daily);
+
+}
+
+
+
+
+if(weeklySaving){
+
+weeklySaving.innerHTML =
+
+money(weekly);
+
+}
+
+
+
+
+if(monthlySaving){
+
+monthlySaving.innerHTML =
+
+money(monthly);
+
+}
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// VALIDATION
+// =====================================
+
+
+function validate(){
+
+
+
+let amount =
+
+
+roundMoney(
+
+parseFloat(
+amountInput.value
+) || 0
+
+);
+
+
+
+
+
+warningBox.style.display =
+
+"none";
+
+
+warningText.innerHTML =
+
+"";
+
+
+updateBtn.disabled =
+
+false;
+
+
+
+
+
+
+
+// ============================
+// DEPOSIT
+// ============================
+
+
+if(
+typeSelect.value === "deposit"
+){
+
+
+
+let available =
+
+getAccountBalance();
+
+
+
+
+
+available =
+
+roundMoney(
+available
+);
+
+
+
+
+
+if(
+amount > available
+){
 
 
 
 warningText.innerHTML =
-"Account balance is insufficient.";
 
 
-warningBox.style.display="block";
+`
+Insufficient account balance.
+<br>
+
+Available:
+
+<strong>
+${money(available)}
+</strong>
+
+<br>
+
+Required:
+
+<strong>
+${money(amount)}
+</strong>
+
+`;
 
 
-updateBtn.disabled=true;
+
+
+
+warningBox.style.display =
+
+"block";
+
+
+
+updateBtn.disabled =
+
+true;
 
 
 
@@ -979,6 +2092,7 @@ updateBtn.disabled=true;
 
 
 
+
 }
 
 
@@ -986,33 +2100,98 @@ updateBtn.disabled=true;
 
 
 
-if(type==="withdrawal"){
 
 
 
-if(amount > {{trx.amount}} + {{trx.amount}}){
+// ============================
+// WITHDRAWAL
+// ============================
+
+
+if(
+typeSelect.value === "withdrawal"
+){
+
+
+
+let available =
+
+getSavingBalance();
+
+
+
+
+
+if(
+amount > available
+){
 
 
 
 warningText.innerHTML =
-"Invalid withdrawal amount.";
 
 
-warningBox.style.display="block";
+`
+Insufficient saving balance.
+<br>
+
+Available:
+
+<strong>
+${money(available)}
+</strong>
+
+<br>
+
+Required:
+
+<strong>
+${money(amount)}
+</strong>
+
+`;
 
 
-updateBtn.disabled=true;
+
+
+
+warningBox.style.display =
+
+"block";
+
+
+
+updateBtn.disabled =
+
+true;
+
 
 
 }
 
 
 
+
+}
+
+
+
+
+
+
+
+updateAccount();
+
+
+updateAnalytics();
+
+
+
+
+
 }
 
 
-
-}
 
 
 
@@ -1021,23 +2200,34 @@ updateBtn.disabled=true;
 
 
 accountSelect.addEventListener(
+
 "change",
+
 validate
+
 );
 
 
 
 typeSelect.addEventListener(
+
 "change",
+
 validate
+
 );
 
 
 
 amountInput.addEventListener(
+
 "input",
+
 validate
+
 );
+
+
 
 
 
@@ -1046,7 +2236,6 @@ validate();
 
 
 </script>
-
 
 
 

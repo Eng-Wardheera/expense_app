@@ -9407,9 +9407,9 @@ def add_saving_transaction(id):
     user_id = ObjectId(current_user.id)
 
 
-    # ==============================
+    # ==================================
     # CHECK SAVING ID
-    # ==============================
+    # ==================================
 
     try:
 
@@ -9428,9 +9428,9 @@ def add_saving_transaction(id):
 
 
 
-    # ==============================
+    # ==================================
     # GET SAVING
-    # ==============================
+    # ==================================
 
     saving = mongo.db.savings.find_one({
 
@@ -9439,6 +9439,7 @@ def add_saving_transaction(id):
         "user_id": user_id
 
     })
+
 
 
     if not saving:
@@ -9455,10 +9456,10 @@ def add_saving_transaction(id):
 
 
 
-    # ==============================
-    # ACCOUNTS
-    # ==============================
 
+    # ==================================
+    # ACCOUNTS
+    # ==================================
 
     accounts = list(
         mongo.db.accounts.find({
@@ -9474,13 +9475,11 @@ def add_saving_transaction(id):
 
 
 
-    # ==============================
+    # ==================================
     # POST
-    # ==============================
-
+    # ==================================
 
     if request.method == "POST":
-
 
 
         account_id = request.form.get(
@@ -9517,7 +9516,6 @@ def add_saving_transaction(id):
 
 
 
-        # REQUIRED
 
         if not account_id or not amount:
 
@@ -9532,7 +9530,6 @@ def add_saving_transaction(id):
 
 
 
-        # AMOUNT
 
         try:
 
@@ -9565,14 +9562,13 @@ def add_saving_transaction(id):
 
 
 
-        # ACCOUNT ID
-
 
         try:
 
             account_obj_id = ObjectId(
                 account_id
             )
+
 
         except:
 
@@ -9587,6 +9583,12 @@ def add_saving_transaction(id):
 
 
 
+
+
+
+        # ==================================
+        # GET ACCOUNT
+        # ==================================
 
         account = mongo.db.accounts.find_one({
 
@@ -9632,9 +9634,10 @@ def add_saving_transaction(id):
 
 
 
-        # ==============================
-        # BALANCE CHECK
-        # ==============================
+
+        # ==================================
+        # BALANCE VALIDATION
+        # ==================================
 
 
         if transaction_type == "deposit":
@@ -9644,7 +9647,7 @@ def add_saving_transaction(id):
 
 
                 flash(
-                    "Insufficient account balance.",
+                    f"Insufficient account balance. Available ${account_balance:,.2f}",
                     "danger"
                 )
 
@@ -9652,14 +9655,16 @@ def add_saving_transaction(id):
 
 
 
+
         elif transaction_type == "withdrawal":
+
 
 
             if amount > saving_balance:
 
 
                 flash(
-                    "Insufficient saving balance.",
+                    f"Insufficient saving balance. Available ${saving_balance:,.2f}",
                     "danger"
                 )
 
@@ -9683,9 +9688,9 @@ def add_saving_transaction(id):
 
 
 
-        # ==============================
+        # ==================================
         # CREATE TRANSACTION
-        # ==============================
+        # ==================================
 
 
         trx = SavingTransaction()
@@ -9721,6 +9726,7 @@ def add_saving_transaction(id):
 
 
 
+
         mongo.db.saving_transactions.insert_one(
             data
         )
@@ -9731,14 +9737,15 @@ def add_saving_transaction(id):
 
 
 
-        # ==============================
-        # UPDATE BALANCE
-        # ==============================
+        # ==================================
+        # UPDATE BALANCES
+        # ==================================
 
 
         if transaction_type == "deposit":
 
 
+            # Money leaves account
 
             mongo.db.accounts.update_one(
 
@@ -9758,6 +9765,8 @@ def add_saving_transaction(id):
 
 
 
+            # Add to saving
+
             mongo.db.savings.update_one(
 
                 {
@@ -9765,17 +9774,13 @@ def add_saving_transaction(id):
                 },
 
                 {
+
                     "$inc":
                     {
                         "current_balance":
                         amount
-                    },
-
-                    "$set":
-                    {
-                        "updated_at":
-                        datetime.utcnow()
                     }
+
                 }
 
             )
@@ -9787,30 +9792,7 @@ def add_saving_transaction(id):
 
 
 
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-                    "$inc":
-                    {
-                        "current_balance":
-                        -amount
-                    },
-
-                    "$set":
-                    {
-                        "updated_at":
-                        datetime.utcnow()
-                    }
-                }
-
-            )
-
-
+            # Money returns account
 
             mongo.db.accounts.update_one(
 
@@ -9819,11 +9801,34 @@ def add_saving_transaction(id):
                 },
 
                 {
+
                     "$inc":
                     {
                         "balance":
                         amount
                     }
+
+                }
+
+            )
+
+
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+
+                    "$inc":
+                    {
+                        "current_balance":
+                        -amount
+                    }
+
                 }
 
             )
@@ -9834,35 +9839,104 @@ def add_saving_transaction(id):
 
 
 
-
-        # ==============================
+        # ==================================
         # AUTO COMPLETE
-        # ==============================
+        # TARGET OR DATE
+        # ==================================
 
 
         updated_saving = mongo.db.savings.find_one({
 
-            "_id": saving_id
+            "_id": saving_id,
+
+            "user_id": user_id
 
         })
 
 
 
-        if (
-
+        current_balance = float(
             updated_saving.get(
                 "current_balance",
                 0
             )
+        )
 
-            >=
 
+        target_amount = float(
             updated_saving.get(
                 "target_amount",
                 0
             )
+        )
 
-        ):
+
+
+        completed = False
+
+
+
+        # TARGET REACHED
+
+        if current_balance >= target_amount:
+
+
+            completed = True
+
+
+
+
+
+        # DATE REACHED
+
+        maturity_date = updated_saving.get(
+            "maturity_date"
+        )
+
+
+
+        if maturity_date:
+
+
+            try:
+
+
+                if isinstance(
+                    maturity_date,
+                    str
+                ):
+
+
+                    end_date = datetime.strptime(
+                        maturity_date,
+                        "%Y-%m-%d"
+                    )
+
+
+                else:
+
+
+                    end_date = maturity_date
+
+
+
+                if datetime.utcnow().date() >= end_date.date():
+
+
+                    completed = True
+
+
+
+            except:
+
+
+                pass
+
+
+
+
+
+        if completed:
 
 
             mongo.db.savings.update_one(
@@ -9879,6 +9953,11 @@ def add_saving_transaction(id):
                         "status":
                         "completed",
 
+
+                        "completed_at":
+                        datetime.utcnow(),
+
+
                         "updated_at":
                         datetime.utcnow()
 
@@ -9887,6 +9966,38 @@ def add_saving_transaction(id):
                 }
 
             )
+
+
+
+        else:
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+
+                    "$set":
+                    {
+
+                        "status":
+                        "active",
+
+
+                        "updated_at":
+                        datetime.utcnow()
+
+                    }
+
+                }
+
+            )
+
+
+
 
 
 
@@ -9908,7 +10019,407 @@ def add_saving_transaction(id):
         )
 
 
+    #code extra
+    
+    # ==================================
+    # SAVING ANALYTICS
+    # TARGET + DATE + DAILY/WEEKLY/MONTHLY
+    # ==================================
 
+
+    updated_saving = mongo.db.savings.find_one({
+
+        "_id": saving_id,
+
+        "user_id": user_id
+
+    })
+
+
+
+    if not updated_saving:
+
+
+        flash(
+            "Saving goal not found.",
+            "danger"
+        )
+
+        return redirect(request.url)
+
+
+
+
+    # ==============================
+    # BALANCES
+    # ==============================
+
+
+    current_balance = float(
+
+        updated_saving.get(
+            "current_balance",
+            0
+        )
+
+    )
+
+
+
+    target_amount = float(
+
+        updated_saving.get(
+            "target_amount",
+            0
+        )
+
+    )
+
+
+
+    remaining_amount = max(
+
+        target_amount - current_balance,
+
+        0
+
+    )
+
+
+
+
+
+    # ==============================
+    # PROGRESS
+    # ==============================
+
+
+    if target_amount > 0:
+
+
+        progress = (
+
+            current_balance /
+
+            target_amount
+
+        ) * 100
+
+
+    else:
+
+
+        progress = 0
+
+
+
+
+    progress = min(
+
+        progress,
+
+        100
+
+    )
+
+
+
+
+
+
+    # ==============================
+    # DATE ANALYTICS
+    # ==============================
+
+
+    days_remaining = 0
+
+    daily_required = 0
+
+    weekly_required = 0
+
+    monthly_required = 0
+
+
+
+    end_date = None
+
+
+
+    maturity_date = updated_saving.get(
+        "maturity_date"
+    )
+
+
+
+
+    try:
+
+
+        if maturity_date:
+
+
+
+            if isinstance(
+                maturity_date,
+                str
+            ):
+
+
+
+                end_date = datetime.strptime(
+
+                    maturity_date,
+
+                    "%Y-%m-%d"
+
+                )
+
+
+            elif isinstance(
+                maturity_date,
+                datetime
+            ):
+
+
+                end_date = maturity_date
+
+
+
+
+
+            if end_date:
+
+
+
+                today = datetime.utcnow()
+
+
+
+                days_remaining = (
+
+                    end_date.date()
+
+                    -
+
+                    today.date()
+
+                ).days
+
+
+
+
+                if days_remaining < 0:
+
+
+                    days_remaining = 0
+
+
+
+
+
+                if days_remaining > 0 and remaining_amount > 0:
+
+
+
+                    daily_required = (
+
+                        remaining_amount /
+
+                        days_remaining
+
+                    )
+
+
+
+                    weekly_required = (
+
+                        daily_required *
+
+                        7
+
+                    )
+
+
+
+                    monthly_required = (
+
+                        daily_required *
+
+                        30
+
+                    )
+
+
+
+    except Exception as e:
+
+
+        print(
+            "Saving analytics error:",
+            e
+        )
+
+
+
+
+
+
+
+
+
+    # ==============================
+    # STATUS CHECK
+    # ==============================
+
+
+    status = "active"
+
+
+
+    # Target reached
+
+    if (
+
+        current_balance >= target_amount
+
+        and
+
+        target_amount > 0
+
+    ):
+
+
+        status = "completed"
+
+
+
+
+
+    # Date reached
+
+    if end_date:
+
+
+
+        if datetime.utcnow().date() >= end_date.date():
+
+
+            status = "completed"
+
+
+
+
+
+
+
+    # ==============================
+    # SAVE ANALYTICS
+    # ==============================
+
+
+    mongo.db.savings.update_one(
+
+        {
+
+            "_id": saving_id
+
+        },
+
+        {
+
+            "$set":
+
+            {
+
+
+                "status":
+
+                status,
+
+
+
+                "progress":
+
+                round(
+
+                    progress,
+
+                    2
+
+                ),
+
+
+
+
+                "remaining_amount":
+
+                round(
+
+                    remaining_amount,
+
+                    2
+
+                ),
+
+
+
+
+                "days_remaining":
+
+                days_remaining,
+
+
+
+
+                "daily_required":
+
+                round(
+
+                    daily_required,
+
+                    2
+
+                ),
+
+
+
+
+                "weekly_required":
+
+                round(
+
+                    weekly_required,
+
+                    2
+
+                ),
+
+
+
+
+                "monthly_required":
+
+                round(
+
+                    monthly_required,
+
+                    2
+
+                ),
+
+
+
+                "updated_at":
+
+                datetime.utcnow()
+
+
+            }
+
+        }
+
+    )
 
 
 
@@ -9918,7 +10429,28 @@ def add_saving_transaction(id):
 
         saving=saving,
 
-        accounts=accounts
+        accounts=accounts,
+
+         days_remaining=saving.get(
+        "days_remaining",
+        0
+    ),
+
+    daily_required=saving.get(
+        "daily_required",
+        0
+    ),
+
+    weekly_required=saving.get(
+        "weekly_required",
+        0
+    ),
+
+    monthly_required=saving.get(
+        "monthly_required",
+        0
+    )
+
 
     )
 
@@ -10001,28 +10533,41 @@ def saving_transaction_list():
     )
 
 
+# ==========================================================
+# EDIT SAVING TRANSACTION
+# ==========================================================
 @bp.route("/saving-transaction/edit/<id>", methods=["GET", "POST"])
 @login_required
 def edit_saving_transaction(id):
 
+    # ======================================================
+    # VALIDATE ID
+    # ======================================================
+
     try:
+
         trx_id = ObjectId(id)
 
-    except Exception:
-        flash("Invalid transaction ID.", "danger")
+    except:
+
+        flash(
+            "Invalid transaction ID.",
+            "danger"
+        )
+
         return redirect(
             url_for("main.saving_transaction_list")
         )
 
 
+    user_id = ObjectId(
+        current_user.id
+    )
 
-    user_id = ObjectId(current_user.id)
 
-
-
-    # ==========================================
+    # ======================================================
     # GET TRANSACTION
-    # ==========================================
+    # ======================================================
 
     trx = mongo.db.saving_transactions.find_one({
 
@@ -10033,11 +10578,10 @@ def edit_saving_transaction(id):
     })
 
 
-
     if not trx:
 
         flash(
-            "Saving transaction not found.",
+            "Transaction not found.",
             "danger"
         )
 
@@ -10047,10 +10591,35 @@ def edit_saving_transaction(id):
 
 
 
+    # ======================================================
+    # GET SAVING
+    # ======================================================
 
-    # ==========================================
+    saving = mongo.db.savings.find_one({
+
+        "_id": trx["saving_id"],
+
+        "user_id": user_id
+
+    })
+
+
+    if not saving:
+
+        flash(
+            "Saving goal not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.saving_transaction_list")
+        )
+
+
+
+    # ======================================================
     # ACCOUNTS
-    # ==========================================
+    # ======================================================
 
     accounts = list(
         mongo.db.accounts.find({
@@ -10062,48 +10631,51 @@ def edit_saving_transaction(id):
 
 
 
+    # ======================================================
+    # OLD DATA
+    # ======================================================
+
+    old_account_id = trx["account_id"]
+
+    old_amount = float(
+        trx.get(
+            "amount",
+            0
+        )
+    )
+
+    old_type = trx.get(
+        "transaction_type"
+    )
 
 
-    # ==========================================
+    saving_id = trx["saving_id"]
+
+
+
+    # ======================================================
     # POST
-    # ==========================================
+    # ======================================================
 
     if request.method == "POST":
 
 
-        try:
+        new_account = request.form.get(
+            "account_id"
+        )
 
 
-            new_account_id = request.form.get(
-                "account_id"
+        new_type = request.form.get(
+            "transaction_type"
+        )
+
+
+        amount = float(
+            request.form.get(
+                "amount",
+                0
             )
-
-
-            new_type = request.form.get(
-                "transaction_type"
-            )
-
-
-            new_amount = float(
-                request.form.get(
-                    "amount",
-                    0
-                )
-            )
-
-
-
-        except:
-
-
-            flash(
-                "Invalid amount.",
-                "danger"
-            )
-
-            return redirect(request.url)
-
-
+        )
 
 
         description = request.form.get(
@@ -10119,13 +10691,13 @@ def edit_saving_transaction(id):
 
 
         reference_no = request.form.get(
-            "reference_no"
+            "reference_no",
+            ""
         )
 
 
 
-
-        if not new_account_id:
+        if not new_account:
 
 
             flash(
@@ -10137,42 +10709,10 @@ def edit_saving_transaction(id):
 
 
 
-
-
-        if new_amount <= 0:
-
-
-            flash(
-                "Amount must be greater than zero.",
-                "danger"
-            )
-
-            return redirect(request.url)
-
-
-
-
-
-        if new_type not in [
-            "deposit",
-            "withdrawal"
-        ]:
-
-
-            flash(
-                "Invalid transaction type.",
-                "danger"
-            )
-
-            return redirect(request.url)
-
-
-
-
         try:
 
-            new_account_obj = ObjectId(
-                new_account_id
+            new_account_id = ObjectId(
+                new_account
             )
 
         except:
@@ -10187,15 +10727,38 @@ def edit_saving_transaction(id):
 
 
 
+        if amount <= 0:
 
 
-        # ==========================================
-        # CHECK ACCOUNT OWNER
-        # ==========================================
+            flash(
+                "Amount must be greater than zero.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
+
+        if new_type not in [
+
+            "deposit",
+            "withdrawal"
+
+        ]:
+
+
+            flash(
+                "Invalid type.",
+                "danger"
+            )
+
+            return redirect(request.url)
+
+
 
         account = mongo.db.accounts.find_one({
 
-            "_id": new_account_obj,
+            "_id": new_account_id,
 
             "user_id": user_id
 
@@ -10214,154 +10777,47 @@ def edit_saving_transaction(id):
 
 
 
+        # ==================================================
+        # AVAILABLE BALANCE CHECK
+        # ==================================================
 
 
-
-        old_account = trx["account_id"]
-
-        old_amount = float(
-            trx.get(
-                "amount",
+        available_account = float(
+            account.get(
+                "balance",
                 0
             )
         )
 
-        old_type = trx["transaction_type"]
 
+        if (
+            old_type == "deposit"
+            and old_account_id == new_account_id
+        ):
 
-        saving_id = trx["saving_id"]
-
-
-
-
-
-
-        saving = mongo.db.savings.find_one({
-
-            "_id": saving_id,
-
-            "user_id": user_id
-
-        })
+            available_account += old_amount
 
 
 
-        if not saving:
-
-
-            flash(
-                "Saving goal not found.",
-                "danger"
+        available_saving = float(
+            saving.get(
+                "current_balance",
+                0
             )
-
-            return redirect(request.url)
-
+        )
 
 
+        if old_type == "withdrawal":
+
+            available_saving += old_amount
 
 
-        # ==========================================
-        # REMOVE OLD TRANSACTION EFFECT
-        # ==========================================
-
-
-        if old_type == "deposit":
-
-
-            # return money to account
-
-            mongo.db.accounts.update_one(
-
-                {
-                    "_id": old_account
-                },
-
-                {
-                    "$inc":
-                    {
-                        "balance":
-                        old_amount
-                    }
-                }
-
-            )
-
-
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-                    "$inc":
-                    {
-                        "current_balance":
-                        -old_amount
-                    }
-                }
-
-            )
-
-
-
-        else:
-
-
-            mongo.db.accounts.update_one(
-
-                {
-                    "_id": old_account
-                },
-
-                {
-                    "$inc":
-                    {
-                        "balance":
-                        -old_amount
-                    }
-                }
-
-            )
-
-
-
-            mongo.db.savings.update_one(
-
-                {
-                    "_id": saving_id
-                },
-
-                {
-                    "$inc":
-                    {
-                        "current_balance":
-                        old_amount
-                    }
-                }
-
-            )
-
-
-
-
-
-
-
-        # ==========================================
-        # APPLY NEW TRANSACTION
-        # ==========================================
 
 
         if new_type == "deposit":
 
 
-
-            if account.get(
-                "balance",
-                0
-            ) < new_amount:
+            if amount > available_account:
 
 
                 flash(
@@ -10369,29 +10825,48 @@ def edit_saving_transaction(id):
                     "danger"
                 )
 
+                return redirect(request.url)
+
+
+
+        if new_type == "withdrawal":
+
+
+            if amount > available_saving:
+
+
+                flash(
+                    "Insufficient saving balance.",
+                    "danger"
+                )
 
                 return redirect(request.url)
 
 
 
+        # ==================================================
+        # REMOVE OLD TRANSACTION EFFECT
+        # ==================================================
+
+
+        if old_type == "deposit":
 
 
             mongo.db.accounts.update_one(
 
                 {
-                    "_id": new_account_obj
+                    "_id": old_account_id
                 },
 
                 {
                     "$inc":
                     {
                         "balance":
-                        -new_amount
+                        old_amount
                     }
                 }
 
             )
-
 
 
             mongo.db.savings.update_one(
@@ -10404,54 +10879,112 @@ def edit_saving_transaction(id):
                     "$inc":
                     {
                         "current_balance":
-                        new_amount
+                        -old_amount
                     }
                 }
 
             )
 
 
+        else:
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": old_account_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        -old_amount
+                    }
+                }
+
+            )
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        old_amount
+                    }
+                }
+
+            )
+
+
+
+        # ==================================================
+        # APPLY NEW TRANSACTION
+        # ==================================================
+
+
+        if new_type == "deposit":
+
+
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id": new_account_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "balance":
+                        -amount
+                    }
+                }
+
+            )
+
+
+            mongo.db.savings.update_one(
+
+                {
+                    "_id": saving_id
+                },
+
+                {
+                    "$inc":
+                    {
+                        "current_balance":
+                        amount
+                    }
+                }
+
+            )
 
 
 
         else:
 
 
-
-            if saving.get(
-                "current_balance",
-                0
-            ) < new_amount:
-
-
-                flash(
-                    "Saving balance insufficient.",
-                    "danger"
-                )
-
-
-                return redirect(request.url)
-
-
-
-
-
             mongo.db.accounts.update_one(
 
                 {
-                    "_id": new_account_obj
+                    "_id": new_account_id
                 },
 
                 {
                     "$inc":
                     {
                         "balance":
-                        new_amount
+                        amount
                     }
                 }
 
             )
-
 
 
             mongo.db.savings.update_one(
@@ -10464,7 +10997,7 @@ def edit_saving_transaction(id):
                     "$inc":
                     {
                         "current_balance":
-                        -new_amount
+                        -amount
                     }
                 }
 
@@ -10472,14 +11005,9 @@ def edit_saving_transaction(id):
 
 
 
-
-
-
-
-
-        # ==========================================
+        # ==================================================
         # UPDATE TRANSACTION
-        # ==========================================
+        # ==================================================
 
 
         mongo.db.saving_transactions.update_one(
@@ -10491,32 +11019,25 @@ def edit_saving_transaction(id):
             {
 
                 "$set":
-
                 {
 
                     "account_id":
-                    new_account_obj,
-
+                    new_account_id,
 
                     "transaction_type":
                     new_type,
 
-
                     "amount":
-                    new_amount,
-
+                    amount,
 
                     "description":
                     description,
 
-
                     "note":
                     note,
 
-
                     "reference_no":
                     reference_no,
-
 
                     "updated_at":
                     datetime.utcnow()
@@ -10529,41 +11050,168 @@ def edit_saving_transaction(id):
 
 
 
+        # ==================================================
+        # SAVING ANALYTICS
+        # ==================================================
 
 
-
-
-        # ==========================================
-        # UPDATE SAVING STATUS
-        # ==========================================
-
-
-        updated_saving = mongo.db.savings.find_one({
+        updated = mongo.db.savings.find_one({
 
             "_id": saving_id
 
         })
 
 
+        current_balance = float(
+            updated.get(
+                "current_balance",
+                0
+            )
+        )
 
-        if updated_saving.get(
-            "current_balance",
-            0
-        ) >= updated_saving.get(
-            "target_amount",
-            0
-        ):
 
+        target_amount = float(
+            updated.get(
+                "target_amount",
+                0
+            )
+        )
+
+
+        remaining_amount = max(
+
+            target_amount-current_balance,
+
+            0
+
+        )
+
+
+        progress = 0
+
+
+        if target_amount > 0:
+
+            progress = (
+
+                current_balance /
+
+                target_amount
+
+            ) * 100
+
+
+
+        if progress > 100:
+
+            progress = 100
+
+
+
+        # ==================================================
+        # DATE PLAN
+        # ==================================================
+
+        days_remaining = 0
+
+        daily_required = 0
+
+        weekly_required = 0
+
+        monthly_required = 0
+
+
+
+        maturity = updated.get(
+            "maturity_date"
+        )
+
+
+        try:
+
+            if maturity:
+
+
+                if isinstance(
+                    maturity,
+                    str
+                ):
+
+                    end = datetime.strptime(
+
+                        maturity,
+
+                        "%Y-%m-%d"
+
+                    )
+
+
+                else:
+
+                    end = maturity
+
+
+
+                days_remaining = (
+
+                    end.date()
+
+                    -
+
+                    datetime.utcnow().date()
+
+                ).days
+
+
+
+                if days_remaining < 0:
+
+                    days_remaining = 0
+
+
+
+                if days_remaining > 0:
+
+
+                    daily_required = (
+
+                        remaining_amount /
+
+                        days_remaining
+
+                    )
+
+
+                    weekly_required = daily_required * 7
+
+
+                    monthly_required = daily_required * 30
+
+
+
+        except:
+
+            pass
+
+
+
+        # ==================================================
+        # STATUS
+        # ==================================================
+
+        if current_balance >= target_amount:
 
             status = "completed"
 
 
+        elif days_remaining == 0:
+
+            status = "expired"
+
+
         else:
 
-
             status = "active"
-
-
 
 
 
@@ -10578,8 +11226,25 @@ def edit_saving_transaction(id):
                 "$set":
                 {
 
-                    "status":
-                    status,
+                    "status":status,
+
+                    "progress":
+                    round(progress,2),
+
+                    "remaining_amount":
+                    round(remaining_amount,2),
+
+                    "days_remaining":
+                    days_remaining,
+
+                    "daily_required":
+                    round(daily_required,2),
+
+                    "weekly_required":
+                    round(weekly_required,2),
+
+                    "monthly_required":
+                    round(monthly_required,2),
 
                     "updated_at":
                     datetime.utcnow()
@@ -10592,8 +11257,6 @@ def edit_saving_transaction(id):
 
 
 
-
-
         flash(
             "Saving transaction updated successfully.",
             "success"
@@ -10601,14 +11264,157 @@ def edit_saving_transaction(id):
 
 
         return redirect(
+
             url_for(
                 "main.saving_transaction_list"
             )
+
         )
 
 
 
+    # ======================================================
+    # GET ANALYTICS
+    # ======================================================
 
+
+    current_balance = float(
+        saving.get(
+            "current_balance",
+            0
+        )
+    )
+
+
+    target_amount = float(
+        saving.get(
+            "target_amount",
+            0
+        )
+    )
+
+
+    remaining_amount = max(
+
+        target_amount - current_balance,
+
+        0
+
+    )
+
+
+
+    progress = 0
+
+
+    if target_amount > 0:
+
+        progress = (
+
+            current_balance /
+
+            target_amount
+
+        ) * 100
+
+
+
+    # ==============================
+    # DATE CALCULATION
+    # ==============================
+
+    days_remaining = 0
+
+    daily_required = 0
+
+    weekly_required = 0
+
+    monthly_required = 0
+
+
+
+    maturity_date = saving.get(
+        "maturity_date"
+    )
+
+
+
+    try:
+
+
+        if maturity_date:
+
+
+            if isinstance(
+                maturity_date,
+                str
+            ):
+
+
+                maturity_date = datetime.strptime(
+
+                    maturity_date,
+
+                    "%Y-%m-%d"
+
+                )
+
+
+            today = datetime.utcnow()
+
+
+
+            days_remaining = (
+
+                maturity_date.date()
+
+                -
+
+                today.date()
+
+            ).days
+
+
+
+            if days_remaining < 0:
+
+                days_remaining = 0
+
+
+
+            if days_remaining > 0:
+
+
+                daily_required = (
+
+                    remaining_amount /
+
+                    days_remaining
+
+                )
+
+
+                weekly_required = (
+
+                    daily_required * 7
+
+                )
+
+
+                monthly_required = (
+
+                    daily_required * 30
+
+                )
+
+
+
+    except Exception as e:
+
+        print(
+            "DATE ERROR:",
+            e
+        )
 
 
 
@@ -10618,9 +11424,24 @@ def edit_saving_transaction(id):
 
         trx=trx,
 
-        accounts=accounts
+        saving=saving,
+
+        accounts=accounts,
+
+        progress=round(progress,2),
+
+        remaining_amount=remaining_amount,
+
+        days_remaining=days_remaining,
+
+        daily_required=daily_required,
+
+        weekly_required=weekly_required,
+
+        monthly_required=monthly_required
 
     )
+
 
 @bp.route("/saving-transaction/delete/<id>")
 @login_required

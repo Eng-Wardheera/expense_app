@@ -183,7 +183,7 @@ Add Saving Transaction
 <div class="row">
 
 
-<div class="col-12">
+<div class="col-8">
 
 
 
@@ -802,6 +802,277 @@ Save Transaction
 </div>
 
 
+<div class="col-lg-4">
+
+
+<!-- SAVING GOAL SUMMARY CARD -->
+<div class="card shadow-sm border-0 mb-4">
+
+<div class="card-header bg-primary text-white">
+
+<h5 class="mb-0">
+<i class="bi bi-piggy-bank-fill me-2"></i>
+Saving Goal Summary
+</h5>
+
+</div>
+
+
+<div class="card-body">
+
+
+<div class="mb-3">
+
+<small class="text-muted">
+Saving Goal
+</small>
+
+<h5>
+{{ saving.title }}
+</h5>
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+<span>
+Target
+</span>
+
+<strong>
+${{ "{:,.2f}".format(saving.target_amount|float) }}
+</strong>
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+<span>
+Current
+</span>
+
+<strong class="text-success">
+
+${{ "{:,.2f}".format(saving.current_balance|float) }}
+
+</strong>
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+<span>
+Remaining
+</span>
+
+<strong class="text-danger">
+
+${{ "{:,.2f}".format(
+saving.remaining_amount|default(
+saving.target_amount-saving.current_balance
+)|float
+) }}
+
+</strong>
+
+</div>
+
+
+<hr>
+
+
+<div class="d-flex justify-content-between">
+
+<span>
+Status
+</span>
+
+
+<span class="badge
+{% if saving.status=='completed' %}
+bg-success
+{% elif saving.status=='paused' %}
+bg-warning
+{% else %}
+bg-primary
+{% endif %}
+">
+
+{{saving.status|capitalize}}
+
+</span>
+
+
+</div>
+
+
+</div>
+
+</div>
+
+
+
+
+
+
+<!-- ============================= -->
+<!-- SAVING ANALYTICS CARD -->
+<!-- ============================= -->
+
+
+<div class="card shadow-sm border-0 mb-4">
+
+
+<div class="card-header bg-success text-white">
+
+<h5 class="mb-0">
+
+<i class="bi bi-bar-chart-fill me-2"></i>
+
+Saving Analytics
+
+</h5>
+
+</div>
+
+
+
+<div class="card-body">
+
+
+
+<div class="d-flex justify-content-between mb-3">
+
+<span>
+Days Remaining
+</span>
+
+
+<strong class="text-primary">
+
+{{days_remaining}} Days
+
+</strong>
+
+
+</div>
+
+
+
+
+<hr>
+
+
+
+
+<div class="d-flex justify-content-between mb-3">
+
+<span>
+Daily Saving
+</span>
+
+
+<strong>
+
+${{ "%.2f"|format(daily_required) }}
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<div class="d-flex justify-content-between mb-3">
+
+<span>
+Weekly Saving
+</span>
+
+
+<strong>
+
+${{ "%.2f"|format(weekly_required) }}
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<div class="d-flex justify-content-between mb-3">
+
+<span>
+Monthly Saving
+</span>
+
+
+<strong>
+
+${{ "%.2f"|format(monthly_required) }}
+
+</strong>
+
+
+</div>
+
+
+
+
+
+<hr>
+
+
+
+<div class="d-flex justify-content-between">
+
+
+<span>
+Remaining Amount
+</span>
+
+
+<strong class="text-danger">
+
+${{ "%.2f"|format(
+saving.remaining_amount|default(0)
+) }}
+
+</strong>
+
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+</div>
+
 </div>
 
 
@@ -856,10 +1127,53 @@ document.getElementById(
 
 
 
+
 const savingBalance =
-parseFloat(
-"{{saving.current_balance or 0}}"
-);
+Number(
+"{{ saving.current_balance|default(0) }}"
+) || 0;
+
+
+
+
+
+
+// ============================
+// MONEY FORMAT
+// ============================
+
+
+function money(value){
+
+
+return "$" + Number(value).toFixed(2);
+
+
+}
+
+
+
+
+
+
+
+// ============================
+// ROUND MONEY
+// ============================
+
+
+function roundMoney(value){
+
+
+return Math.round(
+    value * 100
+) / 100;
+
+
+}
+
+
+
 
 
 
@@ -869,10 +1183,15 @@ parseFloat(
 function validateTransaction(){
 
 
-let amount =
-parseFloat(
-amountInput.value
-) || 0;
+
+let amount = roundMoney(
+
+    parseFloat(
+        amountInput.value
+    ) || 0
+
+);
+
 
 
 
@@ -885,7 +1204,7 @@ let accountBalance = 0;
 
 
 
-if(accountSelect.value){
+
 
 
 let option =
@@ -894,10 +1213,19 @@ accountSelect.selectedIndex
 ];
 
 
-accountBalance =
-parseFloat(
-option.dataset.balance
-) || 0;
+
+
+
+if(option){
+
+
+accountBalance = roundMoney(
+
+    parseFloat(
+        option.dataset.balance
+    ) || 0
+
+);
 
 
 }
@@ -905,30 +1233,178 @@ option.dataset.balance
 
 
 
-warningBox.style.display="none";
-
-saveBtn.disabled=false;
 
 
 
+warningBox.style.display =
+"none";
+
+
+warningText.innerHTML =
+"";
+
+
+saveBtn.disabled =
+false;
 
 
 
-if(type==="deposit"){
+
+
+
+
+
+
+// ============================
+// AMOUNT CHECK
+// ============================
+
+
+if(amount <= 0){
+
+
+warningText.innerHTML =
+"Please enter amount greater than zero.";
+
+
+warningBox.style.display =
+"block";
+
+
+saveBtn.disabled =
+true;
+
+
+return;
+
+
+}
+
+
+
+
+
+
+
+
+
+// ============================
+// DEPOSIT
+// Account --> Saving
+// ============================
+
+
+if(type === "deposit"){
 
 
 
 if(amount > accountBalance){
 
 
-warningText.innerHTML =
-"Account balance is insufficient for this deposit.";
+
+warningText.innerHTML = `
+
+Insufficient account balance.
+
+<br>
+
+Available Account Balance:
+
+<strong>
+${money(accountBalance)}
+</strong>
 
 
-warningBox.style.display="block";
+<br>
+
+Required:
+
+<strong>
+${money(amount)}
+</strong>
+
+`;
 
 
-saveBtn.disabled=true;
+
+warningBox.style.display =
+"block";
+
+
+saveBtn.disabled =
+true;
+
+
+
+}
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+// ============================
+// WITHDRAWAL
+// Saving --> Account
+// ============================
+
+
+if(type === "withdrawal"){
+
+
+
+let availableSaving =
+roundMoney(
+    savingBalance
+);
+
+
+
+if(amount > availableSaving){
+
+
+
+warningText.innerHTML = `
+
+Insufficient saving balance.
+
+<br>
+
+Available Saving Balance:
+
+<strong>
+${money(availableSaving)}
+</strong>
+
+
+<br>
+
+Required:
+
+<strong>
+${money(amount)}
+</strong>
+
+`;
+
+
+
+warningBox.style.display =
+"block";
+
+
+saveBtn.disabled =
+true;
+
 
 
 }
@@ -943,36 +1419,9 @@ saveBtn.disabled=true;
 
 
 
-if(type==="withdrawal"){
-
-
-
-if(amount > savingBalance){
-
-
-
-warningText.innerHTML =
-"Saving balance is insufficient for this withdrawal.";
-
-
-
-warningBox.style.display="block";
-
-
-
-saveBtn.disabled=true;
-
-
-
 }
 
 
-
-}
-
-
-
-}
 
 
 
@@ -980,21 +1429,40 @@ saveBtn.disabled=true;
 
 
 accountSelect.addEventListener(
+
 "change",
+
 validateTransaction
+
 );
+
 
 
 typeSelect.addEventListener(
+
 "change",
+
 validateTransaction
+
 );
+
 
 
 amountInput.addEventListener(
+
 "input",
+
 validateTransaction
+
 );
+
+
+
+
+
+validateTransaction();
+
+
 
 
 
