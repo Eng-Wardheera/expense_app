@@ -7079,8 +7079,8 @@ def persons():
 
         raw_name = (
             trx.get("person_name")
-            or trx.get("note")
             or trx.get("description")
+            or trx.get("note")
             or ""
         )
 
@@ -7108,7 +7108,9 @@ def persons():
 
 
 
-      
+        if not person_name:
+            continue
+
 
 
         amount = float(
