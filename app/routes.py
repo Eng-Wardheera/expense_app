@@ -7038,28 +7038,70 @@ item_recommendations=item_recommendations,
     )
 
 
-
+from collections import defaultdict
+from bson import ObjectId
+from flask_login import login_required, current_user
+from flask import render_template
+import re
 
 
 @bp.route("/persons")
 @login_required
 def persons():
 
-    persons_dict = defaultdict(lambda: {
-        "_id": "",
-        "name": "",
-        "total_income": 0.0,
-        "total_expense": 0.0,
-        "balance": 0.0,
-        "transactions": 0
-    })
+    # ==========================================
+    # HELPER
+    # ==========================================
+
+    def extract_person_name(data):
+
+        raw_name = (
+            data.get("person_name")
+            or data.get("description")
+            or data.get("note")
+            or ""
+        )
+
+        raw_name = str(raw_name).strip()
+
+        if not raw_name:
+            return ""
+
+        # Remove leading "By"
+        raw_name = re.sub(
+            r"^by\s*",
+            "",
+            raw_name,
+            flags=re.IGNORECASE
+        )
+
+        # Remove extra spaces
+        raw_name = " ".join(raw_name.split())
+
+        return raw_name.title()
 
 
-    # ==================================================
-    # 1. NORMAL TRANSACTIONS
-    # ==================================================
+    # ==========================================
+    # PERSONS DICTIONARY
+    # ==========================================
 
-    transactions = mongo.db.transactions.find({
+    persons_dict = defaultdict(
+        lambda: {
+            "_id": "",
+            "name": "",
+            "total_income": 0.0,
+            "total_expense": 0.0,
+            "balance": 0.0,
+            "transactions": 0
+        }
+    )
+
+
+    # ==========================================
+    # USER QUERY
+    # ==========================================
+
+    user_query = {
         "$or": [
             {
                 "user_id": str(current_user.id)
@@ -7068,7 +7110,16 @@ def persons():
                 "user_id": ObjectId(current_user.id)
             }
         ]
-    }).sort(
+    }
+
+
+    # ==========================================
+    # NORMAL TRANSACTIONS
+    # ==========================================
+
+    transactions = mongo.db.transactions.find(
+        user_query
+    ).sort(
         "date",
         -1
     )
@@ -7076,73 +7127,35 @@ def persons():
 
     for trx in transactions:
 
-
-        raw_name = (
-            trx.get("person_name")
-            or trx.get("description")
-            or trx.get("note")
-            or ""
-        )
-
-
-        raw_name = str(raw_name).strip()
-
-
-        if not raw_name:
-            continue
-
-
-
-        # Remove By / by
-        raw_name = re.sub(
-            r"^by\s*",
-            "",
-            raw_name,
-            flags=re.IGNORECASE
-        )
-
-
-        person_name = " ".join(
-            raw_name.split()
-        ).title()
-
-
+        person_name = extract_person_name(trx)
 
         if not person_name:
             continue
-
-
 
         amount = float(
             trx.get("amount", 0) or 0
         )
 
+        person = persons_dict[person_name]
 
-        persons_dict[person_name]["_id"] = person_name
-
-        persons_dict[person_name]["name"] = person_name
-
-        persons_dict[person_name]["transactions"] += 1
-
-
+        person["_id"] = person_name
+        person["name"] = person_name
+        person["transactions"] += 1
 
         if trx.get("transaction_type") == "income":
 
-            persons_dict[person_name]["total_income"] += amount
+            person["total_income"] += amount
 
         else:
 
-            persons_dict[person_name]["total_expense"] += amount
+            person["total_expense"] += amount
 
 
+    # ==========================================
+    # OPENING / MANUAL TRANSACTIONS
+    # ==========================================
 
-
-
-    # ==================================================
-    # 2. OLD EXCEL / MANUAL TRANSACTIONS
-    # ==================================================
-
-    old_transactions = mongo.db.person_opening_transactions.find({
+    opening_transactions = mongo.db.person_opening_transactions.find({
 
         "user_id": ObjectId(current_user.id)
 
@@ -7152,66 +7165,37 @@ def persons():
     )
 
 
-    for old in old_transactions:
+    for trx in opening_transactions:
 
+        person_name = extract_person_name(trx)
 
-        raw_name = str(
-            old.get("person_name", "")
-        ).strip()
-
-
-        if not raw_name:
+        if not person_name:
             continue
 
-
-
-        raw_name = re.sub(
-            r"^by\s*",
-            "",
-            raw_name,
-            flags=re.IGNORECASE
-        )
-
-
-
-        person_name = " ".join(
-            raw_name.split()
-        ).title()
-
-
-
         amount = float(
-            old.get("amount", 0) or 0
+            trx.get("amount", 0) or 0
         )
 
+        person = persons_dict[person_name]
 
+        person["_id"] = person_name
+        person["name"] = person_name
+        person["transactions"] += 1
 
-        persons_dict[person_name]["_id"] = person_name
+        if trx.get("type") == "income":
 
-        persons_dict[person_name]["name"] = person_name
-
-        persons_dict[person_name]["transactions"] += 1
-
-
-
-        if old.get("type") == "income":
-
-            persons_dict[person_name]["total_income"] += amount
+            person["total_income"] += amount
 
         else:
 
-            persons_dict[person_name]["total_expense"] += amount
+            person["total_expense"] += amount
 
 
-
-
-
-    # ==================================================
-    # FINAL DATA
-    # ==================================================
+    # ==========================================
+    # CALCULATE BALANCE
+    # ==========================================
 
     persons = []
-
 
     for person in persons_dict.values():
 
@@ -7224,11 +7208,18 @@ def persons():
         persons.append(person)
 
 
+    # ==========================================
+    # SORT
+    # ==========================================
 
     persons.sort(
         key=lambda x: x["name"].lower()
     )
 
+
+    # ==========================================
+    # RENDER
+    # ==========================================
 
     return render_template(
         "backend/pages/components/transactions/persons.html",
