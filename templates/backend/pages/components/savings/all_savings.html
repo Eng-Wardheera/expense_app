@@ -183,15 +183,17 @@ gap:6px;
 flex-wrap:wrap;
 ">
 
-
 <!-- TOP UP -->
 <button 
 
 onclick="
 openTopup(
 '{{ saving._id }}',
-'{{ saving.title }}'
-)"
+'{{ saving.title }}',
+'{{ saving.current_balance|float }}',
+'{{ saving.target_amount|float }}'
+)
+"
 
 style="
 display:flex;
@@ -217,6 +219,7 @@ Top Up
 
 
 
+
 <!-- WITHDRAW -->
 <button 
 
@@ -226,7 +229,8 @@ openWithdraw(
 '{{ saving._id }}',
 '{{ saving.title }}',
 '{{ saving.current_balance|float }}'
-)"
+)
+"
 
 
 style="
@@ -250,7 +254,6 @@ Withdraw
 
 
 </button>
-
 
 
 
@@ -1219,26 +1222,25 @@ Close
 
 <script>
 
-
 let savingId = null;
-
 let savingBalance = 0;
+let savingTarget = 0;
 
 
-
-// ===============================
+// =====================================
 // OPEN TOPUP
-// ===============================
+// =====================================
 
-function openTopup(id,name,balance){
+function openTopup(id,name,balance,target){
 
 
     savingId = String(id);
 
 
-    document.getElementById(
-        "topupSavingId"
-    ).value = savingId;
+    savingBalance = parseFloat(balance || 0);
+
+
+    savingTarget = parseFloat(target || 0);
 
 
 
@@ -1249,9 +1251,55 @@ function openTopup(id,name,balance){
 
 
     document.getElementById(
+        "topupSavingId"
+    ).value = savingId;
+
+
+
+    document.getElementById(
         "topupAccountName"
     ).innerHTML =
-    "Saving: <b>"+name+"</b>";
+
+
+    `
+    Saving:
+
+    <b>${name}</b>
+
+
+    <br>
+
+
+    Current Balance:
+
+    <b>
+    $${savingBalance.toFixed(2)}
+    </b>
+
+
+    <br>
+
+
+    Target:
+
+    <b>
+    $${savingTarget.toFixed(2)}
+    </b>
+
+
+    <br>
+
+
+    Remaining:
+
+    <b>
+    $${Math.max(
+        savingTarget-savingBalance,
+        0
+    ).toFixed(2)}
+    </b>
+
+    `;
 
 
 
@@ -1265,37 +1313,6 @@ function openTopup(id,name,balance){
     ).value="";
 
 
-
-    let info =
-    document.getElementById(
-        "topupAmountInfo"
-    );
-
-
-    if(info){
-
-        info.innerHTML =
-        `
-        <i class="fa fa-info-circle"></i>
-        Enter top up amount
-        `;
-
-    }
-
-
-    let balanceInfo =
-    document.getElementById(
-        "topupAccountBalance"
-    );
-
-
-    if(balanceInfo){
-
-        balanceInfo.innerHTML="";
-
-    }
-
-
 }
 
 
@@ -1303,12 +1320,9 @@ function openTopup(id,name,balance){
 
 
 
-
-
-// ===============================
+// =====================================
 // OPEN WITHDRAW
-// ===============================
-
+// =====================================
 
 function openWithdraw(id,name,balance){
 
@@ -1316,23 +1330,14 @@ function openWithdraw(id,name,balance){
     savingId = String(id);
 
 
-
     savingBalance =
     parseFloat(balance || 0);
-
-
-
-
-    document.getElementById(
-        "withdrawSavingId"
-    ).value=savingId;
 
 
 
     document.getElementById(
         "withdrawModal"
     ).style.display="flex";
-
 
 
 
@@ -1346,14 +1351,14 @@ function openWithdraw(id,name,balance){
 
     <b>${name}</b>
 
+
     <br>
 
-    Available Saving:
 
-    <b style="color:#198754">
+    Available:
 
+    <b>
     $${savingBalance.toFixed(2)}
-
     </b>
 
     `;
@@ -1365,9 +1370,251 @@ function openWithdraw(id,name,balance){
     ).value="";
 
 
-    document.getElementById(
-        "withdrawAccount"
-    ).value="";
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// TOPUP VALIDATION
+// =====================================
+
+function validateTopup(){
+
+
+let input =
+document.getElementById(
+"topupAmount"
+);
+
+
+
+let account =
+document.getElementById(
+"topupAccount"
+);
+
+
+
+let info =
+document.getElementById(
+"topupAmountInfo"
+);
+
+
+
+if(!input || !account){
+
+return;
+
+}
+
+
+
+let amount =
+parseFloat(
+input.value || 0
+);
+
+
+
+let option =
+account.options[
+account.selectedIndex
+];
+
+
+
+let accountBalance =
+parseFloat(
+option?.dataset.balance || 0
+);
+
+
+
+
+// Remaining target
+
+let remainingTarget =
+
+Math.max(
+
+savingTarget - savingBalance,
+
+0
+
+);
+
+
+
+
+// Empty
+
+if(input.value===""){
+
+
+info.innerHTML =
+`
+<i class="fa fa-info-circle"></i>
+
+Enter top up amount
+`;
+
+
+info.style.color="#e67e22";
+
+
+return;
+
+}
+
+
+
+
+
+// Zero
+
+if(amount <= 0){
+
+
+info.innerHTML =
+
+`
+Amount must be greater than zero
+`;
+
+
+info.style.color="#e74c3c";
+
+
+return;
+
+}
+
+
+
+
+
+
+// TARGET COMPLETED
+
+if(remainingTarget <=0){
+
+
+input.value="";
+
+
+info.innerHTML =
+
+`
+Saving target already completed.
+`;
+
+
+info.style.color="#e74c3c";
+
+
+return;
+
+}
+
+
+
+
+
+// MAX ALLOWED
+
+let maxAllowed = Math.min(
+
+accountBalance,
+
+remainingTarget
+
+);
+
+
+
+
+
+
+if(amount > maxAllowed){
+
+
+
+input.value =
+maxAllowed.toFixed(2);
+
+
+
+info.innerHTML =
+
+
+`
+Amount adjusted automatically.
+
+<br><br>
+
+Maximum:
+
+<b>
+$${maxAllowed.toFixed(2)}
+</b>
+
+
+<br>
+
+Account:
+
+<b>
+$${accountBalance.toFixed(2)}
+</b>
+
+
+<br>
+
+Remaining Target:
+
+<b>
+$${remainingTarget.toFixed(2)}
+</b>
+
+`;
+
+
+
+info.style.color="#e74c3c";
+
+
+return;
+
+}
+
+
+
+
+
+info.innerHTML =
+
+
+`
+<i class="fa fa-check-circle"></i>
+
+Top Up:
+
+<b>
+$${amount.toFixed(2)}
+</b>
+
+`;
+
+
+
+info.style.color="#198754";
 
 
 
@@ -1381,10 +1628,9 @@ function openWithdraw(id,name,balance){
 
 
 
-
-// ===============================
-// TOPUP ACCOUNT BALANCE
-// ===============================
+// =====================================
+// ACCOUNT CHANGE
+// =====================================
 
 
 document.addEventListener(
@@ -1413,8 +1659,6 @@ option.dataset.balance || 0
 
 
 
-
-
 let info =
 document.getElementById(
 "topupAccountBalance"
@@ -1425,31 +1669,29 @@ document.getElementById(
 if(info){
 
 
-
 info.innerHTML =
 
 
 `
 <i class="fa fa-wallet"></i>
 
-Available Balance:
+Available:
 
 <b>
-
 $${balance.toFixed(2)}
-
 </b>
 
 `;
 
-
-
 }
 
 
 
-}
+validateTopup();
 
+
+
+}
 
 
 });
@@ -1462,9 +1704,9 @@ $${balance.toFixed(2)}
 
 
 
-// ===============================
-// TOPUP AMOUNT LIVE CHECK
-// ===============================
+// =====================================
+// INPUT CONTROL
+// =====================================
 
 
 document.addEventListener(
@@ -1479,143 +1721,35 @@ e.target.id==="topupAmount"
 
 
 
-let amount =
-parseFloat(
-e.target.value || 0
-);
+let value=e.target.value;
 
 
 
-let account =
-document.getElementById(
-"topupAccount"
-);
+if(value.includes(".")){
 
 
-
-let selected =
-account.options[
-account.selectedIndex
-];
+let parts=value.split(".");
 
 
-
-let balance =
-parseFloat(
-selected?.dataset.balance || 0
-);
+if(parts[1].length>2){
 
 
-
-
-let info =
-document.getElementById(
-"topupAmountInfo"
-);
-
-
-
-
-if(!info){
-
-return;
-
-}
-
-
-
-
-
-if(amount<=0){
-
-
-info.innerHTML =
-
-`
-<i class="fa fa-info-circle"></i>
-
-Enter top up amount
-
-`;
-
-
-info.style.color="#e67e22";
+e.target.value =
+parts[0]+"."+parts[1].substring(0,2);
 
 
 }
-
-else if(amount > balance){
-
-
-
-info.innerHTML =
-
-
-`
-<i class="fa fa-warning"></i>
-
-
-Insufficient Balance
-
-
-<br>
-
-
-Available:
-
-<b>
-$${balance.toFixed(2)}
-</b>
-
-`;
-
-
-
-info.style.color="#e74c3c";
-
-
-
-}
-
-else{
-
-
-
-info.innerHTML =
-
-
-`
-<i class="fa fa-check-circle"></i>
-
-
-Top Up Amount:
-
-<b>
-$${amount.toFixed(2)}
-</b>
-
-
-<br>
-
-Available:
-
-<b>
-$${balance.toFixed(2)}
-</b>
-
-`;
-
-
-
-info.style.color="#198754";
 
 
 }
 
 
 
-}
+validateTopup();
 
+
+
+}
 
 
 });
@@ -1628,9 +1762,11 @@ info.style.color="#198754";
 
 
 
-// ===============================
-// WITHDRAW AMOUNT CHECK
-// ===============================
+
+
+// =====================================
+// WITHDRAW CHECK
+// =====================================
 
 
 document.addEventListener(
@@ -1644,27 +1780,20 @@ e.target.id==="withdrawAmount"
 ){
 
 
+let input=e.target;
 
-let amount =
+
+let amount=
 parseFloat(
-e.target.value || 0
+input.value || 0
 );
 
 
 
-let info =
+let info=
 document.getElementById(
 "withdrawAmountInfo"
 );
-
-
-
-
-if(!info){
-
-return;
-
-}
 
 
 
@@ -1673,20 +1802,19 @@ return;
 if(amount > savingBalance){
 
 
+input.value =
+savingBalance.toFixed(2);
+
+
+
 info.innerHTML =
 
-
 `
-<i class="fa fa-warning"></i>
-
-
-Insufficient Saving Balance
-
+Amount adjusted.
 
 <br>
 
-
-Available:
+Maximum Saving:
 
 <b>
 $${savingBalance.toFixed(2)}
@@ -1701,17 +1829,14 @@ info.style.color="#e74c3c";
 
 }
 
+
 else{
 
 
 info.innerHTML =
 
-
 `
-<i class="fa fa-check-circle"></i>
-
-
-Withdraw Amount:
+Withdraw:
 
 <b>
 $${amount.toFixed(2)}
@@ -1720,17 +1845,13 @@ $${amount.toFixed(2)}
 `;
 
 
-
 info.style.color="#198754";
 
 
 }
 
 
-
-
 }
-
 
 
 });
@@ -1743,14 +1864,11 @@ info.style.color="#198754";
 
 
 
-
-// ===============================
-// CLOSE MODAL
-// ===============================
-
+// =====================================
+// CLOSE
+// =====================================
 
 function closeModal(){
-
 
 
 [
@@ -1760,26 +1878,20 @@ function closeModal(){
 ].forEach(function(id){
 
 
-
 let modal =
 document.getElementById(id);
 
 
-
 if(modal){
-
 
 modal.style.display="none";
 
-
 }
-
 
 
 });
 
 
-
 }
 
 
@@ -1790,21 +1902,28 @@ modal.style.display="none";
 
 
 
-// ===============================
-// TOPUP
-// ACCOUNT ---> SAVING
-// ===============================
-
+// =====================================
+// SUBMIT TOPUP
+// =====================================
 
 function submitTopup(){
 
 
 
-let amount =
-parseFloat(
+validateTopup();
+
+
+
+let input =
 document.getElementById(
 "topupAmount"
-).value
+);
+
+
+
+let amount =
+parseFloat(
+input.value || 0
 );
 
 
@@ -1822,29 +1941,36 @@ account.value;
 
 
 
-let selected =
+let option =
 account.options[
 account.selectedIndex
 ];
 
 
 
-let balance =
+let accountBalance =
 parseFloat(
-selected?.dataset.balance || 0
+option?.dataset.balance || 0
+);
+
+
+
+let remainingTarget =
+Math.max(
+savingTarget-savingBalance,
+0
 );
 
 
 
 
 
-if(!savingId){
 
+if(amount<=0){
 
 alert(
-"Saving not selected"
+"Amount must be greater than zero"
 );
-
 
 return;
 
@@ -1852,17 +1978,31 @@ return;
 
 
 
-
-
-if(!amount || amount<=0){
+if(amount > accountBalance){
 
 
 alert(
-"Enter valid amount"
+"Insufficient account balance"
 );
 
 
 return;
+
+
+}
+
+
+
+if(amount > remainingTarget){
+
+
+alert(
+"Amount exceeds saving target"
+);
+
+
+return;
+
 
 }
 
@@ -1880,28 +2020,8 @@ alert(
 
 return;
 
-}
-
-
-
-
-
-if(amount > balance){
-
-
-alert(
-
-"Insufficient balance. Available $"+
-balance.toFixed(2)
-
-);
-
-
-return;
-
 
 }
-
 
 
 
@@ -1910,88 +2030,61 @@ fetch(
 "/saving-topup",
 {
 
-
 method:"POST",
 
-
 headers:{
-
 
 "Content-Type":
 "application/json"
 
 },
 
-
 body:JSON.stringify({
-
 
 saving_id:String(savingId),
 
-
 account_id:String(account_id),
-
 
 amount:amount
 
-
 })
-
 
 }
 
 )
 
 
-
-.then(
-res=>res.json()
-)
+.then(r=>r.json())
 
 
-
-.then(
-data=>{
+.then(data=>{
 
 
 if(data.error){
-
 
 alert(data.error);
 
 return;
 
-
 }
 
 
-
-alert(
-data.message
-);
-
+alert(data.message);
 
 
 location.reload();
 
 
-}
-
-
-)
-
+})
 
 
 .catch(()=>{
-
 
 alert(
 "Server error"
 );
 
-
 });
-
 
 
 }
@@ -2004,11 +2097,9 @@ alert(
 
 
 
-// ===============================
-// WITHDRAW
-// SAVING ---> ACCOUNT
-// ===============================
-
+// =====================================
+// SUBMIT WITHDRAW
+// =====================================
 
 function submitWithdraw(){
 
@@ -2018,12 +2109,12 @@ let amount =
 parseFloat(
 document.getElementById(
 "withdrawAmount"
-).value
+).value || 0
 );
 
 
 
-let account_id =
+let account =
 document.getElementById(
 "withdrawAccount"
 ).value;
@@ -2032,25 +2123,11 @@ document.getElementById(
 
 
 
-if(!savingId){
+if(amount<=0){
 
 
 alert(
-"Saving not selected"
-);
-
-
-return;
-
-}
-
-
-
-if(!amount || amount<=0){
-
-
-alert(
-"Enter valid amount"
+"Amount must be greater than zero"
 );
 
 
@@ -2058,23 +2135,6 @@ return;
 
 
 }
-
-
-
-if(!account_id){
-
-
-alert(
-"Select account"
-);
-
-
-return;
-
-
-}
-
-
 
 
 
@@ -2082,10 +2142,7 @@ if(amount > savingBalance){
 
 
 alert(
-
-"Insufficient saving balance. Available $"+
-savingBalance.toFixed(2)
-
+"Insufficient saving balance"
 );
 
 
@@ -2093,7 +2150,6 @@ return;
 
 
 }
-
 
 
 
@@ -2103,99 +2159,64 @@ fetch(
 "/saving-withdraw",
 {
 
-
 method:"POST",
 
-
 headers:{
-
 
 "Content-Type":
 "application/json"
 
 },
 
-
 body:JSON.stringify({
-
 
 saving_id:String(savingId),
 
-
-account_id:String(account_id),
-
+account_id:String(account),
 
 amount:amount
 
-
 })
-
 
 }
 
 )
 
 
-
-.then(
-res=>res.json()
-)
+.then(r=>r.json())
 
 
-
-.then(
-data=>{
+.then(data=>{
 
 
 if(data.error){
-
 
 alert(data.error);
 
 return;
 
-
 }
 
 
-
-alert(
-data.message
-);
-
+alert(data.message);
 
 
 location.reload();
 
 
-
-}
-
-
-)
-
+})
 
 
 .catch(()=>{
-
 
 alert(
 "Server error"
 );
 
-
 });
 
 
-
 }
-
-
-
-
-
-
-
 
 
 </script>
