@@ -1119,65 +1119,58 @@ saving.remaining_amount|default(0)
 
 
 
-
-
-
-
 <script>
 
 
+// =====================================
+// ELEMENTS
+// =====================================
+
 const accountSelect =
-document.getElementById(
-"accountSelect"
-);
+document.getElementById("accountSelect");
 
 
 const typeSelect =
-document.getElementById(
-"transactionType"
-);
+document.getElementById("transactionType");
 
 
 const amountInput =
-document.getElementById(
-"amountInput"
-);
+document.getElementById("amountInput");
 
 
 const warningBox =
-document.getElementById(
-"warningBox"
-);
+document.getElementById("warningBox");
 
 
 const warningText =
-document.getElementById(
-"warningText"
-);
+document.getElementById("warningText");
 
 
 const saveBtn =
-document.getElementById(
-"saveBtn"
-);
+document.getElementById("saveBtn");
 
 
 
 
-// ============================
-// CURRENT SAVING BALANCE
-// ============================
+// =====================================
+// SAVING DATA
+// =====================================
 
-
-const savingBalance =
-
-roundMoney(
+const savingBalance = roundMoney(
 
 parseFloat(
 "{{ saving.current_balance|default(0) }}"
-)
+) || 0
 
-||0
+);
+
+
+
+const targetAmount = roundMoney(
+
+parseFloat(
+"{{ saving.target_amount|default(0) }}"
+) || 0
 
 );
 
@@ -1185,11 +1178,23 @@ parseFloat(
 
 
 
+// =====================================
+// HELPERS
+// =====================================
 
 
-// ============================
-// MONEY FORMAT
-// ============================
+function roundMoney(value){
+
+return Math.round(
+
+(Number(value)+Number.EPSILON)*100
+
+)/100;
+
+}
+
+
+
 
 
 function money(value){
@@ -1201,11 +1206,8 @@ Number(value).toLocaleString(
 undefined,
 
 {
-
 minimumFractionDigits:2,
-
 maximumFractionDigits:2
-
 }
 
 );
@@ -1218,20 +1220,34 @@ maximumFractionDigits:2
 
 
 
-
-// ============================
-// ROUND
-// ============================
-
-
-function roundMoney(value){
+// =====================================
+// ACCOUNT BALANCE
+// =====================================
 
 
-return Math.round(
+function getAccountBalance(){
 
-(Number(value)+Number.EPSILON)*100
 
-)/100;
+let option =
+accountSelect.options[
+accountSelect.selectedIndex
+];
+
+
+if(!option){
+
+return 0;
+
+}
+
+
+return roundMoney(
+
+parseFloat(
+option.dataset.balance
+)||0
+
+);
 
 
 }
@@ -1244,78 +1260,67 @@ return Math.round(
 
 
 
+// =====================================
+// TARGET REMAINING
+// =====================================
 
-// ============================
+
+function getRemainingTarget(){
+
+
+let remaining =
+
+targetAmount -
+
+savingBalance;
+
+
+
+if(remaining < 0){
+
+remaining = 0;
+
+}
+
+
+return roundMoney(remaining);
+
+
+}
+
+
+
+
+
+
+
+
+// =====================================
 // VALIDATION
-// ============================
+// =====================================
 
 
 function validateTransaction(){
 
 
+let amount = parseFloat(
 
-let amount =
-
-roundMoney(
-
-parseFloat(
 amountInput.value
-)
 
-||0
-
-);
+) || 0;
 
 
 
-
-
-let type =
-
-typeSelect.value;
+let type = typeSelect.value;
 
 
 
+warningBox.style.display="none";
+
+warningText.innerHTML="";
 
 
-
-let option =
-
-accountSelect.options[
-
-accountSelect.selectedIndex
-
-];
-
-
-
-
-
-let accountBalance = 0;
-
-
-
-
-
-if(option){
-
-
-accountBalance =
-
-roundMoney(
-
-parseFloat(
-
-option.dataset.balance
-
-)
-
-||0
-
-);
-
-
-}
+saveBtn.disabled=false;
 
 
 
@@ -1323,82 +1328,43 @@ option.dataset.balance
 
 
 
-warningBox.style.display =
-"none";
-
-
-warningText.innerHTML =
-"";
-
-
-saveBtn.disabled =
-false;
-
-
-
-
-
-
-
-
-// ============================
-// SELECT TYPE CHECK
-// ============================
-
+// EMPTY
 
 if(!type){
 
 
 warningText.innerHTML =
-
 "Please select transaction type.";
 
 
-warningBox.style.display =
-"block";
+warningBox.style.display="block";
 
 
-saveBtn.disabled =
-true;
+saveBtn.disabled=true;
 
 
 return;
-
 
 }
 
 
 
-
-
-
-
-
-// ============================
-// AMOUNT CHECK
-// ============================
 
 
 if(amount <=0){
 
 
-
 warningText.innerHTML =
-
-"Please enter amount greater than zero.";
-
+"Amount must be greater than zero.";
 
 
-warningBox.style.display =
-"block";
+warningBox.style.display="block";
 
 
-saveBtn.disabled =
-true;
+saveBtn.disabled=true;
 
 
 return;
-
 
 }
 
@@ -1409,14 +1375,16 @@ return;
 
 
 
-
-// =================================================
+// =====================================
 // DEPOSIT
-// ACCOUNT ---> SAVING
-// =================================================
+// =====================================
 
 
 if(type==="deposit"){
+
+
+let accountBalance =
+getAccountBalance();
 
 
 
@@ -1424,46 +1392,52 @@ if(amount > accountBalance){
 
 
 
+amountInput.value =
+accountBalance.toFixed(2);
+
+
+
 warningText.innerHTML =
 
 
 `
+Amount changed.
 
-Insufficient account balance.
+<br>
 
-<br><br>
-
-Available Account:
+Maximum account balance:
 
 <strong>
 ${money(accountBalance)}
 </strong>
-
-
-<br>
-
-Required:
-
-<strong>
-${money(amount)}
-</strong>
-
 `;
 
 
 
-warningBox.style.display =
-"block";
+warningBox.style.display="block";
 
 
-saveBtn.disabled =
-true;
-
+return;
 
 
 }
 
-else{
+
+
+
+
+
+let remaining =
+getRemainingTarget();
+
+
+
+if(amount > remaining){
+
+
+
+amountInput.value =
+remaining.toFixed(2);
 
 
 
@@ -1471,21 +1445,25 @@ warningText.innerHTML =
 
 
 `
-
-Transfer:
-
-<strong>
-${money(amount)}
-</strong>
+Amount changed.
 
 <br>
 
-Account → Saving
+Maximum target remaining:
 
+<strong>
+${money(remaining)}
+</strong>
 `;
 
 
 
+warningBox.style.display="block";
+
+
+return;
+
+
 }
 
 
@@ -1500,115 +1478,129 @@ Account → Saving
 
 
 
-// =================================================
+// =====================================
 // WITHDRAWAL
-// SAVING ---> ACCOUNT
-// =================================================
+// =====================================
 
 
 if(type==="withdrawal"){
 
 
 
-let availableSaving =
+let available = savingBalance;
 
-roundMoney(
-savingBalance
+
+
+if(amount > available){
+
+
+
+amountInput.value =
+available.toFixed(2);
+
+
+
+warningText.innerHTML =
+
+
+`
+Amount changed.
+
+<br>
+
+Maximum saving balance:
+
+<strong>
+${money(available)}
+</strong>
+
+`;
+
+
+
+warningBox.style.display="block";
+
+
+return;
+
+
+}
+
+
+
+}
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+// =====================================
+// ONLY LIMIT DECIMAL
+// =====================================
+
+
+amountInput.addEventListener(
+
+"input",
+
+function(){
+
+
+
+let value = this.value;
+
+
+
+if(value.includes(".")){
+
+
+let parts=value.split(".");
+
+
+if(parts[1].length > 2){
+
+
+this.value =
+
+parts[0]+"."+parts[1].substring(0,2);
+
+
+}
+
+
+}
+
+
+
+validateTransaction();
+
+
+
+}
+
 );
 
 
 
 
 
-if(amount > availableSaving){
-
-
-
-warningText.innerHTML =
-
-
-`
-
-Insufficient saving balance.
-
-<br><br>
-
-Available Saving:
-
-<strong>
-${money(availableSaving)}
-</strong>
-
-
-<br>
-
-Required:
-
-<strong>
-${money(amount)}
-</strong>
-
-`;
-
-
-
-warningBox.style.display =
-"block";
-
-
-saveBtn.disabled =
-true;
-
-
-
-}
-
-else{
-
-
-
-warningText.innerHTML =
-
-
-`
-
-Transfer:
-
-<strong>
-${money(amount)}
-</strong>
-
-<br>
-
-Saving → Account
-
-`;
-
-
-
-}
-
-
-
-}
 
 
 
 
 
-}
-
-
-
-
-
-
-
-
-
-// ============================
+// =====================================
 // EVENTS
-// ============================
+// =====================================
 
 
 accountSelect.addEventListener(
@@ -1631,27 +1623,23 @@ validateTransaction
 
 
 
-amountInput.addEventListener(
-
-"input",
-
-validateTransaction
-
-);
 
 
 
+// =====================================
+// LOAD
+// =====================================
 
-
-
-
-// FIRST LOAD
 
 validateTransaction();
 
 
 
 </script>
+
+
+
+
 
 
 

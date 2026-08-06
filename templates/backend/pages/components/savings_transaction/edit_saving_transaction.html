@@ -1226,71 +1226,63 @@ remaining_amount
 <script>
 
 
-const accountSelect =
-document.getElementById("accountSelect");
+const accountSelect = document.getElementById("accountSelect");
+const typeSelect = document.getElementById("transactionType");
+const amountInput = document.getElementById("amountInput");
+
+const warningBox = document.getElementById("warningBox");
+const warningText = document.getElementById("warningText");
+
+const updateBtn = document.getElementById("updateBtn");
+
+const accountSummary = document.getElementById("accountSummary");
+
+const progressBar = document.getElementById("progressBar");
+const progressText = document.getElementById("progressText");
+
+const remainingAmount = document.getElementById("remainingAmount");
+const summaryTarget = document.getElementById("summaryTarget");
+
+const daysRemaining = document.getElementById("daysRemaining");
+
+const dailySaving = document.getElementById("dailySaving");
+const weeklySaving = document.getElementById("weeklySaving");
+const monthlySaving = document.getElementById("monthlySaving");
+
+const planRemaining = document.getElementById("planRemaining");
 
 
-const typeSelect =
-document.getElementById("transactionType");
 
 
-const amountInput =
-document.getElementById("amountInput");
+// =====================================
+// ROUND MONEY
+// =====================================
 
+function roundMoney(value){
 
-const warningBox =
-document.getElementById("warningBox");
+    return Math.round(
+        (Number(value) + Number.EPSILON) * 100
+    ) / 100;
 
-
-const warningText =
-document.getElementById("warningText");
-
-
-const updateBtn =
-document.getElementById("updateBtn");
+}
 
 
 
-const accountSummary =
-document.getElementById("accountSummary");
+// =====================================
+// MONEY FORMAT
+// =====================================
 
+function money(value){
 
-const progressBar =
-document.getElementById("progressBar");
+    return "$" + Number(value).toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits:2,
+            maximumFractionDigits:2
+        }
+    );
 
-
-const progressText =
-document.getElementById("progressText");
-
-
-const remainingAmount =
-document.getElementById("remainingAmount");
-
-
-const summaryTarget =
-document.getElementById("summaryTarget");
-
-
-const daysRemaining =
-document.getElementById("daysRemaining");
-
-
-const dailySaving =
-document.getElementById("dailySaving");
-
-
-const weeklySaving =
-document.getElementById("weeklySaving");
-
-
-const monthlySaving =
-document.getElementById("monthlySaving");
-
-
-const planRemaining =
-document.getElementById("planRemaining");
-
-
+}
 
 
 
@@ -1299,13 +1291,12 @@ document.getElementById("planRemaining");
 // OLD TRANSACTION
 // =====================================
 
+const oldAmount = roundMoney(
 
-const oldAmount =
+    Number(
+        "{{trx.amount}}"
+    ) || 0
 
-roundMoney(
-parseFloat(
-"{{trx.amount}}"
-) || 0
 );
 
 
@@ -1318,96 +1309,33 @@ const oldType =
 
 
 
-
 // =====================================
 // SAVING DATA
 // =====================================
 
+const savingBalance = roundMoney(
 
-const savingBalance =
-
-roundMoney(
-parseFloat(
-"{{saving.current_balance}}"
-) || 0
-);
-
-
-
-const targetAmount =
-
-roundMoney(
-parseFloat(
-"{{saving.target_amount}}"
-) || 0
-);
-
-
-
-
-const targetDate =
-
-new Date(
-"{{saving.maturity_date}}"
-);
-
-
-
-
-
-
-
-// =====================================
-// MONEY FORMAT
-// =====================================
-
-
-function money(value){
-
-
-return "$" +
-
-Number(value).toLocaleString(
-
-undefined,
-
-{
-
-minimumFractionDigits:2,
-
-maximumFractionDigits:2
-
-}
+    Number(
+        "{{saving.current_balance}}"
+    ) || 0
 
 );
 
 
-}
+
+const targetAmount = roundMoney(
+
+    Number(
+        "{{saving.target_amount}}"
+    ) || 0
+
+);
 
 
 
-
-
-
-
-// =====================================
-// ROUND MONEY FIX
-// =====================================
-
-
-function roundMoney(value){
-
-
-return Math.round(
-
-(Number(value) + Number.EPSILON) * 100
-
-) / 100;
-
-
-}
-
-
+const targetDate = new Date(
+    "{{saving.maturity_date}}"
+);
 
 
 
@@ -1419,62 +1347,43 @@ return Math.round(
 // ACCOUNT BALANCE
 // =====================================
 
-
 function getAccountBalance(){
 
 
-
-let option =
-
-accountSelect.options[
-accountSelect.selectedIndex
-];
+    let option = accountSelect.options[
+        accountSelect.selectedIndex
+    ];
 
 
+    if(!option){
 
-if(!option){
+        return 0;
 
-return 0;
-
-}
+    }
 
 
 
-
-let balance =
-
-parseFloat(
-option.dataset.balance
-) || 0;
+    let balance = Number(
+        option.dataset.balance
+    ) || 0;
 
 
 
 
+    // restore old deposit
 
-// restore old deposit
+    if(oldType === "deposit"){
 
-if(
-oldType === "deposit"
-){
+        balance += oldAmount;
+
+    }
 
 
-balance += oldAmount;
+
+    return roundMoney(balance);
 
 
 }
-
-
-
-
-
-return roundMoney(balance);
-
-
-}
-
-
-
-
 
 
 
@@ -1485,36 +1394,27 @@ return roundMoney(balance);
 // SAVING BALANCE
 // =====================================
 
-
 function getSavingBalance(){
 
 
-
-let balance =
-
-savingBalance;
+    let balance = savingBalance;
 
 
 
-// restore old withdrawal
+    // restore old withdrawal
 
-if(
-oldType === "withdrawal"
-){
+    if(oldType === "withdrawal"){
 
+        balance += oldAmount;
 
-balance += oldAmount;
-
-
-}
+    }
 
 
 
-return roundMoney(balance);
+    return roundMoney(balance);
 
 
 }
-
 
 
 
@@ -1527,55 +1427,47 @@ return roundMoney(balance);
 // ACCOUNT DISPLAY
 // =====================================
 
-
 function updateAccount(){
 
 
+    if(!accountSummary){
 
-if(!accountSummary){
+        return;
 
-return;
-
-}
-
-
-
-let option =
-
-accountSelect.options[
-accountSelect.selectedIndex
-];
+    }
 
 
 
-if(option){
+    let option = accountSelect.options[
+        accountSelect.selectedIndex
+    ];
 
 
 
-accountSummary.innerHTML =
+    if(option){
 
 
-money(
-getAccountBalance()
-)
+        accountSummary.innerHTML =
 
-+
+        money(
+            getAccountBalance()
+        )
 
-" "
+        +
 
-+
+        " "
 
-(option.dataset.currency || "");
+        +
+
+        (
+            option.dataset.currency || ""
+        );
 
 
-
-}
-
+    }
 
 
 }
-
-
 
 
 
@@ -1587,376 +1479,202 @@ getAccountBalance()
 // ANALYTICS
 // =====================================
 
-
 function updateAnalytics(){
 
 
+    let amount = Number(
+        amountInput.value
+    ) || 0;
 
-let amount =
 
-roundMoney(
 
-parseFloat(
-amountInput.value
-) || 0
+    let currentSaving;
 
-);
 
 
+    if(typeSelect.value === "deposit"){
 
 
+        currentSaving =
 
-let currentSaving =
+        savingBalance
 
-savingBalance;
+        -
 
+        oldAmount
 
+        +
 
+        amount;
 
 
+    }
 
-if(
-typeSelect.value === "deposit"
-){
+    else{
 
 
-currentSaving =
+        currentSaving =
 
-savingBalance
+        savingBalance
 
--
+        +
 
-oldAmount
+        oldAmount
 
-+
+        -
 
-amount;
+        amount;
 
 
+    }
 
-}
 
-else{
 
+    currentSaving = roundMoney(
+        currentSaving
+    );
 
-currentSaving =
 
 
-savingBalance
+    if(currentSaving < 0){
 
-+
+        currentSaving = 0;
 
-oldAmount
+    }
 
--
 
-amount;
 
+    let remaining = roundMoney(
 
+        targetAmount - currentSaving
 
-}
+    );
 
 
 
+    if(remaining < 0){
 
+        remaining = 0;
 
+    }
 
-currentSaving =
 
-roundMoney(
-currentSaving
-);
 
 
+    if(summaryTarget){
 
+        summaryTarget.innerHTML =
+        money(targetAmount);
 
+    }
 
-if(currentSaving < 0){
 
-currentSaving = 0;
 
-}
+    if(remainingAmount){
 
+        remainingAmount.innerHTML =
+        money(remaining);
 
+    }
 
 
 
+    if(planRemaining){
 
+        planRemaining.innerHTML =
+        money(remaining);
 
-let remaining =
+    }
 
 
-targetAmount
 
--
 
-currentSaving;
 
 
+    let progress = 0;
 
 
 
-remaining =
+    if(targetAmount > 0){
 
-roundMoney(
-remaining
-);
+        progress =
+        (
+            currentSaving /
+            targetAmount
+        ) * 100;
 
+    }
 
 
 
+    if(progress > 100){
 
-if(remaining < 0){
+        progress = 100;
 
-remaining = 0;
+    }
 
-}
 
 
 
+    if(progressBar){
 
+        progressBar.style.width =
+        progress+"%";
 
+    }
 
 
 
-if(summaryTarget){
+    if(progressText){
 
-summaryTarget.innerHTML =
+        progressText.innerHTML =
+        progress.toFixed(1)+"%";
 
-money(targetAmount);
+    }
 
-}
 
 
 
 
 
+    let days = 0;
 
-if(remainingAmount){
 
-remainingAmount.innerHTML =
 
-money(remaining);
+    if(!isNaN(targetDate.getTime())){
 
-}
 
+        days = Math.ceil(
 
+            (
+                targetDate -
+                new Date()
+            )
 
+            /
 
+            (1000*60*60*24)
 
+        );
 
-if(planRemaining){
+    }
 
-planRemaining.innerHTML =
 
-money(remaining);
 
-}
+    if(days < 0){
 
+        days = 0;
 
+    }
 
 
 
+    if(daysRemaining){
 
+        daysRemaining.innerHTML =
+        days+" Days";
 
-
-
-// progress
-
-
-let progress = 0;
-
-
-
-if(targetAmount > 0){
-
-
-progress =
-
-(currentSaving / targetAmount) * 100;
-
-
-}
-
-
-
-
-if(progress > 100){
-
-progress = 100;
-
-}
-
-
-
-
-
-
-if(progressBar){
-
-progressBar.style.width =
-
-progress + "%";
-
-}
-
-
-
-
-
-
-if(progressText){
-
-progressText.innerHTML =
-
-progress.toFixed(1)+"%";
-
-}
-
-
-
-
-
-
-
-
-
-// days
-
-
-let days = 0;
-
-
-
-if(
-!isNaN(
-targetDate.getTime()
-)
-){
-
-
-
-days = Math.ceil(
-
-(
-
-targetDate -
-
-new Date()
-
-)
-
-/
-
-(1000*60*60*24)
-
-);
-
-
-
-}
-
-
-
-
-
-if(days < 0){
-
-days = 0;
-
-}
-
-
-
-
-
-
-
-if(daysRemaining){
-
-daysRemaining.innerHTML =
-
-days+" Days";
-
-}
-
-
-
-
-
-
-
-
-let daily = 0;
-
-let weekly = 0;
-
-let monthly = 0;
-
-
-
-
-
-if(days > 0){
-
-
-daily =
-
-remaining / days;
-
-
-
-weekly =
-
-daily * 7;
-
-
-
-monthly =
-
-daily * 30;
-
-
-
-}
-
-
-
-
-
-
-
-if(dailySaving){
-
-dailySaving.innerHTML =
-
-money(daily);
-
-}
-
-
-
-
-if(weeklySaving){
-
-weeklySaving.innerHTML =
-
-money(weekly);
-
-}
-
-
-
-
-if(monthlySaving){
-
-monthlySaving.innerHTML =
-
-money(monthly);
-
-}
-
-
+    }
 
 
 
@@ -1973,225 +1691,279 @@ money(monthly);
 // =====================================
 // VALIDATION
 // =====================================
-
+// =====================================
+// VALIDATION
+// =====================================
 
 function validate(){
 
 
+    let rawAmount = amountInput.value.trim();
 
-let amount =
 
+    let amount = roundMoney(
 
-roundMoney(
+        parseFloat(rawAmount) || 0
 
-parseFloat(
-amountInput.value
-) || 0
-
-);
+    );
 
 
 
+    warningBox.style.display="none";
 
+    warningText.innerHTML="";
 
-warningBox.style.display =
-
-"none";
-
-
-warningText.innerHTML =
-
-"";
-
-
-updateBtn.disabled =
-
-false;
+    updateBtn.disabled=false;
 
 
 
+    // =================================
+    // EMPTY AMOUNT
+    // =================================
+
+    if(rawAmount === "" || amount <= 0){
 
 
 
+        warningText.innerHTML =
 
-// ============================
-// DEPOSIT
-// ============================
-
-
-if(
-typeSelect.value === "deposit"
-){
-
-
-
-let available =
-
-getAccountBalance();
+        `
+        Amount must be greater than zero.
+        <br>
+        Minimum allowed:
+        <strong>
+        $0.01
+        </strong>
+        `;
 
 
 
+        warningBox.style.display="block";
 
 
-available =
+        updateBtn.disabled=true;
 
-roundMoney(
-available
-);
+
+        return;
+
+
+    }
 
 
 
 
 
-if(
-amount > available
-){
+    // =================================
+    // DEPOSIT
+    // =================================
+
+
+    if(typeSelect.value === "deposit"){
 
 
 
-warningText.innerHTML =
+        let accountBalance =
 
-
-`
-Insufficient account balance.
-<br>
-
-Available:
-
-<strong>
-${money(available)}
-</strong>
-
-<br>
-
-Required:
-
-<strong>
-${money(amount)}
-</strong>
-
-`;
+        getAccountBalance();
 
 
 
 
 
-warningBox.style.display =
-
-"block";
+        if(amount > accountBalance){
 
 
 
-updateBtn.disabled =
+            warningText.innerHTML =
 
-true;
+            `
+            Insufficient account balance.
+            <br>
+            Available:
+            <strong>
+            ${money(accountBalance)}
+            </strong>
 
+            <br>
+
+            Required:
+            <strong>
+            ${money(amount)}
+            </strong>
+            `;
+
+
+
+            warningBox.style.display="block";
+
+
+            updateBtn.disabled=true;
+
+
+            return;
+
+
+        }
+
+
+
+
+
+
+
+        // ===============================
+        // TARGET LIMIT
+        // ===============================
+
+
+        let currentSaving = savingBalance;
+
+
+
+        if(oldType==="deposit"){
+
+            currentSaving -= oldAmount;
+
+        }
+
+
+
+        if(oldType==="withdrawal"){
+
+            currentSaving += oldAmount;
+
+        }
+
+
+
+
+        let remainingTarget = roundMoney(
+
+            targetAmount - currentSaving
+
+        );
+
+
+
+        if(remainingTarget < 0){
+
+            remainingTarget = 0;
+
+        }
+
+
+
+
+
+        if(amount > remainingTarget){
+
+
+
+            amountInput.value =
+
+            remainingTarget.toFixed(2);
+
+
+
+            warningText.innerHTML =
+
+
+            `
+            Amount adjusted.
+            <br>
+
+            Maximum target remaining:
+
+            <strong>
+            ${money(remainingTarget)}
+            </strong>
+            `;
+
+
+
+            warningBox.style.display="block";
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+
+
+    // =================================
+    // WITHDRAWAL
+    // =================================
+
+
+    if(typeSelect.value==="withdrawal"){
+
+
+
+        let savingAvailable =
+
+        getSavingBalance();
+
+
+
+
+
+        if(amount > savingAvailable){
+
+
+
+            amountInput.value =
+
+            savingAvailable.toFixed(2);
+
+
+
+
+            warningText.innerHTML =
+
+
+            `
+            Amount adjusted.
+            <br>
+
+            Maximum saving balance:
+
+            <strong>
+            ${money(savingAvailable)}
+            </strong>
+            `;
+
+
+
+            warningBox.style.display="block";
+
+
+
+        }
+
+
+
+    }
+
+
+
+
+
+
+    updateAccount();
+
+    updateAnalytics();
 
 
 }
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// ============================
-// WITHDRAWAL
-// ============================
-
-
-if(
-typeSelect.value === "withdrawal"
-){
-
-
-
-let available =
-
-getSavingBalance();
-
-
-
-
-
-if(
-amount > available
-){
-
-
-
-warningText.innerHTML =
-
-
-`
-Insufficient saving balance.
-<br>
-
-Available:
-
-<strong>
-${money(available)}
-</strong>
-
-<br>
-
-Required:
-
-<strong>
-${money(amount)}
-</strong>
-
-`;
-
-
-
-
-
-warningBox.style.display =
-
-"block";
-
-
-
-updateBtn.disabled =
-
-true;
-
-
-
-}
-
-
-
-
-}
-
-
-
-
-
-
-
-updateAccount();
-
-
-updateAnalytics();
-
-
-
-
-
-}
-
-
 
 
 
@@ -2200,33 +1972,23 @@ updateAnalytics();
 
 
 accountSelect.addEventListener(
-
 "change",
-
 validate
-
 );
 
 
 
 typeSelect.addEventListener(
-
 "change",
-
 validate
-
 );
 
 
 
 amountInput.addEventListener(
-
 "input",
-
 validate
-
 );
-
 
 
 
