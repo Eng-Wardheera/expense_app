@@ -4,222 +4,2711 @@
 
 {% block content %}
 
- <!-- [ page-header ] start -->
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+
 <div class="page-header">
+
     <div class="page-header-left d-flex align-items-center">
+
         <div class="page-header-title">
-            <h5 class="m-b-10">Accounts </h5>
+            <h5 class="m-b-10">
+                Accounts
+            </h5>
         </div>
+
         <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">All Accounts View</li>
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">
+                    Home
+                </a>
+            </li>
+
+            <li class="breadcrumb-item">
+                All Accounts
+            </li>
+
         </ul>
+
     </div>
+
+
     <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                    <i class="feather-bar-chart"></i>
-                </a>
-              
-                
-                <a href="leads-create.html" class="btn btn-primary">
-                    <i class="feather-plus me-2"></i>
-                    <span>Create Lead</span>
-                </a>
-            </div>
-        </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
+
+        <div class="d-flex align-items-center gap-2">
+
+            <button
+                type="button"
+                class="btn btn-light-brand"
+                onclick="window.location.reload()">
+
+                <i class="fa fa-refresh me-1"></i>
+                Refresh
+
+            </button>
+
+
+            <a
+                href="{{ url_for('main.add_account') }}"
+                class="btn btn-primary">
+
+                <i class="fa fa-plus me-2"></i>
+                Add Account
+
             </a>
+
         </div>
+
     </div>
+
 </div>
 
 
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
 
 <div class="main-content">
+
 <div class="row">
-   <div class="card shadow-sm">
 
-        <!-- HEADER -->
-        <div class="card-header d-flex justify-content-between align-items-center">
+<div class="col-12">
 
-            <h5 class="mb-0">All Accounts</h5>
+<div class="card shadow-sm">
 
-            <a href="{{ url_for('main.add_account') }}"
-               class="btn btn-primary btn-sm">
-                + Add Account
-            </a>
+
+<!-- ============================================================
+     HEADER
+============================================================ -->
+
+<div class="card-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h5 class="mb-1">
+                All Accounts
+            </h5>
+
+            <small class="text-muted">
+                Account balances and complete financial transactions
+            </small>
 
         </div>
 
-        
+        <span class="badge bg-primary">
 
-        <!-- TABLE -->
-        <div class="card-body p-0">
+            {{ accounts|length }}
 
-            <div class="table-responsive" >
+            Account{% if accounts|length != 1 %}s{% endif %}
 
-                <table class="table table-hover align-middle mb-0" id="leadList">
+        </span>
 
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Account Name</th>
-                            <th>Type</th>
-                            <th>Balance</th>
-                            <th>Currency</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
+    </div>
 
-                    <tbody>
+</div>
 
-                    {% if accounts %}
 
-                        {% for account in accounts %}
+<!-- ============================================================
+     SUMMARY
+============================================================ -->
 
-                        <tr>
+<div class="card-body border-bottom">
 
-                            <!-- INDEX -->
-                            <td>{{ loop.index }}</td>
+<div class="row g-3">
 
-                            <!-- NAME -->
-                            <td class="fw-bold">
-                                {{ account.name }}
-                            </td>
 
-                            <!-- TYPE -->
-                            <td>
+<!-- TOTAL ACCOUNTS -->
 
-                                {% if account.type == "cash" %}
-                                    <span class="badge bg-success">Cash</span>
+<div class="col-xl-3 col-md-6">
 
-                                {% elif account.type == "bank" %}
-                                    <span class="badge bg-primary">Bank</span>
+<div class="summary-card">
 
-                                {% elif account.type == "mobile" %}
-                                    <span class="badge bg-warning text-dark">Mobile</span>
+<div class="summary-icon bg-primary">
+<i class="fa fa-wallet"></i>
+</div>
 
-                                {% else %}
-                                    <span class="badge bg-secondary">
-                                        {{ account.type }}
-                                    </span>
+<div>
 
-                                {% endif %}
+<span class="summary-label">
+Total Accounts
+</span>
 
-                            </td>
+<h4>
+{{ accounts|length }}
+</h4>
 
-                            <!-- BALANCE -->
-                            <td>
-                                <strong>
-                                    {{ "{:,.2f}".format(account.balance) }}
-                                </strong>
-                            </td>
+</div>
 
-                            <!-- CURRENCY -->
-                            <td>
-                                {{ account.currency }}
-                            </td>
+</div>
 
-                            <!-- STATUS -->
-                            <td>
+</div>
 
-                                {% if account.status %}
-                                    <span class="badge bg-success">
-                                        Active
-                                    </span>
-                                {% else %}
-                                    <span class="badge bg-danger">
-                                        Inactive
-                                    </span>
-                                {% endif %}
 
-                            </td>
+<!-- BALANCE -->
 
-                            <!-- CREATED -->
-                            <td>
+<div class="col-xl-3 col-md-6">
 
-                                {% if account.created_at %}
-                                    {{ account.created_at.strftime("%Y-%m-%d") }}
-                                {% else %}
-                                    -
-                                {% endif %}
+<div class="summary-card">
 
-                            </td>
+<div class="summary-icon bg-success">
+<i class="fa fa-money"></i>
+</div>
 
-                           <!-- ACTIONS -->
-                            <td class="text-end">
+<div>
 
-                                <div style="display:flex; justify-content:flex-end; gap:6px; align-items:center; flex-wrap:wrap;">
+<span class="summary-label">
+Current Balance
+</span>
 
-                                  <button 
+<h4>
+
+{% set total_balance = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_balance.value =
+total_balance.value +
+(account.current_balance|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_balance.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- INCOME -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-info">
+<i class="fa fa-arrow-down"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Total Income
+</span>
+
+<h4>
+
+{% set total_income = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_income.value =
+total_income.value +
+(account.total_income|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_income.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- EXPENSE -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-danger">
+<i class="fa fa-arrow-up"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Total Expense
+</span>
+
+<h4>
+
+{% set total_expense = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_expense.value =
+total_expense.value +
+(account.total_expense|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_expense.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     ACCOUNT TABLE
+============================================================ -->
+
+<div class="card-body p-0">
+
+<div class="table-responsive">
+
+<table
+class="table table-hover align-middle mb-0"
+id="accountsTable">
+
+<thead class="table-light">
+
+<tr>
+
+<th>#</th>
+
+<th>Account</th>
+
+<th>Type</th>
+
+<th>Balance</th>
+
+<th>Income</th>
+
+<th>Expense</th>
+
+<th>Transactions</th>
+
+<th>Currency</th>
+
+<th>Status</th>
+
+<th>Created</th>
+
+<th class="text-end">
+Actions
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% if accounts %}
+
+
+{% for account in accounts %}
+
+
+<tr>
+
+
+<td>
+{{ loop.index }}
+</td>
+
+
+<!-- ACCOUNT -->
+
+<td>
+
+<div class="account-name">
+
+<div class="account-icon">
+
+{% if account.type == "cash" %}
+<i class="fa fa-money"></i>
+
+{% elif account.type == "bank" %}
+<i class="fa fa-bank"></i>
+
+{% elif account.type == "mobile" %}
+<i class="fa fa-mobile"></i>
+
+{% elif account.type == "savings" %}
+<i class="fa fa-piggy-bank"></i>
+
+{% else %}
+<i class="fa fa-wallet"></i>
+{% endif %}
+
+</div>
+
+
+<div>
+
+<strong>
+{{ account.name }}
+</strong>
+
+<br>
+
+<small class="text-muted">
+{{ account._id }}
+</small>
+
+</div>
+
+</div>
+
+</td>
+
+
+<!-- TYPE -->
+
+<td>
+
+{% if account.type == "cash" %}
+
+<span class="badge bg-success">
+Cash
+</span>
+
+{% elif account.type == "bank" %}
+
+<span class="badge bg-primary">
+Bank
+</span>
+
+{% elif account.type == "mobile" %}
+
+<span class="badge bg-warning text-dark">
+Mobile
+</span>
+
+{% elif account.type == "savings" %}
+
+<span class="badge bg-info">
+Savings
+</span>
+
+{% else %}
+
+<span class="badge bg-secondary">
+{{ account.type or "Other" }}
+</span>
+
+{% endif %}
+
+</td>
+
+
+<!-- BALANCE -->
+
+<td>
+
+<strong
+class="{% if account.current_balance|float < 0 %}
+text-danger
+{% else %}
+text-success
+{% endif %}">
+
+{{ "{:,.2f}".format(
+account.current_balance|float
+) }}
+
+</strong>
+
+</td>
+
+
+<!-- INCOME -->
+
+<td class="text-success fw-bold">
+
++
+{{ "{:,.2f}".format(
+account.total_income|float
+) }}
+
+</td>
+
+
+<!-- EXPENSE -->
+
+<td class="text-danger fw-bold">
+
+-
+{{ "{:,.2f}".format(
+account.total_expense|float
+) }}
+
+</td>
+
+
+<!-- TRANSACTIONS -->
+
+<td>
+
+<span class="badge bg-light text-dark">
+
+{{ account.transaction_count }}
+
+</span>
+
+</td>
+
+
+<!-- CURRENCY -->
+
+<td>
+{{ account.currency or "USD" }}
+</td>
+
+
+<!-- STATUS -->
+
+<td>
+
+{% if account.status %}
+
+<span class="badge bg-success">
+Active
+</span>
+
+{% else %}
+
+<span class="badge bg-danger">
+Inactive
+</span>
+
+{% endif %}
+
+</td>
+
+
+<!-- CREATED -->
+
+<td>
+
+{% if account.created_at %}
+
+{{ account.created_at.strftime("%Y-%m-%d") }}
+
+{% else %}
+
+-
+
+{% endif %}
+
+</td>
+
+
+<!-- ACTIONS -->
+
+<td class="text-end">
+
+<div class="action-buttons">
+
+
+<!-- REPORT -->
+
+<button
+type="button"
+class="action-btn report-btn"
+onclick="openAccountReport('{{ account._id }}')">
+
+<i class="fa fa-file-text"></i>
+Report
+
+</button>
+
+
+<!-- TRANSFER -->
+
+<button
+type="button"
+class="action-btn transfer-btn"
 onclick="openTransfer(
 '{{ account._id }}',
-'{{ account.name }}',
-'{{ account.balance|float }}'
-)"
-
-style="
-display:flex;
-align-items:center;
-gap:5px;
-padding:6px 10px;
-border-radius:6px;
-border:none;
-background:#8e44ad;
-color:white;
-font-size:12px;
-cursor:pointer;
-">
+'{{ account.name|e }}',
+'{{ account.current_balance|float }}'
+)">
 
 <i class="fa fa-exchange"></i>
 Transfer
 
 </button>
 
-                                    <a href="{{ url_for('main.edit_account', id=account._id) }}"
-                                    style="display:flex; align-items:center; gap:5px; padding:6px 10px; border-radius:6px; text-decoration:none; background:#f39c12; color:white; font-size:12px;">
-                                        <i class="fa fa-edit"></i> Edit
-                                    </a>
 
-                                    <a href="{{ url_for('main.delete_account', id=account._id) }}"
-                                    onclick="return confirm('Are you sure you want to delete this account?')"
-                                    style="display:flex; align-items:center; gap:5px; padding:6px 10px; border-radius:6px; text-decoration:none; background:#e74c3c; color:white; font-size:12px;">
-                                        <i class="fa fa-trash"></i> Delete
-                                    </a>
+<!-- EDIT -->
 
-                                 
+<a
+href="{{ url_for('main.edit_account', id=account._id) }}"
+class="action-btn edit-btn">
 
-                                  
+<i class="fa fa-edit"></i>
+Edit
 
-                                </div>
+</a>
 
-                            </td>
 
-                        </tr>
+<!-- DELETE -->
 
-                        {% endfor %}
+<a
+href="{{ url_for('main.delete_account', id=account._id) }}"
+class="action-btn delete-btn"
 
-                    {% else %}
+onclick="
+return confirm(
+'Are you sure you want to delete this account?'
+)
+">
+
+<i class="fa fa-trash"></i>
+Delete
+
+</a>
+
+
+</div>
+
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+{% else %}
+
+
+<tr>
+
+<td colspan="11">
+
+<div class="empty-state text-center">
+
+<i class="fa fa-wallet"></i>
+
+<h5>
+No Accounts Found
+</h5>
+
+<p>
+Create your first account to start managing your finances.
+</p>
+
+<a
+href="{{ url_for('main.add_account') }}"
+class="btn btn-primary">
+
+<i class="fa fa-plus me-1"></i>
+
+Add Account
+
+</a>
+
+</div>
+
+</td>
+
+</tr>
+
+
+{% endif %}
+
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     ACCOUNT REPORT MODAL
+============================================================ -->
+
+<div
+class="custom-modal-backdrop"
+id="accountReportModal">
+
+
+<div class="report-modal">
+
+
+<!-- HEADER -->
+
+<div class="report-header">
+
+<div>
+
+<h4 id="reportAccountName">
+Account Report
+</h4>
+
+<small id="reportAccountType">
+Complete Financial Statement
+</small>
+
+</div>
+
+
+<div class="report-header-actions">
+
+<button
+type="button"
+class="print-btn"
+onclick="printAccountReport()">
+
+<i class="fa fa-print"></i>
+Print
+
+</button>
+
+
+<button
+type="button"
+class="modal-close"
+onclick="closeAccountReport()">
+
+<i class="fa fa-times"></i>
+
+</button>
+
+</div>
+
+</div>
+
+
+<!-- REPORT -->
+
+<div
+class="report-body"
+id="accountReportContent">
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     TRANSFER MODAL
+============================================================ -->
+
+<div
+class="custom-modal-backdrop"
+id="transferModal">
+
+
+<div class="transfer-modal">
+
+
+<div class="transfer-header">
+
+<div>
+
+<h4>
+<i class="fa fa-exchange"></i>
+Transfer Money
+</h4>
+
+<small>
+Transfer money between your accounts
+</small>
+
+</div>
+
+
+<button
+type="button"
+class="modal-close"
+onclick="closeModal()">
+
+<i class="fa fa-times"></i>
+
+</button>
+
+</div>
+
+
+<div class="transfer-body">
+
+
+<!-- SOURCE -->
+
+<div class="transfer-source-box">
+
+<div class="transfer-wallet-icon">
+
+<i class="fa fa-wallet"></i>
+
+</div>
+
+
+<div>
+
+<span>
+From Account
+</span>
+
+<strong id="transferFromName">
+-
+</strong>
+
+</div>
+
+
+<div class="ms-auto text-end">
+
+<small>
+Available
+</small>
+
+<strong id="transferAvailableBalance">
+$0.00
+</strong>
+
+</div>
+
+</div>
+
+
+<!-- AMOUNT -->
+
+<div class="form-group">
+
+<label>
+Transfer Amount
+</label>
+
+<div class="amount-input-wrapper">
+
+<span>
+$
+</span>
+
+<input
+type="number"
+step="0.01"
+min="0.01"
+id="transferAmount"
+class="form-control"
+placeholder="0.00">
+
+</div>
+
+
+<p
+id="transferAmountInfo"
+class="transfer-info">
+
+<i class="fa fa-info-circle"></i>
+
+Enter transfer amount
+
+</p>
+
+</div>
+
+
+<!-- DESTINATION -->
+
+<div class="form-group">
+
+<label>
+Transfer To Account
+</label>
+
+
+<select
+id="transferToAccount"
+class="form-control">
+
+<option value="">
+-- Select Destination Account --
+</option>
+
+
+{% for destination in accounts %}
+
+<option
+value="{{ destination._id|string }}"
+data-balance="{{ destination.current_balance|float }}"
+data-currency="{{ destination.currency or 'USD' }}">
+
+{{ destination.name }}
+
+-
+
+{{ destination.currency or "USD" }}
+
+-
+
+{{ "%.2f"|format(
+destination.current_balance|float
+) }}
+
+</option>
+
+{% endfor %}
+
+
+</select>
+
+
+<p
+id="transferDestinationInfo"
+class="destination-info">
+</p>
+
+</div>
+
+
+<!-- SUMMARY -->
+
+<div
+class="transfer-summary"
+id="transferSummary">
+
+<div>
+
+<span>
+Transfer Amount
+</span>
+
+<strong id="summaryAmount">
+$0.00
+</strong>
+
+</div>
+
+
+<div>
+
+<span>
+Remaining Balance
+</span>
+
+<strong id="summaryRemaining">
+$0.00
+</strong>
+
+</div>
+
+</div>
+
+
+<!-- BUTTONS -->
+
+<div class="transfer-buttons">
+
+<button
+type="button"
+class="btn btn-secondary"
+onclick="closeModal()">
+
+Cancel
+
+</button>
+
+
+<button
+type="button"
+class="btn btn-success"
+id="transferSubmitBtn"
+onclick="submitTransfer()">
+
+<i class="fa fa-check me-1"></i>
+
+Transfer Money
+
+</button>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     CSS
+============================================================ -->
+
+<style>
+
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+
+.summary-card {
+
+display:flex;
+align-items:center;
+gap:15px;
+
+padding:18px;
+
+background:#fff;
+
+border:1px solid #eee;
+
+border-radius:12px;
+
+height:100%;
+
+}
+
+
+.summary-icon {
+
+width:48px;
+height:48px;
+
+border-radius:10px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+color:#fff;
+
+font-size:20px;
+
+}
+
+
+.summary-label {
+
+display:block;
+
+font-size:12px;
+
+color:#777;
+
+margin-bottom:4px;
+
+}
+
+
+.summary-card h4 {
+
+margin:0;
+
+font-size:20px;
+
+font-weight:700;
+
+}
+
+
+/* ============================================================
+   ACCOUNT
+============================================================ */
+
+.account-name {
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+}
+
+
+.account-icon {
+
+width:40px;
+height:40px;
+
+border-radius:9px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+background:#f1f5ff;
+
+color:#3454d1;
+
+}
+
+
+/* ============================================================
+   ACTION BUTTONS
+============================================================ */
+
+.action-buttons {
+
+display:flex;
+
+justify-content:flex-end;
+
+gap:5px;
+
+flex-wrap:wrap;
+
+}
+
+
+.action-btn {
+
+display:inline-flex;
+
+align-items:center;
+
+gap:5px;
+
+padding:6px 9px;
+
+border-radius:6px;
+
+border:none;
+
+text-decoration:none;
+
+font-size:11px;
+
+color:#fff;
+
+cursor:pointer;
+
+}
+
+
+.action-btn:hover {
+
+color:#fff;
+
+opacity:.88;
+
+}
+
+
+.report-btn {
+background:#34495e;
+}
+
+
+.transfer-btn {
+background:#8e44ad;
+}
+
+
+.edit-btn {
+background:#f39c12;
+}
+
+
+.delete-btn {
+background:#e74c3c;
+}
+
+
+/* ============================================================
+   EMPTY
+============================================================ */
+
+.empty-state {
+
+padding:40px;
+
+}
+
+
+.empty-state > i {
+
+font-size:50px;
+
+color:#bbb;
+
+margin-bottom:15px;
+
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.custom-modal-backdrop {
+
+position:fixed;
+
+top:0;
+left:0;
+
+width:100%;
+height:100%;
+
+background:rgba(0,0,0,.60);
+
+display:none;
+
+align-items:center;
+justify-content:center;
+
+z-index:99999;
+
+padding:20px;
+
+}
+
+
+.custom-modal-backdrop.active {
+
+display:flex;
+
+}
+
+
+/* ============================================================
+   REPORT MODAL
+============================================================ */
+
+.report-modal {
+
+width:1150px;
+
+max-width:100%;
+
+max-height:94vh;
+
+background:#fff;
+
+border-radius:14px;
+
+overflow:hidden;
+
+display:flex;
+
+flex-direction:column;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.30);
+
+}
+
+
+.report-header {
+
+padding:18px 22px;
+
+border-bottom:1px solid #eee;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+}
+
+
+.report-header h4 {
+
+margin:0;
+
+font-weight:700;
+
+}
+
+
+.report-header small {
+
+color:#777;
+
+}
+
+
+.report-header-actions {
+
+display:flex;
+
+align-items:center;
+
+gap:8px;
+
+}
+
+
+.print-btn {
+
+border:none;
+
+background:#0d6efd;
+
+color:#fff;
+
+padding:8px 13px;
+
+border-radius:7px;
+
+cursor:pointer;
+
+font-size:12px;
+
+}
+
+
+.modal-close {
+
+width:35px;
+height:35px;
+
+border:none;
+
+border-radius:50%;
+
+background:#f1f1f1;
+
+cursor:pointer;
+
+}
+
+
+.report-body {
+
+padding:20px;
+
+overflow-y:auto;
+
+}
+
+
+/* ============================================================
+   REPORT STATS
+============================================================ */
+
+.report-stat {
+
+border:1px solid #e8e8e8;
+
+border-radius:10px;
+
+padding:15px;
+
+background:#fff;
+
+height:100%;
+
+}
+
+
+.report-stat-label {
+
+font-size:11px;
+
+color:#777;
+
+display:block;
+
+margin-bottom:5px;
+
+}
+
+
+.report-stat-value {
+
+font-size:19px;
+
+font-weight:700;
+
+}
+
+
+.report-income {
+
+color:#198754;
+
+}
+
+
+.report-expense {
+
+color:#dc3545;
+
+}
+
+
+.report-balance {
+
+color:#0d6efd;
+
+}
+
+
+.report-net {
+
+color:#6f42c1;
+
+}
+
+
+/* ============================================================
+   REPORT SECTION
+============================================================ */
+
+.report-section {
+
+margin-top:20px;
+
+border:1px solid #e8e8e8;
+
+border-radius:10px;
+
+overflow:hidden;
+
+}
+
+
+.report-section-header {
+
+padding:12px 15px;
+
+background:#f8f9fa;
+
+border-bottom:1px solid #e8e8e8;
+
+font-weight:700;
+
+}
+
+
+.report-section-body {
+
+padding:15px;
+
+}
+
+
+/* ============================================================
+   TRANSACTION TABLE
+============================================================ */
+
+.report-table {
+
+width:100%;
+
+border-collapse:collapse;
+
+}
+
+
+.report-table th {
+
+padding:10px;
+
+background:#f8f9fa;
+
+font-size:11px;
+
+text-align:left;
+
+white-space:nowrap;
+
+}
+
+
+.report-table td {
+
+padding:9px 10px;
+
+border-top:1px solid #eee;
+
+font-size:11px;
+
+vertical-align:middle;
+
+}
+
+
+.income-text {
+
+color:#198754;
+
+font-weight:700;
+
+}
+
+
+.expense-text {
+
+color:#dc3545;
+
+font-weight:700;
+
+}
+
+
+/* ============================================================
+   CATEGORY
+============================================================ */
+
+.category-row {
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+padding:8px 0;
+
+border-bottom:1px solid #eee;
+
+font-size:12px;
+
+}
+
+
+.category-row:last-child {
+
+border-bottom:none;
+
+}
+
+
+/* ============================================================
+   TRANSFER
+============================================================ */
+
+.transfer-modal {
+
+width:500px;
+
+max-width:100%;
+
+background:#fff;
+
+border-radius:14px;
+
+overflow:hidden;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.30);
+
+}
+
+
+.transfer-header {
+
+padding:18px 20px;
+
+border-bottom:1px solid #eee;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+}
+
+
+.transfer-header h4 {
+
+margin:0;
+
+font-size:18px;
+
+}
+
+
+.transfer-header small {
+
+color:#777;
+
+}
+
+
+.transfer-body {
+
+padding:20px;
+
+}
+
+
+.transfer-source-box {
+
+display:flex;
+
+align-items:center;
+
+gap:12px;
+
+padding:13px;
+
+background:#f7f9fc;
+
+border-radius:10px;
+
+margin-bottom:18px;
+
+}
+
+
+.transfer-wallet-icon {
+
+width:42px;
+height:42px;
+
+background:#8e44ad;
+
+color:#fff;
+
+border-radius:9px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+}
+
+
+.transfer-source-box span {
+
+display:block;
+
+font-size:11px;
+
+color:#777;
+
+}
+
+
+.transfer-source-box strong {
+
+display:block;
+
+font-size:14px;
+
+}
+
+
+#transferAvailableBalance {
+
+color:#198754;
+
+}
+
+
+.form-group {
+
+margin-bottom:18px;
+
+}
+
+
+.form-group label {
+
+display:block;
+
+font-size:13px;
+
+font-weight:600;
+
+margin-bottom:7px;
+
+}
+
+
+.amount-input-wrapper {
+
+position:relative;
+
+}
+
+
+.amount-input-wrapper span {
+
+position:absolute;
+
+left:12px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+font-weight:700;
+
+color:#777;
+
+}
+
+
+.amount-input-wrapper input {
+
+padding-left:30px;
+
+font-size:18px;
+
+font-weight:600;
+
+}
+
+
+.transfer-info {
+
+font-size:12px;
+
+font-weight:600;
+
+margin:7px 0 0;
+
+}
+
+
+.destination-info {
+
+font-size:12px;
+
+font-weight:600;
+
+margin:7px 0 0;
+
+color:#198754;
+
+}
+
+
+.transfer-summary {
+
+display:none;
+
+background:#f8f9fa;
+
+border:1px solid #eee;
+
+border-radius:10px;
+
+padding:12px;
+
+margin-bottom:18px;
+
+}
+
+
+.transfer-summary.show {
+
+display:block;
+
+}
+
+
+.transfer-summary div {
+
+display:flex;
+
+justify-content:space-between;
+
+font-size:13px;
+
+padding:4px 0;
+
+}
+
+
+.transfer-buttons {
+
+display:flex;
+
+gap:10px;
+
+}
+
+
+.transfer-buttons button {
+
+flex:1;
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media(max-width:768px) {
+
+.report-modal {
+
+max-height:96vh;
+
+}
+
+.report-body {
+
+padding:12px;
+
+}
+
+.table {
+
+min-width:1100px;
+
+}
+
+}
+
+
+/* ============================================================
+   PRINT HIDDEN
+============================================================ */
+
+#printArea {
+
+display:none;
+
+}
+
+
+</style>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+
+<script>
+
+
+/* ============================================================
+   ACCOUNT REPORT DATA
+============================================================ */
+
+const accountReports = {};
+
+
+{% for account in accounts %}
+
+accountReports[
+    "{{ account._id }}"
+] = {
+
+    id:
+        "{{ account._id }}",
+
+    name:
+        {{ account.name|tojson }},
+
+    type:
+        {{ (account.type or "Other")|tojson }},
+
+    currency:
+        {{ (account.currency or "USD")|tojson }},
+
+    balance:
+        {{ account.current_balance|float }},
+
+    opening_balance:
+        {{ account.report.opening_balance|float }},
+
+    total_income:
+        {{ account.report.total_income|float }},
+
+    total_expense:
+        {{ account.report.total_expense|float }},
+
+    net_movement:
+        {{ account.report.net_movement|float }},
+
+    transaction_count:
+        {{ account.report.transaction_count|int }},
+
+    income_count:
+        {{ account.report.income_count|int }},
+
+    expense_count:
+        {{ account.report.expense_count|int }},
+
+    income_categories:
+        {{ account.report.income_categories|tojson|safe }},
+
+    expense_categories:
+        {{ account.report.expense_categories|tojson|safe }},
+
+    transactions:
+        {{ account.report.transactions|tojson|safe }}
+
+};
+
+{% endfor %}
+
+
+/* ============================================================
+   CURRENT PRINT ACCOUNT
+============================================================ */
+
+let currentReportAccount = null;
+
+
+/* ============================================================
+   MONEY
+============================================================ */
+
+function formatMoney(
+    amount,
+    currency
+) {
+
+    amount =
+        parseFloat(amount || 0);
+
+
+    return (
+        currency +
+        " " +
+        amount.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        )
+    );
+
+}
+
+
+/* ============================================================
+   HTML ESCAPE
+============================================================ */
+
+function escapeHtml(value) {
+
+    if(
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* ============================================================
+   DATE
+============================================================ */
+
+function formatDate(value) {
+
+    if(!value) {
+
+        return "-";
+
+    }
+
+
+    try {
+
+        const date =
+            new Date(value);
+
+
+        if(
+            isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return escapeHtml(
+                value
+            );
+
+        }
+
+
+        return date.toLocaleString();
+
+    } catch(error) {
+
+        return escapeHtml(
+            value
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   OPEN REPORT
+============================================================ */
+
+function openAccountReport(
+    accountId
+) {
+
+
+    const account =
+        accountReports[
+            String(accountId)
+        ];
+
+
+    if(!account) {
+
+        alert(
+            "Account report not found."
+        );
+
+        return;
+
+    }
+
+
+    currentReportAccount =
+        account;
+
+
+    document.getElementById(
+        "reportAccountName"
+    ).innerText =
+        account.name;
+
+
+    document.getElementById(
+        "reportAccountType"
+    ).innerText =
+
+        account.type +
+        " Account • " +
+        account.currency;
+
+
+    renderAccountReport(
+        account
+    );
+
+
+    document.getElementById(
+        "accountReportModal"
+    ).classList.add(
+        "active"
+    );
+
+}
+
+
+/* ============================================================
+   CLOSE REPORT
+============================================================ */
+
+function closeAccountReport() {
+
+    document.getElementById(
+        "accountReportModal"
+    ).classList.remove(
+        "active"
+    );
+
+}
+
+
+/* ============================================================
+   RENDER REPORT
+============================================================ */
+
+function renderAccountReport(
+    account
+) {
+
+
+    const container =
+        document.getElementById(
+            "accountReportContent"
+        );
+
+
+    let html = "";
+
+
+    /* ========================================================
+       REPORT SUMMARY
+    ======================================================== */
+
+    html += `
+
+    <div class="row g-3">
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Opening Balance
+                </span>
+
+                <span class="report-stat-value">
+
+                    ${formatMoney(
+                        account.opening_balance,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Current Balance
+                </span>
+
+                <span class="report-stat-value report-balance">
+
+                    ${formatMoney(
+                        account.balance,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Total Income
+                </span>
+
+                <span class="report-stat-value report-income">
+
+                    +${formatMoney(
+                        account.total_income,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Total Expense
+                </span>
+
+                <span class="report-stat-value report-expense">
+
+                    -${formatMoney(
+                        account.total_expense,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-3 mt-1">
+
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Net Movement
+                </span>
+
+                <span class="report-stat-value report-net">
+
+                    ${formatMoney(
+                        account.net_movement,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Transactions
+                </span>
+
+                <span class="report-stat-value">
+
+                    ${account.transaction_count}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Income Transactions
+                </span>
+
+                <span class="report-stat-value report-income">
+
+                    ${account.income_count}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Expense Transactions
+                </span>
+
+                <span class="report-stat-value report-expense">
+
+                    ${account.expense_count}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+    `;
+
+
+    /* ========================================================
+       CATEGORY BREAKDOWN
+    ======================================================== */
+
+    html += `
+
+    <div class="row g-3">
+
+
+        <div class="col-md-6">
+
+            <div class="report-section">
+
+                <div class="report-section-header">
+
+                    <i class="fa fa-arrow-down text-success me-1"></i>
+
+                    Income by Category
+
+                </div>
+
+                <div class="report-section-body">
+
+    `;
+
+
+    const incomeCategories =
+        account.income_categories || {};
+
+
+    const incomeKeys =
+        Object.keys(
+            incomeCategories
+        );
+
+
+    if(
+        incomeKeys.length === 0
+    ) {
+
+        html += `
+
+            <div class="text-center text-muted py-3">
+
+                No income data
+
+            </div>
+
+        `;
+
+    } else {
+
+
+        incomeKeys.forEach(
+            function(category) {
+
+                html += `
+
+                    <div class="category-row">
+
+                        <span>
+
+                            ${escapeHtml(
+                                category
+                            )}
+
+                        </span>
+
+                        <strong
+                            class="income-text">
+
+                            +
+
+                            ${formatMoney(
+                                incomeCategories[
+                                    category
+                                ],
+                                account.currency
+                            )}
+
+                        </strong>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6">
+
+            <div class="report-section">
+
+                <div class="report-section-header">
+
+                    <i class="fa fa-arrow-up text-danger me-1"></i>
+
+                    Expense by Category
+
+                </div>
+
+                <div class="report-section-body">
+
+    `;
+
+
+    const expenseCategories =
+        account.expense_categories || {};
+
+
+    const expenseKeys =
+        Object.keys(
+            expenseCategories
+        );
+
+
+    if(
+        expenseKeys.length === 0
+    ) {
+
+        html += `
+
+            <div class="text-center text-muted py-3">
+
+                No expense data
+
+            </div>
+
+        `;
+
+    } else {
+
+
+        expenseKeys.forEach(
+            function(category) {
+
+                html += `
+
+                    <div class="category-row">
+
+                        <span>
+
+                            ${escapeHtml(
+                                category
+                            )}
+
+                        </span>
+
+                        <strong
+                            class="expense-text">
+
+                            -
+
+                            ${formatMoney(
+                                expenseCategories[
+                                    category
+                                ],
+                                account.currency
+                            )}
+
+                        </strong>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    /* ========================================================
+       TRANSACTION TABLE
+    ======================================================== */
+
+    html += `
+
+    <div class="report-section">
+
+        <div class="report-section-header">
+
+            <i class="fa fa-list me-1"></i>
+
+            Complete Account Transaction History
+
+        </div>
+
+
+        <div class="report-section-body p-0">
+
+            <div class="table-responsive">
+
+                <table class="report-table">
+
+                    <thead>
 
                         <tr>
-                            <td colspan="8" class="text-center py-4 text-muted">
-                                No accounts found.
-                            </td>
+
+                            <th>#</th>
+
+                            <th>Date</th>
+
+                            <th>Type</th>
+
+                            <th>Category</th>
+
+                            <th>Item</th>
+
+                            <th>Description</th>
+
+                            <th>Reference</th>
+
+                            <th class="text-end">
+                                Amount
+                            </th>
+
                         </tr>
 
-                    {% endif %}
+                    </thead>
+
+                    <tbody>
+
+    `;
+
+
+    const transactions =
+        account.transactions || [];
+
+
+    if(
+        transactions.length === 0
+    ) {
+
+
+        html += `
+
+            <tr>
+
+                <td
+                    colspan="8"
+                    class="text-center text-muted py-4">
+
+                    No transactions found.
+
+                </td>
+
+            </tr>
+
+        `;
+
+
+    } else {
+
+
+        transactions.forEach(
+            function(transaction,index) {
+
+
+                const type = (
+
+                    transaction.transaction_type
+                    ||
+                    transaction.type
+                    ||
+                    ""
+
+                ).toLowerCase();
+
+
+                const amount =
+                    parseFloat(
+                        transaction.amount || 0
+                    );
+
+
+                const isIncome =
+                    type === "income";
+
+
+                html += `
+
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+
+                        <td>
+
+                            ${formatDate(
+                                transaction.date
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${
+                                isIncome
+
+                                ?
+
+                                `<span class="badge bg-success">
+                                    Income
+                                </span>`
+
+                                :
+
+                                `<span class="badge bg-danger">
+                                    Expense
+                                </span>`
+                            }
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.category
+                                ||
+                                "Other"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.item
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.description
+                                ||
+                                transaction.note
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.reference_no
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td class="text-end">
+
+                            ${
+                                isIncome
+
+                                ?
+
+                                `<span class="income-text">
+                                    +${formatMoney(
+                                        amount,
+                                        account.currency
+                                    )}
+                                </span>`
+
+                                :
+
+                                `<span class="expense-text">
+                                    -${formatMoney(
+                                        amount,
+                                        account.currency
+                                    )}
+                                </span>`
+                            }
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
 
                     </tbody>
 
@@ -231,293 +2720,1181 @@ Transfer
 
     </div>
 
-    <style>
-.modal-backdrop {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.5);
-    display: none;
-    justify-content: center;
-    align-items: center;
+    `;
+
+
+    /* ========================================================
+       BALANCE CALCULATION
+    ======================================================== */
+
+    html += `
+
+    <div class="report-section">
+
+        <div class="report-section-header">
+
+            <i class="fa fa-calculator me-1"></i>
+
+            Balance Summary
+
+        </div>
+
+
+        <div class="report-section-body">
+
+            <div class="category-row">
+
+                <span>
+                    Opening Balance
+                </span>
+
+                <strong>
+
+                    ${formatMoney(
+                        account.opening_balance,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span class="income-text">
+                    + Total Income
+                </span>
+
+                <strong class="income-text">
+
+                    ${formatMoney(
+                        account.total_income,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span class="expense-text">
+                    - Total Expense
+                </span>
+
+                <strong class="expense-text">
+
+                    ${formatMoney(
+                        account.total_expense,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top:15px;
+                    padding:15px;
+                    background:#f1f5f9;
+                    border-radius:8px;
+                ">
+
+                <div
+                    class="d-flex justify-content-between">
+
+                    <strong>
+                        Current Balance
+                    </strong>
+
+                    <strong class="report-balance">
+
+                        ${formatMoney(
+                            account.balance,
+                            account.currency
+                        )}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    container.innerHTML =
+        html;
+
 }
 
-.modal-box {
-    background: white;
-    width: 400px;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+
+/* ============================================================
+   PRINT ACCOUNT REPORT
+============================================================ */
+
+function printAccountReport() {
+
+
+    if(
+        !currentReportAccount
+    ) {
+
+        alert(
+            "Please open an account report first."
+        );
+
+        return;
+
+    }
+
+
+    const account =
+        currentReportAccount;
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1200,height=900"
+        );
+
+
+    if(!printWindow) {
+
+        alert(
+            "Please allow popups to print the report."
+        );
+
+        return;
+
+    }
+
+
+    let incomeCategoryHtml = "";
+
+    const incomeCategories =
+        account.income_categories || {};
+
+
+    Object.keys(
+        incomeCategories
+    ).forEach(
+        function(category) {
+
+            incomeCategoryHtml += `
+
+                <tr>
+
+                    <td>
+                        ${escapeHtml(category)}
+                    </td>
+
+                    <td class="income">
+                        +${formatMoney(
+                            incomeCategories[category],
+                            account.currency
+                        )}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    if(
+        !incomeCategoryHtml
+    ) {
+
+        incomeCategoryHtml = `
+
+            <tr>
+
+                <td colspan="2">
+                    No income categories
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    let expenseCategoryHtml = "";
+
+    const expenseCategories =
+        account.expense_categories || {};
+
+
+    Object.keys(
+        expenseCategories
+    ).forEach(
+        function(category) {
+
+            expenseCategoryHtml += `
+
+                <tr>
+
+                    <td>
+                        ${escapeHtml(category)}
+                    </td>
+
+                    <td class="expense">
+                        -${formatMoney(
+                            expenseCategories[category],
+                            account.currency
+                        )}
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    if(
+        !expenseCategoryHtml
+    ) {
+
+        expenseCategoryHtml = `
+
+            <tr>
+
+                <td colspan="2">
+                    No expense categories
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    let transactionHtml = "";
+
+
+    const transactions =
+        account.transactions || [];
+
+
+    transactions.forEach(
+        function(transaction,index) {
+
+
+            const type = (
+
+                transaction.transaction_type
+                ||
+                transaction.type
+                ||
+                ""
+
+            ).toLowerCase();
+
+
+            const isIncome =
+                type === "income";
+
+
+            const amount =
+                parseFloat(
+                    transaction.amount || 0
+                );
+
+
+            transactionHtml += `
+
+                <tr>
+
+                    <td>
+                        ${index + 1}
+                    </td>
+
+                    <td>
+                        ${formatDate(
+                            transaction.date
+                        )}
+                    </td>
+
+                    <td>
+
+                        ${
+                            isIncome
+                            ? "INCOME"
+                            : "EXPENSE"
+                        }
+
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.category
+                            ||
+                            "Other"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.item
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.description
+                            ||
+                            transaction.note
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.reference_no
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td
+                        class="${
+                            isIncome
+                            ? "income"
+                            : "expense"
+                        }">
+
+                        ${
+                            isIncome
+                            ? "+"
+                            : "-"
+                        }
+
+                        ${formatMoney(
+                            amount,
+                            account.currency
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    if(
+        !transactionHtml
+    ) {
+
+        transactionHtml = `
+
+            <tr>
+
+                <td colspan="8">
+                    No transactions found.
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       PRINT HTML
+    ======================================================== */
+
+    printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+${escapeHtml(account.name)} - Account Statement
+</title>
+
+
+<style>
+
+* {
+    box-sizing:border-box;
 }
 
-.modal-box h3 {
-    margin-bottom: 15px;
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    margin:0;
+
+    padding:30px;
+
+    color:#222;
+
+    background:#fff;
+
+    font-size:12px;
+
 }
 
-.input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
+
+.invoice {
+
+    max-width:1100px;
+
+    margin:auto;
+
 }
 
-.btn {
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
+
+.header {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    border-bottom:3px solid #1d3557;
+
+    padding-bottom:18px;
+
+    margin-bottom:20px;
+
 }
 
-.btn-green { background: #2ecc71; color: white; }
-.btn-red { background: #e74c3c; color: white; }
 
-.close-btn {
-    background: #ccc;
-    margin-top: 8px;
+.company {
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#1d3557;
+
 }
+
+
+.document-title {
+
+    text-align:right;
+
+}
+
+
+.document-title h1 {
+
+    margin:0;
+
+    font-size:25px;
+
+    color:#1d3557;
+
+}
+
+
+.document-title small {
+
+    color:#777;
+
+}
+
+
+.account-box {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    border:1px solid #ddd;
+
+    padding:15px;
+
+    border-radius:7px;
+
+    margin-bottom:20px;
+
+}
+
+
+.account-box div {
+
+    min-width:200px;
+
+}
+
+
+.label {
+
+    color:#777;
+
+    font-size:10px;
+
+    text-transform:uppercase;
+
+}
+
+
+.value {
+
+    font-size:14px;
+
+    font-weight:700;
+
+    margin-top:3px;
+
+}
+
+
+.stats {
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:10px;
+
+    margin-bottom:20px;
+
+}
+
+
+.stat {
+
+    border:1px solid #ddd;
+
+    padding:12px;
+
+    border-radius:7px;
+
+}
+
+
+.stat .label {
+
+    display:block;
+
+}
+
+
+.stat .value {
+
+    font-size:16px;
+
+}
+
+
+.income {
+
+    color:#198754 !important;
+
+}
+
+
+.expense {
+
+    color:#dc3545 !important;
+
+}
+
+
+.balance {
+
+    color:#0d6efd !important;
+
+}
+
+
+.net {
+
+    color:#6f42c1 !important;
+
+}
+
+
+.section {
+
+    margin-top:20px;
+
+}
+
+
+.section-title {
+
+    background:#1d3557;
+
+    color:#fff;
+
+    padding:9px 12px;
+
+    font-weight:700;
+
+    border-radius:5px 5px 0 0;
+
+}
+
+
+table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+
+th {
+
+    background:#f1f3f5;
+
+    font-size:10px;
+
+    text-align:left;
+
+}
+
+
+th, td {
+
+    padding:8px;
+
+    border:1px solid #ddd;
+
+}
+
+
+td {
+
+    font-size:10px;
+
+}
+
+
+.text-right {
+
+    text-align:right;
+
+}
+
+
+.balance-box {
+
+    margin-top:20px;
+
+    border:2px solid #1d3557;
+
+    padding:15px;
+
+    border-radius:7px;
+
+}
+
+
+.balance-row {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:6px 0;
+
+    border-bottom:1px solid #eee;
+
+}
+
+
+.balance-row:last-child {
+
+    border-bottom:none;
+
+}
+
+
+.final-balance {
+
+    font-size:20px;
+
+    font-weight:700;
+
+    color:#0d6efd;
+
+}
+
+
+.footer {
+
+    margin-top:30px;
+
+    padding-top:15px;
+
+    border-top:1px solid #ddd;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    color:#777;
+
+    font-size:10px;
+
+}
+
+
+@media print {
+
+    body {
+
+        padding:0;
+
+    }
+
+    .no-print {
+
+        display:none !important;
+
+    }
+
+    @page {
+
+        size:A4 landscape;
+
+        margin:12mm;
+
+    }
+
+}
+
 </style>
 
+</head>
 
 
-<!-- ========================= -->
-<!-- ACCOUNT TRANSFER MODAL -->
-<!-- ========================= -->
+<body>
 
 
-<div class="modal-backdrop" id="transferModal">
+<div class="invoice">
 
 
-<div class="modal-box">
+<!-- HEADER -->
+
+<div class="header">
+
+<div>
+
+<div class="company">
+ACCOUNT FINANCIAL REPORT
+</div>
+
+<div style="margin-top:5px;color:#777;">
+Complete Account Statement
+</div>
+
+</div>
 
 
+<div class="document-title">
 
-<h3>
-    <i class="fa fa-exchange"></i>
-    Transfer Money
-</h3>
+<h1>
+ACCOUNT STATEMENT
+</h1>
 
+<small>
+Generated: ${new Date().toLocaleString()}
+</small>
 
+</div>
 
-
-
-<p 
-id="transferFromName"
-style="
-color:#555;
-font-size:13px;
-margin:10px 0;
-font-weight:600;">
-</p>
+</div>
 
 
+<!-- ACCOUNT INFORMATION -->
+
+<div class="account-box">
+
+<div>
+
+<div class="label">
+Account Name
+</div>
+
+<div class="value">
+${escapeHtml(account.name)}
+</div>
+
+</div>
 
 
+<div>
+
+<div class="label">
+Account Type
+</div>
+
+<div class="value">
+${escapeHtml(account.type)}
+</div>
+
+</div>
 
 
+<div>
 
-<!-- ========================= -->
-<!-- AMOUNT -->
-<!-- ========================= -->
+<div class="label">
+Currency
+</div>
+
+<div class="value">
+${escapeHtml(account.currency)}
+</div>
+
+</div>
 
 
-<label>
+<div>
+
+<div class="label">
+Account ID
+</div>
+
+<div class="value">
+${escapeHtml(account.id)}
+</div>
+
+</div>
+
+</div>
+
+
+<!-- STATISTICS -->
+
+<div class="stats">
+
+
+<div class="stat">
+
+<span class="label">
+Opening Balance
+</span>
+
+<div class="value">
+
+${formatMoney(
+    account.opening_balance,
+    account.currency
+)}
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<span class="label">
+Total Income
+</span>
+
+<div class="value income">
+
++${formatMoney(
+    account.total_income,
+    account.currency
+)}
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<span class="label">
+Total Expense
+</span>
+
+<div class="value expense">
+
+-${formatMoney(
+    account.total_expense,
+    account.currency
+)}
+
+</div>
+
+</div>
+
+
+<div class="stat">
+
+<span class="label">
+Current Balance
+</span>
+
+<div class="value balance">
+
+${formatMoney(
+    account.balance,
+    account.currency
+)}
+
+</div>
+
+</div>
+
+
+</div>
+
+
+<!-- CATEGORY SUMMARY -->
+
+<div class="section">
+
+<div class="section-title">
+Income by Category
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Category
+</th>
+
+<th class="text-right">
 Amount
-</label>
+</th>
 
+</tr>
 
+</thead>
 
-<input
+<tbody>
 
-type="number"
+${incomeCategoryHtml}
 
-step="0.01"
+</tbody>
 
-min="0.01"
-
-class="input"
-
-id="transferAmount"
-
-placeholder="Enter Amount">
-
-
-
-
-
-<!-- Amount Message -->
-
-<p
-
-id="transferAmountInfo"
-
-style="
-margin-top:8px;
-font-size:13px;
-font-weight:600;
-color:#e67e22;">
-
-<i class="fa fa-info-circle"></i>
-
-Please enter transfer amount
-
-</p>
-
-
-
-
-
-
-
-
-<!-- ========================= -->
-<!-- DESTINATION ACCOUNT -->
-<!-- ========================= -->
-
-
-<label>
-Transfer To Account
-</label>
-
-
-
-
-<select
-
-class="input"
-
-id="transferToAccount">
-
-
-
-<option value="">
-
--- Select Destination Account --
-
-</option>
-
-
-
-
-
-{% for account in accounts %}
-
-
-
-<option
-
-value="{{ account._id|string }}"
-
-data-balance="{{ account.balance|float }}"
-
->
-
-
-{{ account.name }}
-
--
-
-{{ account.currency }}
-
--
-
-$ {{ "%.2f"|format(account.balance|float) }}
-
-
-
-</option>
-
-
-
-
-{% endfor %}
-
-
-
-</select>
-
-
-
-
-
-
-
-<!-- Destination Balance -->
-
-<p
-
-id="transferDestinationInfo"
-
-style="
-color:#198754;
-font-size:13px;
-font-weight:600;
-margin-top:8px;">
-
-</p>
-
-
-
-
-
-
-
-
-<!-- BUTTONS -->
-
-
-<button
-
-class="btn btn-green"
-
-onclick="submitTransfer()">
-
-
-
-<i class="fa fa-check"></i>
-
-Transfer Money
-
-
-</button>
-
-
-
-
-
-
-
-
-<button
-
-class="btn close-btn"
-
-onclick="closeModal()">
-
-
-
-Close
-
-
-</button>
-
-
-
-
-
-
+</table>
 
 </div>
 
 
+<div class="section">
+
+<div class="section-title">
+Expense by Category
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+Category
+</th>
+
+<th class="text-right">
+Amount
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${expenseCategoryHtml}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- TRANSACTION HISTORY -->
+
+<div class="section">
+
+<div class="section-title">
+Complete Transaction History
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>#</th>
+
+<th>Date</th>
+
+<th>Type</th>
+
+<th>Category</th>
+
+<th>Item</th>
+
+<th>Description</th>
+
+<th>Reference</th>
+
+<th class="text-right">
+Amount
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${transactionHtml}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- BALANCE SUMMARY -->
+
+<div class="balance-box">
+
+<div class="balance-row">
+
+<span>
+Opening Balance
+</span>
+
+<strong>
+
+${formatMoney(
+    account.opening_balance,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span class="income">
++ Total Income
+</span>
+
+<strong class="income">
+
+${formatMoney(
+    account.total_income,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span class="expense">
+- Total Expense
+</span>
+
+<strong class="expense">
+
+${formatMoney(
+    account.total_expense,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div
+class="balance-row"
+style="margin-top:8px;padding-top:12px;">
+
+<strong>
+CURRENT BALANCE
+</strong>
+
+<strong class="final-balance">
+
+${formatMoney(
+    account.balance,
+    account.currency
+)}
+
+</strong>
+
 </div>
 
 </div>
- 
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<span>
+Account Statement
+</span>
+
+<span>
+Total Transactions:
+${account.transaction_count}
+</span>
+
+<span>
+Generated:
+${new Date().toLocaleString()}
+</span>
+
 </div>
-
-
 
 
 </div>
@@ -525,804 +3902,627 @@ Close
 
 <script>
 
+window.onload = function() {
 
-// =====================================
-// ACCOUNT TRANSFER
-// ACCOUNT ---> ACCOUNT
-// =====================================
+    setTimeout(
+        function() {
 
+            window.print();
+
+        },
+        500
+    );
+
+};
+
+<\/script>
+
+
+</body>
+
+</html>
+
+    `);
+
+
+    printWindow.document.close();
+
+}
+
+
+/* ============================================================
+   TRANSFER VARIABLES
+============================================================ */
 
 let transferFrom = null;
 
 let transferFromBalance = 0;
 
 
-
-
-
-// =====================================
-// OPEN TRANSFER MODAL
-// =====================================
-
+/* ============================================================
+   OPEN TRANSFER
+============================================================ */
 
 function openTransfer(
-    account_id,
-    name,
+    accountId,
+    accountName,
     balance
-){
+) {
 
 
-    transferFrom = String(account_id);
+    transferFrom =
+        String(accountId);
 
 
     transferFromBalance =
-    parseFloat(balance || 0);
-
-
-
-    console.log(
-        "TRANSFER FROM:",
-        transferFrom
-    );
-
-
-    console.log(
-        "BALANCE:",
-        transferFromBalance
-    );
-
+        parseFloat(
+            balance || 0
+        );
 
 
     document.getElementById(
         "transferModal"
-    ).style.display="flex";
-
-
-
+    ).classList.add(
+        "active"
+    );
 
 
     document.getElementById(
         "transferFromName"
-    ).innerHTML =
-
-    `
-    From Account:
-
-    <b>${name}</b>
-
-    <br>
-
-    Available Balance:
-
-    <span style="color:#198754">
-
-    $${transferFromBalance.toFixed(2)}
-
-    </span>
-    `;
+    ).innerText =
+        accountName;
 
 
+    document.getElementById(
+        "transferAvailableBalance"
+    ).innerText =
+        "$" +
+        transferFromBalance.toFixed(2);
 
 
     document.getElementById(
         "transferAmount"
-    ).value="";
-
+    ).value = "";
 
 
     document.getElementById(
         "transferToAccount"
-    ).value="";
+    ).value = "";
 
 
-
-
-    let amountInfo =
     document.getElementById(
         "transferAmountInfo"
-    );
+    ).innerHTML = `
 
-
-    if(amountInfo){
-
-        amountInfo.innerHTML =
-        `
         <i class="fa fa-info-circle"></i>
 
-        Please enter transfer amount
+        Enter transfer amount
 
-        `;
-
-    }
+    `;
 
 
-
-
-
-    let destinationInfo =
     document.getElementById(
         "transferDestinationInfo"
+    ).innerHTML = "";
+
+
+    document.getElementById(
+        "transferSummary"
+    ).classList.remove(
+        "show"
     );
-
-
-    if(destinationInfo){
-
-        destinationInfo.innerHTML="";
-
-    }
-
-
 
 }
 
 
-
-
-
-
-
-
-// =====================================
-// LIVE AMOUNT VALIDATION
-// =====================================
-
+/* ============================================================
+   AMOUNT VALIDATION
+============================================================ */
 
 document.addEventListener(
 "input",
-function(e){
+function(event) {
 
 
+    if(
+        event.target.id !==
+        "transferAmount"
+    ) {
 
-if(
-e.target.id !== "transferAmount"
-){
+        return;
 
-return;
+    }
 
-}
 
+    const amount =
+        parseFloat(
+            event.target.value || 0
+        );
 
 
-let amount =
-parseFloat(
-e.target.value || 0
-);
+    const info =
+        document.getElementById(
+            "transferAmountInfo"
+        );
 
 
+    const summary =
+        document.getElementById(
+            "transferSummary"
+        );
 
 
-let info =
-document.getElementById(
-"transferAmountInfo"
-);
+    if(
+        !amount ||
+        amount <= 0
+    ) {
 
 
+        info.innerHTML = `
 
+            <i class="fa fa-info-circle"></i>
 
-if(!info){
+            Enter transfer amount
 
-return;
+        `;
 
-}
 
+        info.style.color =
+            "#e67e22";
 
 
+        summary.classList.remove(
+            "show"
+        );
 
 
+        return;
 
-if(amount <= 0){
+    }
 
 
-info.innerHTML =
+    if(
+        amount >
+        transferFromBalance
+    ) {
 
-`
-<i class="fa fa-info-circle"></i>
 
-Enter transfer amount
+        info.innerHTML = `
 
-`;
+            <i class="fa fa-warning"></i>
 
+            <span style="color:#e74c3c">
 
-info.style.color="#e67e22";
+                Insufficient balance.
 
+                Available:
 
-return;
+                $${transferFromBalance.toFixed(2)}
 
+            </span>
 
-}
+        `;
 
 
+        info.style.color =
+            "#e74c3c";
 
 
+        summary.classList.remove(
+            "show"
+        );
 
 
+        return;
 
-if(amount > transferFromBalance){
+    }
 
 
+    info.innerHTML = `
 
-info.innerHTML =
+        <i class="fa fa-check-circle"></i>
 
+        Amount available for transfer
 
-`
-<i class="fa fa-warning"></i>
+    `;
 
 
-Transfer Amount:
+    info.style.color =
+        "#198754";
 
-<b>
-$${amount.toFixed(2)}
-</b>
 
+    document.getElementById(
+        "summaryAmount"
+    ).innerText =
+        "$" +
+        amount.toFixed(2);
 
-<br>
 
+    document.getElementById(
+        "summaryRemaining"
+    ).innerText =
+        "$" +
+        (
+            transferFromBalance -
+            amount
+        ).toFixed(2);
 
-<span style="color:#e74c3c">
 
-
-Insufficient Balance
-
-
-<br>
-
-
-Available:
-
-$${transferFromBalance.toFixed(2)}
-
-
-</span>
-
-`;
-
-
-
-info.style.color="#e74c3c";
-
-
-
-}
-
-else{
-
-
-
-info.innerHTML =
-
-
-`
-<i class="fa fa-check-circle"></i>
-
-
-Transfer Amount:
-
-<b>
-$${amount.toFixed(2)}
-</b>
-
-
-<br>
-
-
-Available Balance:
-
-<b>
-$${transferFromBalance.toFixed(2)}
-</b>
-
-`;
-
-
-
-info.style.color="#198754";
-
-
-
-}
-
-
+    summary.classList.add(
+        "show"
+    );
 
 });
 
 
-
-
-
-
-
-
-
-// =====================================
-// DESTINATION ACCOUNT INFO
-// =====================================
-
+/* ============================================================
+   DESTINATION
+============================================================ */
 
 document.addEventListener(
 "change",
-function(e){
+function(event) {
 
 
+    if(
+        event.target.id !==
+        "transferToAccount"
+    ) {
 
-if(
-e.target.id !== "transferToAccount"
-){
+        return;
 
-return;
-
-}
-
-
-
-let option =
-e.target.options[
-e.target.selectedIndex
-];
+    }
 
 
-
-let info =
-document.getElementById(
-"transferDestinationInfo"
-);
+    const select =
+        event.target;
 
 
-
-if(!info){
-
-return;
-
-}
+    const option =
+        select.options[
+            select.selectedIndex
+        ];
 
 
+    const info =
+        document.getElementById(
+            "transferDestinationInfo"
+        );
 
 
-if(e.target.value){
+    if(!select.value) {
+
+        info.innerHTML = "";
+
+        return;
+
+    }
 
 
-
-let balance =
-parseFloat(
-option.dataset.balance || 0
-);
-
+    const balance =
+        parseFloat(
+            option.dataset.balance || 0
+        );
 
 
-info.innerHTML =
+    const currency =
+        option.dataset.currency
+        ||
+        "USD";
 
 
-`
-<i class="fa fa-wallet"></i>
+    info.innerHTML = `
 
+        <i class="fa fa-wallet"></i>
 
-Destination Balance:
+        Destination Balance:
 
+        <strong>
 
-<b>
+            ${formatMoney(
+                balance,
+                currency
+            )}
 
-$${balance.toFixed(2)}
+        </strong>
 
-</b>
-
-`;
-
-
-
-}
-
-else{
-
-
-info.innerHTML="";
-
-
-}
-
-
+    `;
 
 });
 
 
+/* ============================================================
+   SUBMIT TRANSFER
+============================================================ */
+
+function submitTransfer() {
 
 
+    const amount =
+        parseFloat(
+            document.getElementById(
+                "transferAmount"
+            ).value
+        );
 
 
+    const toAccount =
+        document.getElementById(
+            "transferToAccount"
+        ).value;
 
 
+    if(!transferFrom) {
 
-// =====================================
-// SUBMIT TRANSFER
-// =====================================
+        alert(
+            "Source account missing."
+        );
+
+        return;
+
+    }
 
 
-function submitTransfer(){
+    if(
+        !amount ||
+        amount <= 0
+    ) {
+
+        alert(
+            "Enter a valid amount."
+        );
+
+        return;
+
+    }
 
 
+    if(
+        amount >
+        transferFromBalance
+    ) {
 
-let amount =
-parseFloat(
+        alert(
+            "Insufficient balance. Available $" +
+            transferFromBalance.toFixed(2)
+        );
+
+        return;
+
+    }
+
+
+    if(!toAccount) {
+
+        alert(
+            "Select destination account."
+        );
+
+        return;
+
+    }
+
+
+    if(
+        String(transferFrom)
+        ===
+        String(toAccount)
+    ) {
+
+        alert(
+            "You cannot transfer to the same account."
+        );
+
+        return;
+
+    }
+
+
+    const button =
+        document.getElementById(
+            "transferSubmitBtn"
+        );
+
+
+    button.disabled = true;
+
+
+    button.innerHTML = `
+
+        <i class="fa fa-spinner fa-spin"></i>
+
+        Processing...
+
+    `;
+
+
+    fetch(
+        "/account/transfer",
+        {
+
+            method:"POST",
+
+            headers:{
+
+                "Content-Type":
+                    "application/json",
+
+                "X-Requested-With":
+                    "XMLHttpRequest"
+
+            },
+
+            body:JSON.stringify({
+
+                from_account:
+                    String(transferFrom),
+
+                to_account:
+                    String(toAccount),
+
+                amount:
+                    amount
+
+            })
+
+        }
+
+    )
+
+    .then(
+        response =>
+            response.json()
+    )
+
+    .then(
+        data => {
+
+
+            if(data.error) {
+
+                alert(
+                    data.error
+                );
+
+                return;
+
+            }
+
+
+            alert(
+                data.message ||
+                "Transfer completed successfully."
+            );
+
+
+            window.location.reload();
+
+        }
+    )
+
+    .catch(
+        error => {
+
+
+            console.error(
+                error
+            );
+
+
+            alert(
+                "Server error. Please try again."
+            );
+
+        }
+    )
+
+    .finally(
+        () => {
+
+
+            button.disabled =
+                false;
+
+
+            button.innerHTML = `
+
+                <i class="fa fa-check me-1"></i>
+
+                Transfer Money
+
+            `;
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CLOSE TRANSFER
+============================================================ */
+
+function closeModal() {
+
+
+    document.getElementById(
+        "transferModal"
+    ).classList.remove(
+        "active"
+    );
+
+
+    transferFrom = null;
+
+    transferFromBalance = 0;
+
+
+}
+
+
+/* ============================================================
+   ESCAPE KEY
+============================================================ */
+
+document.addEventListener(
+"keydown",
+function(event) {
+
+
+    if(
+        event.key === "Escape"
+    ) {
+
+        closeAccountReport();
+
+        closeModal();
+
+    }
+
+});
+
+
+/* ============================================================
+   BACKDROP CLOSE
+============================================================ */
+
 document.getElementById(
-"transferAmount"
-).value
-);
+    "accountReportModal"
+).addEventListener(
+"click",
+function(event) {
 
 
+    if(
+        event.target === this
+    ) {
+
+        closeAccountReport();
+
+    }
+
+});
 
 
-let to_account =
 document.getElementById(
-"transferToAccount"
-).value;
+    "transferModal"
+).addEventListener(
+"click",
+function(event) {
 
 
+    if(
+        event.target === this
+    ) {
 
+        closeModal();
 
+    }
 
-
-
-if(!transferFrom){
-
-
-alert(
-"Source account missing"
-);
-
-
-return;
-
-
-}
-
-
-
-
-
-
-
-if(!amount || amount <=0){
-
-
-alert(
-"Enter valid amount"
-);
-
-
-return;
-
-
-}
-
-
-
-
-
-
-
-if(amount > transferFromBalance){
-
-
-
-alert(
-
-"Insufficient balance. Available $"+
-transferFromBalance.toFixed(2)
-
-);
-
-
-
-return;
-
-
-}
-
-
-
-
-
-
-
-if(!to_account){
-
-
-alert(
-"Select destination account"
-);
-
-
-return;
-
-
-}
-
-
-
-
-
-
-
-
-if(
-String(transferFrom)
-===
-String(to_account)
-){
-
-
-
-alert(
-"You cannot transfer to same account"
-);
-
-
-
-return;
-
-
-}
-
-
-
-
-
-
-
-
-fetch(
-"/account/transfer",
-{
-
-
-method:"POST",
-
-
-
-headers:{
-
-
-"Content-Type":
-
-"application/json"
-
-
-},
-
-
-
-body:JSON.stringify({
-
-
-
-from_account:String(transferFrom),
-
-
-
-to_account:String(to_account),
-
-
-
-amount:amount
-
-
-
-})
-
-
-
-}
-
-)
-
-
-
-
-
-.then(
-res=>res.json()
-)
-
-
-
-
-
-.then(
-data=>{
-
-
-
-console.log(data);
-
-
-
-
-if(data.error){
-
-
-
-alert(
-data.error
-);
-
-
-
-return;
-
-
-}
-
-
-
-
-
-
-alert(
-data.message
-);
-
-
-
-
-location.reload();
-
-
-
-}
-
-
-
-)
-
-
-
-
-
-.catch(
-()=>{
-
-
-alert(
-"Server error"
-);
-
-
-
-}
-
-);
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================
-// CLOSE MODAL BUTTON ONLY
-// =====================================
-
-
-function closeTransferModal(){
-
-
-
-let modal =
-document.getElementById(
-"transferModal"
-);
-
-
-
-
-if(modal){
-
-
-modal.style.display="none";
-
-
-}
-
-
-
-}
-
-
-
-
-
-
-
-
-
-// =====================================
-// GLOBAL CLOSE BUTTON SUPPORT
-// =====================================
-
-
-function closeModal(){
-
-
-
-closeTransferModal();
-
-
-
-let amount =
-document.getElementById(
-"transferAmount"
-);
-
-
-
-let account =
-document.getElementById(
-"transferToAccount"
-);
-
-
-
-if(amount){
-
-amount.value="";
-
-}
-
-
-
-if(account){
-
-account.value="";
-
-}
-
-
-
-
-
-let info =
-document.getElementById(
-"transferAmountInfo"
-);
-
-
-
-if(info){
-
-info.innerHTML="";
-
-}
-
-
-
-
-let destination =
-document.getElementById(
-"transferDestinationInfo"
-);
-
-
-
-if(destination){
-
-destination.innerHTML="";
-
-}
-
-
-
-}
-
-
-
-
+});
 
 
 </script>
 
 {% endblock %}
+
