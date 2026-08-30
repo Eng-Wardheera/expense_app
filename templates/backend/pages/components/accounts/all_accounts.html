@@ -4,18 +4,25 @@
 
 {% block content %}
 
+
 <!-- ============================================================
      PAGE HEADER
 ============================================================ -->
 
-<div class="page-header">
+<div class="page-header accounts-page-header">
 
-    <div class="page-header-left d-flex align-items-center">
+    <!-- ========================================================
+         LEFT SIDE
+    ========================================================= -->
+
+    <div class="page-header-left accounts-header-left">
 
         <div class="page-header-title">
+
             <h5 class="m-b-10">
                 Accounts
             </h5>
+
         </div>
 
         <ul class="breadcrumb">
@@ -35,53 +42,346 @@
     </div>
 
 
-    <div class="page-header-right ms-auto">
+    <!-- ========================================================
+         RIGHT SIDE
+    ========================================================= -->
 
-        <div class="d-flex align-items-center gap-2">
+    <div class="page-header-right accounts-header-right">
+
+        <div class="accounts-header-actions">
+
+
+            <!-- ==================================================
+                 REFRESH
+            ================================================== -->
 
             <button
                 type="button"
-                class="btn btn-light-brand"
+                class="btn btn-light-brand account-header-btn"
                 onclick="window.location.reload()">
 
                 <i class="fa fa-refresh me-1"></i>
-                Refresh
+
+                <span>
+                    Refresh
+                </span>
 
             </button>
 
-        <a
-    href="{{ url_for('main.all_account_transfers') }}"
-    class="btn btn-primary">
 
-    <i class="feather-plus me-2"></i>
-    <span>All Account Transfers</span>
+            <!-- ==================================================
+                 ALL ACCOUNT TRANSFERS
+            ================================================== -->
 
-</a>
+            <a
+                href="{{ url_for('main.all_account_transfers') }}"
+                class="btn btn-primary account-header-btn">
 
-<button
-    type="button"
-    class="btn btn-success"
-    onclick="printAllAccountsInvoice()">
+                <i class="feather-list me-2"></i>
 
-    <i class="fa fa-file-text-o me-2"></i>
-    All Accounts Invoice
+                <span>
+                    All Account Transfers
+                </span>
 
-</button>
+            </a>
+
+
+            <!-- ==================================================
+                 ALL ACCOUNTS INVOICE
+            ================================================== -->
+
+            <button
+                type="button"
+                class="btn btn-success account-header-btn"
+                onclick="printAllAccountsInvoice()">
+
+                <i class="fa fa-file-text-o me-2"></i>
+
+                <span>
+                    All Accounts Invoice
+                </span>
+
+            </button>
+
+
+            <!-- ==================================================
+                 ADD ACCOUNT
+            ================================================== -->
 
             <a
                 href="{{ url_for('main.add_account') }}"
-                class="btn btn-primary">
+                class="btn btn-primary account-header-btn">
 
                 <i class="fa fa-plus me-2"></i>
-                Add Account
+
+                <span>
+                    Add Account
+                </span>
 
             </a>
+
 
         </div>
 
     </div>
 
 </div>
+
+
+<!-- ============================================================
+     RESPONSIVE CSS
+============================================================ -->
+
+<style>
+
+/* ============================================================
+   ACCOUNTS HEADER
+============================================================ */
+
+.accounts-page-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+
+/* ============================================================
+   LEFT
+============================================================ */
+
+.accounts-header-left {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+
+/* ============================================================
+   RIGHT
+============================================================ */
+
+.accounts-header-right {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+
+/* ============================================================
+   ACTIONS
+============================================================ */
+
+.accounts-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+
+.account-header-btn {
+    min-height: 40px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+}
+
+
+/* ============================================================
+   LARGE TABLET
+============================================================ */
+
+@media (max-width: 1200px) {
+
+    .accounts-page-header {
+        align-items: flex-start;
+    }
+
+    .accounts-header-actions {
+        justify-content: flex-end;
+    }
+
+    .account-header-btn {
+        font-size: 13px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+}
+
+
+/* ============================================================
+   TABLET
+============================================================ */
+
+@media (max-width: 992px) {
+
+    .accounts-page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+
+    .accounts-header-left {
+        width: 100%;
+    }
+
+    .accounts-header-right {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .accounts-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .account-header-btn {
+        flex: 0 1 auto;
+    }
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media (max-width: 767px) {
+
+    .accounts-page-header {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .accounts-header-left {
+        width: 100%;
+    }
+
+    .accounts-header-left .page-header-title h5 {
+        font-size: 18px;
+        margin-bottom: 6px;
+    }
+
+    .accounts-header-left .breadcrumb {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+
+    .accounts-header-right {
+        width: 100%;
+    }
+
+    .accounts-header-actions {
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        width: 100%;
+
+        gap: 8px;
+
+    }
+
+    .account-header-btn {
+
+        width: 100%;
+
+        min-height: 42px;
+
+        padding-left: 8px;
+        padding-right: 8px;
+
+        font-size: 12px;
+
+        white-space: normal;
+
+        text-align: center;
+
+    }
+
+    .account-header-btn i {
+        margin-right: 4px !important;
+    }
+
+}
+
+
+/* ============================================================
+   SMALL MOBILE
+============================================================ */
+
+@media (max-width: 480px) {
+
+    .accounts-page-header {
+        gap: 12px;
+    }
+
+    .accounts-header-actions {
+
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+
+    }
+
+    .account-header-btn {
+
+        width: 100%;
+
+        min-height: 44px;
+
+        font-size: 12px;
+
+    }
+
+    .accounts-header-left .breadcrumb {
+
+        display: flex;
+
+        flex-wrap: wrap;
+
+        gap: 3px;
+
+    }
+
+}
+
+
+/* ============================================================
+   VERY SMALL DEVICES
+============================================================ */
+
+@media (max-width: 360px) {
+
+    .accounts-page-header {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .accounts-header-left .page-header-title h5 {
+        font-size: 17px;
+    }
+
+    .account-header-btn {
+        min-height: 42px;
+        font-size: 11px;
+    }
+
+}
+
+</style>
+
+
 
 
 
