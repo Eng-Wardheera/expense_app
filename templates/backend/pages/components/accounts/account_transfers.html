@@ -7,6 +7,472 @@
 
 {% block content %}
 
+
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+
+<div class="page-header accounts-page-header">
+
+    <!-- ========================================================
+         LEFT SIDE
+    ========================================================= -->
+
+    <div class="page-header-left accounts-header-left">
+
+        <div class="page-header-title">
+
+            <h5 class="m-b-10">
+                Accounts
+            </h5>
+
+        </div>
+
+        <ul class="breadcrumb">
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">
+                    Home
+                </a>
+            </li>
+
+            <li class="breadcrumb-item">
+                All Accounts
+            </li>
+
+        </ul>
+
+    </div>
+
+
+    <!-- ========================================================
+         RIGHT SIDE
+    ======================================================== -->
+
+    <div class="page-header-right accounts-header-right">
+
+        <div class="accounts-header-actions">
+
+
+            <!-- ==================================================
+                 REFRESH
+            ================================================== -->
+
+            <button
+                type="button"
+                class="btn btn-light-brand account-header-btn"
+                onclick="window.location.reload()">
+
+                <i class="fa fa-refresh me-1"></i>
+
+                <span>
+                    Refresh
+                </span>
+
+            </button>
+
+
+            <!-- ==================================================
+                 ACCOUNT & SAVING TRANSFERS
+            ================================================== -->
+
+            <a
+                href="{{ url_for('main.saving_list') }}"
+                class="btn btn-warning account-header-btn">
+
+                <i class="fa fa-exchange me-2"></i>
+
+                <span>
+                    Account &amp; Saving Transfers
+                </span>
+
+            </a>
+
+
+            <!-- ==================================================
+                 ALL ACCOUNT TRANSFERS
+            ================================================== -->
+
+            <a
+                href="{{ url_for('main.all_account_transfers') }}"
+                class="btn btn-primary account-header-btn">
+
+                <i class="feather-list me-2"></i>
+
+                <span>
+                    All Account Transfers
+                </span>
+
+            </a>
+
+
+            <!-- ==================================================
+                 ALL ACCOUNTS INVOICE
+            ================================================== -->
+
+            <button
+                type="button"
+                class="btn btn-success account-header-btn"
+                onclick="printAllAccountsInvoice()">
+
+                <i class="fa fa-file-text-o me-2"></i>
+
+                <span>
+                    All Accounts Invoice
+                </span>
+
+            </button>
+
+
+            <!-- ==================================================
+                 ADD ACCOUNT
+            ================================================== -->
+
+            <a
+                href="{{ url_for('main.add_account') }}"
+                class="btn btn-primary account-header-btn">
+
+                <i class="fa fa-plus me-2"></i>
+
+                <span>
+                    Add Account
+                </span>
+
+            </a>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     RESPONSIVE CSS
+============================================================ -->
+
+<style>
+
+/* ============================================================
+   ACCOUNTS HEADER
+============================================================ */
+
+.accounts-page-header {
+
+    width: 100%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+}
+
+
+/* ============================================================
+   LEFT
+============================================================ */
+
+.accounts-header-left {
+
+    min-width: 0;
+
+    flex: 1 1 auto;
+
+}
+
+
+/* ============================================================
+   RIGHT
+============================================================ */
+
+.accounts-header-right {
+
+    flex: 0 0 auto;
+
+    margin-left: auto;
+
+}
+
+
+/* ============================================================
+   ACTIONS
+============================================================ */
+
+.accounts-header-actions {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 8px;
+
+    flex-wrap: wrap;
+
+}
+
+
+/* ============================================================
+   BUTTONS
+============================================================ */
+
+.account-header-btn {
+
+    min-height: 40px;
+
+    white-space: nowrap;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 3px;
+
+}
+
+
+/* ============================================================
+   LARGE TABLET
+============================================================ */
+
+@media (max-width: 1200px) {
+
+    .accounts-page-header {
+
+        align-items: flex-start;
+
+    }
+
+    .accounts-header-actions {
+
+        justify-content: flex-end;
+
+    }
+
+    .account-header-btn {
+
+        font-size: 13px;
+
+        padding-left: 11px;
+
+        padding-right: 11px;
+
+    }
+
+}
+
+
+/* ============================================================
+   TABLET
+============================================================ */
+
+@media (max-width: 992px) {
+
+    .accounts-page-header {
+
+        flex-direction: column;
+
+        align-items: stretch;
+
+        gap: 15px;
+
+    }
+
+    .accounts-header-left {
+
+        width: 100%;
+
+    }
+
+    .accounts-header-right {
+
+        width: 100%;
+
+        margin-left: 0;
+
+    }
+
+    .accounts-header-actions {
+
+        width: 100%;
+
+        justify-content: flex-start;
+
+    }
+
+    .account-header-btn {
+
+        flex: 0 1 auto;
+
+    }
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media (max-width: 767px) {
+
+    .accounts-page-header {
+
+        padding-left: 12px;
+
+        padding-right: 12px;
+
+    }
+
+    .accounts-header-left {
+
+        width: 100%;
+
+    }
+
+    .accounts-header-left
+    .page-header-title h5 {
+
+        font-size: 18px;
+
+        margin-bottom: 6px;
+
+    }
+
+    .accounts-header-left
+    .breadcrumb {
+
+        margin-bottom: 0;
+
+        font-size: 12px;
+
+    }
+
+    .accounts-header-right {
+
+        width: 100%;
+
+    }
+
+    .accounts-header-actions {
+
+        display: grid;
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        width: 100%;
+
+        gap: 8px;
+
+    }
+
+    .account-header-btn {
+
+        width: 100%;
+
+        min-height: 44px;
+
+        padding-left: 7px;
+
+        padding-right: 7px;
+
+        font-size: 11.5px;
+
+        white-space: normal;
+
+        text-align: center;
+
+        line-height: 1.25;
+
+    }
+
+    .account-header-btn i {
+
+        margin-right: 4px !important;
+
+        flex-shrink: 0;
+
+    }
+
+}
+
+
+/* ============================================================
+   SMALL MOBILE
+============================================================ */
+
+@media (max-width: 480px) {
+
+    .accounts-page-header {
+
+        gap: 12px;
+
+    }
+
+    .accounts-header-actions {
+
+        grid-template-columns: 1fr;
+
+        gap: 8px;
+
+    }
+
+    .account-header-btn {
+
+        width: 100%;
+
+        min-height: 44px;
+
+        font-size: 12px;
+
+    }
+
+}
+
+
+/* ============================================================
+   VERY SMALL DEVICES
+============================================================ */
+
+@media (max-width: 360px) {
+
+    .accounts-page-header {
+
+        padding-left: 8px;
+
+        padding-right: 8px;
+
+    }
+
+    .accounts-header-left
+    .page-header-title h5 {
+
+        font-size: 17px;
+
+    }
+
+    .account-header-btn {
+
+        min-height: 42px;
+
+        font-size: 11px;
+
+    }
+
+}
+
+</style>
+
+
+
 <style>
 
 /* ============================================================
@@ -3769,6 +4235,1868 @@ document.addEventListener(
 filterTransfers();
 
 </script>
+
+
+
+<script>
+
+/* ============================================================
+   ALL ACCOUNTS INVOICE / REPORT
+   ============================================================
+   Works with:
+   - Account → Account
+   - Account → Saving
+   - Saving → Account
+   - Current Search Filter
+   - Current Type Filter
+   - Current Status Filter
+   - Print
+   - Save as PDF from browser
+============================================================ */
+
+function printAllAccountsInvoice() {
+
+    /* ========================================================
+       GET CURRENT FILTERED TRANSFERS
+    ======================================================== */
+
+    const rows = Array.from(
+        document.querySelectorAll('.transfer-row')
+    );
+
+    const visibleTransfers = [];
+
+    rows.forEach(function(row) {
+
+        /* Ignore hidden rows */
+
+        if (
+            row.style.display === 'none'
+        ) {
+            return;
+        }
+
+        const index =
+            Array.from(rows).indexOf(row);
+
+        const transfer =
+            transfers[index];
+
+        if (transfer) {
+            visibleTransfers.push(transfer);
+        }
+
+    });
+
+
+    /* ========================================================
+       IF NOTHING IS AVAILABLE
+    ======================================================== */
+
+    if (!visibleTransfers.length) {
+
+        alert(
+            'There are no transactions available for invoice.'
+        );
+
+        return;
+    }
+
+
+    /* ========================================================
+       CALCULATE SUMMARY
+    ======================================================== */
+
+    let totalTransactions =
+        visibleTransfers.length;
+
+    let totalMovement = 0;
+
+    let totalDeposits = 0;
+
+    let totalWithdrawals = 0;
+
+    let totalAccountTransfers = 0;
+
+
+    visibleTransfers.forEach(function(transfer) {
+
+        const amount =
+            Number(
+                transfer.amount || 0
+            );
+
+
+        const type =
+            String(
+                transfer.transfer_type || ''
+            ).toLowerCase();
+
+
+        totalMovement += amount;
+
+
+        if (
+            type === 'account_to_saving'
+        ) {
+
+            totalDeposits += amount;
+
+        }
+
+        else if (
+            type === 'saving_to_account'
+        ) {
+
+            totalWithdrawals += amount;
+
+        }
+
+        else {
+
+            totalAccountTransfers += amount;
+
+        }
+
+    });
+
+
+    /* ========================================================
+       CURRENCY
+    ======================================================== */
+
+    let currency = 'USD';
+
+    if (
+        visibleTransfers[0] &&
+        visibleTransfers[0].currency
+    ) {
+
+        currency =
+            visibleTransfers[0].currency;
+
+    }
+
+
+    /* ========================================================
+       MONEY FORMAT
+    ======================================================== */
+
+    function invoiceMoney(amount) {
+
+        const number =
+            Number(amount || 0);
+
+        return (
+            escapeHtml(currency)
+            + ' '
+            + number.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            )
+        );
+
+    }
+
+
+    /* ========================================================
+       TYPE
+    ======================================================== */
+
+    function invoiceType(transfer) {
+
+        const type =
+            String(
+                transfer.transfer_type || ''
+            ).toLowerCase();
+
+
+        if (
+            type === 'account_to_saving'
+        ) {
+
+            return 'Deposit';
+
+        }
+
+
+        if (
+            type === 'saving_to_account'
+        ) {
+
+            return 'Withdraw';
+
+        }
+
+
+        return 'Transfer';
+
+    }
+
+
+    /* ========================================================
+       FROM NAME
+    ======================================================== */
+
+    function invoiceFromName(transfer) {
+
+        return (
+            transfer.from_name ||
+            transfer.from_saving_name ||
+            transfer.from_account_name ||
+            'Unknown'
+        );
+
+    }
+
+
+    /* ========================================================
+       FROM TYPE
+    ======================================================== */
+
+    function invoiceFromType(transfer) {
+
+        return (
+            transfer.from_kind ||
+            (
+                transfer.from_saving
+                ? 'Saving'
+                : 'Account'
+            )
+        );
+
+    }
+
+
+    /* ========================================================
+       TO NAME
+    ======================================================== */
+
+    function invoiceToName(transfer) {
+
+        return (
+            transfer.to_name ||
+            transfer.to_saving_name ||
+            transfer.to_account_name ||
+            'Unknown'
+        );
+
+    }
+
+
+    /* ========================================================
+       TO TYPE
+    ======================================================== */
+
+    function invoiceToType(transfer) {
+
+        return (
+            transfer.to_kind ||
+            (
+                transfer.to_saving
+                ? 'Saving'
+                : 'Account'
+            )
+        );
+
+    }
+
+
+    /* ========================================================
+       REFERENCE
+    ======================================================== */
+
+    function invoiceReference(transfer) {
+
+        return (
+            transfer.reference_no ||
+            transfer.reference ||
+            transfer.id ||
+            '-'
+        );
+
+    }
+
+
+    /* ========================================================
+       STATUS
+    ======================================================== */
+
+    function invoiceStatus(transfer) {
+
+        return (
+            transfer.status ||
+            'completed'
+        );
+
+    }
+
+
+    /* ========================================================
+       DATE
+    ======================================================== */
+
+    function invoiceDate(transfer) {
+
+        return (
+            transfer.created_at ||
+            '-'
+        );
+
+    }
+
+
+    /* ========================================================
+       GENERATE TABLE ROWS
+    ======================================================== */
+
+    let tableRows = '';
+
+
+    visibleTransfers.forEach(
+        function(transfer, index) {
+
+            const type =
+                invoiceType(transfer);
+
+
+            let typeClass =
+                'transfer';
+
+
+            if (type === 'Deposit') {
+
+                typeClass =
+                    'deposit';
+
+            }
+
+            else if (type === 'Withdraw') {
+
+                typeClass =
+                    'withdraw';
+
+            }
+
+
+            const status =
+                invoiceStatus(transfer);
+
+
+            const fromName =
+                invoiceFromName(transfer);
+
+
+            const fromType =
+                invoiceFromType(transfer);
+
+
+            const toName =
+                invoiceToName(transfer);
+
+
+            const toType =
+                invoiceToType(transfer);
+
+
+            const reference =
+                invoiceReference(transfer);
+
+
+            tableRows += `
+
+                <tr>
+
+                    <td class="number-cell">
+                        ${index + 1}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            invoiceDate(
+                                transfer
+                            )
+                        )}
+                    </td>
+
+
+                    <td>
+
+                        <div class="party-name">
+
+                            ${escapeHtml(
+                                fromName
+                            )}
+
+                        </div>
+
+                        <div class="party-type">
+
+                            ${escapeHtml(
+                                fromType
+                            )}
+
+                        </div>
+
+                    </td>
+
+
+                    <td class="arrow-cell">
+
+                        <span>
+                            →
+                        </span>
+
+                    </td>
+
+
+                    <td>
+
+                        <div class="party-name">
+
+                            ${escapeHtml(
+                                toName
+                            )}
+
+                        </div>
+
+                        <div class="party-type">
+
+                            ${escapeHtml(
+                                toType
+                            )}
+
+                        </div>
+
+                    </td>
+
+
+                    <td>
+
+                        <span
+                            class="invoice-type ${typeClass}"
+                        >
+
+                            ${escapeHtml(
+                                type
+                            )}
+
+                        </span>
+
+                    </td>
+
+
+                    <td class="amount-cell">
+
+                        ${invoiceMoney(
+                            transfer.amount
+                        )}
+
+                    </td>
+
+
+                    <td>
+
+                        <span
+                            class="invoice-status status-${escapeHtml(
+                                String(status).toLowerCase()
+                            )}"
+                        >
+
+                            ${escapeHtml(
+                                status
+                            )}
+
+                        </span>
+
+                    </td>
+
+
+                    <td class="reference-cell">
+
+                        ${escapeHtml(
+                            reference
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    /* ========================================================
+       SEARCH / FILTER INFORMATION
+    ======================================================== */
+
+    const searchValue =
+        document.getElementById(
+            'transferSearch'
+        )?.value?.trim() || '';
+
+
+    const typeValue =
+        document.getElementById(
+            'typeFilter'
+        )?.value || '';
+
+
+    const statusValue =
+        document.getElementById(
+            'statusFilter'
+        )?.value || '';
+
+
+    let filterDescription =
+        'All Transactions';
+
+
+    const filters = [];
+
+
+    if (searchValue) {
+
+        filters.push(
+            'Search: ' +
+            searchValue
+        );
+
+    }
+
+
+    if (typeValue) {
+
+        let typeLabel =
+            typeValue;
+
+
+        if (
+            typeValue ===
+            'account_to_account'
+        ) {
+
+            typeLabel =
+                'Transfer';
+
+        }
+
+        else if (
+            typeValue ===
+            'account_to_saving'
+        ) {
+
+            typeLabel =
+                'Deposit';
+
+        }
+
+        else if (
+            typeValue ===
+            'saving_to_account'
+        ) {
+
+            typeLabel =
+                'Withdraw';
+
+        }
+
+
+        filters.push(
+            'Type: ' +
+            typeLabel
+        );
+
+    }
+
+
+    if (statusValue) {
+
+        filters.push(
+            'Status: ' +
+            statusValue
+        );
+
+    }
+
+
+    if (filters.length) {
+
+        filterDescription =
+            filters.join(' | ');
+
+    }
+
+
+    /* ========================================================
+       DATE
+    ======================================================== */
+
+    const now =
+        new Date();
+
+
+    const generatedDate =
+        now.toLocaleDateString(
+            undefined,
+            {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }
+        );
+
+
+    const generatedTime =
+        now.toLocaleTimeString(
+            undefined,
+            {
+                hour: '2-digit',
+                minute: '2-digit'
+            }
+        );
+
+
+    /* ========================================================
+       INVOICE NUMBER
+    ======================================================== */
+
+    const invoiceNumber =
+        'ACC-' +
+        now.getFullYear() +
+        String(
+            now.getMonth() + 1
+        ).padStart(2, '0') +
+        String(
+            now.getDate()
+        ).padStart(2, '0') +
+        '-' +
+        String(
+            now.getHours()
+        ).padStart(2, '0') +
+        String(
+            now.getMinutes()
+        ).padStart(2, '0') +
+        String(
+            now.getSeconds()
+        ).padStart(2, '0');
+
+
+    /* ========================================================
+       PRINT WINDOW
+    ======================================================== */
+
+    const printWindow =
+        window.open(
+            '',
+            '_blank',
+            'width=1400,height=900'
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            'Popup blocked. Please allow popups for this website.'
+        );
+
+        return;
+
+    }
+
+
+    /* ========================================================
+       FULL INVOICE DOCUMENT
+    ======================================================== */
+
+    printWindow.document.open();
+
+
+    printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+>
+
+<title>
+    All Accounts Invoice
+</title>
+
+
+<style>
+
+/* ============================================================
+   PAGE
+============================================================ */
+
+@page {
+
+    size: A4 landscape;
+
+    margin: 12mm;
+
+}
+
+
+* {
+
+    box-sizing: border-box;
+
+}
+
+
+body {
+
+    margin: 0;
+
+    padding: 0;
+
+    background: #f3f5f8;
+
+    color: #222;
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    font-size: 12px;
+
+}
+
+
+/* ============================================================
+   INVOICE
+============================================================ */
+
+.invoice {
+
+    width: 100%;
+
+    max-width: 1400px;
+
+    margin: 20px auto;
+
+    background: #fff;
+
+    padding: 30px;
+
+}
+
+
+/* ============================================================
+   TOP
+============================================================ */
+
+.invoice-top {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 30px;
+
+    border-bottom:
+        2px solid #20242a;
+
+    padding-bottom: 20px;
+
+    margin-bottom: 20px;
+
+}
+
+
+.company-area {
+
+    flex: 1;
+
+}
+
+
+.company-name {
+
+    margin: 0;
+
+    font-size: 25px;
+
+    font-weight: 800;
+
+    letter-spacing: .3px;
+
+    color: #18202a;
+
+}
+
+
+.company-subtitle {
+
+    margin-top: 5px;
+
+    color: #6c757d;
+
+    font-size: 12px;
+
+}
+
+
+.report-title {
+
+    text-align: right;
+
+}
+
+
+.report-title h1 {
+
+    margin: 0;
+
+    font-size: 24px;
+
+    font-weight: 800;
+
+    color: #3454d1;
+
+}
+
+
+.report-title .invoice-number {
+
+    margin-top: 7px;
+
+    font-family: monospace;
+
+    font-size: 11px;
+
+    color: #555;
+
+}
+
+
+.report-title .generated {
+
+    margin-top: 5px;
+
+    font-size: 10px;
+
+    color: #777;
+
+}
+
+
+/* ============================================================
+   FILTER
+============================================================ */
+
+.filter-info {
+
+    margin-bottom: 18px;
+
+    padding: 10px 13px;
+
+    background: #f7f8fa;
+
+    border:
+        1px solid #e4e7eb;
+
+    border-radius: 7px;
+
+    color: #555;
+
+    font-size: 11px;
+
+}
+
+
+.filter-info strong {
+
+    color: #20242a;
+
+}
+
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+
+.summary-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+
+    gap: 10px;
+
+    margin-bottom: 22px;
+
+}
+
+
+.summary-card {
+
+    border:
+        1px solid #e3e6eb;
+
+    border-radius: 8px;
+
+    padding: 13px;
+
+    background: #fff;
+
+}
+
+
+.summary-label {
+
+    color: #777;
+
+    font-size: 9px;
+
+    text-transform: uppercase;
+
+    letter-spacing: .4px;
+
+    font-weight: 700;
+
+}
+
+
+.summary-value {
+
+    margin-top: 6px;
+
+    color: #20242a;
+
+    font-size: 16px;
+
+    font-weight: 800;
+
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.table-wrapper {
+
+    width: 100%;
+
+    overflow: hidden;
+
+}
+
+
+table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    table-layout: auto;
+
+}
+
+
+thead th {
+
+    padding: 10px 8px;
+
+    background: #20242a;
+
+    color: #fff;
+
+    text-align: left;
+
+    font-size: 9px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: .3px;
+
+    white-space: nowrap;
+
+}
+
+
+tbody td {
+
+    padding: 9px 8px;
+
+    border-bottom:
+        1px solid #e7e9ed;
+
+    vertical-align: middle;
+
+    font-size: 10px;
+
+}
+
+
+tbody tr:nth-child(even) {
+
+    background: #fafbfc;
+
+}
+
+
+tbody tr {
+
+    page-break-inside: avoid;
+
+}
+
+
+/* ============================================================
+   NUMBER
+============================================================ */
+
+.number-cell {
+
+    width: 35px;
+
+    text-align: center;
+
+    font-weight: 700;
+
+    color: #777;
+
+}
+
+
+/* ============================================================
+   PARTY
+============================================================ */
+
+.party-name {
+
+    font-weight: 700;
+
+    color: #252a31;
+
+    font-size: 10px;
+
+}
+
+
+.party-type {
+
+    margin-top: 2px;
+
+    color: #9299a6;
+
+    font-size: 8px;
+
+    text-transform: uppercase;
+
+}
+
+
+/* ============================================================
+   ARROW
+============================================================ */
+
+.arrow-cell {
+
+    width: 35px;
+
+    text-align: center;
+
+    color: #777;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+}
+
+
+/* ============================================================
+   AMOUNT
+============================================================ */
+
+.amount-cell {
+
+    white-space: nowrap;
+
+    font-weight: 800;
+
+    color: #20242a;
+
+}
+
+
+/* ============================================================
+   TYPE
+============================================================ */
+
+.invoice-type {
+
+    display: inline-block;
+
+    padding: 4px 7px;
+
+    border-radius: 12px;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+}
+
+
+.invoice-type.transfer {
+
+    background: #eef2ff;
+
+    color: #3454d1;
+
+}
+
+
+.invoice-type.deposit {
+
+    background: #eaf8f0;
+
+    color: #16834b;
+
+}
+
+
+.invoice-type.withdraw {
+
+    background: #fff0f0;
+
+    color: #d63939;
+
+}
+
+
+/* ============================================================
+   STATUS
+============================================================ */
+
+.invoice-status {
+
+    display: inline-block;
+
+    padding: 4px 7px;
+
+    border-radius: 12px;
+
+    font-size: 8px;
+
+    font-weight: 800;
+
+    text-transform: capitalize;
+
+}
+
+
+.status-completed {
+
+    background: #eaf8f0;
+
+    color: #16834b;
+
+}
+
+
+.status-pending {
+
+    background: #fff8df;
+
+    color: #a87900;
+
+}
+
+
+.status-failed {
+
+    background: #fff0f0;
+
+    color: #d63939;
+
+}
+
+
+/* ============================================================
+   REFERENCE
+============================================================ */
+
+.reference-cell {
+
+    max-width: 160px;
+
+    font-family: monospace;
+
+    font-size: 8px;
+
+    color: #666;
+
+    word-break: break-all;
+
+}
+
+
+/* ============================================================
+   FOOTER
+============================================================ */
+
+.invoice-footer {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: flex-start;
+
+    gap: 20px;
+
+    margin-top: 25px;
+
+    padding-top: 15px;
+
+    border-top:
+        1px solid #dfe3e8;
+
+}
+
+
+.footer-note {
+
+    color: #777;
+
+    font-size: 9px;
+
+    line-height: 1.6;
+
+}
+
+
+.footer-total {
+
+    text-align: right;
+
+}
+
+
+.footer-total-label {
+
+    color: #777;
+
+    font-size: 9px;
+
+    text-transform: uppercase;
+
+}
+
+
+.footer-total-value {
+
+    margin-top: 3px;
+
+    font-size: 19px;
+
+    font-weight: 800;
+
+    color: #20242a;
+
+}
+
+
+/* ============================================================
+   SIGNATURE
+============================================================ */
+
+.signature-area {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 30px;
+
+    margin-top: 45px;
+
+}
+
+
+.signature-box {
+
+    text-align: center;
+
+    padding-top: 30px;
+
+    border-top:
+        1px solid #555;
+
+    color: #666;
+
+    font-size: 9px;
+
+}
+
+
+/* ============================================================
+   PRINT
+============================================================ */
+
+@media print {
+
+    body {
+
+        background: #fff;
+
+    }
+
+
+    .invoice {
+
+        max-width: none;
+
+        margin: 0;
+
+        padding: 0;
+
+    }
+
+
+    .no-print {
+
+        display: none !important;
+
+    }
+
+
+    thead {
+
+        display: table-header-group;
+
+    }
+
+
+    tfoot {
+
+        display: table-footer-group;
+
+    }
+
+
+    tr {
+
+        page-break-inside: avoid;
+
+    }
+
+}
+
+
+/* ============================================================
+   SCREEN
+============================================================ */
+
+@media screen and (max-width: 900px) {
+
+    body {
+
+        background: #fff;
+
+    }
+
+
+    .invoice {
+
+        margin: 0;
+
+        padding: 15px;
+
+    }
+
+
+    .invoice-top {
+
+        flex-direction: column;
+
+    }
+
+
+    .report-title {
+
+        text-align: left;
+
+    }
+
+
+    .summary-grid {
+
+        grid-template-columns:
+            repeat(2, 1fr);
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="invoice">
+
+
+    <!-- ======================================================
+         HEADER
+    ====================================================== -->
+
+    <div class="invoice-top">
+
+
+        <div class="company-area">
+
+            <h2 class="company-name">
+
+                Accounts Management
+
+            </h2>
+
+            <div class="company-subtitle">
+
+                Account &amp; Saving Financial Report
+
+            </div>
+
+        </div>
+
+
+        <div class="report-title">
+
+            <h1>
+
+                ALL ACCOUNTS INVOICE
+
+            </h1>
+
+
+            <div class="invoice-number">
+
+                Invoice No:
+                ${escapeHtml(invoiceNumber)}
+
+            </div>
+
+
+            <div class="generated">
+
+                Generated:
+                ${escapeHtml(generatedDate)}
+                at
+                ${escapeHtml(generatedTime)}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ======================================================
+         FILTER INFORMATION
+    ====================================================== -->
+
+    <div class="filter-info">
+
+        <strong>
+            Report:
+        </strong>
+
+        ${escapeHtml(filterDescription)}
+
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+
+        <strong>
+            Records:
+        </strong>
+
+        ${totalTransactions}
+
+    </div>
+
+
+    <!-- ======================================================
+         SUMMARY
+    ====================================================== -->
+
+    <div class="summary-grid">
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+
+                Transactions
+
+            </div>
+
+            <div class="summary-value">
+
+                ${totalTransactions}
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+
+                Total Movement
+
+            </div>
+
+            <div class="summary-value">
+
+                ${invoiceMoney(
+                    totalMovement
+                )}
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+
+                Saving Deposits
+
+            </div>
+
+            <div class="summary-value">
+
+                ${invoiceMoney(
+                    totalDeposits
+                )}
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+
+                Saving Withdrawals
+
+            </div>
+
+            <div class="summary-value">
+
+                ${invoiceMoney(
+                    totalWithdrawals
+                )}
+
+            </div>
+
+        </div>
+
+
+        <div class="summary-card">
+
+            <div class="summary-label">
+
+                Account Transfers
+
+            </div>
+
+            <div class="summary-value">
+
+                ${invoiceMoney(
+                    totalAccountTransfers
+                )}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ======================================================
+         TABLE
+    ====================================================== -->
+
+    <div class="table-wrapper">
+
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        #
+                    </th>
+
+                    <th>
+                        Date
+                    </th>
+
+                    <th>
+                        From
+                    </th>
+
+                    <th>
+                    </th>
+
+                    <th>
+                        To
+                    </th>
+
+                    <th>
+                        Type
+                    </th>
+
+                    <th>
+                        Amount
+                    </th>
+
+                    <th>
+                        Status
+                    </th>
+
+                    <th>
+                        Reference
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                ${tableRows}
+
+            </tbody>
+
+
+            <tfoot>
+
+                <tr>
+
+                    <td
+                        colspan="6"
+                        style="
+                            text-align:right;
+                            font-weight:800;
+                            padding-top:14px;
+                        "
+                    >
+
+                        GRAND TOTAL
+
+                    </td>
+
+
+                    <td
+                        style="
+                            font-weight:900;
+                            padding-top:14px;
+                        "
+                    >
+
+                        ${invoiceMoney(
+                            totalMovement
+                        )}
+
+                    </td>
+
+
+                    <td
+                        colspan="2"
+                    >
+                    </td>
+
+                </tr>
+
+            </tfoot>
+
+
+        </table>
+
+    </div>
+
+
+    <!-- ======================================================
+         FOOTER
+    ====================================================== -->
+
+    <div class="invoice-footer">
+
+
+        <div class="footer-note">
+
+            <strong>
+                Account &amp; Saving Transfer Report
+            </strong>
+
+            <br>
+
+            This document contains the financial movement
+            records available in the Accounts system.
+
+            <br>
+
+            Report generated automatically.
+
+        </div>
+
+
+        <div class="footer-total">
+
+            <div class="footer-total-label">
+
+                Total Movement
+
+            </div>
+
+
+            <div class="footer-total-value">
+
+                ${invoiceMoney(
+                    totalMovement
+                )}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ======================================================
+         SIGNATURES
+    ====================================================== -->
+
+    <div class="signature-area">
+
+
+        <div class="signature-box">
+
+            Prepared By
+
+        </div>
+
+
+        <div class="signature-box">
+
+            Checked By
+
+        </div>
+
+
+        <div class="signature-box">
+
+            Authorized By
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<script>
+
+window.onload = function() {
+
+    setTimeout(
+        function() {
+
+            window.print();
+
+        },
+        400
+    );
+
+};
+
+window.onafterprint = function() {
+
+    setTimeout(
+        function() {
+
+            window.close();
+
+        },
+        300
+    );
+
+};
+
+<\/script>
+
+
+</body>
+
+</html>
+
+    `);
+
+
+    printWindow.document.close();
+
+}
+
+
+/* ============================================================
+   OPTIONAL ALIAS
+   ============================================================
+   Haddii meel kale function-kan lagu waco.
+============================================================ */
+
+function printAccountsInvoice() {
+
+    printAllAccountsInvoice();
+
+}
+
+</script>
+
 
 {% endblock %}
 
