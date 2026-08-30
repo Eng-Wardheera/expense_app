@@ -4651,13 +4651,18 @@ def import_categories():
 @login_required
 def account_list():
 
+    # ========================================================
+    # DATABASE
+    # ========================================================
 
-    # ==============================
+    db = mongo.db
+
+
+    # ========================================================
     # USER FILTER
-    # ==============================
+    # ========================================================
 
     query = {}
-
 
     if current_user.role != UserRole.superadmin.value:
 
@@ -4666,31 +4671,24 @@ def account_list():
         )
 
 
-
-    # ==============================
+    # ========================================================
     # GET ACCOUNTS
-    # ==============================
+    # ========================================================
 
     accounts = list(
-
-        mongo.db.accounts.find(query)
+        db.accounts.find(query)
         .sort(
             "created_at",
             -1
         )
-
     )
 
 
-
-
-    # ==============================
+    # ========================================================
     # GET SAVINGS
-    # ==============================
-
+    # ========================================================
 
     saving_query = {}
-
 
     if current_user.role != UserRole.superadmin.value:
 
@@ -4699,52 +4697,455 @@ def account_list():
         )
 
 
-
     savings = list(
-
-        mongo.db.savings.find(
+        db.savings.find(
             saving_query
         )
-
     )
 
 
-
-
-
-    # ==============================
-    # ATTACH SAVING ID TO ACCOUNT
-    # ==============================
-
-
-    active_saving = None
-
-
-    if savings:
-
-        active_saving = savings[0]
-
-
-
-
+    # ========================================================
+    # PROCESS EVERY ACCOUNT
+    # ========================================================
 
     for account in accounts:
 
+        account_id = account["_id"]
 
-        if active_saving:
 
-            account["saving_id"] = str(
-                active_saving["_id"]
+        # ====================================================
+        # ACCOUNT TRANSACTION QUERY
+        # ====================================================
+
+        transaction_query = {
+            "account_id": account_id
+        }
+
+
+        # Non-superadmin can only see own transactions
+        if current_user.role != UserRole.superadmin.value:
+
+            transaction_query["user_id"] = ObjectId(
+                current_user.id
             )
+
+
+        # ====================================================
+        # GET ALL ACCOUNT TRANSACTIONS
+        # ====================================================
+
+        transactions = list(
+
+            db.transactions.find(
+                transaction_query
+            )
+            .sort(
+                "date",
+                1
+            )
+
+        )
+
+
+        # ====================================================
+        # INITIAL REPORT VALUES
+        # ====================================================
+
+        total_income = 0.0
+
+        total_expense = 0.0
+
+        income_count = 0
+
+        expense_count = 0
+
+        transaction_count = len(
+            transactions
+        )
+
+
+        # ====================================================
+        # CATEGORY BREAKDOWN
+        # ====================================================
+
+        income_categories = {}
+
+        expense_categories = {}
+
+
+        # ====================================================
+        # PROCESS TRANSACTIONS
+        # ====================================================
+
+        for transaction in transactions:
+
+            amount = float(
+                transaction.get(
+                    "amount",
+                    0
+                ) or 0
+            )
+
+
+            transaction_type = (
+
+                transaction.get(
+                    "transaction_type"
+                )
+
+                or transaction.get(
+                    "type"
+                )
+
+                or ""
+
+            ).lower().strip()
+
+
+            category = (
+
+                transaction.get(
+                    "category"
+                )
+
+                or "Other"
+
+            )
+
+
+            # ================================================
+            # INCOME
+            # ================================================
+
+            if transaction_type == "income":
+
+                total_income += amount
+
+                income_count += 1
+
+
+                income_categories[category] = (
+
+                    income_categories.get(
+                        category,
+                        0
+                    )
+
+                    + amount
+
+                )
+
+
+            # ================================================
+            # EXPENSE
+            # ================================================
+
+            elif transaction_type == "expense":
+
+                total_expense += amount
+
+                expense_count += 1
+
+
+                expense_categories[category] = (
+
+                    expense_categories.get(
+                        category,
+                        0
+                    )
+
+                    + amount
+
+                )
+
+
+        # ====================================================
+        # NET MOVEMENT
+        # ====================================================
+
+        net_movement = (
+
+            total_income
+            -
+            total_expense
+
+        )
+
+
+        # ====================================================
+        # OPENING BALANCE
+        # ====================================================
+
+        opening_balance = float(
+
+            account.get(
+                "opening_balance",
+                0
+            )
+
+            or 0
+
+        )
+
+
+        # ====================================================
+        # CURRENT ACCOUNT BALANCE
+        # ====================================================
+
+        stored_balance = float(
+
+            account.get(
+                "balance",
+                0
+            )
+
+            or 0
+
+        )
+
+
+        # ====================================================
+        # CURRENT BALANCE
+        #
+        # Account balance is treated as the authoritative
+        # current balance.
+        #
+        # If no balance field exists, calculate it.
+        # ====================================================
+
+        if "balance" in account:
+
+            current_balance = stored_balance
 
         else:
 
-            account["saving_id"] = ""
+            current_balance = (
+
+                opening_balance
+                +
+                total_income
+                -
+                total_expense
+
+            )
 
 
+        # ====================================================
+        # FIRST TRANSACTION
+        # ====================================================
+
+        first_transaction = (
+
+            transactions[0]
+            if transactions
+            else None
+
+        )
 
 
+        # ====================================================
+        # LAST TRANSACTION
+        # ====================================================
 
+        last_transaction = (
+
+            transactions[-1]
+            if transactions
+            else None
+
+        )
+
+
+        # ====================================================
+        # FIND SAVING FOR THIS ACCOUNT
+        # ====================================================
+
+        saving_id = ""
+
+        account_saving = None
+
+
+        for saving in savings:
+
+            saving_account_id = saving.get(
+                "account_id"
+            )
+
+
+            if (
+
+                saving_account_id == account_id
+
+                or
+
+                str(saving_account_id)
+                == str(account_id)
+
+            ):
+
+                account_saving = saving
+
+                saving_id = str(
+                    saving["_id"]
+                )
+
+                break
+
+
+        # ====================================================
+        # PREPARE TRANSACTIONS FOR JINJA
+        #
+        # Convert ObjectId to string where necessary.
+        # ====================================================
+
+        for transaction in transactions:
+
+            if isinstance(
+                transaction.get("_id"),
+                ObjectId
+            ):
+
+                transaction["_id"] = str(
+                    transaction["_id"]
+                )
+
+
+            if isinstance(
+                transaction.get("account_id"),
+                ObjectId
+            ):
+
+                transaction["account_id"] = str(
+                    transaction["account_id"]
+                )
+
+
+            if isinstance(
+                transaction.get("user_id"),
+                ObjectId
+            ):
+
+                transaction["user_id"] = str(
+                    transaction["user_id"]
+                )
+
+
+        # ====================================================
+        # REPORT
+        # ====================================================
+
+        account["report"] = {
+
+            # -----------------------------------------------
+            # BALANCES
+            # -----------------------------------------------
+
+            "opening_balance":
+                opening_balance,
+
+            "current_balance":
+                current_balance,
+
+            "stored_balance":
+                stored_balance,
+
+
+            # -----------------------------------------------
+            # MOVEMENT
+            # -----------------------------------------------
+
+            "total_income":
+                total_income,
+
+            "total_expense":
+                total_expense,
+
+            "net_movement":
+                net_movement,
+
+
+            # -----------------------------------------------
+            # COUNTS
+            # -----------------------------------------------
+
+            "transaction_count":
+                transaction_count,
+
+            "income_count":
+                income_count,
+
+            "expense_count":
+                expense_count,
+
+
+            # -----------------------------------------------
+            # TRANSACTIONS
+            # -----------------------------------------------
+
+            "transactions":
+                transactions,
+
+            "first_transaction":
+                first_transaction,
+
+            "last_transaction":
+                last_transaction,
+
+
+            # -----------------------------------------------
+            # CATEGORIES
+            # -----------------------------------------------
+
+            "income_categories":
+                income_categories,
+
+            "expense_categories":
+                expense_categories,
+
+
+            # -----------------------------------------------
+            # SAVINGS
+            # -----------------------------------------------
+
+            "saving_id":
+                saving_id,
+
+            "saving":
+                account_saving,
+
+        }
+
+
+        # ====================================================
+        # TOP-LEVEL VALUES FOR TEMPLATE
+        # ====================================================
+
+        account["saving_id"] = saving_id
+
+        account["transaction_count"] = (
+            transaction_count
+        )
+
+        account["total_income"] = (
+            total_income
+        )
+
+        account["total_expense"] = (
+            total_expense
+        )
+
+        account["net_movement"] = (
+            net_movement
+        )
+
+        account["current_balance"] = (
+            current_balance
+        )
+
+
+    # ========================================================
+    # RETURN TEMPLATE
+    # ========================================================
 
     return render_template(
 
@@ -4755,6 +5156,7 @@ def account_list():
         savings=savings
 
     )
+
 
 
 @bp.route('/add-account', methods=['GET', 'POST'])
