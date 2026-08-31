@@ -5784,6 +5784,10 @@ def delete_account(id):
 # ACCOUNT TRANSFER
 # ============================================================
 
+
+# ============================================================
+# ACCOUNT TRANSFER
+# ============================================================
 @bp.route("/account/transfer", methods=["POST"])
 @login_required
 def account_transfer():
@@ -5791,112 +5795,99 @@ def account_transfer():
     from bson import ObjectId
     from datetime import datetime
     from flask import request, jsonify
+    import uuid
 
-    # ========================================================
-    # GET DATA
-    # ========================================================
+    # ============================================================
+    # HELPERS
+    # ============================================================
+
+    def oid(value):
+        if not value:
+            return None
+
+        try:
+            if isinstance(value, ObjectId):
+                return value
+
+            return ObjectId(str(value))
+
+        except Exception:
+            return None
+
+    def safe_float(value, default=0.0):
+        try:
+            return float(value or 0)
+        except (TypeError, ValueError):
+            return default
+
+    # ============================================================
+    # REQUEST DATA
+    # ============================================================
 
     data = request.get_json(silent=True)
 
     if not data:
-
         return jsonify({
-            "error": "No data provided"
+            "success": False,
+            "error": "No data provided."
         }), 400
 
+    transfer_type = (
+        data.get("transfer_type")
+        or "account_to_account"
+    )
 
-    from_account = data.get("from_account")
-    to_account = data.get("to_account")
-    amount = data.get("amount")
+    # ------------------------------------------------------------
+    # Supported:
+    #
+    # account_to_account
+    # account_to_saving
+    # saving_to_account
+    # ------------------------------------------------------------
 
+    allowed_types = {
+        "account_to_account",
+        "account_to_saving",
+        "saving_to_account"
+    }
 
-    # ========================================================
-    # VALIDATE AMOUNT
-    # ========================================================
-
-    try:
-
-        amount = float(amount)
-
-    except (TypeError, ValueError):
-
+    if transfer_type not in allowed_types:
         return jsonify({
-            "error": "Invalid amount"
+            "success": False,
+            "error": "Invalid transfer type."
         }), 400
 
+    amount = safe_float(
+        data.get("amount")
+    )
 
     if amount <= 0:
-
         return jsonify({
-            "error": "Transfer amount must be greater than zero"
+            "success": False,
+            "error": "Transfer amount must be greater than zero."
         }), 400
 
-
-    # ========================================================
-    # VALIDATE ACCOUNT IDS
-    # ========================================================
-
-    try:
-
-        from_id = ObjectId(
-            str(from_account)
-        )
-
-        to_id = ObjectId(
-            str(to_account)
-        )
-
-    except Exception:
-
-        return jsonify({
-            "error": "Invalid account id"
-        }), 400
-
-
-    # ========================================================
-    # SAME ACCOUNT CHECK
-    # ========================================================
-
-    if from_id == to_id:
-
-        return jsonify({
-            "error":
-                "You cannot transfer money to the same account."
-        }), 400
-
-
-    # ========================================================
+    # ============================================================
     # CURRENT USER
-    # ========================================================
+    # ============================================================
 
-    user_id = current_user.id
+    user_id = str(current_user.id)
 
+    user_object_id = oid(user_id)
 
-    try:
-
-        user_object_id = ObjectId(
-            str(user_id)
-        )
-
-    except Exception:
-
-        user_object_id = None
-
-
-    # ========================================================
-    # USER ACCOUNT FILTER
-    # Supports user_id as STRING or ObjectId
-    # ========================================================
+    # ============================================================
+    # OWNER FILTER
+    # ============================================================
 
     if current_user.role == UserRole.superadmin.value:
 
-        account_owner_filter = {}
+        owner_filter = {}
 
     else:
 
         owner_conditions = [
             {
-                "user_id": str(user_id)
+                "user_id": user_id
             }
         ]
 
@@ -5906,283 +5897,284 @@ def account_transfer():
                 "user_id": user_object_id
             })
 
-        account_owner_filter = {
+        owner_filter = {
             "$or": owner_conditions
         }
 
+    # ============================================================
+    # IDS
+    # ============================================================
 
-    # ========================================================
-    # FIND SOURCE ACCOUNT
-    # ========================================================
-
-    source_query = {
-        "_id": from_id
-    }
-
-    source_query.update(
-        account_owner_filter
+    from_account_id = data.get(
+        "from_account"
     )
 
-
-    source = mongo.db.accounts.find_one(
-        source_query
+    to_account_id = data.get(
+        "to_account"
     )
 
-
-    # ========================================================
-    # FIND DESTINATION ACCOUNT
-    # ========================================================
-
-    destination_query = {
-        "_id": to_id
-    }
-
-    destination_query.update(
-        account_owner_filter
+    from_saving_id = data.get(
+        "from_saving"
     )
 
-
-    destination = mongo.db.accounts.find_one(
-        destination_query
+    to_saving_id = data.get(
+        "to_saving"
     )
 
-
-    # ========================================================
-    # DEBUG
-    # ========================================================
-
-    print(
-        "FROM ACCOUNT:",
-        from_id
+    from_account_obj = oid(
+        from_account_id
     )
 
-    print(
-        "SOURCE:",
-        source
+    to_account_obj = oid(
+        to_account_id
     )
 
-    print(
-        "TO ACCOUNT:",
-        to_id
+    from_saving_obj = oid(
+        from_saving_id
     )
 
-    print(
-        "DESTINATION:",
-        destination
+    to_saving_obj = oid(
+        to_saving_id
     )
 
-
-    # ========================================================
-    # SOURCE CHECK
-    # ========================================================
-
-    if not source:
-
-        return jsonify({
-            "error":
-                "Source account not found"
-        }), 404
-
-
-    # ========================================================
-    # DESTINATION CHECK
-    # ========================================================
-
-    if not destination:
-
-        return jsonify({
-            "error":
-                "Destination account not found"
-        }), 404
-
-
-    # ========================================================
-    # ACCOUNT CURRENCY
-    # ========================================================
-
-    source_currency = (
-        source.get("currency")
-        or "USD"
-    )
-
-    destination_currency = (
-        destination.get("currency")
-        or "USD"
-    )
-
-
-    # ========================================================
-    # CURRENCY CHECK
-    #
-    # Prevent accidental transfer between different
-    # currencies unless both accounts use same currency.
-    # ========================================================
-
-    if source_currency != destination_currency:
-
-        return jsonify({
-
-            "error":
-                (
-                    "Currency mismatch. "
-                    f"Source account uses {source_currency}, "
-                    f"destination account uses "
-                    f"{destination_currency}."
-                )
-
-        }), 400
-
-
-    # ========================================================
-    # SOURCE BALANCE
-    # ========================================================
-
-    try:
-
-        source_balance = float(
-            source.get("balance", 0)
-            or 0
-        )
-
-    except (TypeError, ValueError):
-
-        source_balance = 0.0
-
-
-    # ========================================================
-    # SUFFICIENT BALANCE
-    # ========================================================
-
-    if amount > source_balance:
-
-        return jsonify({
-
-            "error":
-                (
-                    "Insufficient balance. "
-                    f"Available "
-                    f"{source_currency} "
-                    f"{source_balance:,.2f}"
-                )
-
-        }), 400
-
-
-    # ========================================================
-    # ACCOUNT NAMES
-    # ========================================================
-
-    source_name = (
-        source.get("name")
-        or "Source Account"
-    )
-
-    destination_name = (
-        destination.get("name")
-        or "Destination Account"
-    )
-
-
-    # ========================================================
-    # REFERENCE NUMBER
-    # ========================================================
-
-    import uuid
-
-    reference_no = (
-        "TRF-"
-        + uuid.uuid4().hex[:10].upper()
-    )
-
-
-    # ========================================================
+    # ============================================================
     # DATE
-    # ========================================================
+    # ============================================================
 
     now = datetime.utcnow()
 
+    # ============================================================
+    # REFERENCE
+    # ============================================================
 
-    # ========================================================
-    # UPDATE SOURCE BALANCE
+    if transfer_type == "saving_to_account":
+
+        reference_no = (
+            "SAV-"
+            + now.strftime("%Y%m%d%H%M%S")
+            + "-"
+            + uuid.uuid4().hex[:6].upper()
+        )
+
+    elif transfer_type == "account_to_saving":
+
+        reference_no = (
+            "SAV-"
+            + now.strftime("%Y%m%d%H%M%S")
+            + "-"
+            + uuid.uuid4().hex[:6].upper()
+        )
+
+    else:
+
+        reference_no = (
+            "TRF-"
+            + uuid.uuid4().hex[:10].upper()
+        )
+
+    # ============================================================
+    # COMMON VARIABLES
+    # ============================================================
+
+    source_name = "Unknown"
+    destination_name = "Unknown"
+
+    source_currency = "USD"
+    destination_currency = "USD"
+
+    description = (
+        data.get("description")
+        or ""
+    )
+
+    direction = ""
+
+    # ============================================================
+    # BALANCE SNAPSHOTS
     #
-    # Atomic condition:
-    # balance must still be >= amount.
-    # ========================================================
+    # IMPORTANT:
+    #
+    # These are the values that the REPORT/MODAL will use.
+    # ============================================================
 
-    source_update = mongo.db.accounts.update_one(
+    from_account_balance_before = None
+    from_account_balance_after = None
 
-        {
-            "_id": from_id,
+    to_account_balance_before = None
+    to_account_balance_after = None
 
-            **account_owner_filter,
+    from_saving_balance_before = None
+    from_saving_balance_after = None
 
-            "balance": {
-                "$gte": amount
-            }
-        },
+    to_saving_balance_before = None
+    to_saving_balance_after = None
 
-        {
-            "$inc": {
-                "balance": -amount
-            },
+    # ============================================================
+    # ACCOUNT -> ACCOUNT
+    # ============================================================
 
-            "$set": {
-                "updated_at": now
-            }
+    if transfer_type == "account_to_account":
+
+        direction = "transfer"
+
+        if not from_account_obj:
+            return jsonify({
+                "success": False,
+                "error": "Source account is required."
+            }), 400
+
+        if not to_account_obj:
+            return jsonify({
+                "success": False,
+                "error": "Destination account is required."
+            }), 400
+
+        if from_account_obj == to_account_obj:
+            return jsonify({
+                "success": False,
+                "error": "You cannot transfer to the same account."
+            }), 400
+
+        # --------------------------------------------------------
+        # GET ACCOUNTS
+        # --------------------------------------------------------
+
+        source_query = {
+            "_id": from_account_obj,
+            **owner_filter
         }
 
-    )
-
-
-    # ========================================================
-    # CHECK SOURCE UPDATE
-    # ========================================================
-
-    if source_update.modified_count != 1:
-
-        return jsonify({
-
-            "error":
-                "Transfer failed. Source balance may have changed."
-
-        }), 400
-
-
-    # ========================================================
-    # UPDATE DESTINATION
-    # ========================================================
-
-    destination_update = mongo.db.accounts.update_one(
-
-        {
-            "_id": to_id,
-
-            **account_owner_filter
-        },
-
-        {
-            "$inc": {
-                "balance": amount
-            },
-
-            "$set": {
-                "updated_at": now
-            }
+        destination_query = {
+            "_id": to_account_obj,
+            **owner_filter
         }
 
-    )
+        source = mongo.db.accounts.find_one(
+            source_query
+        )
 
+        destination = mongo.db.accounts.find_one(
+            destination_query
+        )
 
-    # ========================================================
-    # ROLLBACK IF DESTINATION FAILED
-    # ========================================================
+        if not source:
+            return jsonify({
+                "success": False,
+                "error": "Source account not found."
+            }), 404
 
-    if destination_update.modified_count != 1:
+        if not destination:
+            return jsonify({
+                "success": False,
+                "error": "Destination account not found."
+            }), 404
 
-        mongo.db.accounts.update_one(
+        # --------------------------------------------------------
+        # CURRENCY
+        # --------------------------------------------------------
+
+        source_currency = (
+            source.get("currency")
+            or "USD"
+        )
+
+        destination_currency = (
+            destination.get("currency")
+            or "USD"
+        )
+
+        if source_currency != destination_currency:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    f"Currency mismatch. "
+                    f"Source uses {source_currency}, "
+                    f"destination uses {destination_currency}."
+                )
+            }), 400
+
+        # --------------------------------------------------------
+        # BEFORE
+        # --------------------------------------------------------
+
+        from_account_balance_before = safe_float(
+            source.get("balance")
+        )
+
+        to_account_balance_before = safe_float(
+            destination.get("balance")
+        )
+
+        if amount > from_account_balance_before:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Insufficient balance. "
+                    f"Available {source_currency} "
+                    f"{from_account_balance_before:,.2f}"
+                )
+            }), 400
+
+        source_name = (
+            source.get("name")
+            or source.get("account_name")
+            or "Source Account"
+        )
+
+        destination_name = (
+            destination.get("name")
+            or destination.get("account_name")
+            or "Destination Account"
+        )
+
+        description = (
+            data.get("description")
+            or f"Transfer from {source_name} to {destination_name}"
+        )
+
+        # --------------------------------------------------------
+        # UPDATE SOURCE
+        # --------------------------------------------------------
+
+        source_update = mongo.db.accounts.update_one(
 
             {
-                "_id": from_id
+                "_id": from_account_obj,
+                **owner_filter,
+                "balance": {
+                    "$gte": amount
+                }
+            },
+
+            {
+                "$inc": {
+                    "balance": -amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+        )
+
+        if source_update.modified_count != 1:
+
+            return jsonify({
+                "success": False,
+                "error": "Source balance changed. Transfer failed."
+            }), 400
+
+        # --------------------------------------------------------
+        # UPDATE DESTINATION
+        # --------------------------------------------------------
+
+        destination_update = mongo.db.accounts.update_one(
+
+            {
+                "_id": to_account_obj,
+                **owner_filter
             },
 
             {
@@ -6194,61 +6186,585 @@ def account_transfer():
                     "updated_at": now
                 }
             }
-
         )
 
+        if destination_update.modified_count != 1:
 
-        return jsonify({
+            mongo.db.accounts.update_one(
+                {
+                    "_id": from_account_obj
+                },
+                {
+                    "$inc": {
+                        "balance": amount
+                    }
+                }
+            )
 
-            "error":
-                "Transfer failed. Destination account could not be updated."
+            return jsonify({
+                "success": False,
+                "error": "Destination account could not be updated."
+            }), 500
 
-        }), 500
+        # --------------------------------------------------------
+        # AFTER
+        # --------------------------------------------------------
 
+        from_account_balance_after = (
+            from_account_balance_before - amount
+        )
 
-    # ========================================================
-    # TRANSFER MASTER RECORD
-    #
-    # One complete transfer record.
-    # ========================================================
+        to_account_balance_after = (
+            to_account_balance_before + amount
+        )
+
+    # ============================================================
+    # ACCOUNT -> SAVING
+    # ============================================================
+
+    elif transfer_type == "account_to_saving":
+
+        direction = "deposit"
+
+        if not from_account_obj:
+            return jsonify({
+                "success": False,
+                "error": "Source account is required."
+            }), 400
+
+        if not to_saving_obj:
+            return jsonify({
+                "success": False,
+                "error": "Destination saving is required."
+            }), 400
+
+        # --------------------------------------------------------
+        # GET ACCOUNT
+        # --------------------------------------------------------
+
+        account = mongo.db.accounts.find_one({
+            "_id": from_account_obj,
+            **owner_filter
+        })
+
+        # --------------------------------------------------------
+        # GET SAVING
+        # --------------------------------------------------------
+
+        saving = mongo.db.savings.find_one({
+            "_id": to_saving_obj,
+            **owner_filter
+        })
+
+        if not account:
+            return jsonify({
+                "success": False,
+                "error": "Source account not found."
+            }), 404
+
+        if not saving:
+            return jsonify({
+                "success": False,
+                "error": "Destination saving not found."
+            }), 404
+
+        # --------------------------------------------------------
+        # CURRENCY
+        # --------------------------------------------------------
+
+        source_currency = (
+            account.get("currency")
+            or "USD"
+        )
+
+        destination_currency = (
+            saving.get("currency")
+            or source_currency
+        )
+
+        if source_currency != destination_currency:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    f"Currency mismatch. "
+                    f"Account uses {source_currency}, "
+                    f"saving uses {destination_currency}."
+                )
+            }), 400
+
+        # --------------------------------------------------------
+        # BEFORE
+        # --------------------------------------------------------
+
+        from_account_balance_before = safe_float(
+            account.get("balance")
+        )
+
+        to_saving_balance_before = safe_float(
+            saving.get("current_balance")
+        )
+
+        if amount > from_account_balance_before:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Insufficient account balance. "
+                    f"Available {source_currency} "
+                    f"{from_account_balance_before:,.2f}"
+                )
+            }), 400
+
+        source_name = (
+            account.get("name")
+            or account.get("account_name")
+            or "Source Account"
+        )
+
+        destination_name = (
+            saving.get("name")
+            or saving.get("saving_name")
+            or saving.get("title")
+            or "Saving"
+        )
+
+        description = (
+            data.get("description")
+            or "Account deposit to saving"
+        )
+
+        # --------------------------------------------------------
+        # ACCOUNT - AMOUNT
+        # --------------------------------------------------------
+
+        account_update = mongo.db.accounts.update_one(
+
+            {
+                "_id": from_account_obj,
+                **owner_filter,
+                "balance": {
+                    "$gte": amount
+                }
+            },
+
+            {
+                "$inc": {
+                    "balance": -amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+        )
+
+        if account_update.modified_count != 1:
+
+            return jsonify({
+                "success": False,
+                "error": "Account balance changed. Transfer failed."
+            }), 400
+
+        # --------------------------------------------------------
+        # SAVING + AMOUNT
+        # --------------------------------------------------------
+
+        saving_update = mongo.db.savings.update_one(
+
+            {
+                "_id": to_saving_obj,
+                **owner_filter
+            },
+
+            {
+                "$inc": {
+                    "current_balance": amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+        )
+
+        if saving_update.modified_count != 1:
+
+            mongo.db.accounts.update_one(
+                {
+                    "_id": from_account_obj
+                },
+                {
+                    "$inc": {
+                        "balance": amount
+                    }
+                }
+            )
+
+            return jsonify({
+                "success": False,
+                "error": "Saving could not be updated."
+            }), 500
+
+        # --------------------------------------------------------
+        # AFTER
+        # --------------------------------------------------------
+
+        from_account_balance_after = (
+            from_account_balance_before - amount
+        )
+
+        to_saving_balance_after = (
+            to_saving_balance_before + amount
+        )
+
+    # ============================================================
+    # SAVING -> ACCOUNT
+    # ============================================================
+
+    elif transfer_type == "saving_to_account":
+
+        direction = "withdraw"
+
+        if not from_saving_obj:
+            return jsonify({
+                "success": False,
+                "error": "Source saving is required."
+            }), 400
+
+        if not to_account_obj:
+            return jsonify({
+                "success": False,
+                "error": "Destination account is required."
+            }), 400
+
+        # --------------------------------------------------------
+        # GET SAVING
+        # --------------------------------------------------------
+
+        saving = mongo.db.savings.find_one({
+            "_id": from_saving_obj,
+            **owner_filter
+        })
+
+        # --------------------------------------------------------
+        # GET ACCOUNT
+        # --------------------------------------------------------
+
+        account = mongo.db.accounts.find_one({
+            "_id": to_account_obj,
+            **owner_filter
+        })
+
+        if not saving:
+
+            return jsonify({
+                "success": False,
+                "error": "Source saving not found."
+            }), 404
+
+        if not account:
+
+            return jsonify({
+                "success": False,
+                "error": "Destination account not found."
+            }), 404
+
+        # --------------------------------------------------------
+        # CURRENCY
+        # --------------------------------------------------------
+
+        source_currency = (
+            saving.get("currency")
+            or "USD"
+        )
+
+        destination_currency = (
+            account.get("currency")
+            or source_currency
+        )
+
+        if source_currency != destination_currency:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    f"Currency mismatch. "
+                    f"Saving uses {source_currency}, "
+                    f"account uses {destination_currency}."
+                )
+            }), 400
+
+        # --------------------------------------------------------
+        # BEFORE
+        # --------------------------------------------------------
+
+        from_saving_balance_before = safe_float(
+            saving.get("current_balance")
+        )
+
+        to_account_balance_before = safe_float(
+            account.get("balance")
+        )
+
+        # ========================================================
+        # IMPORTANT
+        # ========================================================
+        #
+        # Saving before must be the REAL current saving balance.
+        #
+        # Example:
+        #
+        # Saving = 212
+        # Amount = 2
+        #
+        # After = 210
+        #
+        # NOT 0.
+        # ========================================================
+
+        if amount > from_saving_balance_before:
+
+            return jsonify({
+                "success": False,
+                "error": (
+                    "Insufficient saving balance. "
+                    f"Available {source_currency} "
+                    f"{from_saving_balance_before:,.2f}"
+                )
+            }), 400
+
+        source_name = (
+            saving.get("name")
+            or saving.get("saving_name")
+            or saving.get("title")
+            or "Saving"
+        )
+
+        destination_name = (
+            account.get("name")
+            or account.get("account_name")
+            or "Destination Account"
+        )
+
+        description = (
+            data.get("description")
+            or "Saving withdrawal to account"
+        )
+
+        # --------------------------------------------------------
+        # SAVING - AMOUNT
+        # --------------------------------------------------------
+
+        saving_update = mongo.db.savings.update_one(
+
+            {
+                "_id": from_saving_obj,
+                **owner_filter,
+                "current_balance": {
+                    "$gte": amount
+                }
+            },
+
+            {
+                "$inc": {
+                    "current_balance": -amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+        )
+
+        if saving_update.modified_count != 1:
+
+            return jsonify({
+                "success": False,
+                "error": "Saving balance changed. Transfer failed."
+            }), 400
+
+        # --------------------------------------------------------
+        # ACCOUNT + AMOUNT
+        # --------------------------------------------------------
+
+        account_update = mongo.db.accounts.update_one(
+
+            {
+                "_id": to_account_obj,
+                **owner_filter
+            },
+
+            {
+                "$inc": {
+                    "balance": amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+        )
+
+        if account_update.modified_count != 1:
+
+            # Rollback saving
+            mongo.db.savings.update_one(
+                {
+                    "_id": from_saving_obj
+                },
+                {
+                    "$inc": {
+                        "current_balance": amount
+                    }
+                }
+            )
+
+            return jsonify({
+                "success": False,
+                "error": "Destination account could not be updated."
+            }), 500
+
+        # --------------------------------------------------------
+        # AFTER
+        # --------------------------------------------------------
+
+        from_saving_balance_after = (
+            from_saving_balance_before - amount
+        )
+
+        to_account_balance_after = (
+            to_account_balance_before + amount
+        )
+
+    # ============================================================
+    # MASTER TRANSFER RECORD
+    # ============================================================
 
     transfer_record = {
 
-        "user_id":
-            str(user_id),
+        "_id": ObjectId(),
 
-        "from_account":
-            from_id,
+        "user_id": str(user_id),
 
-        "to_account":
-            to_id,
+        # --------------------------------------------------------
+        # TYPE
+        # --------------------------------------------------------
 
-        "from_account_name":
-            source_name,
+        "transfer_type": transfer_type,
 
-        "to_account_name":
-            destination_name,
+        "direction": direction,
 
-        "amount":
-            amount,
+        # --------------------------------------------------------
+        # IDS
+        # --------------------------------------------------------
 
-        "currency":
-            source_currency,
+        "from_account": from_account_obj,
+        "to_account": to_account_obj,
 
-        "reference_no":
-            reference_no,
+        "from_saving": from_saving_obj,
+        "to_saving": to_saving_obj,
 
-        "status":
-            "completed",
+        # --------------------------------------------------------
+        # NAMES
+        # --------------------------------------------------------
 
-        "created_at":
-            now,
+        "from_account_name": (
+            source_name
+            if transfer_type != "saving_to_account"
+            else None
+        ),
 
-        "updated_at":
-            now
+        "to_account_name": (
+            destination_name
+            if transfer_type != "account_to_saving"
+            else None
+        ),
 
+        "from_saving_name": (
+            source_name
+            if transfer_type == "saving_to_account"
+            else None
+        ),
+
+        "to_saving_name": (
+            destination_name
+            if transfer_type == "account_to_saving"
+            else None
+        ),
+
+        # --------------------------------------------------------
+        # AMOUNT
+        # --------------------------------------------------------
+
+        "amount": amount,
+
+        "currency": source_currency,
+
+        # --------------------------------------------------------
+        # STATUS
+        # --------------------------------------------------------
+
+        "status": "completed",
+
+        # --------------------------------------------------------
+        # REFERENCE
+        # --------------------------------------------------------
+
+        "reference": reference_no,
+
+        "reference_no": reference_no,
+
+        # --------------------------------------------------------
+        # DESCRIPTION
+        # --------------------------------------------------------
+
+        "description": description,
+
+        # ========================================================
+        # ACCOUNT BALANCE REPORT
+        # ========================================================
+
+        "from_account_balance_before":
+            from_account_balance_before,
+
+        "from_account_balance_after":
+            from_account_balance_after,
+
+        "to_account_balance_before":
+            to_account_balance_before,
+
+        "to_account_balance_after":
+            to_account_balance_after,
+
+        # ========================================================
+        # SAVING BALANCE REPORT
+        # ========================================================
+
+        "from_saving_balance_before":
+            from_saving_balance_before,
+
+        "from_saving_balance_after":
+            from_saving_balance_after,
+
+        "to_saving_balance_before":
+            to_saving_balance_before,
+
+        "to_saving_balance_after":
+            to_saving_balance_after,
+
+        # --------------------------------------------------------
+        # TIMESTAMPS
+        # --------------------------------------------------------
+
+        "created_at": now,
+
+        "updated_at": now
     }
 
+    # ============================================================
+    # INSERT MASTER
+    # ============================================================
 
     transfer_result = (
         mongo.db.account_transfers.insert_one(
@@ -6256,213 +6772,484 @@ def account_transfer():
         )
     )
 
+    transfer_id = (
+        transfer_result.inserted_id
+    )
 
-    # ========================================================
-    # SOURCE TRANSACTION
-    #
-    # TRANSFER OUT
-    # ========================================================
+    # ============================================================
+    # TRANSACTION RECORDS
+    # ============================================================
 
-    source_transaction = {
+    transaction_records = []
 
-        "user_id":
-            str(user_id),
+    # ============================================================
+    # ACCOUNT -> ACCOUNT
+    # ============================================================
 
-        "account_id":
-            from_id,
+    if transfer_type == "account_to_account":
 
-        "transaction_type":
-            "transfer_out",
+        # --------------------------------------------------------
+        # SOURCE
+        # --------------------------------------------------------
 
-        "type":
-            "transfer_out",
+        transaction_records.append({
 
-        "amount":
-            amount,
+            "user_id": str(user_id),
 
-        "currency":
-            source_currency,
+            "account_id": from_account_obj,
 
-        "category":
-            "Account Transfer",
+            "transaction_type": "transfer_out",
 
-        "item":
-            f"Transfer to {destination_name}",
+            "type": "transfer_out",
 
-        "description":
-            (
-                f"Transfer from "
-                f"{source_name} "
-                f"to "
-                f"{destination_name}"
+            "amount": amount,
+
+            "currency": source_currency,
+
+            "category": "Account Transfer",
+
+            "item": (
+                f"Transfer to {destination_name}"
             ),
 
-        "note":
-            (
+            "description": description,
+
+            "note": (
                 f"Money transferred to "
                 f"{destination_name}"
             ),
 
-        "reference_no":
-            reference_no,
+            "reference_no": reference_no,
 
-        "transfer_id":
-            transfer_result.inserted_id,
+            "transfer_id": transfer_id,
 
-        "from_account":
-            from_id,
+            "from_account": from_account_obj,
 
-        "to_account":
-            to_id,
+            "to_account": to_account_obj,
 
-        "created_at":
-            now,
+            "balance_before":
+                from_account_balance_before,
 
-        "updated_at":
-            now,
+            "balance_after":
+                from_account_balance_after,
 
-        "date":
-            now
+            "created_at": now,
 
-    }
+            "updated_at": now,
 
+            "date": now
+        })
 
-    # ========================================================
-    # DESTINATION TRANSACTION
-    #
-    # TRANSFER IN
-    # ========================================================
+        # --------------------------------------------------------
+        # DESTINATION
+        # --------------------------------------------------------
 
-    destination_transaction = {
+        transaction_records.append({
 
-        "user_id":
-            str(user_id),
+            "user_id": str(user_id),
 
-        "account_id":
-            to_id,
+            "account_id": to_account_obj,
 
-        "transaction_type":
-            "transfer_in",
+            "transaction_type": "transfer_in",
 
-        "type":
-            "transfer_in",
+            "type": "transfer_in",
 
-        "amount":
-            amount,
+            "amount": amount,
 
-        "currency":
-            destination_currency,
+            "currency": destination_currency,
 
-        "category":
-            "Account Transfer",
+            "category": "Account Transfer",
 
-        "item":
-            f"Transfer from {source_name}",
-
-        "description":
-            (
-                f"Transfer from "
-                f"{source_name} "
-                f"to "
-                f"{destination_name}"
+            "item": (
+                f"Transfer from {source_name}"
             ),
 
-        "note":
-            (
+            "description": description,
+
+            "note": (
                 f"Money received from "
                 f"{source_name}"
             ),
 
-        "reference_no":
-            reference_no,
+            "reference_no": reference_no,
 
-        "transfer_id":
-            transfer_result.inserted_id,
+            "transfer_id": transfer_id,
 
-        "from_account":
-            from_id,
+            "from_account": from_account_obj,
 
-        "to_account":
-            to_id,
+            "to_account": to_account_obj,
 
-        "created_at":
-            now,
+            "balance_before":
+                to_account_balance_before,
 
-        "updated_at":
-            now,
+            "balance_after":
+                to_account_balance_after,
 
-        "date":
-            now
+            "created_at": now,
 
-    }
+            "updated_at": now,
 
+            "date": now
+        })
 
-    # ========================================================
-    # SAVE BOTH TRANSACTIONS
-    # ========================================================
+    # ============================================================
+    # ACCOUNT -> SAVING
+    # ============================================================
 
-    mongo.db.transactions.insert_many([
+    elif transfer_type == "account_to_saving":
 
-        source_transaction,
+        transaction_records.append({
 
-        destination_transaction
+            "user_id": str(user_id),
 
-    ])
+            "account_id": from_account_obj,
 
+            "transaction_type": "transfer_out",
 
-    # ========================================================
-    # GET NEW BALANCES
-    # ========================================================
+            "type": "transfer_out",
 
-    new_source = mongo.db.accounts.find_one(
-        {
-            "_id": from_id
-        }
-    )
+            "amount": amount,
 
+            "currency": source_currency,
 
-    new_destination = mongo.db.accounts.find_one(
-        {
-            "_id": to_id
-        }
-    )
+            "category": "Saving Deposit",
 
+            "item": (
+                f"Deposit to {destination_name}"
+            ),
 
-    new_source_balance = float(
-        new_source.get("balance", 0)
-        if new_source
-        else 0
-    )
+            "description": description,
 
+            "note": (
+                f"Money transferred from "
+                f"{source_name} to saving"
+            ),
 
-    new_destination_balance = float(
-        new_destination.get("balance", 0)
-        if new_destination
-        else 0
-    )
+            "reference_no": reference_no,
 
+            "transfer_id": transfer_id,
 
-    # ========================================================
-    # SUCCESS
-    # ========================================================
+            "from_account": from_account_obj,
+
+            "to_saving": to_saving_obj,
+
+            "balance_before":
+                from_account_balance_before,
+
+            "balance_after":
+                from_account_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now
+        })
+
+        transaction_records.append({
+
+            "user_id": str(user_id),
+
+            "saving_id": to_saving_obj,
+
+            "account_id": from_account_obj,
+
+            "transaction_type": "deposit",
+
+            "type": "deposit",
+
+            "amount": amount,
+
+            "currency": destination_currency,
+
+            "category": "Saving Deposit",
+
+            "item": (
+                f"Deposit from {source_name}"
+            ),
+
+            "description": description,
+
+            "note": (
+                f"Money received from "
+                f"{source_name}"
+            ),
+
+            "reference_no": reference_no,
+
+            "transfer_id": transfer_id,
+
+            "from_account": from_account_obj,
+
+            "to_saving": to_saving_obj,
+
+            "balance_before":
+                to_saving_balance_before,
+
+            "balance_after":
+                to_saving_balance_after,
+
+            "saving_balance_before":
+                to_saving_balance_before,
+
+            "saving_balance_after":
+                to_saving_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now
+        })
+
+    # ============================================================
+    # SAVING -> ACCOUNT
+    # ============================================================
+
+    elif transfer_type == "saving_to_account":
+
+        # --------------------------------------------------------
+        # SAVING TRANSACTION
+        # --------------------------------------------------------
+
+        transaction_records.append({
+
+            "user_id": str(user_id),
+
+            "saving_id": from_saving_obj,
+
+            "account_id": to_account_obj,
+
+            "transaction_type": "withdrawal",
+
+            "type": "withdrawal",
+
+            "amount": amount,
+
+            "currency": source_currency,
+
+            "category": "Saving Withdrawal",
+
+            "item": (
+                f"Withdrawal to {destination_name}"
+            ),
+
+            "description": description,
+
+            "note": (
+                f"Money withdrawn from "
+                f"{source_name}"
+            ),
+
+            "reference_no": reference_no,
+
+            "transfer_id": transfer_id,
+
+            "from_saving": from_saving_obj,
+
+            "to_account": to_account_obj,
+
+            # ====================================================
+            # REAL SAVING BALANCE
+            # ====================================================
+
+            "balance_before":
+                from_saving_balance_before,
+
+            "balance_after":
+                from_saving_balance_after,
+
+            "saving_balance_before":
+                from_saving_balance_before,
+
+            "saving_balance_after":
+                from_saving_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now
+        })
+
+        # --------------------------------------------------------
+        # ACCOUNT TRANSACTION
+        # --------------------------------------------------------
+
+        transaction_records.append({
+
+            "user_id": str(user_id),
+
+            "account_id": to_account_obj,
+
+            "transaction_type": "transfer_in",
+
+            "type": "transfer_in",
+
+            "amount": amount,
+
+            "currency": destination_currency,
+
+            "category": "Saving Withdrawal",
+
+            "item": (
+                f"Received from {source_name}"
+            ),
+
+            "description": description,
+
+            "note": (
+                f"Money received from "
+                f"{source_name}"
+            ),
+
+            "reference_no": reference_no,
+
+            "transfer_id": transfer_id,
+
+            "from_saving": from_saving_obj,
+
+            "to_account": to_account_obj,
+
+            # ====================================================
+            # REAL ACCOUNT BALANCE
+            # ====================================================
+
+            "balance_before":
+                to_account_balance_before,
+
+            "balance_after":
+                to_account_balance_after,
+
+            "account_balance_before":
+                to_account_balance_before,
+
+            "account_balance_after":
+                to_account_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now
+        })
+
+    # ============================================================
+    # INSERT TRANSACTIONS
+    # ============================================================
+
+    if transaction_records:
+
+        mongo.db.transactions.insert_many(
+            transaction_records
+        )
+
+    # ============================================================
+    # ALSO SAVE SAVING TRANSACTION HISTORY
+    # ============================================================
+
+    if transfer_type == "account_to_saving":
+
+        mongo.db.saving_transactions.insert_one({
+
+            "user_id": str(user_id),
+
+            "saving_id": to_saving_obj,
+
+            "account_id": from_account_obj,
+
+            "transaction_type": "deposit",
+
+            "amount": amount,
+
+            "description": description,
+
+            "note": (
+                f"Deposit from {source_name}"
+            ),
+
+            "reference_no": reference_no,
+
+            "transfer_id": transfer_id,
+
+            "balance_before":
+                to_saving_balance_before,
+
+            "balance_after":
+                to_saving_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now,
+
+            "status": True
+        })
+
+    elif transfer_type == "saving_to_account":
+
+        mongo.db.saving_transactions.insert_one({
+
+            "user_id": str(user_id),
+
+            "saving_id": from_saving_obj,
+
+            "account_id": to_account_obj,
+
+            "transaction_type": "withdrawal",
+
+            "amount": amount,
+
+            "description": description,
+
+            "note": (
+                f"Withdrawal to {destination_name}"
+            ),
+
+            "reference_no": reference_no,
+
+            "transfer_id": transfer_id,
+
+            "balance_before":
+                from_saving_balance_before,
+
+            "balance_after":
+                from_saving_balance_after,
+
+            "created_at": now,
+
+            "updated_at": now,
+
+            "date": now,
+
+            "status": True
+        })
+
+    # ============================================================
+    # SUCCESS RESPONSE
+    # ============================================================
 
     return jsonify({
 
-        "success":
-            True,
+        "success": True,
 
-        "message":
-            (
-                "Money transferred successfully."
-            ),
+        "message": (
+            "Money transferred successfully."
+        ),
+
+        "transfer_id": str(
+            transfer_id
+        ),
+
+        "transfer_type":
+            transfer_type,
+
+        "direction":
+            direction,
 
         "reference_no":
             reference_no,
-
-        "transfer_id":
-            str(
-                transfer_result.inserted_id
-            ),
 
         "amount":
             amount,
@@ -6470,20 +7257,45 @@ def account_transfer():
         "currency":
             source_currency,
 
-        "from_account":
+        "from_name":
             source_name,
 
-        "to_account":
+        "to_name":
             destination_name,
 
-        "source_balance":
-            new_source_balance,
+        # --------------------------------------------------------
+        # ACCOUNT REPORT
+        # --------------------------------------------------------
 
-        "destination_balance":
-            new_destination_balance
+        "from_account_balance_before":
+            from_account_balance_before,
+
+        "from_account_balance_after":
+            from_account_balance_after,
+
+        "to_account_balance_before":
+            to_account_balance_before,
+
+        "to_account_balance_after":
+            to_account_balance_after,
+
+        # --------------------------------------------------------
+        # SAVING REPORT
+        # --------------------------------------------------------
+
+        "from_saving_balance_before":
+            from_saving_balance_before,
+
+        "from_saving_balance_after":
+            from_saving_balance_after,
+
+        "to_saving_balance_before":
+            to_saving_balance_before,
+
+        "to_saving_balance_after":
+            to_saving_balance_after
 
     }), 200
-
 
 # ============================================================
 # DELETE ACCOUNT / SAVING TRANSFER
@@ -6508,14 +7320,14 @@ def delete_account_transfer(transfer_id):
         flash(message, "success")
 
         return redirect(
-            url_for("bp.account_transfers")
+            url_for("main.all_account_transfers")
         )
 
     def redirect_back_error(message):
         flash(message, "danger")
 
         return redirect(
-            url_for("bp.account_transfers")
+            url_for("main.all_account_transfers")
         )
 
     def json_success(message):
@@ -7519,7 +8331,7 @@ def delete_account_transfer(transfer_id):
 
             return redirect(
                 url_for(
-                    "bp.account_transfers"
+                    "main.all_account_transfers"
                 )
             )
 
@@ -7581,7 +8393,7 @@ def delete_account_transfer(transfer_id):
 
             return redirect(
                 url_for(
-                    "bp.account_transfers"
+                    "main.all_account_transfers"
                 )
             )
 
@@ -7610,7 +8422,6 @@ def delete_account_transfer(transfer_id):
 # ============================================================
 # ALL ACCOUNT / SAVING TRANSFERS
 # ============================================================
-
 @bp.route("/account/transfers")
 @login_required
 def all_account_transfers():
@@ -7619,9 +8430,9 @@ def all_account_transfers():
     from datetime import datetime
     import json
 
-    # ========================================================
+    # ============================================================
     # CURRENT USER
-    # ========================================================
+    # ============================================================
 
     current_user_id = str(current_user.id)
 
@@ -7630,9 +8441,9 @@ def all_account_transfers():
     except Exception:
         current_user_object_id = None
 
-    # ========================================================
+    # ============================================================
     # USER FILTER
-    # ========================================================
+    # ============================================================
 
     if current_user.role == UserRole.superadmin.value:
 
@@ -7647,18 +8458,19 @@ def all_account_transfers():
         ]
 
         if current_user_object_id:
-
-            user_conditions.append({
-                "user_id": current_user_object_id
-            })
+            user_conditions.append(
+                {
+                    "user_id": current_user_object_id
+                }
+            )
 
         transfer_query = {
             "$or": user_conditions
         }
 
-    # ========================================================
+    # ============================================================
     # GET ALL TRANSFERS
-    # ========================================================
+    # ============================================================
 
     transfers_raw = list(
         mongo.db.account_transfers.find(
@@ -7669,30 +8481,30 @@ def all_account_transfers():
         )
     )
 
-    # ========================================================
+    # ============================================================
     # COLLECT ACCOUNT IDS
-    # ========================================================
+    # ============================================================
 
     account_ids = set()
 
     for transfer in transfers_raw:
 
-        # Normal account → account
         from_account = transfer.get("from_account")
         to_account = transfer.get("to_account")
 
-        # Saving → account
-        to_account_from_saving = transfer.get("to_account")
-
         if from_account:
-            account_ids.add(str(from_account))
+            account_ids.add(
+                str(from_account)
+            )
 
         if to_account:
-            account_ids.add(str(to_account))
+            account_ids.add(
+                str(to_account)
+            )
 
-    # ========================================================
+    # ============================================================
     # LOAD ACCOUNTS
-    # ========================================================
+    # ============================================================
 
     accounts_map = {}
 
@@ -7700,9 +8512,11 @@ def all_account_transfers():
 
         try:
 
-            account = mongo.db.accounts.find_one({
-                "_id": ObjectId(account_id)
-            })
+            account = mongo.db.accounts.find_one(
+                {
+                    "_id": ObjectId(account_id)
+                }
+            )
 
             if account:
 
@@ -7713,9 +8527,9 @@ def all_account_transfers():
         except Exception:
             continue
 
-    # ========================================================
+    # ============================================================
     # COLLECT SAVING IDS
-    # ========================================================
+    # ============================================================
 
     saving_ids = set()
 
@@ -7725,14 +8539,18 @@ def all_account_transfers():
         to_saving = transfer.get("to_saving")
 
         if from_saving:
-            saving_ids.add(str(from_saving))
+            saving_ids.add(
+                str(from_saving)
+            )
 
         if to_saving:
-            saving_ids.add(str(to_saving))
+            saving_ids.add(
+                str(to_saving)
+            )
 
-    # ========================================================
+    # ============================================================
     # LOAD SAVINGS
-    # ========================================================
+    # ============================================================
 
     savings_map = {}
 
@@ -7740,9 +8558,11 @@ def all_account_transfers():
 
         try:
 
-            saving = mongo.db.savings.find_one({
-                "_id": ObjectId(saving_id)
-            })
+            saving = mongo.db.savings.find_one(
+                {
+                    "_id": ObjectId(saving_id)
+                }
+            )
 
             if saving:
 
@@ -7753,35 +8573,86 @@ def all_account_transfers():
         except Exception:
             continue
 
-    # ========================================================
+    # ============================================================
+    # HELPER
+    # ============================================================
+
+    def safe_float(value, default=0.0):
+
+        try:
+
+            if value is None:
+                return default
+
+            return float(value)
+
+        except Exception:
+
+            return default
+
+    # ============================================================
+    # BALANCE HELPER
+    # ============================================================
+
+    def get_balance(
+        transfer,
+        *possible_keys
+    ):
+
+        for key in possible_keys:
+
+            if key in transfer:
+
+                value = transfer.get(key)
+
+                if value is not None:
+
+                    return safe_float(value)
+
+        return 0.0
+
+    # ============================================================
     # PREPARE TRANSFERS
-    # ========================================================
+    # ============================================================
 
     transfers = []
 
     for transfer in transfers_raw:
 
+        # ========================================================
+        # ID
+        # ========================================================
+
         transfer_id = str(
             transfer.get("_id")
         )
+
+        # ========================================================
+        # TRANSFER TYPE
+        # ========================================================
 
         transfer_type = (
             transfer.get("transfer_type")
             or "account_to_account"
         )
 
-        # ====================================================
+        # ========================================================
         # DATE
-        # ====================================================
+        # ========================================================
 
         created_at = transfer.get(
             "created_at"
         )
 
-        if isinstance(created_at, datetime):
+        if isinstance(
+            created_at,
+            datetime
+        ):
 
-            created_at_string = created_at.strftime(
-                "%Y-%m-%d %H:%M:%S"
+            created_at_string = (
+                created_at.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
             )
 
         elif created_at:
@@ -7794,41 +8665,39 @@ def all_account_transfers():
 
             created_at_string = "-"
 
-        # ====================================================
+        # ========================================================
         # AMOUNT
-        # ====================================================
+        # ========================================================
 
-        try:
+        amount = safe_float(
+            transfer.get("amount")
+        )
 
-            amount = float(
-                transfer.get("amount") or 0
-            )
-
-        except Exception:
-
-            amount = 0.0
-
-        # ====================================================
+        # ========================================================
         # CURRENCY
-        # ====================================================
+        # ========================================================
 
         currency = (
             transfer.get("currency")
             or "USD"
         )
 
-        # ====================================================
+        # ========================================================
         # STATUS
-        # ====================================================
+        # ========================================================
 
         status = (
             transfer.get("status")
             or "completed"
         )
 
-        # ====================================================
+        status_display = str(
+            status
+        ).capitalize()
+
+        # ========================================================
         # REFERENCE
-        # ====================================================
+        # ========================================================
 
         reference = (
             transfer.get("reference_no")
@@ -7837,38 +8706,75 @@ def all_account_transfers():
             or transfer_id
         )
 
-        # ====================================================
-        # DEFAULT VALUES
-        # ====================================================
-
-        from_name = "Unknown Account"
-        to_name = "Unknown Account"
-
-        from_type = "Account"
-        to_type = "Account"
+        # ========================================================
+        # DIRECTION
+        # ========================================================
 
         direction = (
             transfer.get("direction")
             or ""
         )
 
-        # ====================================================
+        # ========================================================
+        # DEFAULT NAMES
+        # ========================================================
+
+        from_name = "Unknown"
+        to_name = "Unknown"
+
+        from_type = "Account"
+        to_type = "Account"
+
+        # ========================================================
+        # DEFAULT BALANCES
+        # ========================================================
+
+        from_balance_before = 0.0
+        from_balance_after = 0.0
+
+        to_balance_before = 0.0
+        to_balance_after = 0.0
+
+        # ========================================================
+        # SPECIFIC BALANCE FIELDS
+        # ========================================================
+
+        from_account_balance_before = 0.0
+        from_account_balance_after = 0.0
+
+        to_account_balance_before = 0.0
+        to_account_balance_after = 0.0
+
+        from_saving_balance_before = 0.0
+        from_saving_balance_after = 0.0
+
+        to_saving_balance_before = 0.0
+        to_saving_balance_after = 0.0
+
+        # ========================================================
+        # TRANSACTION TYPE
+        # ========================================================
+
+        transaction_type = "Transfer"
+
+        # ========================================================
         # ACCOUNT → SAVING
-        # ====================================================
+        # ========================================================
 
         if transfer_type == "account_to_saving":
+
+            transaction_type = "Deposit"
+
+            from_type = "Account"
+            to_type = "Saving"
+
+            # ----------------------------------------------------
+            # SOURCE ACCOUNT
+            # ----------------------------------------------------
 
             from_account_id = transfer.get(
                 "from_account"
             )
-
-            to_saving_id = transfer.get(
-                "to_saving"
-            )
-
-            # -----------------------------------------------
-            # SOURCE ACCOUNT
-            # -----------------------------------------------
 
             if from_account_id:
 
@@ -7911,9 +8817,13 @@ def all_account_transfers():
                     or "Unknown Account"
                 )
 
-            # -----------------------------------------------
+            # ----------------------------------------------------
             # DESTINATION SAVING
-            # -----------------------------------------------
+            # ----------------------------------------------------
+
+            to_saving_id = transfer.get(
+                "to_saving"
+            )
 
             if to_saving_id:
 
@@ -7951,29 +8861,80 @@ def all_account_transfers():
                     or "Unknown Saving"
                 )
 
-            from_type = "Account"
-            to_type = "Saving"
+            # ----------------------------------------------------
+            # ACCOUNT BALANCE
+            # ----------------------------------------------------
 
-            # Deposit into saving
-            transaction_type = "Deposit"
+            from_account_balance_before = get_balance(
+                transfer,
+                "account_balance_before",
+                "from_account_balance_before",
+                "source_account_balance_before"
+            )
 
-        # ====================================================
+            from_account_balance_after = get_balance(
+                transfer,
+                "account_balance_after",
+                "from_account_balance_after",
+                "source_account_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # SAVING BALANCE
+            # ----------------------------------------------------
+
+            to_saving_balance_before = get_balance(
+                transfer,
+                "saving_balance_before",
+                "to_saving_balance_before",
+                "destination_saving_balance_before"
+            )
+
+            to_saving_balance_after = get_balance(
+                transfer,
+                "saving_balance_after",
+                "to_saving_balance_after",
+                "destination_saving_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # GENERIC FROM / TO BALANCE
+            # ----------------------------------------------------
+
+            from_balance_before = (
+                from_account_balance_before
+            )
+
+            from_balance_after = (
+                from_account_balance_after
+            )
+
+            to_balance_before = (
+                to_saving_balance_before
+            )
+
+            to_balance_after = (
+                to_saving_balance_after
+            )
+
+        # ========================================================
         # SAVING → ACCOUNT
-        # ====================================================
+        # ========================================================
 
         elif transfer_type == "saving_to_account":
+
+            transaction_type = "Withdraw"
+
+            from_type = "Saving"
+            to_type = "Account"
+
+            # ----------------------------------------------------
+            # SOURCE SAVING
+            # ----------------------------------------------------
 
             from_saving_id = transfer.get(
                 "from_saving"
             )
-
-            to_account_id = transfer.get(
-                "to_account"
-            )
-
-            # -----------------------------------------------
-            # SOURCE SAVING
-            # -----------------------------------------------
 
             if from_saving_id:
 
@@ -8017,9 +8978,13 @@ def all_account_transfers():
                     or "Unknown Saving"
                 )
 
-            # -----------------------------------------------
+            # ----------------------------------------------------
             # DESTINATION ACCOUNT
-            # -----------------------------------------------
+            # ----------------------------------------------------
+
+            to_account_id = transfer.get(
+                "to_account"
+            )
 
             if to_account_id:
 
@@ -8063,29 +9028,80 @@ def all_account_transfers():
                     or "Unknown Account"
                 )
 
-            from_type = "Saving"
-            to_type = "Account"
+            # ----------------------------------------------------
+            # SAVING BALANCE
+            # ----------------------------------------------------
 
-            # Withdrawal from saving
-            transaction_type = "Withdraw"
+            from_saving_balance_before = get_balance(
+                transfer,
+                "saving_balance_before",
+                "from_saving_balance_before",
+                "source_saving_balance_before"
+            )
 
-        # ====================================================
+            from_saving_balance_after = get_balance(
+                transfer,
+                "saving_balance_after",
+                "from_saving_balance_after",
+                "source_saving_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # ACCOUNT BALANCE
+            # ----------------------------------------------------
+
+            to_account_balance_before = get_balance(
+                transfer,
+                "account_balance_before",
+                "to_account_balance_before",
+                "destination_account_balance_before"
+            )
+
+            to_account_balance_after = get_balance(
+                transfer,
+                "account_balance_after",
+                "to_account_balance_after",
+                "destination_account_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # GENERIC FROM / TO BALANCE
+            # ----------------------------------------------------
+
+            from_balance_before = (
+                from_saving_balance_before
+            )
+
+            from_balance_after = (
+                from_saving_balance_after
+            )
+
+            to_balance_before = (
+                to_account_balance_before
+            )
+
+            to_balance_after = (
+                to_account_balance_after
+            )
+
+        # ========================================================
         # ACCOUNT → ACCOUNT
-        # ====================================================
+        # ========================================================
 
         else:
+
+            transaction_type = "Transfer"
+
+            from_type = "Account"
+            to_type = "Account"
+
+            # ----------------------------------------------------
+            # SOURCE ACCOUNT
+            # ----------------------------------------------------
 
             from_account_id = transfer.get(
                 "from_account"
             )
-
-            to_account_id = transfer.get(
-                "to_account"
-            )
-
-            # -----------------------------------------------
-            # FROM ACCOUNT
-            # -----------------------------------------------
 
             if from_account_id:
 
@@ -8128,9 +9144,13 @@ def all_account_transfers():
                     or "Unknown Account"
                 )
 
-            # -----------------------------------------------
-            # TO ACCOUNT
-            # -----------------------------------------------
+            # ----------------------------------------------------
+            # DESTINATION ACCOUNT
+            # ----------------------------------------------------
+
+            to_account_id = transfer.get(
+                "to_account"
+            )
 
             if to_account_id:
 
@@ -8167,158 +9187,420 @@ def all_account_transfers():
                     or "Unknown Account"
                 )
 
-            from_type = "Account"
-            to_type = "Account"
+            # ----------------------------------------------------
+            # SOURCE ACCOUNT BALANCE
+            # ----------------------------------------------------
 
-            transaction_type = "Transfer"
+            from_account_balance_before = get_balance(
+                transfer,
+                "from_account_balance_before",
+                "source_account_balance_before",
+                "account_balance_before"
+            )
 
-        # ====================================================
+            from_account_balance_after = get_balance(
+                transfer,
+                "from_account_balance_after",
+                "source_account_balance_after",
+                "account_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # DESTINATION ACCOUNT BALANCE
+            # ----------------------------------------------------
+
+            to_account_balance_before = get_balance(
+                transfer,
+                "to_account_balance_before",
+                "destination_account_balance_before",
+                "receiver_account_balance_before"
+            )
+
+            to_account_balance_after = get_balance(
+                transfer,
+                "to_account_balance_after",
+                "destination_account_balance_after",
+                "receiver_account_balance_after"
+            )
+
+            # ----------------------------------------------------
+            # GENERIC FROM / TO BALANCE
+            # ----------------------------------------------------
+
+            from_balance_before = (
+                from_account_balance_before
+            )
+
+            from_balance_after = (
+                from_account_balance_after
+            )
+
+            to_balance_before = (
+                to_account_balance_before
+            )
+
+            to_balance_after = (
+                to_account_balance_after
+            )
+
+        # ========================================================
         # DESCRIPTION
-        # ====================================================
+        # ========================================================
 
         description = (
             transfer.get("description")
             or ""
         )
 
-        # ====================================================
-        # FINAL DATA
-        # ====================================================
+        # ========================================================
+        # USER ID
+        # ========================================================
+
+        raw_user_id = transfer.get(
+            "user_id"
+        )
+
+        user_id = (
+            str(raw_user_id)
+            if raw_user_id is not None
+            else ""
+        )
+
+        # ========================================================
+        # FINAL TRANSFER DATA
+        # ========================================================
 
         transfer_data = {
 
-            "id":
-                transfer_id,
+            # ----------------------------------------------------
+            # IDENTIFICATION
+            # ----------------------------------------------------
 
-            "_id":
-                transfer_id,
+            "id": transfer_id,
 
-            "user_id":
-                str(
-                    transfer.get("user_id")
+            "_id": transfer_id,
+
+            "user_id": user_id,
+
+            # ----------------------------------------------------
+            # TYPE
+            # ----------------------------------------------------
+
+            "transfer_type": transfer_type,
+
+            "transaction_type": transaction_type,
+
+            "direction": direction,
+
+            # ----------------------------------------------------
+            # FROM
+            # ----------------------------------------------------
+
+            "from_name": from_name,
+
+            "from_type": from_type,
+
+            "from_account_name": (
+                from_name
+                if from_type == "Account"
+                else (
+                    transfer.get(
+                        "from_account_name"
+                    )
+                    or ""
                 )
-                if transfer.get("user_id") is not None
-                else "",
+            ),
 
-            "transfer_type":
-                transfer_type,
+            "from_saving_name": (
+                from_name
+                if from_type == "Saving"
+                else (
+                    transfer.get(
+                        "from_saving_name"
+                    )
+                    or ""
+                )
+            ),
 
-            "direction":
-                direction,
+            # ----------------------------------------------------
+            # TO
+            # ----------------------------------------------------
 
-            "from_name":
-                from_name,
+            "to_name": to_name,
 
-            "to_name":
-                to_name,
+            "to_type": to_type,
 
-            "from_type":
-                from_type,
+            "to_account_name": (
+                to_name
+                if to_type == "Account"
+                else (
+                    transfer.get(
+                        "to_account_name"
+                    )
+                    or ""
+                )
+            ),
 
-            "to_type":
-                to_type,
+            "to_saving_name": (
+                to_name
+                if to_type == "Saving"
+                else (
+                    transfer.get(
+                        "to_saving_name"
+                    )
+                    or ""
+                )
+            ),
 
-            "from_account_name":
-                from_name,
+            # ----------------------------------------------------
+            # AMOUNT
+            # ----------------------------------------------------
 
-            "to_account_name":
-                to_name,
+            "amount": amount,
 
-            "amount":
-                amount,
+            "currency": currency,
 
-            "currency":
-                currency,
+            # ----------------------------------------------------
+            # STATUS
+            # ----------------------------------------------------
 
-            "transaction_type":
-                transaction_type,
+            "status": status_display,
 
-            "status":
-                str(status).capitalize(),
+            # ----------------------------------------------------
+            # REFERENCE
+            # ----------------------------------------------------
 
-            "reference_no":
-                str(reference),
+            "reference_no": str(
+                reference
+            ),
 
-            "description":
-                description,
+            "reference": str(
+                reference
+            ),
 
-            "created_at":
-                created_at_string
+            # ----------------------------------------------------
+            # DESCRIPTION
+            # ----------------------------------------------------
+
+            "description": description,
+
+            # ----------------------------------------------------
+            # DATE
+            # ----------------------------------------------------
+
+            "created_at": created_at_string,
+
+            # ----------------------------------------------------
+            # GENERIC BALANCE
+            # ----------------------------------------------------
+
+            "from_balance_before": (
+                from_balance_before
+            ),
+
+            "from_balance_after": (
+                from_balance_after
+            ),
+
+            "to_balance_before": (
+                to_balance_before
+            ),
+
+            "to_balance_after": (
+                to_balance_after
+            ),
+
+            # ----------------------------------------------------
+            # ACCOUNT BALANCE
+            # ----------------------------------------------------
+
+            "from_account_balance_before": (
+                from_account_balance_before
+            ),
+
+            "from_account_balance_after": (
+                from_account_balance_after
+            ),
+
+            "to_account_balance_before": (
+                to_account_balance_before
+            ),
+
+            "to_account_balance_after": (
+                to_account_balance_after
+            ),
+
+            # ----------------------------------------------------
+            # SAVING BALANCE
+            # ----------------------------------------------------
+
+            "from_saving_balance_before": (
+                from_saving_balance_before
+            ),
+
+            "from_saving_balance_after": (
+                from_saving_balance_after
+            ),
+
+            "to_saving_balance_before": (
+                to_saving_balance_before
+            ),
+
+            "to_saving_balance_after": (
+                to_saving_balance_after
+            ),
+
+            # ----------------------------------------------------
+            # ORIGINAL DATABASE BALANCE FIELDS
+            # ----------------------------------------------------
+
+            "saving_balance_before": get_balance(
+                transfer,
+                "saving_balance_before"
+            ),
+
+            "saving_balance_after": get_balance(
+                transfer,
+                "saving_balance_after"
+            ),
+
+            "account_balance_before": get_balance(
+                transfer,
+                "account_balance_before"
+            ),
+
+            "account_balance_after": get_balance(
+                transfer,
+                "account_balance_after"
+            )
         }
+
+        # ========================================================
+        # APPEND
+        # ========================================================
 
         transfers.append(
             transfer_data
         )
 
-    # ========================================================
-    # TOTALS
-    # ========================================================
+    # ============================================================
+    # TOTAL TRANSFERS
+    # ============================================================
 
     total_transfers = len(
         transfers
     )
 
+    # ============================================================
+    # TOTAL AMOUNT
+    # ============================================================
+
     total_amount = sum(
-        float(
-            item.get("amount") or 0
+        safe_float(
+            item.get("amount")
         )
         for item in transfers
     )
 
-    # ========================================================
-    # DEPOSITS
-    # ========================================================
+    # ============================================================
+    # TOTAL DEPOSITS
+    # ============================================================
 
     total_deposits = sum(
 
-        float(item.get("amount") or 0)
+        safe_float(
+            item.get("amount")
+        )
 
         for item in transfers
 
-        if item.get("transaction_type")
-        == "Deposit"
+        if item.get(
+            "transaction_type"
+        ) == "Deposit"
     )
 
-    # ========================================================
-    # WITHDRAWALS
-    # ========================================================
+    # ============================================================
+    # TOTAL WITHDRAWALS
+    # ============================================================
 
     total_withdrawals = sum(
 
-        float(item.get("amount") or 0)
+        safe_float(
+            item.get("amount")
+        )
 
         for item in transfers
 
-        if item.get("transaction_type")
-        == "Withdraw"
+        if item.get(
+            "transaction_type"
+        ) == "Withdraw"
     )
 
-    # ========================================================
-    # ACCOUNT → ACCOUNT
-    # ========================================================
+    # ============================================================
+    # TOTAL ACCOUNT TRANSFERS
+    # ============================================================
 
     total_account_transfers = sum(
 
-        float(item.get("amount") or 0)
+        safe_float(
+            item.get("amount")
+        )
 
         for item in transfers
 
-        if item.get("transaction_type")
-        == "Transfer"
+        if item.get(
+            "transaction_type"
+        ) == "Transfer"
     )
 
-    # ========================================================
+    # ============================================================
+    # COUNT DEPOSITS
+    # ============================================================
+
+    deposit_count = sum(
+        1
+        for item in transfers
+        if item.get(
+            "transaction_type"
+        ) == "Deposit"
+    )
+
+    # ============================================================
+    # COUNT WITHDRAWALS
+    # ============================================================
+
+    withdrawal_count = sum(
+        1
+        for item in transfers
+        if item.get(
+            "transaction_type"
+        ) == "Withdraw"
+    )
+
+    # ============================================================
+    # COUNT ACCOUNT TRANSFERS
+    # ============================================================
+
+    account_transfer_count = sum(
+        1
+        for item in transfers
+        if item.get(
+            "transaction_type"
+        ) == "Transfer"
+    )
+
+    # ============================================================
     # JSON SAFE
-    # ========================================================
+    # ============================================================
 
     transfers_json = json.dumps(
         transfers,
         default=str
     )
 
-    # ========================================================
-    # RENDER TEMPLATE
-    # ========================================================
+    # ============================================================
+    # RENDER
+    # ============================================================
 
     return render_template(
 
@@ -8336,8 +9618,13 @@ def all_account_transfers():
 
         total_withdrawals=total_withdrawals,
 
-        total_account_transfers=total_account_transfers
+        total_account_transfers=total_account_transfers,
 
+        deposit_count=deposit_count,
+
+        withdrawal_count=withdrawal_count,
+
+        account_transfer_count=account_transfer_count
     )
 
 
@@ -8346,6 +9633,23 @@ def all_account_transfers():
 @login_required
 def saving_topup():
 
+    from bson import ObjectId
+    from datetime import datetime
+    from flask import request, jsonify
+    import math
+    import secrets
+
+    # ============================================================
+    # RESPONSE HELPERS
+    # ============================================================
+
+    def error_response(message, status=400):
+        return jsonify({
+            "success": False,
+            "error": message,
+            "message": message
+        }), status
+
     # ============================================================
     # GET JSON DATA
     # ============================================================
@@ -8353,10 +9657,10 @@ def saving_topup():
     data = request.get_json(silent=True)
 
     if not data:
-        return jsonify({
-            "success": False,
-            "error": "No data provided."
-        }), 400
+        return error_response(
+            "No data provided.",
+            400
+        )
 
     saving_id = data.get("saving_id")
     account_id = data.get("account_id")
@@ -8367,162 +9671,243 @@ def saving_topup():
     # ============================================================
 
     if not saving_id:
-        return jsonify({
-            "success": False,
-            "error": "Saving account is required."
-        }), 400
+        return error_response(
+            "Saving account is required.",
+            400
+        )
 
     if not account_id:
-        return jsonify({
-            "success": False,
-            "error": "Source account is required."
-        }), 400
+        return error_response(
+            "Source account is required.",
+            400
+        )
 
     if amount is None or amount == "":
-        return jsonify({
-            "success": False,
-            "error": "Amount is required."
-        }), 400
+        return error_response(
+            "Amount is required.",
+            400
+        )
 
     # ============================================================
-    # AMOUNT VALIDATION
+    # VALIDATE AMOUNT
     # ============================================================
 
     try:
         amount = float(amount)
+
     except (TypeError, ValueError):
-
-        return jsonify({
-            "success": False,
-            "error": "Invalid amount."
-        }), 400
-
-    if amount <= 0:
-
-        return jsonify({
-            "success": False,
-            "error": "Amount must be greater than zero."
-        }), 400
+        return error_response(
+            "Invalid amount.",
+            400
+        )
 
     if not math.isfinite(amount):
+        return error_response(
+            "Invalid amount.",
+            400
+        )
 
-        return jsonify({
-            "success": False,
-            "error": "Invalid amount."
-        }), 400
+    if amount <= 0:
+        return error_response(
+            "Amount must be greater than zero.",
+            400
+        )
 
     # ============================================================
-    # OBJECT ID VALIDATION
+    # OBJECT IDS
     # ============================================================
 
     try:
 
-        saving_obj_id = ObjectId(str(saving_id))
-        account_obj_id = ObjectId(str(account_id))
+        saving_obj_id = ObjectId(
+            str(saving_id)
+        )
+
+        account_obj_id = ObjectId(
+            str(account_id)
+        )
 
     except Exception:
 
-        return jsonify({
-            "success": False,
-            "error": "Invalid account or saving ID."
-        }), 400
+        return error_response(
+            "Invalid account or saving ID.",
+            400
+        )
 
     # ============================================================
     # CURRENT USER
     # ============================================================
 
-    user_id = str(current_user.id)
-
-    # ============================================================
-    # USER FILTER
-    # Supports string + ObjectId user_id
-    # ============================================================
+    user_id = str(
+        current_user.id
+    )
 
     try:
 
-        user_object_id = ObjectId(user_id)
-
-        user_filter = {
-            "$or": [
-                {
-                    "user_id": user_id
-                },
-                {
-                    "user_id": user_object_id
-                }
-            ]
-        }
+        user_object_id = ObjectId(
+            user_id
+        )
 
     except Exception:
 
+        user_object_id = None
+
+    # ============================================================
+    # USER FILTER
+    # Supports STRING + ObjectId
+    # ============================================================
+
+    if current_user.role == UserRole.superadmin.value:
+
+        user_filter = {}
+
+    else:
+
+        owner_conditions = [
+            {
+                "user_id": user_id
+            }
+        ]
+
+        if user_object_id:
+
+            owner_conditions.append({
+                "user_id": user_object_id
+            })
+
         user_filter = {
-            "user_id": user_id
+            "$or": owner_conditions
         }
 
     # ============================================================
     # GET SAVING
     # ============================================================
 
-    saving = mongo.db.savings.find_one({
+    saving_query = {
+        "_id": saving_obj_id
+    }
 
-        "_id": saving_obj_id,
+    saving_query.update(
+        user_filter
+    )
 
-        **user_filter
-
-    })
+    saving = mongo.db.savings.find_one(
+        saving_query
+    )
 
     if not saving:
 
-        return jsonify({
-            "success": False,
-            "error": "Saving not found."
-        }), 404
+        return error_response(
+            "Saving not found.",
+            404
+        )
 
     # ============================================================
     # GET SOURCE ACCOUNT
     # ============================================================
 
-    account = mongo.db.accounts.find_one({
+    account_query = {
+        "_id": account_obj_id
+    }
 
-        "_id": account_obj_id,
+    account_query.update(
+        user_filter
+    )
 
-        **user_filter
-
-    })
+    account = mongo.db.accounts.find_one(
+        account_query
+    )
 
     if not account:
 
-        return jsonify({
-            "success": False,
-            "error": "Source account not found."
-        }), 404
+        return error_response(
+            "Source account not found.",
+            404
+        )
 
     # ============================================================
-    # ACCOUNT BALANCE
+    # ACCOUNT BALANCE BEFORE
     # ============================================================
 
-    account_balance = float(
-        account.get("balance", 0) or 0
+    try:
+
+        account_balance_before = float(
+            account.get("balance", 0) or 0
+        )
+
+    except (TypeError, ValueError):
+
+        account_balance_before = 0.0
+
+    # ============================================================
+    # SAVING BALANCE BEFORE
+    # ============================================================
+
+    try:
+
+        saving_balance_before = float(
+            saving.get("current_balance", 0) or 0
+        )
+
+    except (TypeError, ValueError):
+
+        saving_balance_before = 0.0
+
+    # ============================================================
+    # CURRENCY
+    # ============================================================
+
+    account_currency = (
+        account.get("currency")
+        or "USD"
     )
 
-    saving_balance = float(
-        saving.get("current_balance", 0) or 0
+    saving_currency = (
+        saving.get("currency")
+        or account_currency
+        or "USD"
     )
 
     # ============================================================
-    # CHECK BALANCE
+    # CURRENCY CHECK
     # ============================================================
 
-    if amount > account_balance:
+    if (
+        account_currency
+        and saving_currency
+        and account_currency != saving_currency
+    ):
 
-        return jsonify({
-            "success": False,
-            "error":
-                f"Insufficient account balance. "
+        return error_response(
+            (
+                "Currency mismatch. "
+                f"Account uses {account_currency}, "
+                f"Saving uses {saving_currency}."
+            ),
+            400
+        )
+
+    currency = (
+        account_currency
+        or saving_currency
+        or "USD"
+    )
+
+    # ============================================================
+    # CHECK ACCOUNT BALANCE
+    # ============================================================
+
+    if amount > account_balance_before:
+
+        return error_response(
+            (
+                "Insufficient account balance. "
                 f"Available "
-                f"{account.get('currency', 'USD')} "
-                f"{account_balance:,.2f}"
-        }), 400
+                f"{currency} "
+                f"{account_balance_before:,.2f}"
+            ),
+            400
+        )
 
     # ============================================================
     # NAMES
@@ -8538,43 +9923,110 @@ def saving_topup():
         saving.get("name")
         or saving.get("saving_name")
         or saving.get("title")
-        or "Saving"
+        or "Unknown Saving"
     )
-
-    currency = (
-        account.get("currency")
-        or saving.get("currency")
-        or "USD"
-    )
-
-    # ============================================================
-    # REFERENCE NUMBER
-    # ============================================================
-
-    reference_no = (
-        "SAV-"
-        + datetime.utcnow().strftime("%Y%m%d%H%M%S")
-        + "-"
-        + secrets.token_hex(3).upper()
-    )
-
-    now = datetime.utcnow()
 
     # ============================================================
     # NEW BALANCES
     # ============================================================
 
-    new_account_balance = (
-        account_balance - amount
+    account_balance_after = (
+        account_balance_before - amount
     )
 
-    new_saving_balance = (
-        saving_balance + amount
+    saving_balance_after = (
+        saving_balance_before + amount
+    )
+
+    # ============================================================
+    # REFERENCE
+    # ============================================================
+
+    reference_no = (
+        "SAV-"
+        + datetime.utcnow().strftime(
+            "%Y%m%d%H%M%S"
+        )
+        + "-"
+        + secrets.token_hex(3).upper()
+    )
+
+    # ============================================================
+    # TIMESTAMP
+    # ============================================================
+
+    now = datetime.utcnow()
+
+    # ============================================================
+    # DEBUG BEFORE TRANSACTION
+    # ============================================================
+
+    print(
+        "\n=================================================="
+    )
+
+    print(
+        "SAVING TOPUP START"
+    )
+
+    print(
+        "USER:",
+        user_id
+    )
+
+    print(
+        "REFERENCE:",
+        reference_no
+    )
+
+    print(
+        "FROM ACCOUNT:",
+        account_name,
+        str(account_obj_id)
+    )
+
+    print(
+        "TO SAVING:",
+        saving_name,
+        str(saving_obj_id)
+    )
+
+    print(
+        "AMOUNT:",
+        amount,
+        currency
+    )
+
+    print(
+        "ACCOUNT BEFORE:",
+        account_balance_before
+    )
+
+    print(
+        "ACCOUNT AFTER:",
+        account_balance_after
+    )
+
+    print(
+        "SAVING BEFORE:",
+        saving_balance_before
+    )
+
+    print(
+        "SAVING AFTER:",
+        saving_balance_after
+    )
+
+    print(
+        "==================================================\n"
     )
 
     # ============================================================
     # STEP 1
     # ACCOUNT → REMOVE MONEY
+    #
+    # IMPORTANT:
+    # Atomic balance check
     # ============================================================
 
     account_result = mongo.db.accounts.update_one(
@@ -8603,11 +10055,13 @@ def saving_topup():
 
     if account_result.modified_count != 1:
 
-        return jsonify({
-            "success": False,
-            "error":
-                "Failed to remove money from source account."
-        }), 500
+        return error_response(
+            (
+                "Failed to remove money from source "
+                "account. The balance may have changed."
+            ),
+            400
+        )
 
     # ============================================================
     # STEP 2
@@ -8635,7 +10089,7 @@ def saving_topup():
     )
 
     # ============================================================
-    # ROLLBACK IF SAVING FAILED
+    # ROLLBACK IF SAVING UPDATE FAILED
     # ============================================================
 
     if saving_result.modified_count != 1:
@@ -8649,51 +10103,48 @@ def saving_topup():
             {
                 "$inc": {
                     "balance": amount
+                },
+
+                "$set": {
+                    "updated_at": now
                 }
             }
 
         )
 
-        return jsonify({
-            "success": False,
-            "error":
+        return error_response(
+            (
                 "Failed to add money to saving. "
                 "Account balance has been restored."
-        }), 500
+            ),
+            500
+        )
 
     # ============================================================
     # STEP 3
-    # SAVE ONLY TO account_transfers
+    # CREATE MASTER TRANSFER RECORD
     # ============================================================
 
     try:
 
-        mongo.db.account_transfers.insert_one({
+        transfer_document = {
 
-            # ----------------------------------------------------
-            # USER
-            # ----------------------------------------------------
+            # ====================================================
+            # IDENTIFICATION
+            # ====================================================
 
-            "user_id": user_id,
-
-            # ----------------------------------------------------
-            # TYPE
-            # ----------------------------------------------------
+            "user_id":
+                user_id,
 
             "transfer_type":
                 "account_to_saving",
 
-            # ----------------------------------------------------
-            # DIRECTION
-            # deposit = Account → Saving
-            # ----------------------------------------------------
-
             "direction":
                 "deposit",
 
-            # ----------------------------------------------------
+            # ====================================================
             # SOURCE ACCOUNT
-            # ----------------------------------------------------
+            # ====================================================
 
             "from_account":
                 account_obj_id,
@@ -8701,9 +10152,12 @@ def saving_topup():
             "from_account_name":
                 account_name,
 
-            # ----------------------------------------------------
+            "from_type":
+                "Account",
+
+            # ====================================================
             # DESTINATION SAVING
-            # ----------------------------------------------------
+            # ====================================================
 
             "to_saving":
                 saving_obj_id,
@@ -8711,30 +10165,29 @@ def saving_topup():
             "to_saving_name":
                 saving_name,
 
-            # ----------------------------------------------------
+            "to_type":
+                "Saving",
+
+            # ====================================================
             # AMOUNT
-            # ----------------------------------------------------
+            # ====================================================
 
             "amount":
                 amount,
 
-            # ----------------------------------------------------
-            # CURRENCY
-            # ----------------------------------------------------
-
             "currency":
                 currency,
 
-            # ----------------------------------------------------
+            # ====================================================
             # STATUS
-            # ----------------------------------------------------
+            # ====================================================
 
             "status":
                 "completed",
 
-            # ----------------------------------------------------
+            # ====================================================
             # REFERENCE
-            # ----------------------------------------------------
+            # ====================================================
 
             "reference":
                 reference_no,
@@ -8742,64 +10195,74 @@ def saving_topup():
             "reference_no":
                 reference_no,
 
-            # ----------------------------------------------------
+            "transfer_no":
+                reference_no,
+
+            # ====================================================
             # DESCRIPTION
-            # ----------------------------------------------------
+            # ====================================================
 
             "description":
                 "Account to Saving deposit",
 
-            # ----------------------------------------------------
-            # BALANCES
-            # ----------------------------------------------------
+            "note":
+                (
+                    f"Deposit from "
+                    f"{account_name} "
+                    f"to "
+                    f"{saving_name}"
+                ),
+
+            # ====================================================
+            # ACCOUNT BALANCE AUDIT
+            # ====================================================
 
             "account_balance_before":
-                account_balance,
+                account_balance_before,
 
             "account_balance_after":
-                new_account_balance,
+                account_balance_after,
+
+            # ====================================================
+            # SAVING BALANCE AUDIT
+            # ====================================================
 
             "saving_balance_before":
-                saving_balance,
+                saving_balance_before,
 
             "saving_balance_after":
-                new_saving_balance,
+                saving_balance_after,
 
-            # ----------------------------------------------------
-            # DATE
-            # ----------------------------------------------------
+            # ====================================================
+            # CREATED / UPDATED
+            # ====================================================
 
             "created_at":
                 now,
 
             "updated_at":
                 now
+        }
 
-        })
+        # --------------------------------------------------------
+        # INSERT MASTER
+        # --------------------------------------------------------
+
+        transfer_result = (
+            mongo.db.account_transfers.insert_one(
+                transfer_document
+            )
+        )
+
+        transfer_id = (
+            transfer_result.inserted_id
+        )
 
     except Exception as transfer_error:
 
         print(
-            "Saving transfer history error:",
-            transfer_error
-        )
-
-        # ========================================================
-        # ROLLBACK ACCOUNT
-        # ========================================================
-
-        mongo.db.accounts.update_one(
-
-            {
-                "_id": account_obj_id
-            },
-
-            {
-                "$inc": {
-                    "balance": amount
-                }
-            }
-
+            "ACCOUNT TRANSFER INSERT ERROR:",
+            repr(transfer_error)
         )
 
         # ========================================================
@@ -8815,31 +10278,368 @@ def saving_topup():
             {
                 "$inc": {
                     "current_balance": -amount
+                },
+
+                "$set": {
+                    "updated_at": now
                 }
             }
 
         )
 
-        return jsonify({
-            "success": False,
-            "error":
+        # ========================================================
+        # ROLLBACK ACCOUNT
+        # ========================================================
+
+        mongo.db.accounts.update_one(
+
+            {
+                "_id": account_obj_id
+            },
+
+            {
+                "$inc": {
+                    "balance": amount
+                },
+
+                "$set": {
+                    "updated_at": now
+                }
+            }
+
+        )
+
+        return error_response(
+            (
                 "Transfer history could not be saved. "
-                "Transaction was rolled back."
-        }), 500
+                "The transaction was rolled back."
+            ),
+            500
+        )
 
     # ============================================================
-    # SUCCESS
+    # STEP 4
+    # GENERAL TRANSACTION RECORD
+    #
+    # This allows the normal transactions report
+    # to also understand the movement.
     # ============================================================
 
-    return jsonify({
+    try:
 
-        "success": True,
+        transaction_document = {
+
+            # ====================================================
+            # USER
+            # ====================================================
+
+            "user_id":
+                user_id,
+
+            # ====================================================
+            # ACCOUNT
+            # ====================================================
+
+            "account_id":
+                account_obj_id,
+
+            # ====================================================
+            # TRANSACTION TYPE
+            # ====================================================
+
+            "transaction_type":
+                "transfer_out",
+
+            "type":
+                "transfer_out",
+
+            # ====================================================
+            # AMOUNT
+            # ====================================================
+
+            "amount":
+                amount,
+
+            "currency":
+                currency,
+
+            # ====================================================
+            # CATEGORY
+            # ====================================================
+
+            "category":
+                "Saving Transfer",
+
+            "item":
+                f"Saving Deposit - {saving_name}",
+
+            # ====================================================
+            # DESCRIPTION
+            # ====================================================
+
+            "description":
+                (
+                    f"Transfer from "
+                    f"{account_name} "
+                    f"to "
+                    f"{saving_name}"
+                ),
+
+            "note":
+                (
+                    f"Money moved from "
+                    f"{account_name} "
+                    f"to "
+                    f"{saving_name}"
+                ),
+
+            # ====================================================
+            # REFERENCE
+            # ====================================================
+
+            "reference_no":
+                reference_no,
+
+            "reference":
+                reference_no,
+
+            # ====================================================
+            # TRANSFER ID
+            # ====================================================
+
+            "transfer_id":
+                transfer_id,
+
+            # ====================================================
+            # ROUTE
+            # ====================================================
+
+            "from_account":
+                account_obj_id,
+
+            "from_account_name":
+                account_name,
+
+            "to_saving":
+                saving_obj_id,
+
+            "to_saving_name":
+                saving_name,
+
+            # ====================================================
+            # BALANCE AUDIT
+            # ====================================================
+
+            "account_balance_before":
+                account_balance_before,
+
+            "account_balance_after":
+                account_balance_after,
+
+            "saving_balance_before":
+                saving_balance_before,
+
+            "saving_balance_after":
+                saving_balance_after,
+
+            # ====================================================
+            # DATE
+            # ====================================================
+
+            "date":
+                now,
+
+            "created_at":
+                now,
+
+            "updated_at":
+                now,
+
+            "status":
+                True
+        }
+
+        mongo.db.transactions.insert_one(
+            transaction_document
+        )
+
+    except Exception as transaction_error:
+
+        print(
+            "GENERAL TRANSACTION INSERT ERROR:",
+            repr(transaction_error)
+        )
+
+        # ========================================================
+        # IMPORTANT
+        #
+        # Master transfer already exists.
+        # Do NOT rollback balances here.
+        #
+        # The master account_transfers record is the
+        # source of truth.
+        # ========================================================
+
+    # ============================================================
+    # STEP 5
+    # SAVING TRANSACTION HISTORY
+    # ============================================================
+
+    try:
+
+        saving_transaction_document = {
+
+            "user_id":
+                user_id,
+
+            "saving_id":
+                saving_obj_id,
+
+            "account_id":
+                account_obj_id,
+
+            "transaction_type":
+                "deposit",
+
+            "amount":
+                amount,
+
+            "currency":
+                currency,
+
+            "description":
+                (
+                    f"Deposit from "
+                    f"{account_name}"
+                ),
+
+            "note":
+                (
+                    f"Saving deposit from "
+                    f"{account_name}"
+                ),
+
+            "reference_no":
+                reference_no,
+
+            "reference":
+                reference_no,
+
+            "transfer_id":
+                transfer_id,
+
+            "from_account":
+                account_obj_id,
+
+            "from_account_name":
+                account_name,
+
+            "saving_balance_before":
+                saving_balance_before,
+
+            "saving_balance_after":
+                saving_balance_after,
+
+            "account_balance_before":
+                account_balance_before,
+
+            "account_balance_after":
+                account_balance_after,
+
+            "date":
+                now,
+
+            "created_at":
+                now,
+
+            "updated_at":
+                now,
+
+            "status":
+                True
+        }
+
+        mongo.db.saving_transactions.insert_one(
+            saving_transaction_document
+        )
+
+    except Exception as saving_history_error:
+
+        print(
+            "SAVING TRANSACTION HISTORY ERROR:",
+            repr(saving_history_error)
+        )
+
+    # ============================================================
+    # FINAL RESPONSE
+    # ============================================================
+
+    response_data = {
+
+        "success":
+            True,
 
         "message":
-            "Money moved from Account → Saving successfully.",
+            (
+                "Money moved from Account → Saving "
+                "successfully."
+            ),
+
+        # ========================================================
+        # MASTER TRANSFER
+        # ========================================================
+
+        "transfer_id":
+            str(transfer_id),
+
+        "transfer_type":
+            "account_to_saving",
+
+        "direction":
+            "deposit",
+
+        "status":
+            "completed",
+
+        # ========================================================
+        # REFERENCE
+        # ========================================================
 
         "reference":
             reference_no,
+
+        "reference_no":
+            reference_no,
+
+        # ========================================================
+        # SOURCE
+        # ========================================================
+
+        "from_account":
+            account_name,
+
+        "from_account_id":
+            str(account_obj_id),
+
+        "from_type":
+            "Account",
+
+        # ========================================================
+        # DESTINATION
+        # ========================================================
+
+        "to_saving":
+            saving_name,
+
+        "to_saving_id":
+            str(saving_obj_id),
+
+        "to_type":
+            "Saving",
+
+        # ========================================================
+        # MONEY
+        # ========================================================
 
         "amount":
             amount,
@@ -8847,19 +10647,92 @@ def saving_topup():
         "currency":
             currency,
 
-        "account":
-            account_name,
+        # ========================================================
+        # ACCOUNT AUDIT
+        # ========================================================
 
-        "saving":
-            saving_name,
+        "account_balance_before":
+            account_balance_before,
 
-        "account_balance":
-            new_account_balance,
+        "account_balance_after":
+            account_balance_after,
 
-        "saving_balance":
-            new_saving_balance
+        # ========================================================
+        # SAVING AUDIT
+        # ========================================================
 
-    }), 200
+        "saving_balance_before":
+            saving_balance_before,
+
+        "saving_balance_after":
+            saving_balance_after,
+
+        # ========================================================
+        # DATE
+        # ========================================================
+
+        "created_at":
+            now.isoformat()
+    }
+
+    # ============================================================
+    # DEBUG FINAL REPORT
+    # ============================================================
+
+    print(
+        "\n=================================================="
+    )
+
+    print(
+        "SAVING TOPUP COMPLETED"
+    )
+
+    print(
+        "Transfer ID:",
+        str(transfer_id)
+    )
+
+    print(
+        "Reference:",
+        reference_no
+    )
+
+    print(
+        "Account:",
+        account_name
+    )
+
+    print(
+        "Saving:",
+        saving_name
+    )
+
+    print(
+        "Amount:",
+        f"{currency} {amount:,.2f}"
+    )
+
+    print(
+        "Account:",
+        f"{account_balance_before:,.2f}",
+        "→",
+        f"{account_balance_after:,.2f}"
+    )
+
+    print(
+        "Saving:",
+        f"{saving_balance_before:,.2f}",
+        "→",
+        f"{saving_balance_after:,.2f}"
+    )
+
+    print(
+        "==================================================\n"
+    )
+
+    return jsonify(
+        response_data
+    ), 200
 
 
 
