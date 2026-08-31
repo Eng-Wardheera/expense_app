@@ -4647,6 +4647,7 @@ def import_categories():
 # ==============================
 # ACCOUNT LIST
 # ==============================
+
 @bp.route("/accounts")
 @login_required
 def account_list():
@@ -5629,6 +5630,7 @@ def account_list():
             saving_id
 
     )
+
 
 
 
