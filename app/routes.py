@@ -8419,9 +8419,6 @@ def delete_account_transfer(transfer_id):
 # ALL ACCOUNT TRANSFERS
 # ============================================================
 
-# ============================================================
-# ALL ACCOUNT / SAVING TRANSFERS
-# ============================================================
 @bp.route("/account/transfers")
 @login_required
 def all_account_transfers():
@@ -8452,16 +8449,12 @@ def all_account_transfers():
     else:
 
         user_conditions = [
-            {
-                "user_id": current_user_id
-            }
+            {"user_id": current_user_id}
         ]
 
         if current_user_object_id:
             user_conditions.append(
-                {
-                    "user_id": current_user_object_id
-                }
+                {"user_id": current_user_object_id}
             )
 
         transfer_query = {
@@ -8469,7 +8462,7 @@ def all_account_transfers():
         }
 
     # ============================================================
-    # GET ALL TRANSFERS
+    # GET TRANSFERS
     # ============================================================
 
     transfers_raw = list(
@@ -8482,99 +8475,7 @@ def all_account_transfers():
     )
 
     # ============================================================
-    # COLLECT ACCOUNT IDS
-    # ============================================================
-
-    account_ids = set()
-
-    for transfer in transfers_raw:
-
-        from_account = transfer.get("from_account")
-        to_account = transfer.get("to_account")
-
-        if from_account:
-            account_ids.add(
-                str(from_account)
-            )
-
-        if to_account:
-            account_ids.add(
-                str(to_account)
-            )
-
-    # ============================================================
-    # LOAD ACCOUNTS
-    # ============================================================
-
-    accounts_map = {}
-
-    for account_id in account_ids:
-
-        try:
-
-            account = mongo.db.accounts.find_one(
-                {
-                    "_id": ObjectId(account_id)
-                }
-            )
-
-            if account:
-
-                accounts_map[
-                    str(account["_id"])
-                ] = account
-
-        except Exception:
-            continue
-
-    # ============================================================
-    # COLLECT SAVING IDS
-    # ============================================================
-
-    saving_ids = set()
-
-    for transfer in transfers_raw:
-
-        from_saving = transfer.get("from_saving")
-        to_saving = transfer.get("to_saving")
-
-        if from_saving:
-            saving_ids.add(
-                str(from_saving)
-            )
-
-        if to_saving:
-            saving_ids.add(
-                str(to_saving)
-            )
-
-    # ============================================================
-    # LOAD SAVINGS
-    # ============================================================
-
-    savings_map = {}
-
-    for saving_id in saving_ids:
-
-        try:
-
-            saving = mongo.db.savings.find_one(
-                {
-                    "_id": ObjectId(saving_id)
-                }
-            )
-
-            if saving:
-
-                savings_map[
-                    str(saving["_id"])
-                ] = saving
-
-        except Exception:
-            continue
-
-    # ============================================================
-    # HELPER
+    # HELPERS
     # ============================================================
 
     def safe_float(value, default=0.0):
@@ -8586,30 +8487,160 @@ def all_account_transfers():
 
             return float(value)
 
-        except Exception:
+        except (TypeError, ValueError):
 
             return default
 
-    # ============================================================
-    # BALANCE HELPER
-    # ============================================================
+    def safe_string(value, default=""):
 
-    def get_balance(
-        transfer,
-        *possible_keys
-    ):
+        if value is None:
+            return default
 
-        for key in possible_keys:
+        return str(value)
+
+    def get_balance(transfer, *keys):
+
+        for key in keys:
 
             if key in transfer:
 
                 value = transfer.get(key)
 
                 if value is not None:
-
                     return safe_float(value)
 
         return 0.0
+
+    def format_datetime(value):
+
+        if not value:
+            return {
+                "iso": "",
+                "display": "-"
+            }
+
+        # Mongo datetime
+        if isinstance(value, datetime):
+
+            return {
+                "iso": value.isoformat(),
+                "display": value.strftime(
+                    "%d %b %Y, %I:%M:%S %p"
+                )
+            }
+
+        # String datetime
+        value_string = str(value)
+
+        try:
+
+            parsed = datetime.fromisoformat(
+                value_string.replace("Z", "+00:00")
+            )
+
+            return {
+                "iso": parsed.isoformat(),
+                "display": parsed.strftime(
+                    "%d %b %Y, %I:%M:%S %p"
+                )
+            }
+
+        except Exception:
+
+            return {
+                "iso": value_string,
+                "display": value_string
+            }
+
+    # ============================================================
+    # COLLECT ACCOUNT IDS
+    # ============================================================
+
+    account_ids = set()
+
+    for transfer in transfers_raw:
+
+        for key in [
+            "from_account",
+            "to_account"
+        ]:
+
+            value = transfer.get(key)
+
+            if value:
+
+                account_ids.add(
+                    str(value)
+                )
+
+    # ============================================================
+    # LOAD ACCOUNTS
+    # ============================================================
+
+    accounts_map = {}
+
+    for account_id in account_ids:
+
+        try:
+
+            account = mongo.db.accounts.find_one({
+                "_id": ObjectId(account_id)
+            })
+
+            if account:
+
+                accounts_map[
+                    str(account["_id"])
+                ] = account
+
+        except Exception:
+
+            continue
+
+    # ============================================================
+    # COLLECT SAVING IDS
+    # ============================================================
+
+    saving_ids = set()
+
+    for transfer in transfers_raw:
+
+        for key in [
+            "from_saving",
+            "to_saving"
+        ]:
+
+            value = transfer.get(key)
+
+            if value:
+
+                saving_ids.add(
+                    str(value)
+                )
+
+    # ============================================================
+    # LOAD SAVINGS
+    # ============================================================
+
+    savings_map = {}
+
+    for saving_id in saving_ids:
+
+        try:
+
+            saving = mongo.db.savings.find_one({
+                "_id": ObjectId(saving_id)
+            })
+
+            if saving:
+
+                savings_map[
+                    str(saving["_id"])
+                ] = saving
+
+        except Exception:
+
+            continue
 
     # ============================================================
     # PREPARE TRANSFERS
@@ -8620,84 +8651,40 @@ def all_account_transfers():
     for transfer in transfers_raw:
 
         # ========================================================
-        # ID
+        # BASIC
         # ========================================================
 
         transfer_id = str(
             transfer.get("_id")
         )
 
-        # ========================================================
-        # TRANSFER TYPE
-        # ========================================================
-
         transfer_type = (
             transfer.get("transfer_type")
             or "account_to_account"
         )
 
-        # ========================================================
-        # DATE
-        # ========================================================
-
-        created_at = transfer.get(
-            "created_at"
+        direction = (
+            transfer.get("direction")
+            or ""
         )
-
-        if isinstance(
-            created_at,
-            datetime
-        ):
-
-            created_at_string = (
-                created_at.strftime(
-                    "%Y-%m-%d %H:%M:%S"
-                )
-            )
-
-        elif created_at:
-
-            created_at_string = str(
-                created_at
-            )
-
-        else:
-
-            created_at_string = "-"
-
-        # ========================================================
-        # AMOUNT
-        # ========================================================
 
         amount = safe_float(
             transfer.get("amount")
         )
-
-        # ========================================================
-        # CURRENCY
-        # ========================================================
 
         currency = (
             transfer.get("currency")
             or "USD"
         )
 
-        # ========================================================
-        # STATUS
-        # ========================================================
-
         status = (
             transfer.get("status")
             or "completed"
         )
 
-        status_display = str(
-            status
-        ).capitalize()
-
-        # ========================================================
-        # REFERENCE
-        # ========================================================
+        status_display = (
+            str(status).replace("_", " ").title()
+        )
 
         reference = (
             transfer.get("reference_no")
@@ -8706,27 +8693,33 @@ def all_account_transfers():
             or transfer_id
         )
 
-        # ========================================================
-        # DIRECTION
-        # ========================================================
-
-        direction = (
-            transfer.get("direction")
+        description = (
+            transfer.get("description")
             or ""
         )
 
         # ========================================================
-        # DEFAULT NAMES
+        # DATE
         # ========================================================
 
-        from_name = "Unknown"
-        to_name = "Unknown"
+        date_info = format_datetime(
+            transfer.get("created_at")
+        )
+
+        # ========================================================
+        # DEFAULT
+        # ========================================================
+
+        transaction_type = "Transfer"
 
         from_type = "Account"
         to_type = "Account"
 
+        from_name = "Unknown Account"
+        to_name = "Unknown Account"
+
         # ========================================================
-        # DEFAULT BALANCES
+        # BALANCES
         # ========================================================
 
         from_balance_before = 0.0
@@ -8734,10 +8727,6 @@ def all_account_transfers():
 
         to_balance_before = 0.0
         to_balance_after = 0.0
-
-        # ========================================================
-        # SPECIFIC BALANCE FIELDS
-        # ========================================================
 
         from_account_balance_before = 0.0
         from_account_balance_after = 0.0
@@ -8752,12 +8741,6 @@ def all_account_transfers():
         to_saving_balance_after = 0.0
 
         # ========================================================
-        # TRANSACTION TYPE
-        # ========================================================
-
-        transaction_type = "Transfer"
-
-        # ========================================================
         # ACCOUNT → SAVING
         # ========================================================
 
@@ -8769,12 +8752,14 @@ def all_account_transfers():
             to_type = "Saving"
 
             # ----------------------------------------------------
-            # SOURCE ACCOUNT
+            # FROM ACCOUNT
             # ----------------------------------------------------
 
             from_account_id = transfer.get(
                 "from_account"
             )
+
+            account = None
 
             if from_account_id:
 
@@ -8782,31 +8767,16 @@ def all_account_transfers():
                     str(from_account_id)
                 )
 
-                if account:
+            if account:
 
-                    from_name = (
-                        transfer.get(
-                            "from_account_name"
-                        )
-                        or account.get("name")
-                        or account.get("account_name")
-                        or "Unknown Account"
+                from_name = (
+                    transfer.get(
+                        "from_account_name"
                     )
-
-                    currency = (
-                        transfer.get("currency")
-                        or account.get("currency")
-                        or "USD"
-                    )
-
-                else:
-
-                    from_name = (
-                        transfer.get(
-                            "from_account_name"
-                        )
-                        or "Unknown Account"
-                    )
+                    or account.get("name")
+                    or account.get("account_name")
+                    or "Unknown Account"
+                )
 
             else:
 
@@ -8818,12 +8788,14 @@ def all_account_transfers():
                 )
 
             # ----------------------------------------------------
-            # DESTINATION SAVING
+            # TO SAVING
             # ----------------------------------------------------
 
             to_saving_id = transfer.get(
                 "to_saving"
             )
+
+            saving = None
 
             if to_saving_id:
 
@@ -8831,26 +8803,17 @@ def all_account_transfers():
                     str(to_saving_id)
                 )
 
-                if saving:
+            if saving:
 
-                    to_name = (
-                        transfer.get(
-                            "to_saving_name"
-                        )
-                        or saving.get("name")
-                        or saving.get("saving_name")
-                        or saving.get("title")
-                        or "Unknown Saving"
+                to_name = (
+                    transfer.get(
+                        "to_saving_name"
                     )
-
-                else:
-
-                    to_name = (
-                        transfer.get(
-                            "to_saving_name"
-                        )
-                        or "Unknown Saving"
-                    )
+                    or saving.get("name")
+                    or saving.get("saving_name")
+                    or saving.get("title")
+                    or "Unknown Saving"
+                )
 
             else:
 
@@ -8860,6 +8823,20 @@ def all_account_transfers():
                     )
                     or "Unknown Saving"
                 )
+
+            # ----------------------------------------------------
+            # CURRENCY
+            # ----------------------------------------------------
+
+            currency = (
+                transfer.get("currency")
+                or (
+                    account.get("currency")
+                    if account
+                    else None
+                )
+                or "USD"
+            )
 
             # ----------------------------------------------------
             # ACCOUNT BALANCE
@@ -8897,10 +8874,6 @@ def all_account_transfers():
                 "destination_saving_balance_after"
             )
 
-            # ----------------------------------------------------
-            # GENERIC FROM / TO BALANCE
-            # ----------------------------------------------------
-
             from_balance_before = (
                 from_account_balance_before
             )
@@ -8929,12 +8902,14 @@ def all_account_transfers():
             to_type = "Account"
 
             # ----------------------------------------------------
-            # SOURCE SAVING
+            # FROM SAVING
             # ----------------------------------------------------
 
             from_saving_id = transfer.get(
                 "from_saving"
             )
+
+            saving = None
 
             if from_saving_id:
 
@@ -8942,32 +8917,17 @@ def all_account_transfers():
                     str(from_saving_id)
                 )
 
-                if saving:
+            if saving:
 
-                    from_name = (
-                        transfer.get(
-                            "from_saving_name"
-                        )
-                        or saving.get("name")
-                        or saving.get("saving_name")
-                        or saving.get("title")
-                        or "Unknown Saving"
+                from_name = (
+                    transfer.get(
+                        "from_saving_name"
                     )
-
-                    currency = (
-                        transfer.get("currency")
-                        or saving.get("currency")
-                        or "USD"
-                    )
-
-                else:
-
-                    from_name = (
-                        transfer.get(
-                            "from_saving_name"
-                        )
-                        or "Unknown Saving"
-                    )
+                    or saving.get("name")
+                    or saving.get("saving_name")
+                    or saving.get("title")
+                    or "Unknown Saving"
+                )
 
             else:
 
@@ -8979,12 +8939,14 @@ def all_account_transfers():
                 )
 
             # ----------------------------------------------------
-            # DESTINATION ACCOUNT
+            # TO ACCOUNT
             # ----------------------------------------------------
 
             to_account_id = transfer.get(
                 "to_account"
             )
+
+            account = None
 
             if to_account_id:
 
@@ -8992,32 +8954,16 @@ def all_account_transfers():
                     str(to_account_id)
                 )
 
-                if account:
+            if account:
 
-                    to_name = (
-                        transfer.get(
-                            "to_account_name"
-                        )
-                        or account.get("name")
-                        or account.get("account_name")
-                        or "Unknown Account"
+                to_name = (
+                    transfer.get(
+                        "to_account_name"
                     )
-
-                    currency = (
-                        transfer.get("currency")
-                        or account.get("currency")
-                        or currency
-                        or "USD"
-                    )
-
-                else:
-
-                    to_name = (
-                        transfer.get(
-                            "to_account_name"
-                        )
-                        or "Unknown Account"
-                    )
+                    or account.get("name")
+                    or account.get("account_name")
+                    or "Unknown Account"
+                )
 
             else:
 
@@ -9027,6 +8973,25 @@ def all_account_transfers():
                     )
                     or "Unknown Account"
                 )
+
+            # ----------------------------------------------------
+            # CURRENCY
+            # ----------------------------------------------------
+
+            currency = (
+                transfer.get("currency")
+                or (
+                    saving.get("currency")
+                    if saving
+                    else None
+                )
+                or (
+                    account.get("currency")
+                    if account
+                    else None
+                )
+                or "USD"
+            )
 
             # ----------------------------------------------------
             # SAVING BALANCE
@@ -9064,10 +9029,6 @@ def all_account_transfers():
                 "destination_account_balance_after"
             )
 
-            # ----------------------------------------------------
-            # GENERIC FROM / TO BALANCE
-            # ----------------------------------------------------
-
             from_balance_before = (
                 from_saving_balance_before
             )
@@ -9096,44 +9057,31 @@ def all_account_transfers():
             to_type = "Account"
 
             # ----------------------------------------------------
-            # SOURCE ACCOUNT
+            # FROM ACCOUNT
             # ----------------------------------------------------
 
             from_account_id = transfer.get(
                 "from_account"
             )
 
+            from_account = None
+
             if from_account_id:
 
-                account = accounts_map.get(
+                from_account = accounts_map.get(
                     str(from_account_id)
                 )
 
-                if account:
+            if from_account:
 
-                    from_name = (
-                        transfer.get(
-                            "from_account_name"
-                        )
-                        or account.get("name")
-                        or account.get("account_name")
-                        or "Unknown Account"
+                from_name = (
+                    transfer.get(
+                        "from_account_name"
                     )
-
-                    currency = (
-                        transfer.get("currency")
-                        or account.get("currency")
-                        or "USD"
-                    )
-
-                else:
-
-                    from_name = (
-                        transfer.get(
-                            "from_account_name"
-                        )
-                        or "Unknown Account"
-                    )
+                    or from_account.get("name")
+                    or from_account.get("account_name")
+                    or "Unknown Account"
+                )
 
             else:
 
@@ -9145,38 +9093,31 @@ def all_account_transfers():
                 )
 
             # ----------------------------------------------------
-            # DESTINATION ACCOUNT
+            # TO ACCOUNT
             # ----------------------------------------------------
 
             to_account_id = transfer.get(
                 "to_account"
             )
 
+            to_account = None
+
             if to_account_id:
 
-                account = accounts_map.get(
+                to_account = accounts_map.get(
                     str(to_account_id)
                 )
 
-                if account:
+            if to_account:
 
-                    to_name = (
-                        transfer.get(
-                            "to_account_name"
-                        )
-                        or account.get("name")
-                        or account.get("account_name")
-                        or "Unknown Account"
+                to_name = (
+                    transfer.get(
+                        "to_account_name"
                     )
-
-                else:
-
-                    to_name = (
-                        transfer.get(
-                            "to_account_name"
-                        )
-                        or "Unknown Account"
-                    )
+                    or to_account.get("name")
+                    or to_account.get("account_name")
+                    or "Unknown Account"
+                )
 
             else:
 
@@ -9188,7 +9129,26 @@ def all_account_transfers():
                 )
 
             # ----------------------------------------------------
-            # SOURCE ACCOUNT BALANCE
+            # CURRENCY
+            # ----------------------------------------------------
+
+            currency = (
+                transfer.get("currency")
+                or (
+                    from_account.get("currency")
+                    if from_account
+                    else None
+                )
+                or (
+                    to_account.get("currency")
+                    if to_account
+                    else None
+                )
+                or "USD"
+            )
+
+            # ----------------------------------------------------
+            # SOURCE BALANCE
             # ----------------------------------------------------
 
             from_account_balance_before = get_balance(
@@ -9206,7 +9166,7 @@ def all_account_transfers():
             )
 
             # ----------------------------------------------------
-            # DESTINATION ACCOUNT BALANCE
+            # DESTINATION BALANCE
             # ----------------------------------------------------
 
             to_account_balance_before = get_balance(
@@ -9222,10 +9182,6 @@ def all_account_transfers():
                 "destination_account_balance_after",
                 "receiver_account_balance_after"
             )
-
-            # ----------------------------------------------------
-            # GENERIC FROM / TO BALANCE
-            # ----------------------------------------------------
 
             from_balance_before = (
                 from_account_balance_before
@@ -9244,60 +9200,70 @@ def all_account_transfers():
             )
 
         # ========================================================
-        # DESCRIPTION
+        # ORIGINAL BALANCE FIELDS
         # ========================================================
 
-        description = (
-            transfer.get("description")
-            or ""
+        saving_balance_before = get_balance(
+            transfer,
+            "saving_balance_before"
+        )
+
+        saving_balance_after = get_balance(
+            transfer,
+            "saving_balance_after"
+        )
+
+        account_balance_before = get_balance(
+            transfer,
+            "account_balance_before"
+        )
+
+        account_balance_after = get_balance(
+            transfer,
+            "account_balance_after"
         )
 
         # ========================================================
-        # USER ID
+        # USER
         # ========================================================
 
-        raw_user_id = transfer.get(
+        raw_transfer_user_id = transfer.get(
             "user_id"
         )
 
-        user_id = (
-            str(raw_user_id)
-            if raw_user_id is not None
+        transfer_user_id = (
+            str(raw_transfer_user_id)
+            if raw_transfer_user_id is not None
             else ""
         )
 
         # ========================================================
-        # FINAL TRANSFER DATA
+        # TRANSFER DATA
         # ========================================================
 
         transfer_data = {
 
-            # ----------------------------------------------------
-            # IDENTIFICATION
-            # ----------------------------------------------------
+            # ====================================================
+            # IDENTITY
+            # ====================================================
 
             "id": transfer_id,
-
             "_id": transfer_id,
+            "user_id": transfer_user_id,
 
-            "user_id": user_id,
-
-            # ----------------------------------------------------
+            # ====================================================
             # TYPE
-            # ----------------------------------------------------
+            # ====================================================
 
             "transfer_type": transfer_type,
-
             "transaction_type": transaction_type,
-
             "direction": direction,
 
-            # ----------------------------------------------------
+            # ====================================================
             # FROM
-            # ----------------------------------------------------
+            # ====================================================
 
             "from_name": from_name,
-
             "from_type": from_type,
 
             "from_account_name": (
@@ -9322,12 +9288,11 @@ def all_account_transfers():
                 )
             ),
 
-            # ----------------------------------------------------
+            # ====================================================
             # TO
-            # ----------------------------------------------------
+            # ====================================================
 
             "to_name": to_name,
-
             "to_type": to_type,
 
             "to_account_name": (
@@ -9352,148 +9317,143 @@ def all_account_transfers():
                 )
             ),
 
-            # ----------------------------------------------------
+            # ====================================================
             # AMOUNT
-            # ----------------------------------------------------
+            # ====================================================
 
             "amount": amount,
-
             "currency": currency,
 
-            # ----------------------------------------------------
+            # ====================================================
             # STATUS
-            # ----------------------------------------------------
+            # ====================================================
 
             "status": status_display,
 
-            # ----------------------------------------------------
+            # ====================================================
             # REFERENCE
-            # ----------------------------------------------------
+            # ====================================================
 
-            "reference_no": str(
-                reference
-            ),
+            "reference_no": safe_string(reference),
+            "reference": safe_string(reference),
 
-            "reference": str(
-                reference
-            ),
-
-            # ----------------------------------------------------
+            # ====================================================
             # DESCRIPTION
-            # ----------------------------------------------------
+            # ====================================================
 
             "description": description,
 
-            # ----------------------------------------------------
+            # ====================================================
             # DATE
-            # ----------------------------------------------------
+            # ====================================================
 
-            "created_at": created_at_string,
+            "created_at": date_info["iso"],
 
-            # ----------------------------------------------------
-            # GENERIC BALANCE
-            # ----------------------------------------------------
+            "created_at_display": date_info["display"],
 
-            "from_balance_before": (
-                from_balance_before
+            # ====================================================
+            # GENERIC BALANCES
+            # ====================================================
+
+            "from_balance_before":
+                from_balance_before,
+
+            "from_balance_after":
+                from_balance_after,
+
+            "to_balance_before":
+                to_balance_before,
+
+            "to_balance_after":
+                to_balance_after,
+
+            # ====================================================
+            # ACCOUNT BALANCES
+            # ====================================================
+
+            "from_account_balance_before":
+                from_account_balance_before,
+
+            "from_account_balance_after":
+                from_account_balance_after,
+
+            "to_account_balance_before":
+                to_account_balance_before,
+
+            "to_account_balance_after":
+                to_account_balance_after,
+
+            # ====================================================
+            # SAVING BALANCES
+            # ====================================================
+
+            "from_saving_balance_before":
+                from_saving_balance_before,
+
+            "from_saving_balance_after":
+                from_saving_balance_after,
+
+            "to_saving_balance_before":
+                to_saving_balance_before,
+
+            "to_saving_balance_after":
+                to_saving_balance_after,
+
+            # ====================================================
+            # ORIGINAL DATABASE FIELDS
+            # ====================================================
+
+            "saving_balance_before":
+                saving_balance_before,
+
+            "saving_balance_after":
+                saving_balance_after,
+
+            "account_balance_before":
+                account_balance_before,
+
+            "account_balance_after":
+                account_balance_after,
+
+            # ====================================================
+            # OBJECT IDS AS STRINGS
+            # Useful for modal/detail page
+            # ====================================================
+
+            "from_account_id": (
+                str(transfer.get("from_account"))
+                if transfer.get("from_account")
+                else ""
             ),
 
-            "from_balance_after": (
-                from_balance_after
+            "to_account_id": (
+                str(transfer.get("to_account"))
+                if transfer.get("to_account")
+                else ""
             ),
 
-            "to_balance_before": (
-                to_balance_before
+            "from_saving_id": (
+                str(transfer.get("from_saving"))
+                if transfer.get("from_saving")
+                else ""
             ),
 
-            "to_balance_after": (
-                to_balance_after
-            ),
-
-            # ----------------------------------------------------
-            # ACCOUNT BALANCE
-            # ----------------------------------------------------
-
-            "from_account_balance_before": (
-                from_account_balance_before
-            ),
-
-            "from_account_balance_after": (
-                from_account_balance_after
-            ),
-
-            "to_account_balance_before": (
-                to_account_balance_before
-            ),
-
-            "to_account_balance_after": (
-                to_account_balance_after
-            ),
-
-            # ----------------------------------------------------
-            # SAVING BALANCE
-            # ----------------------------------------------------
-
-            "from_saving_balance_before": (
-                from_saving_balance_before
-            ),
-
-            "from_saving_balance_after": (
-                from_saving_balance_after
-            ),
-
-            "to_saving_balance_before": (
-                to_saving_balance_before
-            ),
-
-            "to_saving_balance_after": (
-                to_saving_balance_after
-            ),
-
-            # ----------------------------------------------------
-            # ORIGINAL DATABASE BALANCE FIELDS
-            # ----------------------------------------------------
-
-            "saving_balance_before": get_balance(
-                transfer,
-                "saving_balance_before"
-            ),
-
-            "saving_balance_after": get_balance(
-                transfer,
-                "saving_balance_after"
-            ),
-
-            "account_balance_before": get_balance(
-                transfer,
-                "account_balance_before"
-            ),
-
-            "account_balance_after": get_balance(
-                transfer,
-                "account_balance_after"
+            "to_saving_id": (
+                str(transfer.get("to_saving"))
+                if transfer.get("to_saving")
+                else ""
             )
         }
-
-        # ========================================================
-        # APPEND
-        # ========================================================
 
         transfers.append(
             transfer_data
         )
 
     # ============================================================
-    # TOTAL TRANSFERS
+    # SUMMARY
     # ============================================================
 
-    total_transfers = len(
-        transfers
-    )
-
-    # ============================================================
-    # TOTAL AMOUNT
-    # ============================================================
+    total_transfers = len(transfers)
 
     total_amount = sum(
         safe_float(
@@ -9502,91 +9462,40 @@ def all_account_transfers():
         for item in transfers
     )
 
-    # ============================================================
-    # TOTAL DEPOSITS
-    # ============================================================
-
     total_deposits = sum(
-
-        safe_float(
-            item.get("amount")
-        )
-
+        safe_float(item.get("amount"))
         for item in transfers
-
-        if item.get(
-            "transaction_type"
-        ) == "Deposit"
+        if item.get("transaction_type") == "Deposit"
     )
-
-    # ============================================================
-    # TOTAL WITHDRAWALS
-    # ============================================================
 
     total_withdrawals = sum(
-
-        safe_float(
-            item.get("amount")
-        )
-
+        safe_float(item.get("amount"))
         for item in transfers
-
-        if item.get(
-            "transaction_type"
-        ) == "Withdraw"
+        if item.get("transaction_type") == "Withdraw"
     )
-
-    # ============================================================
-    # TOTAL ACCOUNT TRANSFERS
-    # ============================================================
 
     total_account_transfers = sum(
-
-        safe_float(
-            item.get("amount")
-        )
-
+        safe_float(item.get("amount"))
         for item in transfers
-
-        if item.get(
-            "transaction_type"
-        ) == "Transfer"
+        if item.get("transaction_type") == "Transfer"
     )
-
-    # ============================================================
-    # COUNT DEPOSITS
-    # ============================================================
 
     deposit_count = sum(
         1
         for item in transfers
-        if item.get(
-            "transaction_type"
-        ) == "Deposit"
+        if item.get("transaction_type") == "Deposit"
     )
-
-    # ============================================================
-    # COUNT WITHDRAWALS
-    # ============================================================
 
     withdrawal_count = sum(
         1
         for item in transfers
-        if item.get(
-            "transaction_type"
-        ) == "Withdraw"
+        if item.get("transaction_type") == "Withdraw"
     )
-
-    # ============================================================
-    # COUNT ACCOUNT TRANSFERS
-    # ============================================================
 
     account_transfer_count = sum(
         1
         for item in transfers
-        if item.get(
-            "transaction_type"
-        ) == "Transfer"
+        if item.get("transaction_type") == "Transfer"
     )
 
     # ============================================================
