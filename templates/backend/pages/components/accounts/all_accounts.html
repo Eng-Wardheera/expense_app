@@ -1,1147 +1,13 @@
-
 {% extends 'backend/home/base.html' %}
 
-{% block title %}
-Account Transfer Reports
-{% endblock %}
+{% block title %}All Accounts{% endblock %}
 
 {% block content %}
 
-<style>
-/* =========================================================
-   ACCOUNT TRANSFERS - ADVANCED REPORT UI
-========================================================= */
 
-:root {
-    --at-primary: #0b3b82;
-    --at-primary-dark: #082d63;
-    --at-success: #159447;
-    --at-danger: #dc3545;
-    --at-warning: #d98c00;
-    --at-info: #168aad;
-    --at-dark: #172033;
-    --at-muted: #718096;
-    --at-border: #e7ebf0;
-    --at-bg: #f5f7fb;
-    --at-white: #ffffff;
-    --at-shadow: 0 12px 35px rgba(25, 45, 80, .08);
-    --at-radius: 18px;
-}
-
-.account-transfer-page {
-    background: var(--at-bg);
-    min-height: 100vh;
-    padding-bottom: 50px;
-}
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.at-page-header {
-    background: linear-gradient(
-        135deg,
-        var(--at-primary-dark),
-        var(--at-primary)
-    );
-    color: #fff;
-    border-radius: 22px;
-    padding: 28px;
-    margin-bottom: 24px;
-    box-shadow: 0 15px 40px rgba(8, 45, 99, .20);
-}
-
-.at-header-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-}
-
-.at-header-left {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-}
-
-.at-header-icon {
-    width: 62px;
-    height: 62px;
-    border-radius: 18px;
-    background: rgba(255,255,255,.14);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 27px;
-    border: 1px solid rgba(255,255,255,.15);
-}
-
-.at-header-title {
-    margin: 0;
-    font-size: 25px;
-    font-weight: 800;
-}
-
-.at-header-subtitle {
-    margin: 5px 0 0;
-    color: rgba(255,255,255,.75);
-    font-size: 13px;
-}
-
-.at-header-actions {
-    display: flex;
-    gap: 9px;
-    flex-wrap: wrap;
-}
-
-.at-header-actions button {
-    border: 0;
-    padding: 11px 16px;
-    border-radius: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.btn-at-white {
-    background: #fff;
-    color: var(--at-primary);
-}
-
-.btn-at-light {
-    background: rgba(255,255,255,.12);
-    color: #fff;
-    border: 1px solid rgba(255,255,255,.20) !important;
-}
-
-/* =========================================================
-   CURRENT USER CARD
-========================================================= */
-
-.at-user-card {
-    background: #fff;
-    border: 1px solid var(--at-border);
-    border-radius: var(--at-radius);
-    box-shadow: var(--at-shadow);
-    padding: 20px;
-    margin-bottom: 24px;
-}
-
-.at-user-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-}
-
-.at-user-profile {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.at-user-avatar {
-    width: 58px;
-    height: 58px;
-    border-radius: 16px;
-    object-fit: cover;
-    border: 2px solid #edf1f7;
-    background: #eef3fa;
-}
-
-.at-user-avatar-placeholder {
-    width: 58px;
-    height: 58px;
-    border-radius: 16px;
-    background: linear-gradient(135deg,#dce8f8,#f3f6fb);
-    color: var(--at-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 800;
-}
-
-.at-user-name {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--at-dark);
-}
-
-.at-user-email {
-    margin: 3px 0 0;
-    color: var(--at-muted);
-    font-size: 13px;
-}
-
-.at-user-meta {
-    display: flex;
-    gap: 9px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.at-user-badge {
-    background: #f3f6fa;
-    color: #526173;
-    border: 1px solid #e6ebf1;
-    border-radius: 9px;
-    padding: 7px 11px;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-/* =========================================================
-   STATISTICS
-========================================================= */
-
-.at-stat-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-}
-
-.at-stat-card {
-    background: #fff;
-    border: 1px solid var(--at-border);
-    border-radius: var(--at-radius);
-    padding: 19px;
-    box-shadow: var(--at-shadow);
-    position: relative;
-    overflow: hidden;
-}
-
-.at-stat-card::after {
-    content: "";
-    position: absolute;
-    width: 75px;
-    height: 75px;
-    border-radius: 50%;
-    right: -25px;
-    top: -25px;
-    background: #f4f7fb;
-}
-
-.at-stat-top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.at-stat-icon {
-    width: 43px;
-    height: 43px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 17px;
-}
-
-.at-stat-label {
-    color: var(--at-muted);
-    font-size: 12px;
-    font-weight: 700;
-    margin-top: 13px;
-}
-
-.at-stat-value {
-    font-size: 22px;
-    font-weight: 850;
-    color: var(--at-dark);
-    margin-top: 3px;
-}
-
-.at-stat-count {
-    color: #8b96a5;
-    font-size: 11px;
-    margin-top: 3px;
-}
-
-.at-blue {
-    background: #edf4ff;
-    color: #2468c5;
-}
-
-.at-green {
-    background: #eaf9f0;
-    color: #159447;
-}
-
-.at-orange {
-    background: #fff6e7;
-    color: #d98c00;
-}
-
-.at-red {
-    background: #fff0f1;
-    color: #dc3545;
-}
-
-.at-purple {
-    background: #f3efff;
-    color: #7357d7;
-}
-
-/* =========================================================
-   FILTER CARD
-========================================================= */
-
-.at-filter-card {
-    background: #fff;
-    border: 1px solid var(--at-border);
-    border-radius: var(--at-radius);
-    box-shadow: var(--at-shadow);
-    padding: 19px;
-    margin-bottom: 20px;
-}
-
-.at-filter-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr auto;
-    gap: 11px;
-    align-items: end;
-}
-
-.at-field label {
-    display: block;
-    font-size: 11px;
-    font-weight: 800;
-    color: #647184;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: .3px;
-}
-
-.at-input,
-.at-select {
-    width: 100%;
-    height: 42px;
-    border: 1px solid #dfe5ec;
-    background: #fbfcfe;
-    border-radius: 10px;
-    padding: 0 12px;
-    outline: none;
-    font-size: 13px;
-    color: #253044;
-}
-
-.at-input:focus,
-.at-select:focus {
-    border-color: #7fa8dc;
-    box-shadow: 0 0 0 3px rgba(11,59,130,.08);
-}
-
-.at-reset {
-    height: 42px;
-    border: 0;
-    border-radius: 10px;
-    background: #eef2f6;
-    color: #4d5b6c;
-    padding: 0 14px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-/* =========================================================
-   TABLE
-========================================================= */
-
-.at-table-card {
-    background: #fff;
-    border: 1px solid var(--at-border);
-    border-radius: var(--at-radius);
-    box-shadow: var(--at-shadow);
-    overflow: hidden;
-}
-
-.at-table-header {
-    padding: 19px 21px;
-    border-bottom: 1px solid var(--at-border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-}
-
-.at-table-title {
-    margin: 0;
-    color: var(--at-dark);
-    font-size: 16px;
-    font-weight: 850;
-}
-
-.at-table-subtitle {
-    color: var(--at-muted);
-    font-size: 12px;
-    margin-top: 3px;
-}
-
-.at-table-actions {
-    display: flex;
-    gap: 7px;
-}
-
-.at-small-btn {
-    border: 1px solid #e1e6ed;
-    background: #fff;
-    color: #4d5b6c;
-    border-radius: 9px;
-    padding: 8px 11px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 750;
-}
-
-.at-small-btn:hover {
-    background: #f6f8fb;
-}
-
-.at-table-wrap {
-    overflow-x: auto;
-}
-
-.at-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 1250px;
-}
-
-.at-table thead th {
-    background: #f8fafc;
-    color: #697689;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    font-weight: 850;
-    padding: 13px 12px;
-    border-bottom: 1px solid #e7ebf0;
-    white-space: nowrap;
-}
-
-.at-table tbody td {
-    padding: 14px 12px;
-    border-bottom: 1px solid #edf0f4;
-    color: #2e394b;
-    font-size: 12px;
-    vertical-align: middle;
-}
-
-.at-table tbody tr:hover {
-    background: #fbfcfe;
-}
-
-/* =========================================================
-   TRANSFER ROUTE
-========================================================= */
-
-.at-route {
-    display: flex;
-    align-items: center;
-    min-width: 340px;
-    gap: 9px;
-}
-
-.at-party {
-    min-width: 120px;
-}
-
-.at-party-name {
-    font-weight: 800;
-    color: #202b3d;
-    white-space: nowrap;
-}
-
-.at-party-type {
-    display: inline-block;
-    margin-top: 3px;
-    font-size: 9px;
-    color: #7b8796;
-    text-transform: uppercase;
-    font-weight: 800;
-}
-
-.at-arrow {
-    width: 31px;
-    height: 31px;
-    min-width: 31px;
-    border-radius: 50%;
-    background: #edf4ff;
-    color: var(--at-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* =========================================================
-   BADGES
-========================================================= */
-
-.at-type-badge,
-.at-status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    border-radius: 8px;
-    padding: 6px 9px;
-    font-size: 10px;
-    font-weight: 850;
-    white-space: nowrap;
-}
-
-.at-type-transfer {
-    background: #edf4ff;
-    color: #2468c5;
-}
-
-.at-type-deposit {
-    background: #eaf9f0;
-    color: #159447;
-}
-
-.at-type-withdraw {
-    background: #fff0f1;
-    color: #dc3545;
-}
-
-.at-status-completed {
-    background: #eaf9f0;
-    color: #159447;
-}
-
-.at-status-pending {
-    background: #fff6e7;
-    color: #b97800;
-}
-
-.at-status-failed,
-.at-status-cancelled {
-    background: #fff0f1;
-    color: #c72d3d;
-}
-
-/* =========================================================
-   AMOUNT
-========================================================= */
-
-.at-amount {
-    font-weight: 900;
-    color: #182235;
-    white-space: nowrap;
-}
-
-.at-currency {
-    font-size: 10px;
-    color: #8a94a2;
-    margin-left: 2px;
-}
-
-.at-reference {
-    font-family: monospace;
-    font-size: 10px;
-    color: #5b6879;
-    background: #f5f7fa;
-    padding: 5px 7px;
-    border-radius: 6px;
-    white-space: nowrap;
-}
-
-/* =========================================================
-   BALANCE
-========================================================= */
-
-.at-balance {
-    min-width: 145px;
-}
-
-.at-balance-line {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 3px 0;
-}
-
-.at-balance-label {
-    color: #8a95a4;
-    font-size: 10px;
-}
-
-.at-balance-value {
-    font-size: 10px;
-    font-weight: 800;
-    color: #334155;
-}
-
-/* =========================================================
-   ACTIONS
-========================================================= */
-
-.at-actions {
-    display: flex;
-    gap: 5px;
-}
-
-.at-action {
-    width: 33px;
-    height: 33px;
-    border-radius: 9px;
-    border: 1px solid #e4e8ee;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #607084;
-}
-
-.at-action:hover {
-    background: #f5f7fa;
-}
-
-.at-action-view {
-    color: #2468c5;
-}
-
-.at-action-print {
-    color: #7357d7;
-}
-
-.at-action-delete {
-    color: #dc3545;
-}
-
-/* =========================================================
-   EMPTY
-========================================================= */
-
-.at-empty {
-    padding: 70px 20px;
-    text-align: center;
-}
-
-.at-empty-icon {
-    width: 70px;
-    height: 70px;
-    border-radius: 22px;
-    background: #f1f4f8;
-    color: #8c98a8;
-    margin: auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 27px;
-}
-
-.at-empty h4 {
-    margin: 15px 0 5px;
-    color: #2b3648;
-}
-
-.at-empty p {
-    margin: 0;
-    color: #8993a1;
-    font-size: 13px;
-}
-
-/* =========================================================
-   MODAL
-========================================================= */
-
-.at-modal {
-    position: fixed;
-    inset: 0;
-    background: rgba(12, 22, 38, .62);
-    backdrop-filter: blur(5px);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 99999;
-    padding: 20px;
-}
-
-.at-modal.show {
-    display: flex;
-}
-
-.at-modal-box {
-    width: min(1050px, 100%);
-    max-height: 94vh;
-    overflow-y: auto;
-    background: #fff;
-    border-radius: 22px;
-    box-shadow: 0 30px 80px rgba(0,0,0,.25);
-}
-
-.at-modal-small {
-    width: min(480px, 100%);
-}
-
-.at-modal-head {
-    padding: 18px 22px;
-    border-bottom: 1px solid #e9edf2;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: sticky;
-    top: 0;
-    background: #fff;
-    z-index: 2;
-}
-
-.at-modal-title {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 850;
-    color: #172033;
-}
-
-.at-close {
-    border: 0;
-    background: #f1f4f7;
-    width: 35px;
-    height: 35px;
-    border-radius: 10px;
-    cursor: pointer;
-    color: #657284;
-}
-
-.at-modal-body {
-    padding: 23px;
-}
-
-.at-modal-footer {
-    padding: 15px 22px;
-    border-top: 1px solid #e9edf2;
-    display: flex;
-    justify-content: flex-end;
-    gap: 9px;
-}
-
-/* =========================================================
-   INVOICE
-========================================================= */
-
-.invoice {
-    background: #fff;
-    padding: 34px;
-}
-
-.invoice-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 30px;
-    border-bottom: 2px solid #edf0f4;
-    padding-bottom: 22px;
-}
-
-.invoice-brand {
-    display: flex;
-    gap: 13px;
-    align-items: center;
-}
-
-.invoice-logo {
-    width: 55px;
-    height: 55px;
-    border-radius: 15px;
-    background: #0b3b82;
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-    font-weight: 900;
-}
-
-.invoice-company {
-    font-size: 18px;
-    font-weight: 900;
-    color: #172033;
-}
-
-.invoice-company-sub {
-    color: #7c8795;
-    font-size: 11px;
-    margin-top: 3px;
-}
-
-.invoice-title {
-    text-align: right;
-}
-
-.invoice-title h2 {
-    margin: 0;
-    color: #0b3b82;
-    font-size: 25px;
-    font-weight: 900;
-}
-
-.invoice-title p {
-    margin: 4px 0 0;
-    color: #7a8594;
-    font-size: 11px;
-}
-
-.invoice-meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 18px;
-    margin-top: 24px;
-}
-
-.invoice-meta-box {
-    background: #f8fafc;
-    border: 1px solid #e8edf3;
-    border-radius: 13px;
-    padding: 15px;
-}
-
-.invoice-meta-label {
-    color: #8792a0;
-    font-size: 10px;
-    text-transform: uppercase;
-    font-weight: 850;
-}
-
-.invoice-meta-value {
-    margin-top: 5px;
-    color: #263246;
-    font-size: 13px;
-    font-weight: 800;
-}
-
-.invoice-route {
-    margin: 24px 0;
-    display: grid;
-    grid-template-columns: 1fr 70px 1fr;
-    align-items: center;
-    gap: 15px;
-}
-
-.invoice-party {
-    border: 1px solid #e5eaf0;
-    border-radius: 15px;
-    padding: 17px;
-}
-
-.invoice-party-label {
-    color: #8a95a3;
-    font-size: 10px;
-    text-transform: uppercase;
-    font-weight: 850;
-}
-
-.invoice-party-name {
-    font-size: 15px;
-    color: #172033;
-    font-weight: 900;
-    margin-top: 7px;
-}
-
-.invoice-party-type {
-    color: #758194;
-    font-size: 11px;
-    margin-top: 4px;
-}
-
-.invoice-route-arrow {
-    width: 50px;
-    height: 50px;
-    margin: auto;
-    border-radius: 50%;
-    background: #edf4ff;
-    color: #0b3b82;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
-
-.invoice-amount-box {
-    background: linear-gradient(135deg,#f3f7ff,#fafcff);
-    border: 1px solid #dce6f5;
-    border-radius: 17px;
-    padding: 22px;
-    text-align: center;
-    margin-bottom: 23px;
-}
-
-.invoice-amount-label {
-    color: #718096;
-    font-size: 10px;
-    font-weight: 850;
-    text-transform: uppercase;
-}
-
-.invoice-amount {
-    color: #0b3b82;
-    font-size: 34px;
-    line-height: 1.2;
-    font-weight: 950;
-    margin-top: 5px;
-}
-
-.invoice-balance-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-
-.invoice-balance-card {
-    border: 1px solid #e4e9ef;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-.invoice-balance-head {
-    background: #f7f9fb;
-    padding: 11px 15px;
-    font-size: 11px;
-    font-weight: 900;
-    color: #3e4a5d;
-}
-
-.invoice-balance-body {
-    padding: 13px 15px;
-}
-
-.invoice-balance-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 7px 0;
-    border-bottom: 1px dashed #e5e9ee;
-}
-
-.invoice-balance-row:last-child {
-    border-bottom: 0;
-}
-
-.invoice-balance-row span:first-child {
-    color: #7d8896;
-    font-size: 11px;
-}
-
-.invoice-balance-row span:last-child {
-    color: #253044;
-    font-size: 12px;
-    font-weight: 850;
-}
-
-.invoice-description {
-    margin-top: 20px;
-    padding: 14px 16px;
-    background: #f8fafc;
-    border-radius: 12px;
-    border: 1px solid #e8edf2;
-}
-
-.invoice-description strong {
-    display: block;
-    font-size: 10px;
-    color: #7e8997;
-    text-transform: uppercase;
-    margin-bottom: 5px;
-}
-
-.invoice-description span {
-    color: #334155;
-    font-size: 12px;
-}
-
-.invoice-footer {
-    margin-top: 30px;
-    border-top: 1px solid #e8edf2;
-    padding-top: 15px;
-    display: flex;
-    justify-content: space-between;
-    color: #8a95a3;
-    font-size: 10px;
-}
-
-/* =========================================================
-   DELETE MODAL
-========================================================= */
-
-.delete-icon {
-    width: 65px;
-    height: 65px;
-    margin: 5px auto 16px;
-    border-radius: 20px;
-    background: #fff0f1;
-    color: #dc3545;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 27px;
-}
-
-.delete-title {
-    text-align: center;
-    color: #172033;
-    font-weight: 900;
-    font-size: 18px;
-}
-
-.delete-text {
-    text-align: center;
-    color: #788494;
-    font-size: 12px;
-    line-height: 1.7;
-    margin: 8px 0 0;
-}
-
-.btn-danger-at {
-    background: #dc3545;
-    color: #fff;
-    border: 0;
-    padding: 10px 17px;
-    border-radius: 10px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-.btn-secondary-at {
-    background: #eef2f6;
-    color: #526173;
-    border: 0;
-    padding: 10px 17px;
-    border-radius: 10px;
-    font-weight: 800;
-    cursor: pointer;
-}
-
-/* =========================================================
-   PRINT
-========================================================= */
-
-@media print {
-
-    body * {
-        visibility: hidden !important;
-    }
-
-    #invoicePrintArea,
-    #invoicePrintArea * {
-        visibility: visible !important;
-    }
-
-    #invoicePrintArea {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        background: #fff;
-    }
-
-    .at-modal {
-        position: static !important;
-        display: block !important;
-        background: #fff !important;
-        padding: 0 !important;
-    }
-
-    .at-modal-box {
-        box-shadow: none !important;
-        max-height: none !important;
-        width: 100% !important;
-        border-radius: 0 !important;
-    }
-
-    .at-modal-head,
-    .at-modal-footer {
-        display: none !important;
-    }
-
-    .invoice {
-        padding: 20px !important;
-    }
-
-    @page {
-        size: A4;
-        margin: 12mm;
-    }
-}
-
-/* =========================================================
-   RESPONSIVE
-========================================================= */
-
-@media (max-width: 1200px) {
-
-    .at-stat-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    .at-filter-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
-
-@media (max-width: 768px) {
-
-    .at-header-content,
-    .at-user-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .at-user-meta {
-        justify-content: flex-start;
-    }
-
-    .at-stat-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .at-filter-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .invoice-top {
-        flex-direction: column;
-    }
-
-    .invoice-title {
-        text-align: left;
-    }
-
-    .invoice-route {
-        grid-template-columns: 1fr;
-    }
-
-    .invoice-route-arrow {
-        transform: rotate(90deg);
-    }
-
-    .invoice-balance-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 480px) {
-
-    .at-stat-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .at-page-header {
-        padding: 20px;
-    }
-
-    .invoice {
-        padding: 18px;
-    }
-
-    .invoice-meta {
-        grid-template-columns: 1fr;
-    }
-}
-</style>
-
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
 
 <div class="page-header accounts-page-header">
 
@@ -1223,6 +89,19 @@ Account Transfer Reports
             <!-- ==================================================
                  ALL ACCOUNTS INVOICE
             ================================================== -->
+
+            <button
+                type="button"
+                class="btn btn-success account-header-btn"
+                onclick="printAllAccountsInvoice()">
+
+                <i class="fa fa-file-text-o me-2"></i>
+
+                <span>
+                    All Accounts Invoice
+                </span>
+
+            </button>
 
 
             <!-- ==================================================
@@ -1504,57 +383,2580 @@ Account Transfer Reports
 
 
 
-<div class="account-transfer-page">
 
-    <div class="container-fluid">
 
-        <!-- =====================================================
-             HEADER
-        ====================================================== -->
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
 
-        <div class="at-page-header">
+<div class="main-content">
 
-            <div class="at-header-content">
+<div class="row">
 
-                <div class="at-header-left">
+<div class="col-12">
 
-                    <div class="at-header-icon">
-                        <i class="feather-repeat"></i>
-                    </div>
+<div class="card shadow-sm">
 
-                    <div>
-                        <h2 class="at-header-title">
-                            Account Transfer Reports
-                        </h2>
 
-                        <p class="at-header-subtitle">
-                            Complete account-to-account and account-to-saving
-                            transfer history
-                        </p>
-                    </div>
+<!-- ============================================================
+     HEADER
+============================================================ -->
+
+<div class="card-header">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h5 class="mb-1">
+                All Accounts
+            </h5>
+
+            <small class="text-muted">
+                Account balances and complete financial transactions
+            </small>
+
+        </div>
+
+        <span class="badge bg-primary">
+
+            {{ accounts|length }}
+
+            Account{% if accounts|length != 1 %}s{% endif %}
+
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     SUMMARY
+============================================================ -->
+
+<div class="card-body border-bottom">
+
+<div class="row g-3">
+
+
+<!-- TOTAL ACCOUNTS -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-primary">
+<i class="fa fa-wallet"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Total Accounts
+</span>
+
+<h4>
+{{ accounts|length }}
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- BALANCE -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-success">
+<i class="fa fa-money"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Current Balance
+</span>
+
+<h4>
+
+{% set total_balance = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_balance.value =
+total_balance.value +
+(account.current_balance|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_balance.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- INCOME -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-info">
+<i class="fa fa-arrow-down"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Total Income
+</span>
+
+<h4>
+
+{% set total_income = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_income.value =
+total_income.value +
+(account.total_income|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_income.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- EXPENSE -->
+
+<div class="col-xl-3 col-md-6">
+
+<div class="summary-card">
+
+<div class="summary-icon bg-danger">
+<i class="fa fa-arrow-up"></i>
+</div>
+
+<div>
+
+<span class="summary-label">
+Total Expense
+</span>
+
+<h4>
+
+{% set total_expense = namespace(value=0) %}
+
+{% for account in accounts %}
+
+{% set total_expense.value =
+total_expense.value +
+(account.total_expense|float)
+%}
+
+{% endfor %}
+
+{{ "{:,.2f}".format(total_expense.value) }}
+
+</h4>
+
+</div>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     ACCOUNT TABLE
+============================================================ -->
+
+<div class="card-body p-0">
+
+<div class="table-responsive">
+
+<table
+class="table table-hover align-middle mb-0"
+id="leadList">
+
+<thead class="table-light">
+
+<tr>
+
+<th>#</th>
+
+<th>Account</th>
+
+<th>Type</th>
+
+<th>Balance</th>
+
+<th>Income</th>
+
+<th>Expense</th>
+
+<th>Transactions</th>
+
+<th>Currency</th>
+
+<th>Status</th>
+
+<th>Created</th>
+
+<th class="text-end">
+Actions
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+
+{% if accounts %}
+
+
+{% for account in accounts %}
+
+
+<tr>
+
+
+<td>
+{{ loop.index }}
+</td>
+
+
+<!-- ACCOUNT -->
+
+<td>
+
+<div class="account-name">
+
+<div class="account-icon">
+
+{% if account.type == "cash" %}
+<i class="fa fa-money"></i>
+
+{% elif account.type == "bank" %}
+<i class="fa fa-bank"></i>
+
+{% elif account.type == "mobile" %}
+<i class="fa fa-mobile"></i>
+
+{% elif account.type == "savings" %}
+<i class="fa fa-piggy-bank"></i>
+
+{% else %}
+<i class="fa fa-wallet"></i>
+{% endif %}
+
+</div>
+
+
+<div>
+
+<strong>
+{{ account.name }}
+</strong>
+
+<br>
+
+<small class="text-muted">
+{{ account._id }}
+</small>
+
+</div>
+
+</div>
+
+</td>
+
+
+<!-- TYPE -->
+
+<td>
+
+{% if account.type == "cash" %}
+
+<span class="badge bg-success">
+Cash
+</span>
+
+{% elif account.type == "bank" %}
+
+<span class="badge bg-primary">
+Bank
+</span>
+
+{% elif account.type == "mobile" %}
+
+<span class="badge bg-warning text-dark">
+Mobile
+</span>
+
+{% elif account.type == "savings" %}
+
+<span class="badge bg-info">
+Savings
+</span>
+
+{% else %}
+
+<span class="badge bg-secondary">
+{{ account.type or "Other" }}
+</span>
+
+{% endif %}
+
+</td>
+
+
+<!-- BALANCE -->
+
+<td>
+
+<strong
+class="{% if account.current_balance|float < 0 %}
+text-danger
+{% else %}
+text-success
+{% endif %}">
+
+{{ "{:,.2f}".format(
+account.current_balance|float
+) }}
+
+</strong>
+
+</td>
+
+
+<!-- INCOME -->
+
+<td class="text-success fw-bold">
+
++
+{{ "{:,.2f}".format(
+account.total_income|float
+) }}
+
+</td>
+
+
+<!-- EXPENSE -->
+
+<td class="text-danger fw-bold">
+
+-
+{{ "{:,.2f}".format(
+account.total_expense|float
+) }}
+
+</td>
+
+
+<!-- TRANSACTIONS -->
+
+<td>
+
+<span class="badge bg-light text-dark">
+
+{{ account.transaction_count }}
+
+</span>
+
+</td>
+
+
+<!-- CURRENCY -->
+
+<td>
+{{ account.currency or "USD" }}
+</td>
+
+
+<!-- STATUS -->
+
+<td>
+
+{% if account.status %}
+
+<span class="badge bg-success">
+Active
+</span>
+
+{% else %}
+
+<span class="badge bg-danger">
+Inactive
+</span>
+
+{% endif %}
+
+</td>
+
+
+<!-- CREATED -->
+
+<td>
+
+{% if account.created_at %}
+
+{{ account.created_at.strftime("%Y-%m-%d") }}
+
+{% else %}
+
+-
+
+{% endif %}
+
+</td>
+
+
+<!-- ACTIONS -->
+
+<td class="text-end">
+
+<div class="action-buttons">
+
+
+<!-- REPORT -->
+
+<button
+type="button"
+class="action-btn report-btn"
+onclick="openAccountReport('{{ account._id }}')">
+
+<i class="fa fa-file-text"></i>
+Report
+
+</button>
+
+
+<!-- TRANSFER -->
+
+<button
+type="button"
+class="action-btn transfer-btn"
+onclick="openTransfer(
+'{{ account._id }}',
+'{{ account.name|e }}',
+'{{ account.current_balance|float }}'
+)">
+
+<i class="fa fa-exchange"></i>
+Transfer
+
+</button>
+
+
+<!-- EDIT -->
+
+<a
+href="{{ url_for('main.edit_account', id=account._id) }}"
+class="action-btn edit-btn">
+
+<i class="fa fa-edit"></i>
+Edit
+
+</a>
+
+
+<!-- DELETE -->
+
+<a
+href="{{ url_for('main.delete_account', id=account._id) }}"
+class="action-btn delete-btn"
+
+onclick="
+return confirm(
+'Are you sure you want to delete this account?'
+)
+">
+
+<i class="fa fa-trash"></i>
+Delete
+
+</a>
+
+
+</div>
+
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+{% else %}
+
+
+<tr>
+
+<td colspan="11">
+
+<div class="empty-state text-center">
+
+<i class="fa fa-wallet"></i>
+
+<h5>
+No Accounts Found
+</h5>
+
+<p>
+Create your first account to start managing your finances.
+</p>
+
+<a
+href="{{ url_for('main.add_account') }}"
+class="btn btn-primary">
+
+<i class="fa fa-plus me-1"></i>
+
+Add Account
+
+</a>
+
+</div>
+
+</td>
+
+</tr>
+
+
+{% endif %}
+
+
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     ACCOUNT REPORT MODAL
+============================================================ -->
+
+<div
+class="custom-modal-backdrop"
+id="accountReportModal">
+
+
+<div class="report-modal">
+
+
+<!-- HEADER -->
+
+<div class="report-header">
+
+<div>
+
+<h4 id="reportAccountName">
+Account Report
+</h4>
+
+<small id="reportAccountType">
+Complete Financial Statement
+</small>
+
+</div>
+
+
+<div class="report-header-actions">
+
+<button
+type="button"
+class="print-btn"
+onclick="printAccountReport()">
+
+<i class="fa fa-print"></i>
+Print
+
+</button>
+
+
+<button
+type="button"
+class="modal-close"
+onclick="closeAccountReport()">
+
+<i class="fa fa-times"></i>
+
+</button>
+
+</div>
+
+</div>
+
+
+<!-- REPORT -->
+
+<div
+class="report-body"
+id="accountReportContent">
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     TRANSFER MODAL
+============================================================ -->
+
+<div
+class="custom-modal-backdrop"
+id="transferModal">
+
+
+<div class="transfer-modal">
+
+
+<div class="transfer-header">
+
+<div>
+
+<h4>
+<i class="fa fa-exchange"></i>
+Transfer Money
+</h4>
+
+<small>
+Transfer money between your accounts
+</small>
+
+</div>
+
+
+<button
+type="button"
+class="modal-close"
+onclick="closeModal()">
+
+<i class="fa fa-times"></i>
+
+</button>
+
+</div>
+
+
+<div class="transfer-body">
+
+
+<!-- SOURCE -->
+
+<div class="transfer-source-box">
+
+<div class="transfer-wallet-icon">
+
+<i class="fa fa-wallet"></i>
+
+</div>
+
+
+<div>
+
+<span>
+From Account
+</span>
+
+<strong id="transferFromName">
+-
+</strong>
+
+</div>
+
+
+<div class="ms-auto text-end">
+
+<small>
+Available
+</small>
+
+<strong id="transferAvailableBalance">
+$0.00
+</strong>
+
+</div>
+
+</div>
+
+
+<!-- AMOUNT -->
+
+<div class="form-group">
+
+<label>
+Transfer Amount
+</label>
+
+<div class="amount-input-wrapper">
+
+<span>
+$
+</span>
+
+<input
+type="number"
+step="0.01"
+min="0.01"
+id="transferAmount"
+class="form-control"
+placeholder="0.00">
+
+</div>
+
+
+<p
+id="transferAmountInfo"
+class="transfer-info">
+
+<i class="fa fa-info-circle"></i>
+
+Enter transfer amount
+
+</p>
+
+</div>
+
+
+<!-- DESTINATION -->
+
+<div class="form-group">
+
+<label>
+Transfer To Account
+</label>
+
+
+<select
+id="transferToAccount"
+class="form-control">
+
+<option value="">
+-- Select Destination Account --
+</option>
+
+
+{% for destination in accounts %}
+
+<option
+value="{{ destination._id|string }}"
+data-balance="{{ destination.current_balance|float }}"
+data-currency="{{ destination.currency or 'USD' }}">
+
+{{ destination.name }}
+
+-
+
+{{ destination.currency or "USD" }}
+
+-
+
+{{ "%.2f"|format(
+destination.current_balance|float
+) }}
+
+</option>
+
+{% endfor %}
+
+
+</select>
+
+
+<p
+id="transferDestinationInfo"
+class="destination-info">
+</p>
+
+</div>
+
+
+<!-- SUMMARY -->
+
+<div
+class="transfer-summary"
+id="transferSummary">
+
+<div>
+
+<span>
+Transfer Amount
+</span>
+
+<strong id="summaryAmount">
+$0.00
+</strong>
+
+</div>
+
+
+<div>
+
+<span>
+Remaining Balance
+</span>
+
+<strong id="summaryRemaining">
+$0.00
+</strong>
+
+</div>
+
+</div>
+
+
+<!-- BUTTONS -->
+
+<div class="transfer-buttons">
+
+<button
+type="button"
+class="btn btn-secondary"
+onclick="closeModal()">
+
+Cancel
+
+</button>
+
+
+<button
+type="button"
+class="btn btn-success"
+id="transferSubmitBtn"
+onclick="submitTransfer()">
+
+<i class="fa fa-check me-1"></i>
+
+Transfer Money
+
+</button>
+
+</div>
+
+
+</div>
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     CSS
+============================================================ -->
+
+<style>
+
+
+/* ============================================================
+   SUMMARY
+============================================================ */
+
+.summary-card {
+
+display:flex;
+align-items:center;
+gap:15px;
+
+padding:18px;
+
+background:#fff;
+
+border:1px solid #eee;
+
+border-radius:12px;
+
+height:100%;
+
+}
+
+
+.summary-icon {
+
+width:48px;
+height:48px;
+
+border-radius:10px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+color:#fff;
+
+font-size:20px;
+
+}
+
+
+.summary-label {
+
+display:block;
+
+font-size:12px;
+
+color:#777;
+
+margin-bottom:4px;
+
+}
+
+
+.summary-card h4 {
+
+margin:0;
+
+font-size:20px;
+
+font-weight:700;
+
+}
+
+
+/* ============================================================
+   ACCOUNT
+============================================================ */
+
+.account-name {
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+}
+
+
+.account-icon {
+
+width:40px;
+height:40px;
+
+border-radius:9px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+background:#f1f5ff;
+
+color:#3454d1;
+
+}
+
+
+/* ============================================================
+   ACTION BUTTONS
+============================================================ */
+
+.action-buttons {
+
+display:flex;
+
+justify-content:flex-end;
+
+gap:5px;
+
+flex-wrap:wrap;
+
+}
+
+
+.action-btn {
+
+display:inline-flex;
+
+align-items:center;
+
+gap:5px;
+
+padding:6px 9px;
+
+border-radius:6px;
+
+border:none;
+
+text-decoration:none;
+
+font-size:11px;
+
+color:#fff;
+
+cursor:pointer;
+
+}
+
+
+.action-btn:hover {
+
+color:#fff;
+
+opacity:.88;
+
+}
+
+
+.report-btn {
+background:#34495e;
+}
+
+
+.transfer-btn {
+background:#8e44ad;
+}
+
+
+.edit-btn {
+background:#f39c12;
+}
+
+
+.delete-btn {
+background:#e74c3c;
+}
+
+
+/* ============================================================
+   EMPTY
+============================================================ */
+
+.empty-state {
+
+padding:40px;
+
+}
+
+
+.empty-state > i {
+
+font-size:50px;
+
+color:#bbb;
+
+margin-bottom:15px;
+
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.custom-modal-backdrop {
+
+position:fixed;
+
+top:0;
+left:0;
+
+width:100%;
+height:100%;
+
+background:rgba(0,0,0,.60);
+
+display:none;
+
+align-items:center;
+justify-content:center;
+
+z-index:99999;
+
+padding:20px;
+
+}
+
+
+.custom-modal-backdrop.active {
+
+display:flex;
+
+}
+
+
+/* ============================================================
+   REPORT MODAL
+============================================================ */
+
+.report-modal {
+
+width:1150px;
+
+max-width:100%;
+
+max-height:94vh;
+
+background:#fff;
+
+border-radius:14px;
+
+overflow:hidden;
+
+display:flex;
+
+flex-direction:column;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.30);
+
+}
+
+
+.report-header {
+
+padding:18px 22px;
+
+border-bottom:1px solid #eee;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+}
+
+
+.report-header h4 {
+
+margin:0;
+
+font-weight:700;
+
+}
+
+
+.report-header small {
+
+color:#777;
+
+}
+
+
+.report-header-actions {
+
+display:flex;
+
+align-items:center;
+
+gap:8px;
+
+}
+
+
+.print-btn {
+
+border:none;
+
+background:#0d6efd;
+
+color:#fff;
+
+padding:8px 13px;
+
+border-radius:7px;
+
+cursor:pointer;
+
+font-size:12px;
+
+}
+
+
+.modal-close {
+
+width:35px;
+height:35px;
+
+border:none;
+
+border-radius:50%;
+
+background:#f1f1f1;
+
+cursor:pointer;
+
+}
+
+
+.report-body {
+
+padding:20px;
+
+overflow-y:auto;
+
+}
+
+
+/* ============================================================
+   REPORT STATS
+============================================================ */
+
+.report-stat {
+
+border:1px solid #e8e8e8;
+
+border-radius:10px;
+
+padding:15px;
+
+background:#fff;
+
+height:100%;
+
+}
+
+
+.report-stat-label {
+
+font-size:11px;
+
+color:#777;
+
+display:block;
+
+margin-bottom:5px;
+
+}
+
+
+.report-stat-value {
+
+font-size:19px;
+
+font-weight:700;
+
+}
+
+
+.report-income {
+
+color:#198754;
+
+}
+
+
+.report-expense {
+
+color:#dc3545;
+
+}
+
+
+.report-balance {
+
+color:#0d6efd;
+
+}
+
+
+.report-net {
+
+color:#6f42c1;
+
+}
+
+
+/* ============================================================
+   REPORT SECTION
+============================================================ */
+
+.report-section {
+
+margin-top:20px;
+
+border:1px solid #e8e8e8;
+
+border-radius:10px;
+
+overflow:hidden;
+
+}
+
+
+.report-section-header {
+
+padding:12px 15px;
+
+background:#f8f9fa;
+
+border-bottom:1px solid #e8e8e8;
+
+font-weight:700;
+
+}
+
+
+.report-section-body {
+
+padding:15px;
+
+}
+
+
+/* ============================================================
+   TRANSACTION TABLE
+============================================================ */
+
+.report-table {
+
+width:100%;
+
+border-collapse:collapse;
+
+}
+
+
+.report-table th {
+
+padding:10px;
+
+background:#f8f9fa;
+
+font-size:11px;
+
+text-align:left;
+
+white-space:nowrap;
+
+}
+
+
+.report-table td {
+
+padding:9px 10px;
+
+border-top:1px solid #eee;
+
+font-size:11px;
+
+vertical-align:middle;
+
+}
+
+
+.income-text {
+
+color:#198754;
+
+font-weight:700;
+
+}
+
+
+.expense-text {
+
+color:#dc3545;
+
+font-weight:700;
+
+}
+
+
+/* ============================================================
+   CATEGORY
+============================================================ */
+
+.category-row {
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+padding:8px 0;
+
+border-bottom:1px solid #eee;
+
+font-size:12px;
+
+}
+
+
+.category-row:last-child {
+
+border-bottom:none;
+
+}
+
+
+/* ============================================================
+   TRANSFER
+============================================================ */
+
+.transfer-modal {
+
+width:500px;
+
+max-width:100%;
+
+background:#fff;
+
+border-radius:14px;
+
+overflow:hidden;
+
+box-shadow:
+0 20px 60px rgba(0,0,0,.30);
+
+}
+
+
+.transfer-header {
+
+padding:18px 20px;
+
+border-bottom:1px solid #eee;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+}
+
+
+.transfer-header h4 {
+
+margin:0;
+
+font-size:18px;
+
+}
+
+
+.transfer-header small {
+
+color:#777;
+
+}
+
+
+.transfer-body {
+
+padding:20px;
+
+}
+
+
+.transfer-source-box {
+
+display:flex;
+
+align-items:center;
+
+gap:12px;
+
+padding:13px;
+
+background:#f7f9fc;
+
+border-radius:10px;
+
+margin-bottom:18px;
+
+}
+
+
+.transfer-wallet-icon {
+
+width:42px;
+height:42px;
+
+background:#8e44ad;
+
+color:#fff;
+
+border-radius:9px;
+
+display:flex;
+
+align-items:center;
+justify-content:center;
+
+}
+
+
+.transfer-source-box span {
+
+display:block;
+
+font-size:11px;
+
+color:#777;
+
+}
+
+
+.transfer-source-box strong {
+
+display:block;
+
+font-size:14px;
+
+}
+
+
+#transferAvailableBalance {
+
+color:#198754;
+
+}
+
+
+.form-group {
+
+margin-bottom:18px;
+
+}
+
+
+.form-group label {
+
+display:block;
+
+font-size:13px;
+
+font-weight:600;
+
+margin-bottom:7px;
+
+}
+
+
+.amount-input-wrapper {
+
+position:relative;
+
+}
+
+
+.amount-input-wrapper span {
+
+position:absolute;
+
+left:12px;
+
+top:50%;
+
+transform:translateY(-50%);
+
+font-weight:700;
+
+color:#777;
+
+}
+
+
+.amount-input-wrapper input {
+
+padding-left:30px;
+
+font-size:18px;
+
+font-weight:600;
+
+}
+
+
+.transfer-info {
+
+font-size:12px;
+
+font-weight:600;
+
+margin:7px 0 0;
+
+}
+
+
+.destination-info {
+
+font-size:12px;
+
+font-weight:600;
+
+margin:7px 0 0;
+
+color:#198754;
+
+}
+
+
+.transfer-summary {
+
+display:none;
+
+background:#f8f9fa;
+
+border:1px solid #eee;
+
+border-radius:10px;
+
+padding:12px;
+
+margin-bottom:18px;
+
+}
+
+
+.transfer-summary.show {
+
+display:block;
+
+}
+
+
+.transfer-summary div {
+
+display:flex;
+
+justify-content:space-between;
+
+font-size:13px;
+
+padding:4px 0;
+
+}
+
+
+.transfer-buttons {
+
+display:flex;
+
+gap:10px;
+
+}
+
+
+.transfer-buttons button {
+
+flex:1;
+
+}
+
+
+/* ============================================================
+   MOBILE
+============================================================ */
+
+@media(max-width:768px) {
+
+.report-modal {
+
+max-height:96vh;
+
+}
+
+.report-body {
+
+padding:12px;
+
+}
+
+.table {
+
+min-width:1100px;
+
+}
+
+}
+
+
+/* ============================================================
+   PRINT HIDDEN
+============================================================ */
+
+#printArea {
+
+display:none;
+
+}
+
+
+</style>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+
+<script>
+
+/* ============================================================
+   ACCOUNT REPORT DATA
+   IMPORTANT:
+   We use account_reports as the single source of truth.
+============================================================ */
+
+const accountReports = {};
+
+
+/* ============================================================
+   LOAD ACCOUNT REPORTS FROM FLASK
+============================================================ */
+
+{% for account in account_reports %}
+
+accountReports[
+    {{ account.id|tojson }}
+] = {
+
+    id:
+        {{ account.id|tojson }},
+
+    name:
+        {{ (account.name or "Unnamed Account")|tojson }},
+
+    type:
+        {{ (account.type or "Other")|tojson }},
+
+    currency:
+        {{ (account.currency or "USD")|tojson }},
+
+    opening_balance:
+        {{ (account.opening_balance or 0)|float }},
+
+    balance:
+        {{ (account.current_balance or account.balance or 0)|float }},
+
+    current_balance:
+        {{ (account.current_balance or account.balance or 0)|float }},
+
+    total_income:
+        {{ (account.total_income or 0)|float }},
+
+    total_expense:
+        {{ (account.total_expense or 0)|float }},
+
+    transfer_in:
+        {{ (account.transfer_in or 0)|float }},
+
+    transfer_out:
+        {{ (account.transfer_out or 0)|float }},
+
+    net_movement:
+        {{ (account.net_movement or 0)|float }},
+
+    transaction_count:
+        {{ (account.transaction_count or 0)|int }},
+
+    income_categories:
+        {{ (account.income_categories or {})|tojson|safe }},
+
+    expense_categories:
+        {{ (account.expense_categories or {})|tojson|safe }},
+
+    transactions:
+        {{ (account.transactions or [])|tojson|safe }}
+
+};
+
+{% endfor %}
+
+
+/* ============================================================
+   ALL ACCOUNTS GRAND REPORT
+============================================================ */
+
+const allAccountsReport =
+    {{ all_accounts_report|tojson|safe }};
+
+
+/* ============================================================
+   CURRENT REPORT ACCOUNT
+============================================================ */
+
+let currentReportAccount = null;
+
+
+/* ============================================================
+   TRANSFER VARIABLES
+============================================================ */
+
+let transferFrom = null;
+
+let transferFromBalance = 0;
+
+let transferFromCurrency = "USD";
+
+
+/* ============================================================
+   MONEY FORMAT
+============================================================ */
+
+function formatMoney(
+    amount,
+    currency
+) {
+
+    const value =
+        parseFloat(amount || 0);
+
+    const curr =
+        currency || "USD";
+
+    return (
+        curr +
+        " " +
+        value.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        )
+    );
+
+}
+
+
+/* ============================================================
+   HTML ESCAPE
+============================================================ */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* ============================================================
+   DATE FORMAT
+============================================================ */
+
+function formatDate(value) {
+
+    if (!value) {
+
+        return "-";
+
+    }
+
+    try {
+
+        const date =
+            new Date(value);
+
+        if (
+            isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return escapeHtml(
+                value
+            );
+
+        }
+
+        return date.toLocaleString();
+
+    }
+
+    catch (error) {
+
+        return escapeHtml(
+            value
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   GET TRANSACTION TYPE
+============================================================ */
+
+function getTransactionType(
+    transaction
+) {
+
+    return String(
+
+        transaction.transaction_type
+        ||
+        transaction.type
+        ||
+        ""
+
+    )
+    .toLowerCase()
+    .trim();
+
+}
+
+
+/* ============================================================
+   GET TRANSACTION COUNTS
+============================================================ */
+
+function getTransactionCounts(
+    transactions
+) {
+
+    let incomeCount = 0;
+
+    let expenseCount = 0;
+
+    let transferInCount = 0;
+
+    let transferOutCount = 0;
+
+
+    (transactions || []).forEach(
+        function(transaction) {
+
+            const type =
+                getTransactionType(
+                    transaction
+                );
+
+
+            if (
+                type === "income"
+            ) {
+
+                incomeCount++;
+
+            }
+
+            else if (
+                type === "expense"
+            ) {
+
+                expenseCount++;
+
+            }
+
+            else if (
+                type === "transfer_in"
+                ||
+                type === "transfer-in"
+                ||
+                type === "transfer in"
+            ) {
+
+                transferInCount++;
+
+            }
+
+            else if (
+                type === "transfer_out"
+                ||
+                type === "transfer-out"
+                ||
+                type === "transfer out"
+            ) {
+
+                transferOutCount++;
+
+            }
+
+        }
+    );
+
+
+    return {
+
+        income:
+            incomeCount,
+
+        expense:
+            expenseCount,
+
+        transferIn:
+            transferInCount,
+
+        transferOut:
+            transferOutCount
+
+    };
+
+}
+
+
+/* ============================================================
+   OPEN ACCOUNT REPORT
+============================================================ */
+
+function openAccountReport(
+    accountId
+) {
+
+    const id =
+        String(accountId);
+
+
+    const account =
+        accountReports[id];
+
+
+    if (!account) {
+
+        alert(
+            "Account report not found."
+        );
+
+        console.error(
+            "Missing account report:",
+            id,
+            accountReports
+        );
+
+        return;
+
+    }
+
+
+    currentReportAccount =
+        account;
+
+
+    const nameElement =
+        document.getElementById(
+            "reportAccountName"
+        );
+
+
+    const typeElement =
+        document.getElementById(
+            "reportAccountType"
+        );
+
+
+    if (nameElement) {
+
+        nameElement.innerText =
+            account.name;
+
+    }
+
+
+    if (typeElement) {
+
+        typeElement.innerText =
+            account.type +
+            " Account • " +
+            account.currency;
+
+    }
+
+
+    renderAccountReport(
+        account
+    );
+
+
+    const modal =
+        document.getElementById(
+            "accountReportModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CLOSE ACCOUNT REPORT
+============================================================ */
+
+function closeAccountReport() {
+
+    const modal =
+        document.getElementById(
+            "accountReportModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.remove(
+            "active"
+        );
+
+    }
+
+    currentReportAccount =
+        null;
+
+}
+
+
+/* ============================================================
+   RENDER ACCOUNT REPORT
+============================================================ */
+
+function renderAccountReport(
+    account
+) {
+
+    const container =
+        document.getElementById(
+            "accountReportContent"
+        );
+
+
+    if (!container) {
+
+        return;
+
+    }
+
+
+    let html = "";
+
+
+    const transactions =
+        account.transactions || [];
+
+
+    const counts =
+        getTransactionCounts(
+            transactions
+        );
+
+
+    /* ========================================================
+       SUMMARY
+    ======================================================== */
+
+    html += `
+
+    <div class="row g-3">
+
+
+        <!-- OPENING BALANCE -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Opening Balance
+                </span>
+
+                <span class="report-stat-value">
+
+                    ${formatMoney(
+                        account.opening_balance,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- CURRENT BALANCE -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Current Balance
+                </span>
+
+                <span class="report-stat-value report-balance">
+
+                    ${formatMoney(
+                        account.current_balance,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Total Income
+                </span>
+
+                <span class="report-stat-value report-income">
+
+                    +${formatMoney(
+                        account.total_income,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Total Expense
+                </span>
+
+                <span class="report-stat-value report-expense">
+
+                    -${formatMoney(
+                        account.total_expense,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="row g-3 mt-1">
+
+
+        <!-- NET MOVEMENT -->
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Net Movement
+                </span>
+
+                <span class="report-stat-value report-net">
+
+                    ${formatMoney(
+                        account.net_movement,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Transactions
+                </span>
+
+                <span class="report-stat-value">
+
+                    ${account.transaction_count}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- INCOME COUNT -->
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Income Transactions
+                </span>
+
+                <span class="report-stat-value report-income">
+
+                    ${counts.income}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE COUNT -->
+
+        <div class="col-md-3">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Expense Transactions
+                </span>
+
+                <span class="report-stat-value report-expense">
+
+                    ${counts.expense}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- TRANSFERS -->
+
+    <div class="row g-3 mt-1">
+
+
+        <div class="col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Transfer In
+                </span>
+
+                <span class="report-stat-value">
+
+                    +${formatMoney(
+                        account.transfer_in,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-md-6">
+
+            <div class="report-stat">
+
+                <span class="report-stat-label">
+                    Transfer Out
+                </span>
+
+                <span class="report-stat-value">
+
+                    -${formatMoney(
+                        account.transfer_out,
+                        account.currency
+                    )}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    /* ========================================================
+       CATEGORY BREAKDOWN
+    ======================================================== */
+
+    html += `
+
+    <div class="row g-3 mt-1">
+
+
+        <!-- INCOME CATEGORIES -->
+
+        <div class="col-md-6">
+
+            <div class="report-section">
+
+                <div class="report-section-header">
+
+                    <i class="fa fa-arrow-down text-success me-1"></i>
+
+                    Income by Category
 
                 </div>
 
+                <div class="report-section-body">
 
-                <div class="at-header-actions">
+    `;
 
-                    <button
-                        type="button"
-                        class="btn-at-white"
-                        onclick="printFullReport()"
-                    >
-                        <i class="feather-printer"></i>
-                        Print Full Report
-                    </button>
 
-                    <button
-                        type="button"
-                        class="btn-at-light"
-                        onclick="exportCSV()"
-                    >
-                        <i class="feather-download"></i>
-                        Export CSV
-                    </button>
+    const incomeCategories =
+        account.income_categories || {};
+
+
+    const incomeKeys =
+        Object.keys(
+            incomeCategories
+        );
+
+
+    if (
+        incomeKeys.length === 0
+    ) {
+
+        html += `
+
+            <div class="text-center text-muted py-3">
+
+                No income data
+
+            </div>
+
+        `;
+
+    }
+
+    else {
+
+        incomeKeys.forEach(
+            function(category) {
+
+                html += `
+
+                    <div class="category-row">
+
+                        <span>
+
+                            ${escapeHtml(
+                                category
+                            )}
+
+                        </span>
+
+                        <strong
+                            class="income-text">
+
+                            +${formatMoney(
+                                incomeCategories[
+                                    category
+                                ],
+                                account.currency
+                            )}
+
+                        </strong>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
 
                 </div>
 
@@ -1563,65 +2965,91 @@ Account Transfer Reports
         </div>
 
 
-        <!-- =====================================================
-             CURRENT USER
-        ====================================================== -->
+        <!-- EXPENSE CATEGORIES -->
 
-        <div class="at-user-card">
+        <div class="col-md-6">
 
-            <div class="at-user-row">
+            <div class="report-section">
 
-                <div class="at-user-profile">
+                <div class="report-section-header">
 
-                    {% if current_user.photo %}
+                    <i class="fa fa-arrow-up text-danger me-1"></i>
 
-                        <img
-                            src="{{ current_user.photo }}"
-                            class="at-user-avatar"
-                            alt="User"
-                        >
-
-                    {% else %}
-
-                        <div class="at-user-avatar-placeholder">
-                            {{ (current_user.fullname or current_user.username or 'U')[0]|upper }}
-                        </div>
-
-                    {% endif %}
-
-                    <div>
-
-                        <h4 class="at-user-name">
-                            {{ current_user.fullname or current_user.username or 'Current User' }}
-                        </h4>
-
-                        <div class="at-user-email">
-                            {{ current_user.email or 'No email available' }}
-                        </div>
-
-                    </div>
+                    Expense by Category
 
                 </div>
 
+                <div class="report-section-body">
 
-                <div class="at-user-meta">
+    `;
 
-                    <span class="at-user-badge">
-                        <i class="feather-user"></i>
-                        {{ current_user.username or 'User' }}
-                    </span>
 
-                    <span class="at-user-badge">
-                        <i class="feather-shield"></i>
-                        {{ current_user.role or 'user' }}
-                    </span>
+    const expenseCategories =
+        account.expense_categories || {};
 
-                    {% if current_user.phone %}
-                    <span class="at-user-badge">
-                        <i class="feather-phone"></i>
-                        {{ current_user.phone }}
-                    </span>
-                    {% endif %}
+
+    const expenseKeys =
+        Object.keys(
+            expenseCategories
+        );
+
+
+    if (
+        expenseKeys.length === 0
+    ) {
+
+        html += `
+
+            <div class="text-center text-muted py-3">
+
+                No expense data
+
+            </div>
+
+        `;
+
+    }
+
+    else {
+
+        expenseKeys.forEach(
+            function(category) {
+
+                html += `
+
+                    <div class="category-row">
+
+                        <span>
+
+                            ${escapeHtml(
+                                category
+                            )}
+
+                        </span>
+
+                        <strong
+                            class="expense-text">
+
+                            -${formatMoney(
+                                expenseCategories[
+                                    category
+                                ],
+                                account.currency
+                            )}
+
+                        </strong>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
 
                 </div>
 
@@ -1629,322 +3057,33 @@ Account Transfer Reports
 
         </div>
 
+    </div>
 
-        <!-- =====================================================
-             STATISTICS
-        ====================================================== -->
-
-        <div class="at-stat-grid">
-
-            <div class="at-stat-card">
-
-                <div class="at-stat-top">
-                    <div class="at-stat-icon at-blue">
-                        <i class="feather-repeat"></i>
-                    </div>
-                </div>
-
-                <div class="at-stat-label">
-                    Total Transfers
-                </div>
-
-                <div class="at-stat-value">
-                    {{ total_transfers }}
-                </div>
-
-                <div class="at-stat-count">
-                    All transfer records
-                </div>
-
-            </div>
+    `;
 
 
-            <div class="at-stat-card">
+    /* ========================================================
+       TRANSACTION TABLE
+    ======================================================== */
 
-                <div class="at-stat-top">
-                    <div class="at-stat-icon at-purple">
-                        <i class="feather-dollar-sign"></i>
-                    </div>
-                </div>
+    html += `
 
-                <div class="at-stat-label">
-                    Total Volume
-                </div>
+    <div class="report-section mt-3">
 
-                <div class="at-stat-value">
-                    ${{ "{:,.2f}".format(total_amount) }}
-                </div>
+        <div class="report-section-header">
 
-                <div class="at-stat-count">
-                    Combined transfer value
-                </div>
+            <i class="fa fa-list me-1"></i>
 
-            </div>
-
-
-            <div class="at-stat-card">
-
-                <div class="at-stat-top">
-                    <div class="at-stat-icon at-green">
-                        <i class="feather-arrow-down-left"></i>
-                    </div>
-                </div>
-
-                <div class="at-stat-label">
-                    Saving Deposits
-                </div>
-
-                <div class="at-stat-value">
-                    ${{ "{:,.2f}".format(total_deposits) }}
-                </div>
-
-                <div class="at-stat-count">
-                    {{ deposit_count }} transactions
-                </div>
-
-            </div>
-
-
-            <div class="at-stat-card">
-
-                <div class="at-stat-top">
-                    <div class="at-stat-icon at-red">
-                        <i class="feather-arrow-up-right"></i>
-                    </div>
-                </div>
-
-                <div class="at-stat-label">
-                    Saving Withdrawals
-                </div>
-
-                <div class="at-stat-value">
-                    ${{ "{:,.2f}".format(total_withdrawals) }}
-                </div>
-
-                <div class="at-stat-count">
-                    {{ withdrawal_count }} transactions
-                </div>
-
-            </div>
-
-
-            <div class="at-stat-card">
-
-                <div class="at-stat-top">
-                    <div class="at-stat-icon at-orange">
-                        <i class="feather-shuffle"></i>
-                    </div>
-                </div>
-
-                <div class="at-stat-label">
-                    Account Transfers
-                </div>
-
-                <div class="at-stat-value">
-                    ${{ "{:,.2f}".format(total_account_transfers) }}
-                </div>
-
-                <div class="at-stat-count">
-                    {{ account_transfer_count }} transactions
-                </div>
-
-            </div>
+            Complete Account Transaction History
 
         </div>
 
 
-        <!-- =====================================================
-             FILTER
-        ====================================================== -->
+        <div class="report-section-body p-0">
 
-        <div class="at-filter-card">
+            <div class="table-responsive">
 
-            <div class="at-filter-grid">
-
-                <div class="at-field">
-
-                    <label>
-                        Search
-                    </label>
-
-                    <input
-                        type="text"
-                        id="transferSearch"
-                        class="at-input"
-                        placeholder="Search account, saving, reference..."
-                    >
-
-                </div>
-
-
-                <div class="at-field">
-
-                    <label>
-                        Type
-                    </label>
-
-                    <select
-                        id="transferTypeFilter"
-                        class="at-select"
-                    >
-
-                        <option value="">
-                            All Types
-                        </option>
-
-                        <option value="Transfer">
-                            Account Transfer
-                        </option>
-
-                        <option value="Deposit">
-                            Saving Deposit
-                        </option>
-
-                        <option value="Withdraw">
-                            Saving Withdrawal
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="at-field">
-
-                    <label>
-                        Status
-                    </label>
-
-                    <select
-                        id="transferStatusFilter"
-                        class="at-select"
-                    >
-
-                        <option value="">
-                            All Status
-                        </option>
-
-                        <option value="Completed">
-                            Completed
-                        </option>
-
-                        <option value="Pending">
-                            Pending
-                        </option>
-
-                        <option value="Failed">
-                            Failed
-                        </option>
-
-                        <option value="Cancelled">
-                            Cancelled
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <div class="at-field">
-
-                    <label>
-                        Currency
-                    </label>
-
-                    <select
-                        id="currencyFilter"
-                        class="at-select"
-                    >
-
-                        <option value="">
-                            All Currency
-                        </option>
-
-                        <option value="USD">
-                            USD
-                        </option>
-
-                        <option value="EUR">
-                            EUR
-                        </option>
-
-                        <option value="SOS">
-                            SOS
-                        </option>
-
-                    </select>
-
-                </div>
-
-
-                <button
-                    type="button"
-                    class="at-reset"
-                    onclick="resetFilters()"
-                >
-                    <i class="feather-refresh-cw"></i>
-                    Reset
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <!-- =====================================================
-             TABLE
-        ====================================================== -->
-
-        <div class="at-table-card">
-
-            <div class="at-table-header">
-
-                <div>
-
-                    <h3 class="at-table-title">
-                        Transfer History
-                    </h3>
-
-                    <div class="at-table-subtitle">
-                        Detailed financial movement records
-                    </div>
-
-                </div>
-
-
-                <div class="at-table-actions">
-
-                    <button
-                        type="button"
-                        class="at-small-btn"
-                        onclick="printFullReport()"
-                    >
-                        <i class="feather-printer"></i>
-                        Print
-                    </button>
-
-                    <button
-                        type="button"
-                        class="at-small-btn"
-                        onclick="exportCSV()"
-                    >
-                        <i class="feather-file-text"></i>
-                        CSV
-                    </button>
-
-                </div>
-
-            </div>
-
-
-            <div class="at-table-wrap">
-
-                {% if transfers %}
-
-                <table
-                    class="at-table"
-                    id="transfersTable"
-                >
+                <table class="report-table" >
 
                     <thead>
 
@@ -1952,1202 +3091,480 @@ Account Transfer Reports
 
                             <th>#</th>
 
-                            <th>
-                                Date
-                            </th>
+                            <th>Date</th>
 
-                            <th>
-                                Transfer
-                            </th>
+                            <th>Type</th>
 
-                            <th>
-                                Type
-                            </th>
+                            <th>Category</th>
 
-                            <th>
+                            <th>Item</th>
+
+                            <th>Description</th>
+
+                            <th>Reference</th>
+
+                            <th class="text-end">
                                 Amount
-                            </th>
-
-                            <th>
-                                From Balance
-                            </th>
-
-                            <th>
-                                To Balance
-                            </th>
-
-                            <th>
-                                Reference
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Action
                             </th>
 
                         </tr>
 
                     </thead>
 
-
                     <tbody>
-
-                    {% for transfer in transfers %}
-
-                        <tr
-                            class="transfer-row"
-
-                            data-search="
-                                {{ transfer.from_name }}
-                                {{ transfer.to_name }}
-                                {{ transfer.reference_no }}
-                                {{ transfer.description }}
-                                {{ transfer.transaction_type }}
-                            "
-
-                            data-type="{{ transfer.transaction_type }}"
-
-                            data-status="{{ transfer.status }}"
-
-                            data-currency="{{ transfer.currency }}"
-                        >
-
-                            <!-- NUMBER -->
-
-                            <td>
-                                <strong>
-                                    {{ loop.index }}
-                                </strong>
-                            </td>
-
-
-                            <!-- DATE -->
-
-                            <td>
-
-                                <div style="font-weight:800;">
-                                    {{ transfer.created_at }}
-                                </div>
-
-                            </td>
-
-
-                            <!-- ROUTE -->
-
-                            <td>
-
-                                <div class="at-route">
-
-                                    <div class="at-party">
-
-                                        <div class="at-party-name">
-                                            {{ transfer.from_name }}
-                                        </div>
-
-                                        <span class="at-party-type">
-                                            {{ transfer.from_type }}
-                                        </span>
-
-                                    </div>
-
-
-                                    <div class="at-arrow">
-                                        <i class="feather-arrow-right"></i>
-                                    </div>
-
-
-                                    <div class="at-party">
-
-                                        <div class="at-party-name">
-                                            {{ transfer.to_name }}
-                                        </div>
-
-                                        <span class="at-party-type">
-                                            {{ transfer.to_type }}
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-
-                            <!-- TYPE -->
-
-                            <td>
-
-                                {% if transfer.transaction_type == 'Deposit' %}
-
-                                    <span class="at-type-badge at-type-deposit">
-                                        <i class="feather-arrow-down-left"></i>
-                                        Deposit
-                                    </span>
-
-                                {% elif transfer.transaction_type == 'Withdraw' %}
-
-                                    <span class="at-type-badge at-type-withdraw">
-                                        <i class="feather-arrow-up-right"></i>
-                                        Withdraw
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="at-type-badge at-type-transfer">
-                                        <i class="feather-shuffle"></i>
-                                        Transfer
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
-
-
-                            <!-- AMOUNT -->
-
-                            <td>
-
-                                <div class="at-amount">
-
-                                    {{ transfer.currency }}
-
-                                    {{ "{:,.2f}".format(transfer.amount) }}
-
-                                </div>
-
-                            </td>
-
-
-                            <!-- FROM BALANCE -->
-
-                            <td>
-
-                                <div class="at-balance">
-
-                                    <div class="at-balance-line">
-
-                                        <span class="at-balance-label">
-                                            Before
-                                        </span>
-
-                                        <span class="at-balance-value">
-                                            {{ transfer.currency }}
-                                            {{ "{:,.2f}".format(transfer.from_balance_before) }}
-                                        </span>
-
-                                    </div>
-
-
-                                    <div class="at-balance-line">
-
-                                        <span class="at-balance-label">
-                                            After
-                                        </span>
-
-                                        <span class="at-balance-value">
-                                            {{ transfer.currency }}
-                                            {{ "{:,.2f}".format(transfer.from_balance_after) }}
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-
-                            <!-- TO BALANCE -->
-
-                            <td>
-
-                                <div class="at-balance">
-
-                                    <div class="at-balance-line">
-
-                                        <span class="at-balance-label">
-                                            Before
-                                        </span>
-
-                                        <span class="at-balance-value">
-                                            {{ transfer.currency }}
-                                            {{ "{:,.2f}".format(transfer.to_balance_before) }}
-                                        </span>
-
-                                    </div>
-
-
-                                    <div class="at-balance-line">
-
-                                        <span class="at-balance-label">
-                                            After
-                                        </span>
-
-                                        <span class="at-balance-value">
-                                            {{ transfer.currency }}
-                                            {{ "{:,.2f}".format(transfer.to_balance_after) }}
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </td>
-
-
-                            <!-- REFERENCE -->
-
-                            <td>
-
-                                <span class="at-reference">
-                                    {{ transfer.reference_no }}
-                                </span>
-
-                            </td>
-
-
-                            <!-- STATUS -->
-
-                            <td>
-
-                                {% set status_class = transfer.status|lower|replace(' ', '-') %}
-
-                                <span class="at-status-badge at-status-{{ status_class }}">
-
-                                    {% if transfer.status == 'Completed' %}
-                                        <i class="feather-check-circle"></i>
-                                    {% elif transfer.status == 'Pending' %}
-                                        <i class="feather-clock"></i>
-                                    {% else %}
-                                        <i class="feather-alert-circle"></i>
-                                    {% endif %}
-
-                                    {{ transfer.status }}
-
-                                </span>
-
-                            </td>
-
-
-                            <!-- ACTIONS -->
-
-                            <td>
-
-                                <div class="at-actions">
-
-                                    <button
-                                        type="button"
-                                        class="at-action at-action-view"
-                                        title="View Invoice"
-                                        onclick="openInvoice({{ loop.index0 }})"
-                                    >
-                                        <i class="feather-eye"></i>
-                                    </button>
-
-
-                                    <button
-                                        type="button"
-                                        class="at-action at-action-print"
-                                        title="Print Invoice"
-                                        onclick="printInvoice({{ loop.index0 }})"
-                                    >
-                                        <i class="feather-printer"></i>
-                                    </button>
-
-
-                                    <button
-                                        type="button"
-                                        class="at-action at-action-delete"
-                                        title="Delete Transfer"
-                                        onclick="openDeleteModal({{ loop.index0 }})"
-                                    >
-                                        <i class="feather-trash-2"></i>
-                                    </button>
-
-                                </div>
-
-                            </td>
-
-                        </tr>
-
-                    {% endfor %}
-
-                    </tbody>
-
-                </table>
-
-                {% else %}
-
-                <div class="at-empty">
-
-                    <div class="at-empty-icon">
-                        <i class="feather-repeat"></i>
-                    </div>
-
-                    <h4>
-                        No Transfer Records
-                    </h4>
-
-                    <p>
-                        There are currently no account transfer records
-                        available for this user.
-                    </p>
-
-                </div>
-
-                {% endif %}
-
-            </div>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =========================================================
-     INVOICE MODAL
-========================================================= -->
-
-<div
-    class="at-modal"
-    id="invoiceModal"
->
-
-    <div class="at-modal-box">
-
-        <div class="at-modal-head">
-
-            <h3 class="at-modal-title">
-                Transfer Invoice
-            </h3>
-
-            <button
-                type="button"
-                class="at-close"
-                onclick="closeInvoice()"
-            >
-                <i class="feather-x"></i>
-            </button>
-
-        </div>
-
-
-        <div
-            id="invoicePrintArea"
-            class="invoice"
-        >
-        </div>
-
-
-        <div class="at-modal-footer">
-
-            <button
-                type="button"
-                class="btn-secondary-at"
-                onclick="closeInvoice()"
-            >
-                Close
-            </button>
-
-            <button
-                type="button"
-                class="btn-at-white"
-                style="
-                    background:#0b3b82;
-                    color:#fff;
-                    border:0;
-                    border-radius:10px;
-                    padding:10px 17px;
-                    font-weight:800;
-                    cursor:pointer;
-                "
-                onclick="printCurrentInvoice()"
-            >
-                <i class="feather-printer"></i>
-                Print Invoice
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =========================================================
-     DELETE MODAL
-========================================================= -->
-
-<div
-    class="at-modal"
-    id="deleteModal"
->
-
-    <div class="at-modal-box at-modal-small">
-
-        <div class="at-modal-head">
-
-            <h3 class="at-modal-title">
-                Delete Transfer
-            </h3>
-
-            <button
-                type="button"
-                class="at-close"
-                onclick="closeDeleteModal()"
-            >
-                <i class="feather-x"></i>
-            </button>
-
-        </div>
-
-
-        <div class="at-modal-body">
-
-            <div class="delete-icon">
-                <i class="feather-trash-2"></i>
-            </div>
-
-            <div class="delete-title">
-                Are you sure?
-            </div>
-
-            <div class="delete-text">
-
-                You are about to delete this transfer record.
-
-                <br>
-
-                This action cannot be undone.
-
-            </div>
-
-
-            <div
-                id="deleteTransferInfo"
-                style="
-                    margin-top:17px;
-                    padding:12px;
-                    background:#f8fafc;
-                    border:1px solid #e8edf2;
-                    border-radius:10px;
-                    font-size:11px;
-                    color:#536174;
-                    text-align:center;
-                "
-            ></div>
-
-        </div>
-
-
-        <div class="at-modal-footer">
-
-            <button
-                type="button"
-                class="btn-secondary-at"
-                onclick="closeDeleteModal()"
-            >
-                Cancel
-            </button>
-
-            <button
-                type="button"
-                class="btn-danger-at"
-                onclick="confirmDelete()"
-            >
-                <i class="feather-trash-2"></i>
-                Delete Transfer
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =========================================================
-     FULL REPORT PRINT AREA
-========================================================= -->
-
-<div
-    id="fullReportPrint"
-    style="display:none;"
-></div>
-
-
-<script>
-
-/* =========================================================
-   TRANSFER DATA
-========================================================= */
-
-const transferData = {{ transfers_json|safe }};
-
-
-/* =========================================================
-   CURRENT USER DATA
-========================================================= */
-
-const currentUser = {
-
-    fullname: {{ (current_user.fullname or current_user.username or 'Current User')|tojson }},
-
-    username: {{ (current_user.username or '')|tojson }},
-
-    email: {{ (current_user.email or '')|tojson }},
-
-    phone: {{ (current_user.phone or '')|tojson }},
-
-    role: {{ (current_user.role or 'user')|tojson }},
-
-    photo: {{ (current_user.photo or '')|tojson }}
-
-};
-
-
-/* =========================================================
-   ACTIVE INVOICE
-========================================================= */
-
-let activeInvoiceIndex = null;
-
-let deleteIndex = null;
-
-
-/* =========================================================
-   SAFE
-========================================================= */
-
-function esc(value) {
-
-    if (value === null || value === undefined) {
-        return '';
-    }
-
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
-}
-
-
-/* =========================================================
-   NUMBER
-========================================================= */
-
-function money(value, currency = 'USD') {
-
-    let number = Number(value || 0);
-
-    if (!Number.isFinite(number)) {
-        number = 0;
-    }
-
-    return `${esc(currency)} ${number.toLocaleString(
-        'en-US',
-        {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }
-    )}`;
-
-}
-
-
-/* =========================================================
-   STATUS CLASS
-========================================================= */
-
-function statusClass(status) {
-
-    return String(status || '')
-        .toLowerCase()
-        .replace(/\s+/g, '-');
-
-}
-
-
-/* =========================================================
-   OPEN INVOICE
-========================================================= */
-
-function openInvoice(index) {
-
-    const transfer = transferData[index];
-
-    if (!transfer) {
-        return;
-    }
-
-    activeInvoiceIndex = index;
-
-    const invoice = document.getElementById(
-        'invoicePrintArea'
-    );
-
-
-    const type = transfer.transaction_type || 'Transfer';
-
-    const direction = transfer.direction || '';
-
-    const status = transfer.status || 'Completed';
-
-    const fromName = transfer.from_name || 'Unknown';
-
-    const toName = transfer.to_name || 'Unknown';
-
-    const date = transfer.created_at || '-';
-
-    const reference =
-        transfer.reference_no ||
-        transfer.reference ||
-        transfer.id ||
-        '-';
-
-
-    invoice.innerHTML = `
-
-        <div class="invoice-top">
-
-            <div class="invoice-brand">
-
-                <div class="invoice-logo">
-                    $
-                </div>
-
-                <div>
-
-                    <div class="invoice-company">
-                        Financial Transfer System
-                    </div>
-
-                    <div class="invoice-company-sub">
-                        Account Transfer Management
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="invoice-title">
-
-                <h2>
-                    TRANSFER INVOICE
-                </h2>
-
-                <p>
-                    Official Financial Transaction Record
-                </p>
-
-            </div>
-
-        </div>
-
-
-        <div class="invoice-meta">
-
-            <div class="invoice-meta-box">
-
-                <div class="invoice-meta-label">
-                    Reference Number
-                </div>
-
-                <div class="invoice-meta-value">
-                    ${esc(reference)}
-                </div>
-
-            </div>
-
-
-            <div class="invoice-meta-box">
-
-                <div class="invoice-meta-label">
-                    Transaction Date
-                </div>
-
-                <div class="invoice-meta-value">
-                    ${esc(date)}
-                </div>
-
-            </div>
-
-
-            <div class="invoice-meta-box">
-
-                <div class="invoice-meta-label">
-                    Transfer Type
-                </div>
-
-                <div class="invoice-meta-value">
-                    ${esc(type)}
-                </div>
-
-            </div>
-
-
-            <div class="invoice-meta-box">
-
-                <div class="invoice-meta-label">
-                    Status
-                </div>
-
-                <div class="invoice-meta-value">
-
-                    <span class="at-status-badge at-status-${statusClass(status)}">
-                        ${esc(status)}
-                    </span>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="invoice-route">
-
-            <div class="invoice-party">
-
-                <div class="invoice-party-label">
-                    From
-                </div>
-
-                <div class="invoice-party-name">
-                    ${esc(fromName)}
-                </div>
-
-                <div class="invoice-party-type">
-                    ${esc(transfer.from_type || 'Account')}
-                </div>
-
-            </div>
-
-
-            <div class="invoice-route-arrow">
-
-                <i class="feather-arrow-right"></i>
-
-            </div>
-
-
-            <div class="invoice-party">
-
-                <div class="invoice-party-label">
-                    To
-                </div>
-
-                <div class="invoice-party-name">
-                    ${esc(toName)}
-                </div>
-
-                <div class="invoice-party-type">
-                    ${esc(transfer.to_type || 'Account')}
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="invoice-amount-box">
-
-            <div class="invoice-amount-label">
-                Transfer Amount
-            </div>
-
-            <div class="invoice-amount">
-                ${money(transfer.amount, transfer.currency)}
-            </div>
-
-        </div>
-
-
-        <div class="invoice-balance-grid">
-
-
-            <div class="invoice-balance-card">
-
-                <div class="invoice-balance-head">
-                    FROM — ${esc(transfer.from_type || 'Account')}
-                </div>
-
-                <div class="invoice-balance-body">
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Account / Saving
-                        </span>
-
-                        <span>
-                            ${esc(fromName)}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Balance Before
-                        </span>
-
-                        <span>
-                            ${money(
-                                transfer.from_balance_before,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Transfer Amount
-                        </span>
-
-                        <span>
-                            - ${money(
-                                transfer.amount,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Balance After
-                        </span>
-
-                        <span>
-                            ${money(
-                                transfer.from_balance_after,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="invoice-balance-card">
-
-                <div class="invoice-balance-head">
-                    TO — ${esc(transfer.to_type || 'Account')}
-                </div>
-
-                <div class="invoice-balance-body">
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Account / Saving
-                        </span>
-
-                        <span>
-                            ${esc(toName)}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Balance Before
-                        </span>
-
-                        <span>
-                            ${money(
-                                transfer.to_balance_before,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Transfer Amount
-                        </span>
-
-                        <span>
-                            + ${money(
-                                transfer.amount,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-
-                    <div class="invoice-balance-row">
-
-                        <span>
-                            Balance After
-                        </span>
-
-                        <span>
-                            ${money(
-                                transfer.to_balance_after,
-                                transfer.currency
-                            )}
-                        </span>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="invoice-description">
-
-            <strong>
-                Description
-            </strong>
-
-            <span>
-                ${esc(
-                    transfer.description ||
-                    'Account transfer transaction'
-                )}
-            </span>
-
-        </div>
-
-
-        <div class="invoice-description">
-
-            <strong>
-                Direction
-            </strong>
-
-            <span>
-                ${esc(direction || 'N/A')}
-            </span>
-
-        </div>
-
-
-        <div class="invoice-footer">
-
-            <span>
-                Prepared for:
-                <strong>
-                    ${esc(currentUser.fullname)}
-                </strong>
-            </span>
-
-            <span>
-                Reference:
-                ${esc(reference)}
-            </span>
-
-        </div>
 
     `;
 
 
-    document
-        .getElementById('invoiceModal')
-        .classList
-        .add('show');
+    if (
+        transactions.length === 0
+    ) {
 
-}
-
-
-/* =========================================================
-   CLOSE INVOICE
-========================================================= */
-
-function closeInvoice() {
-
-    document
-        .getElementById('invoiceModal')
-        .classList
-        .remove('show');
-
-}
-
-
-/* =========================================================
-   PRINT CURRENT INVOICE
-========================================================= */
-
-function printCurrentInvoice() {
-
-    if (activeInvoiceIndex === null) {
-        return;
-    }
-
-    printInvoice(activeInvoiceIndex);
-
-}
-
-
-/* =========================================================
-   PRINT ONE INVOICE
-========================================================= */
-
-function printInvoice(index) {
-
-    openInvoice(index);
-
-    setTimeout(() => {
-
-        window.print();
-
-    }, 250);
-
-}
-
-
-/* =========================================================
-   FULL REPORT
-========================================================= */
-
-function printFullReport() {
-
-    const visibleRows = Array.from(
-        document.querySelectorAll(
-            '#transfersTable tbody tr'
-        )
-    ).filter(row => {
-
-        return row.style.display !== 'none';
-
-    });
-
-
-    let total = 0;
-
-    let htmlRows = '';
-
-
-    visibleRows.forEach((row, index) => {
-
-        const transfer = transferData.find(t => {
-
-            const ref = t.reference_no || t.reference || t.id;
-
-            return row.innerText.includes(
-                String(ref)
-            );
-
-        });
-
-
-        if (!transfer) {
-            return;
-        }
-
-
-        total += Number(
-            transfer.amount || 0
-        );
-
-
-        htmlRows += `
+        html += `
 
             <tr>
 
-                <td>
-                    ${index + 1}
-                </td>
+                <td
+                    colspan="8"
+                    class="text-center text-muted py-4">
 
-                <td>
-                    ${esc(transfer.created_at)}
-                </td>
+                    No transactions found.
 
-                <td>
-                    ${esc(transfer.from_name)}
-                    →
-                    ${esc(transfer.to_name)}
-                </td>
-
-                <td>
-                    ${esc(transfer.transaction_type)}
-                </td>
-
-                <td>
-                    ${money(
-                        transfer.amount,
-                        transfer.currency
-                    )}
-                </td>
-
-                <td>
-                    ${money(
-                        transfer.from_balance_before,
-                        transfer.currency
-                    )}
-                    →
-                    ${money(
-                        transfer.from_balance_after,
-                        transfer.currency
-                    )}
-                </td>
-
-                <td>
-                    ${money(
-                        transfer.to_balance_before,
-                        transfer.currency
-                    )}
-                    →
-                    ${money(
-                        transfer.to_balance_after,
-                        transfer.currency
-                    )}
-                </td>
-
-                <td>
-                    ${esc(transfer.reference_no)}
-                </td>
-
-                <td>
-                    ${esc(transfer.status)}
                 </td>
 
             </tr>
 
         `;
 
-    });
+    }
+
+    else {
+
+        transactions.forEach(
+            function(
+                transaction,
+                index
+            ) {
+
+                const type =
+                    getTransactionType(
+                        transaction
+                    );
 
 
-    const reportWindow = window.open(
-        '',
-        '_blank',
-        'width=1400,height=900'
-    );
+                const amount =
+                    parseFloat(
+                        transaction.amount || 0
+                    );
 
 
-    if (!reportWindow) {
+                const isIncome =
+                    type === "income";
+
+
+                const isExpense =
+                    type === "expense";
+
+
+                const isTransferIn =
+                    type === "transfer_in"
+                    ||
+                    type === "transfer-in"
+                    ||
+                    type === "transfer in";
+
+
+                const isTransferOut =
+                    type === "transfer_out"
+                    ||
+                    type === "transfer-out"
+                    ||
+                    type === "transfer out";
+
+
+                let badgeHtml = "";
+
+                let amountPrefix = "";
+
+                let amountClass = "";
+
+
+                if (isIncome) {
+
+                    badgeHtml = `
+
+                        <span class="badge bg-success">
+                            Income
+                        </span>
+
+                    `;
+
+                    amountPrefix = "+";
+
+                    amountClass =
+                        "income-text";
+
+                }
+
+                else if (isExpense) {
+
+                    badgeHtml = `
+
+                        <span class="badge bg-danger">
+                            Expense
+                        </span>
+
+                    `;
+
+                    amountPrefix = "-";
+
+                    amountClass =
+                        "expense-text";
+
+                }
+
+                else if (isTransferIn) {
+
+                    badgeHtml = `
+
+                        <span class="badge bg-info">
+                            Transfer In
+                        </span>
+
+                    `;
+
+                    amountPrefix = "+";
+
+                    amountClass =
+                        "text-info";
+
+                }
+
+                else if (isTransferOut) {
+
+                    badgeHtml = `
+
+                        <span class="badge bg-warning text-dark">
+                            Transfer Out
+                        </span>
+
+                    `;
+
+                    amountPrefix = "-";
+
+                    amountClass =
+                        "text-warning";
+
+                }
+
+                else {
+
+                    badgeHtml = `
+
+                        <span class="badge bg-secondary">
+                            ${escapeHtml(
+                                type || "Other"
+                            )}
+                        </span>
+
+                    `;
+
+                }
+
+
+                html += `
+
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+
+                        <td>
+
+                            ${formatDate(
+                                transaction.date
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${badgeHtml}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.category
+                                ||
+                                "Other"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.item
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.description
+                                ||
+                                transaction.note
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td>
+
+                            ${escapeHtml(
+                                transaction.reference_no
+                                ||
+                                transaction.reference
+                                ||
+                                "-"
+                            )}
+
+                        </td>
+
+
+                        <td class="text-end">
+
+                            <span class="${amountClass}">
+
+                                ${amountPrefix}${formatMoney(
+                                    amount,
+                                    account.currency
+                                )}
+
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    html += `
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    /* ========================================================
+       BALANCE SUMMARY
+    ======================================================== */
+
+    html += `
+
+    <div class="report-section mt-3">
+
+        <div class="report-section-header">
+
+            <i class="fa fa-calculator me-1"></i>
+
+            Balance Summary
+
+        </div>
+
+
+        <div class="report-section-body">
+
+
+            <div class="category-row">
+
+                <span>
+                    Opening Balance
+                </span>
+
+                <strong>
+
+                    ${formatMoney(
+                        account.opening_balance,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span class="income-text">
+                    + Total Income
+                </span>
+
+                <strong class="income-text">
+
+                    ${formatMoney(
+                        account.total_income,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span class="expense-text">
+                    - Total Expense
+                </span>
+
+                <strong class="expense-text">
+
+                    ${formatMoney(
+                        account.total_expense,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span>
+                    + Transfer In
+                </span>
+
+                <strong>
+
+                    ${formatMoney(
+                        account.transfer_in,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div class="category-row">
+
+                <span>
+                    - Transfer Out
+                </span>
+
+                <strong>
+
+                    ${formatMoney(
+                        account.transfer_out,
+                        account.currency
+                    )}
+
+                </strong>
+
+            </div>
+
+
+            <div
+                style="
+                    margin-top:15px;
+                    padding:15px;
+                    background:#f1f5f9;
+                    border-radius:8px;
+                ">
+
+                <div
+                    class="d-flex justify-content-between">
+
+                    <strong>
+                        Net Movement
+                    </strong>
+
+                    <strong class="report-net">
+
+                        ${formatMoney(
+                            account.net_movement,
+                            account.currency
+                        )}
+
+                    </strong>
+
+                </div>
+
+
+                <div
+                    class="d-flex justify-content-between mt-2">
+
+                    <strong>
+                        Current Balance
+                    </strong>
+
+                    <strong class="report-balance">
+
+                        ${formatMoney(
+                            account.current_balance,
+                            account.currency
+                        )}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    `;
+
+
+    container.innerHTML =
+        html;
+
+}
+
+
+/* ============================================================
+   PRINT SINGLE ACCOUNT REPORT
+============================================================ */
+
+function printAccountReport() {
+
+    if (
+        !currentReportAccount
+    ) {
 
         alert(
-            'Please allow popups to print the report.'
+            "Please open an account report first."
         );
 
         return;
@@ -3155,810 +3572,1841 @@ function printFullReport() {
     }
 
 
-    reportWindow.document.write(`
-
-        <!DOCTYPE html>
-
-        <html>
-
-        <head>
-
-            <title>
-                Full Account Transfer Report
-            </title>
-
-            <meta charset="UTF-8">
-
-            <style>
-
-                * {
-                    box-sizing:border-box;
-                }
-
-                body {
-                    font-family:
-                        Arial,
-                        Helvetica,
-                        sans-serif;
-
-                    color:#172033;
-                    margin:0;
-                    padding:30px;
-                    background:#fff;
-                }
-
-                .header {
-                    display:flex;
-                    justify-content:space-between;
-                    border-bottom:3px solid #0b3b82;
-                    padding-bottom:18px;
-                    margin-bottom:22px;
-                }
-
-                .brand {
-                    font-size:21px;
-                    font-weight:900;
-                    color:#0b3b82;
-                }
-
-                .sub {
-                    color:#778394;
-                    font-size:11px;
-                    margin-top:4px;
-                }
-
-                .report-title {
-                    text-align:right;
-                }
-
-                .report-title h1 {
-                    margin:0;
-                    font-size:24px;
-                }
-
-                .report-title p {
-                    margin:4px 0 0;
-                    color:#7b8796;
-                    font-size:11px;
-                }
-
-                .user-box {
-                    background:#f6f8fb;
-                    border:1px solid #e2e7ed;
-                    border-radius:10px;
-                    padding:13px;
-                    margin-bottom:20px;
-                    font-size:12px;
-                }
-
-                .summary {
-                    display:grid;
-                    grid-template-columns:
-                        repeat(4,1fr);
-
-                    gap:10px;
-                    margin-bottom:20px;
-                }
-
-                .summary-box {
-                    border:1px solid #e2e7ed;
-                    border-radius:10px;
-                    padding:13px;
-                }
-
-                .summary-label {
-                    font-size:9px;
-                    color:#7c8795;
-                    text-transform:uppercase;
-                }
-
-                .summary-value {
-                    margin-top:5px;
-                    font-size:17px;
-                    font-weight:900;
-                    color:#0b3b82;
-                }
+    const account =
+        currentReportAccount;
 
-                table {
-                    width:100%;
-                    border-collapse:collapse;
-                    font-size:9px;
-                }
 
-                th {
-                    background:#0b3b82;
-                    color:#fff;
-                    padding:9px 6px;
-                    text-align:left;
-                }
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1200,height=900"
+        );
 
-                td {
-                    border:1px solid #e2e7ed;
-                    padding:8px 6px;
-                    vertical-align:top;
-                }
 
-                tbody tr:nth-child(even) {
-                    background:#f8fafc;
-                }
+    if (!printWindow) {
 
-                .total {
-                    margin-top:18px;
-                    text-align:right;
-                    font-size:15px;
-                    font-weight:900;
-                }
+        alert(
+            "Please allow popups to print the report."
+        );
 
-                .footer {
-                    border-top:1px solid #e3e8ee;
-                    margin-top:25px;
-                    padding-top:10px;
-                    display:flex;
-                    justify-content:space-between;
-                    color:#84909f;
-                    font-size:9px;
-                }
+        return;
 
-                @page {
-                    size:A4 landscape;
-                    margin:10mm;
-                }
+    }
 
-            </style>
 
-        </head>
+    /* ========================================================
+       INCOME CATEGORY HTML
+    ======================================================== */
 
+    let incomeCategoryHtml = "";
 
-        <body>
 
-            <div class="header">
+    const incomeCategories =
+        account.income_categories || {};
 
-                <div>
 
-                    <div class="brand">
-                        Financial Transfer System
-                    </div>
+    Object.keys(
+        incomeCategories
+    ).forEach(
+        function(category) {
 
-                    <div class="sub">
-                        Complete Account Transfer Report
-                    </div>
+            incomeCategoryHtml += `
 
-                </div>
+                <tr>
 
+                    <td>
+                        ${escapeHtml(category)}
+                    </td>
 
-                <div class="report-title">
+                    <td class="income text-right">
 
-                    <h1>
-                        TRANSFER REPORT
-                    </h1>
-
-                    <p>
-                        Generated:
-                        ${new Date().toLocaleString()}
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="user-box">
-
-                <strong>
-                    Current User:
-                </strong>
-
-                ${esc(currentUser.fullname)}
-
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <strong>
-                    Username:
-                </strong>
-
-                ${esc(currentUser.username)}
-
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <strong>
-                    Email:
-                </strong>
-
-                ${esc(currentUser.email)}
-
-                &nbsp;&nbsp; | &nbsp;&nbsp;
-
-                <strong>
-                    Role:
-                </strong>
-
-                ${esc(currentUser.role)}
-
-            </div>
-
-
-            <div class="summary">
-
-                <div class="summary-box">
-
-                    <div class="summary-label">
-                        Total Transfers
-                    </div>
-
-                    <div class="summary-value">
-                        ${visibleRows.length}
-                    </div>
-
-                </div>
-
-
-                <div class="summary-box">
-
-                    <div class="summary-label">
-                        Total Volume
-                    </div>
-
-                    <div class="summary-value">
-                        USD
-                        ${total.toLocaleString(
-                            'en-US',
-                            {
-                                minimumFractionDigits:2
-                            }
+                        +${formatMoney(
+                            incomeCategories[
+                                category
+                            ],
+                            account.currency
                         )}
-                    </div>
 
-                </div>
+                    </td>
 
+                </tr>
 
-                <div class="summary-box">
+            `;
 
-                    <div class="summary-label">
-                        Deposits
-                    </div>
-
-                    <div class="summary-value">
-                        ${{ "{:,.2f}".format(total_deposits) }}
-                    </div>
-
-                </div>
+        }
+    );
 
 
-                <div class="summary-box">
+    if (
+        !incomeCategoryHtml
+    ) {
 
-                    <div class="summary-label">
-                        Withdrawals
-                    </div>
+        incomeCategoryHtml = `
 
-                    <div class="summary-value">
-                        ${{ "{:,.2f}".format(total_withdrawals) }}
-                    </div>
+            <tr>
 
-                </div>
+                <td colspan="2">
+                    No income categories
+                </td>
 
-            </div>
+            </tr>
 
+        `;
 
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>#</th>
-
-                        <th>Date</th>
-
-                        <th>Transfer</th>
-
-                        <th>Type</th>
-
-                        <th>Amount</th>
-
-                        <th>From Balance</th>
-
-                        <th>To Balance</th>
-
-                        <th>Reference</th>
-
-                        <th>Status</th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody>
-
-                    ${htmlRows}
-
-                </tbody>
-
-            </table>
+    }
 
 
-            <div class="total">
+    /* ========================================================
+       EXPENSE CATEGORY HTML
+    ======================================================== */
 
-                Total Transfer Volume:
-                $${total.toLocaleString(
-                    'en-US',
-                    {
-                        minimumFractionDigits:2,
-                        maximumFractionDigits:2
-                    }
-                )}
-
-            </div>
+    let expenseCategoryHtml = "";
 
 
-            <div class="footer">
-
-                <span>
-                    Prepared for:
-                    ${esc(currentUser.fullname)}
-                </span>
-
-                <span>
-                    Account Transfer Management Report
-                </span>
-
-            </div>
+    const expenseCategories =
+        account.expense_categories || {};
 
 
-            <script>
+    Object.keys(
+        expenseCategories
+    ).forEach(
+        function(category) {
 
-                window.onload = function() {
+            expenseCategoryHtml += `
 
-                    setTimeout(
-                        function() {
-                            window.print();
-                        },
-                        400
-                    );
+                <tr>
 
-                };
+                    <td>
+                        ${escapeHtml(category)}
+                    </td>
 
-            <\/script>
+                    <td class="expense text-right">
 
-        </body>
+                        -${formatMoney(
+                            expenseCategories[
+                                category
+                            ],
+                            account.currency
+                        )}
 
-        </html>
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    if (
+        !expenseCategoryHtml
+    ) {
+
+        expenseCategoryHtml = `
+
+            <tr>
+
+                <td colspan="2">
+                    No expense categories
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       TRANSACTIONS HTML
+    ======================================================== */
+
+    let transactionHtml = "";
+
+
+    const transactions =
+        account.transactions || [];
+
+
+    transactions.forEach(
+        function(
+            transaction,
+            index
+        ) {
+
+            const type =
+                getTransactionType(
+                    transaction
+                );
+
+
+            const amount =
+                parseFloat(
+                    transaction.amount || 0
+                );
+
+
+            const isIncome =
+                type === "income";
+
+
+            const isExpense =
+                type === "expense";
+
+
+            const isTransferIn =
+                type === "transfer_in"
+                ||
+                type === "transfer-in"
+                ||
+                type === "transfer in";
+
+
+            const isTransferOut =
+                type === "transfer_out"
+                ||
+                type === "transfer-out"
+                ||
+                type === "transfer out";
+
+
+            let typeText =
+                type.toUpperCase();
+
+
+            let typeClass =
+                "";
+
+
+            let prefix =
+                "";
+
+
+            if (isIncome) {
+
+                typeText =
+                    "INCOME";
+
+                typeClass =
+                    "income";
+
+                prefix =
+                    "+";
+
+            }
+
+            else if (isExpense) {
+
+                typeText =
+                    "EXPENSE";
+
+                typeClass =
+                    "expense";
+
+                prefix =
+                    "-";
+
+            }
+
+            else if (isTransferIn) {
+
+                typeText =
+                    "TRANSFER IN";
+
+                typeClass =
+                    "transfer";
+
+                prefix =
+                    "+";
+
+            }
+
+            else if (isTransferOut) {
+
+                typeText =
+                    "TRANSFER OUT";
+
+                typeClass =
+                    "transfer";
+
+                prefix =
+                    "-";
+
+            }
+
+            else {
+
+                typeText =
+                    typeText || "OTHER";
+
+            }
+
+
+            transactionHtml += `
+
+                <tr>
+
+                    <td>
+                        ${index + 1}
+                    </td>
+
+                    <td>
+                        ${formatDate(
+                            transaction.date
+                        )}
+                    </td>
+
+                    <td class="${typeClass}">
+                        ${escapeHtml(typeText)}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.category
+                            ||
+                            "Other"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.item
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.description
+                            ||
+                            transaction.note
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            transaction.reference_no
+                            ||
+                            transaction.reference
+                            ||
+                            "-"
+                        )}
+                    </td>
+
+                    <td class="${typeClass} text-right">
+
+                        ${prefix}${formatMoney(
+                            amount,
+                            account.currency
+                        )}
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+    );
+
+
+    if (
+        !transactionHtml
+    ) {
+
+        transactionHtml = `
+
+            <tr>
+
+                <td
+                    colspan="8"
+                    class="text-center">
+
+                    No transactions found.
+
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       PRINT DOCUMENT
+    ======================================================== */
+
+    printWindow.document.open();
+
+
+    printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+${escapeHtml(account.name)} - Account Statement
+</title>
+
+
+<style>
+
+* {
+    box-sizing:border-box;
+}
+
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    margin:0;
+
+    padding:30px;
+
+    color:#222;
+
+    background:#fff;
+
+    font-size:12px;
+
+}
+
+
+.invoice {
+
+    max-width:1100px;
+
+    margin:auto;
+
+}
+
+
+.header {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    border-bottom:3px solid #1d3557;
+
+    padding-bottom:18px;
+
+    margin-bottom:20px;
+
+}
+
+
+.company {
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#1d3557;
+
+}
+
+
+.document-title {
+
+    text-align:right;
+
+}
+
+
+.document-title h1 {
+
+    margin:0;
+
+    font-size:25px;
+
+    color:#1d3557;
+
+}
+
+
+.document-title small {
+
+    color:#777;
+
+}
+
+
+.account-box {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    border:1px solid #ddd;
+
+    padding:15px;
+
+    border-radius:7px;
+
+    margin-bottom:20px;
+
+}
+
+
+.account-box div {
+
+    min-width:200px;
+
+}
+
+
+.label {
+
+    color:#777;
+
+    font-size:10px;
+
+    text-transform:uppercase;
+
+}
+
+
+.value {
+
+    font-size:14px;
+
+    font-weight:700;
+
+    margin-top:3px;
+
+}
+
+
+.stats {
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(4,1fr);
+
+    gap:10px;
+
+    margin-bottom:20px;
+
+}
+
+
+.stat {
+
+    border:1px solid #ddd;
+
+    padding:12px;
+
+    border-radius:7px;
+
+}
+
+
+.stat .label {
+
+    display:block;
+
+}
+
+
+.stat .value {
+
+    font-size:16px;
+
+}
+
+
+.income {
+
+    color:#198754 !important;
+
+    font-weight:700;
+
+}
+
+
+.expense {
+
+    color:#dc3545 !important;
+
+    font-weight:700;
+
+}
+
+
+.transfer {
+
+    color:#8e44ad !important;
+
+    font-weight:700;
+
+}
+
+
+.balance {
+
+    color:#0d6efd !important;
+
+    font-weight:700;
+
+}
+
+
+.net {
+
+    color:#6f42c1 !important;
+
+    font-weight:700;
+
+}
+
+
+.section {
+
+    margin-top:20px;
+
+}
+
+
+.section-title {
+
+    background:#1d3557;
+
+    color:#fff;
+
+    padding:9px 12px;
+
+    font-weight:700;
+
+    border-radius:5px 5px 0 0;
+
+}
+
+
+table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+
+th {
+
+    background:#f1f3f5;
+
+    font-size:10px;
+
+    text-align:left;
+
+}
+
+
+th,
+td {
+
+    padding:8px;
+
+    border:1px solid #ddd;
+
+}
+
+
+td {
+
+    font-size:10px;
+
+}
+
+
+.text-right {
+
+    text-align:right;
+
+}
+
+
+.balance-box {
+
+    margin-top:20px;
+
+    border:2px solid #1d3557;
+
+    padding:15px;
+
+    border-radius:7px;
+
+}
+
+
+.balance-row {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:7px 0;
+
+    border-bottom:1px solid #eee;
+
+}
+
+
+.balance-row:last-child {
+
+    border-bottom:none;
+
+}
+
+
+.final-balance {
+
+    font-size:20px;
+
+    font-weight:700;
+
+    color:#0d6efd;
+
+}
+
+
+.footer {
+
+    margin-top:30px;
+
+    padding-top:15px;
+
+    border-top:1px solid #ddd;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    color:#777;
+
+    font-size:10px;
+
+}
+
+
+@page {
+
+    size:A4 landscape;
+
+    margin:12mm;
+
+}
+
+
+@media print {
+
+    body {
+
+        padding:0;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="invoice">
+
+
+<!-- HEADER -->
+
+<div class="header">
+
+    <div>
+
+        <div class="company">
+            ACCOUNT FINANCIAL REPORT
+        </div>
+
+        <div style="margin-top:5px;color:#777;">
+            Complete Account Statement
+        </div>
+
+    </div>
+
+
+    <div class="document-title">
+
+        <h1>
+            ACCOUNT STATEMENT
+        </h1>
+
+        <small>
+            Generated:
+            ${new Date().toLocaleString()}
+        </small>
+
+    </div>
+
+</div>
+
+
+<!-- ACCOUNT INFORMATION -->
+
+<div class="account-box">
+
+
+    <div>
+
+        <div class="label">
+            Account Name
+        </div>
+
+        <div class="value">
+            ${escapeHtml(account.name)}
+        </div>
+
+    </div>
+
+
+    <div>
+
+        <div class="label">
+            Account Type
+        </div>
+
+        <div class="value">
+            ${escapeHtml(account.type)}
+        </div>
+
+    </div>
+
+
+    <div>
+
+        <div class="label">
+            Currency
+        </div>
+
+        <div class="value">
+            ${escapeHtml(account.currency)}
+        </div>
+
+    </div>
+
+
+    <div>
+
+        <div class="label">
+            Account ID
+        </div>
+
+        <div class="value">
+            ${escapeHtml(account.id)}
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- STATISTICS -->
+
+<div class="stats">
+
+
+    <div class="stat">
+
+        <span class="label">
+            Opening Balance
+        </span>
+
+        <div class="value">
+
+            ${formatMoney(
+                account.opening_balance,
+                account.currency
+            )}
+
+        </div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span class="label">
+            Total Income
+        </span>
+
+        <div class="value income">
+
+            +${formatMoney(
+                account.total_income,
+                account.currency
+            )}
+
+        </div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span class="label">
+            Total Expense
+        </span>
+
+        <div class="value expense">
+
+            -${formatMoney(
+                account.total_expense,
+                account.currency
+            )}
+
+        </div>
+
+    </div>
+
+
+    <div class="stat">
+
+        <span class="label">
+            Current Balance
+        </span>
+
+        <div class="value balance">
+
+            ${formatMoney(
+                account.current_balance,
+                account.currency
+            )}
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- TRANSFERS -->
+
+<div class="section">
+
+<div class="section-title">
+    Transfer Summary
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Transfer In
+</th>
+
+<th>
+    Transfer Out
+</th>
+
+<th>
+    Net Movement
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+<tr>
+
+<td class="income text-right">
+
++${formatMoney(
+    account.transfer_in,
+    account.currency
+)}
+
+</td>
+
+
+<td class="expense text-right">
+
+-${formatMoney(
+    account.transfer_out,
+    account.currency
+)}
+
+</td>
+
+
+<td class="net text-right">
+
+${formatMoney(
+    account.net_movement,
+    account.currency
+)}
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- INCOME CATEGORY -->
+
+<div class="section">
+
+<div class="section-title">
+    Income by Category
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Category
+</th>
+
+<th class="text-right">
+    Amount
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${incomeCategoryHtml}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- EXPENSE CATEGORY -->
+
+<div class="section">
+
+<div class="section-title">
+    Expense by Category
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Category
+</th>
+
+<th class="text-right">
+    Amount
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${expenseCategoryHtml}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- TRANSACTION HISTORY -->
+
+<div class="section">
+
+<div class="section-title">
+    Complete Transaction History
+</div>
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>#</th>
+
+<th>Date</th>
+
+<th>Type</th>
+
+<th>Category</th>
+
+<th>Item</th>
+
+<th>Description</th>
+
+<th>Reference</th>
+
+<th class="text-right">
+    Amount
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+${transactionHtml}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- BALANCE SUMMARY -->
+
+<div class="balance-box">
+
+
+<div class="balance-row">
+
+<span>
+    Opening Balance
+</span>
+
+<strong>
+
+${formatMoney(
+    account.opening_balance,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span class="income">
+    + Total Income
+</span>
+
+<strong class="income">
+
+${formatMoney(
+    account.total_income,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span class="expense">
+    - Total Expense
+</span>
+
+<strong class="expense">
+
+${formatMoney(
+    account.total_expense,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span>
+    + Transfer In
+</span>
+
+<strong>
+
+${formatMoney(
+    account.transfer_in,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span>
+    - Transfer Out
+</span>
+
+<strong>
+
+${formatMoney(
+    account.transfer_out,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="balance-row">
+
+<span>
+    Net Movement
+</span>
+
+<strong class="net">
+
+${formatMoney(
+    account.net_movement,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+<div
+    class="balance-row"
+    style="
+        margin-top:8px;
+        padding-top:12px;
+    "
+>
+
+<strong>
+    CURRENT BALANCE
+</strong>
+
+<strong class="final-balance">
+
+${formatMoney(
+    account.current_balance,
+    account.currency
+)}
+
+</strong>
+
+</div>
+
+
+</div>
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<span>
+    Account Statement
+</span>
+
+<span>
+    Transactions:
+    ${account.transaction_count}
+</span>
+
+<span>
+    Generated:
+    ${new Date().toLocaleString()}
+</span>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+window.onload = function() {
+
+    setTimeout(
+        function() {
+
+            window.print();
+
+        },
+        500
+    );
+
+};
+
+<\/script>
+
+
+</body>
+
+</html>
 
     `);
 
 
-    reportWindow.document.close();
+    printWindow.document.close();
 
 }
 
 
-/* =========================================================
-   SEARCH / FILTER
-========================================================= */
+/* ============================================================
+   OPEN TRANSFER
+============================================================ */
 
-function applyFilters() {
+function openTransfer(
+    accountId,
+    accountName,
+    balance,
+    currency
+) {
 
-    const search = document
-        .getElementById('transferSearch')
-        .value
-        .toLowerCase()
-        .trim();
-
-
-    const type = document
-        .getElementById('transferTypeFilter')
-        .value;
+    transferFrom =
+        String(accountId);
 
 
-    const status = document
-        .getElementById('transferStatusFilter')
-        .value;
+    transferFromBalance =
+        parseFloat(
+            balance || 0
+        );
 
 
-    const currency = document
-        .getElementById('currencyFilter')
-        .value;
+    transferFromCurrency =
+        currency || "USD";
 
 
-    document
-        .querySelectorAll(
-            '#transfersTable tbody tr'
-        )
-        .forEach(row => {
-
-            const rowSearch =
-                row.dataset.search
-                    .toLowerCase();
+    const modal =
+        document.getElementById(
+            "transferModal"
+        );
 
 
-            const rowType =
-                row.dataset.type;
+    if (modal) {
+
+        modal.classList.add(
+            "active"
+        );
+
+    }
 
 
-            const rowStatus =
-                row.dataset.status;
+    const nameElement =
+        document.getElementById(
+            "transferFromName"
+        );
 
 
-            const rowCurrency =
-                row.dataset.currency;
+    if (nameElement) {
+
+        nameElement.innerText =
+            accountName;
+
+    }
 
 
-            const matchSearch =
-                !search ||
-                rowSearch.includes(search);
+    const balanceElement =
+        document.getElementById(
+            "transferAvailableBalance"
+        );
 
 
-            const matchType =
-                !type ||
-                rowType === type;
+    if (balanceElement) {
+
+        balanceElement.innerText =
+            formatMoney(
+                transferFromBalance,
+                transferFromCurrency
+            );
+
+    }
 
 
-            const matchStatus =
-                !status ||
-                rowStatus === status;
+    const amountInput =
+        document.getElementById(
+            "transferAmount"
+        );
 
 
-            const matchCurrency =
-                !currency ||
-                rowCurrency === currency;
+    if (amountInput) {
+
+        amountInput.value =
+            "";
+
+    }
 
 
-            row.style.display =
-                (
-                    matchSearch &&
-                    matchType &&
-                    matchStatus &&
-                    matchCurrency
-                )
-                ? ''
-                : 'none';
+    const destination =
+        document.getElementById(
+            "transferToAccount"
+        );
 
-        });
+
+    if (destination) {
+
+        destination.value =
+            "";
+
+    }
+
+
+    const amountInfo =
+        document.getElementById(
+            "transferAmountInfo"
+        );
+
+
+    if (amountInfo) {
+
+        amountInfo.innerHTML = `
+
+            <i class="fa fa-info-circle"></i>
+
+            Enter transfer amount
+
+        `;
+
+        amountInfo.style.color =
+            "#e67e22";
+
+    }
+
+
+    const destinationInfo =
+        document.getElementById(
+            "transferDestinationInfo"
+        );
+
+
+    if (destinationInfo) {
+
+        destinationInfo.innerHTML =
+            "";
+
+    }
+
+
+    const summary =
+        document.getElementById(
+            "transferSummary"
+        );
+
+
+    if (summary) {
+
+        summary.classList.remove(
+            "show"
+        );
+
+    }
 
 }
 
 
-/* =========================================================
-   FILTER EVENTS
-========================================================= */
+/* ============================================================
+   TRANSFER AMOUNT VALIDATION
+============================================================ */
 
 document.addEventListener(
-    'DOMContentLoaded',
-    function() {
+    "input",
+    function(event) {
 
-        const ids = [
+        if (
+            event.target.id !==
+            "transferAmount"
+        ) {
 
-            'transferSearch',
+            return;
 
-            'transferTypeFilter',
-
-            'transferStatusFilter',
-
-            'currencyFilter'
-
-        ];
+        }
 
 
-        ids.forEach(id => {
+        const amount =
+            parseFloat(
+                event.target.value || 0
+            );
 
-            const element =
-                document.getElementById(id);
+
+        const info =
+            document.getElementById(
+                "transferAmountInfo"
+            );
 
 
-            if (!element) {
-                return;
+        const summary =
+            document.getElementById(
+                "transferSummary"
+            );
+
+
+        if (
+            !amount ||
+            amount <= 0
+        ) {
+
+            if (info) {
+
+                info.innerHTML = `
+
+                    <i class="fa fa-info-circle"></i>
+
+                    Enter transfer amount
+
+                `;
+
+                info.style.color =
+                    "#e67e22";
+
             }
 
 
-            element.addEventListener(
-                'input',
-                applyFilters
+            if (summary) {
+
+                summary.classList.remove(
+                    "show"
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            amount >
+            transferFromBalance
+        ) {
+
+            if (info) {
+
+                info.innerHTML = `
+
+                    <i class="fa fa-warning"></i>
+
+                    <span style="color:#e74c3c">
+
+                        Insufficient balance.
+
+                        Available:
+
+                        ${formatMoney(
+                            transferFromBalance,
+                            transferFromCurrency
+                        )}
+
+                    </span>
+
+                `;
+
+                info.style.color =
+                    "#e74c3c";
+
+            }
+
+
+            if (summary) {
+
+                summary.classList.remove(
+                    "show"
+                );
+
+            }
+
+            return;
+
+        }
+
+
+        if (info) {
+
+            info.innerHTML = `
+
+                <i class="fa fa-check-circle"></i>
+
+                Amount available for transfer
+
+            `;
+
+            info.style.color =
+                "#198754";
+
+        }
+
+
+        const summaryAmount =
+            document.getElementById(
+                "summaryAmount"
             );
 
 
-            element.addEventListener(
-                'change',
-                applyFilters
+        const summaryRemaining =
+            document.getElementById(
+                "summaryRemaining"
             );
 
-        });
+
+        if (summaryAmount) {
+
+            summaryAmount.innerText =
+                formatMoney(
+                    amount,
+                    transferFromCurrency
+                );
+
+        }
+
+
+        if (summaryRemaining) {
+
+            summaryRemaining.innerText =
+                formatMoney(
+                    transferFromBalance - amount,
+                    transferFromCurrency
+                );
+
+        }
+
+
+        if (summary) {
+
+            summary.classList.add(
+                "show"
+            );
+
+        }
 
     }
 );
 
 
-/* =========================================================
-   RESET
-========================================================= */
+/* ============================================================
+   TRANSFER DESTINATION
+============================================================ */
 
-function resetFilters() {
+document.addEventListener(
+    "change",
+    function(event) {
 
-    document.getElementById(
-        'transferSearch'
-    ).value = '';
+        if (
+            event.target.id !==
+            "transferToAccount"
+        ) {
 
+            return;
 
-    document.getElementById(
-        'transferTypeFilter'
-    ).value = '';
-
-
-    document.getElementById(
-        'transferStatusFilter'
-    ).value = '';
+        }
 
 
-    document.getElementById(
-        'currencyFilter'
-    ).value = '';
+        const select =
+            event.target;
 
 
-    applyFilters();
-
-}
-
-
-/* =========================================================
-   CSV EXPORT
-========================================================= */
-
-function exportCSV() {
-
-    const rows = Array.from(
-        document.querySelectorAll(
-            '#transfersTable tbody tr'
-        )
-    ).filter(row => {
-
-        return row.style.display !== 'none';
-
-    });
+        const option =
+            select.options[
+                select.selectedIndex
+            ];
 
 
-    const csv = [];
-
-
-    csv.push([
-        'Date',
-        'From',
-        'From Type',
-        'To',
-        'To Type',
-        'Type',
-        'Amount',
-        'Currency',
-        'From Before',
-        'From After',
-        'To Before',
-        'To After',
-        'Reference',
-        'Status',
-        'Description'
-    ]);
-
-
-    rows.forEach(row => {
-
-        const referenceElement =
-            row.querySelector(
-                '.at-reference'
+        const info =
+            document.getElementById(
+                "transferDestinationInfo"
             );
 
 
-        const reference =
-            referenceElement
-            ? referenceElement.innerText.trim()
-            : '';
+        if (!select.value) {
 
+            if (info) {
 
-        const transfer =
-            transferData.find(t => {
+                info.innerHTML =
+                    "";
 
-                return (
-                    String(
-                        t.reference_no ||
-                        t.reference ||
-                        t.id
-                    ) === reference
-                );
+            }
 
-            });
-
-
-        if (!transfer) {
             return;
+
         }
 
 
-        csv.push([
-
-            transfer.created_at || '',
-
-            transfer.from_name || '',
-
-            transfer.from_type || '',
-
-            transfer.to_name || '',
-
-            transfer.to_type || '',
-
-            transfer.transaction_type || '',
-
-            transfer.amount || 0,
-
-            transfer.currency || '',
-
-            transfer.from_balance_before || 0,
-
-            transfer.from_balance_after || 0,
-
-            transfer.to_balance_before || 0,
-
-            transfer.to_balance_after || 0,
-
-            transfer.reference_no || '',
-
-            transfer.status || '',
-
-            transfer.description || ''
-
-        ]);
-
-    });
+        const balance =
+            parseFloat(
+                option.dataset.balance || 0
+            );
 
 
-    const csvString =
-        csv.map(row => {
-
-            return row.map(value => {
-
-                const text =
-                    String(value ?? '');
+        const currency =
+            option.dataset.currency
+            ||
+            "USD";
 
 
-                return `"${text.replace(
-                    /"/g,
-                    '""'
-                )}"`;
+        if (info) {
 
-            }).join(',');
+            info.innerHTML = `
 
-        }).join('\n');
+                <i class="fa fa-wallet"></i>
 
+                Destination Balance:
 
-    const blob = new Blob(
-        [csvString],
-        {
-            type: 'text/csv;charset=utf-8;'
+                <strong>
+
+                    ${formatMoney(
+                        balance,
+                        currency
+                    )}
+
+                </strong>
+
+            `;
+
         }
-    );
 
-
-    const url =
-        URL.createObjectURL(blob);
-
-
-    const link =
-        document.createElement('a');
-
-
-    link.href = url;
-
-    link.download =
-        'account_transfer_report.csv';
-
-
-    document.body.appendChild(link);
-
-    link.click();
-
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
-
-}
-
-
-/* =========================================================
-   DELETE MODAL
-========================================================= */
-
-function openDeleteModal(index) {
-
-    const transfer =
-        transferData[index];
-
-
-    if (!transfer) {
-        return;
     }
+);
 
 
-    deleteIndex = index;
+/* ============================================================
+   SUBMIT TRANSFER
+============================================================ */
+
+function submitTransfer() {
+
+    const amountInput =
+        document.getElementById(
+            "transferAmount"
+        );
 
 
-    document.getElementById(
-        'deleteTransferInfo'
-    ).innerHTML = `
-
-        <strong>
-            ${esc(
-                transfer.reference_no ||
-                transfer.reference ||
-                transfer.id
-            )}
-        </strong>
-
-        <br>
-
-        ${esc(transfer.from_name)}
-        →
-        ${esc(transfer.to_name)}
-
-        <br>
-
-        <strong>
-            ${money(
-                transfer.amount,
-                transfer.currency
-            )}
-        </strong>
-
-    `;
+    const destination =
+        document.getElementById(
+            "transferToAccount"
+        );
 
 
-    document
-        .getElementById('deleteModal')
-        .classList
-        .add('show');
-
-}
-
-
-/* =========================================================
-   CLOSE DELETE
-========================================================= */
-
-function closeDeleteModal() {
-
-    document
-        .getElementById('deleteModal')
-        .classList
-        .remove('show');
-
-    deleteIndex = null;
-
-}
+    const amount =
+        parseFloat(
+            amountInput
+            ? amountInput.value
+            : 0
+        );
 
 
-/* =========================================================
-   CONFIRM DELETE
-========================================================= */
-
-async function confirmDelete() {
-
-    if (deleteIndex === null) {
-        return;
-    }
+    const toAccount =
+        destination
+        ? destination.value
+        : "";
 
 
-    const transfer =
-        transferData[deleteIndex];
-
-
-    if (!transfer) {
-        return;
-    }
-
-
-    const transferId =
-        transfer.id ||
-        transfer._id;
-
-
-    if (!transferId) {
+    if (!transferFrom) {
 
         alert(
-            'Transfer ID is missing.'
+            "Source account missing."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        !amount ||
+        amount <= 0
+    ) {
+
+        alert(
+            "Enter a valid amount."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        amount >
+        transferFromBalance
+    ) {
+
+        alert(
+            "Insufficient balance. Available " +
+            formatMoney(
+                transferFromBalance,
+                transferFromCurrency
+            )
+        );
+
+        return;
+
+    }
+
+
+    if (!toAccount) {
+
+        alert(
+            "Select destination account."
+        );
+
+        return;
+
+    }
+
+
+    if (
+        String(transferFrom)
+        ===
+        String(toAccount)
+    ) {
+
+        alert(
+            "You cannot transfer to the same account."
         );
 
         return;
@@ -3967,157 +5415,1857 @@ async function confirmDelete() {
 
 
     const button =
-        document.querySelector(
-            '.btn-danger-at'
+        document.getElementById(
+            "transferSubmitBtn"
         );
 
 
     if (button) {
 
-        button.disabled = true;
+        button.disabled =
+            true;
 
-        button.innerHTML =
-            '<i class="feather-loader"></i> Deleting...';
+
+        button.innerHTML = `
+
+            <i class="fa fa-spinner fa-spin"></i>
+
+            Processing...
+
+        `;
 
     }
 
 
-    try {
+    fetch(
+        "/account/transfer",
+        {
 
-        /*
-         * IMPORTANT:
-         *
-         * This expects:
-         *
-         * POST /account/transfers/delete/<transfer_id>
-         *
-         * If your delete route uses another URL,
-         * change ONLY this URL.
-         */
+            method:
+                "POST",
 
-        const response =
-            await fetch(
-                `/account/transfers/delete/${encodeURIComponent(
-                    transferId
-                )}`,
-                {
-                    method: 'POST',
+            headers: {
 
-                    headers: {
-                        'Content-Type':
-                            'application/json',
+                "Content-Type":
+                    "application/json",
 
-                        'X-Requested-With':
-                            'XMLHttpRequest'
-                    },
+                "X-Requested-With":
+                    "XMLHttpRequest"
 
-                    body: JSON.stringify({
-                        transfer_id:
-                            transferId
-                    })
+            },
+
+            body:
+                JSON.stringify({
+
+                    from_account:
+                        String(
+                            transferFrom
+                        ),
+
+                    to_account:
+                        String(
+                            toAccount
+                        ),
+
+                    amount:
+                        amount
+
+                })
+
+        }
+    )
+
+    .then(
+        function(response) {
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "HTTP " +
+                    response.status
+                );
+
+            }
+
+            return response.json();
+
+        }
+    )
+
+    .then(
+        function(data) {
+
+            if (data.error) {
+
+                alert(
+                    data.error
+                );
+
+                return;
+
+            }
+
+
+            alert(
+                data.message
+                ||
+                "Transfer completed successfully."
+            );
+
+
+            window.location.reload();
+
+        }
+    )
+
+    .catch(
+        function(error) {
+
+            console.error(
+                "Transfer error:",
+                error
+            );
+
+
+            alert(
+                "Server error. Please try again."
+            );
+
+        }
+    )
+
+    .finally(
+        function() {
+
+            if (button) {
+
+                button.disabled =
+                    false;
+
+
+                button.innerHTML = `
+
+                    <i class="fa fa-check me-1"></i>
+
+                    Transfer Money
+
+                `;
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CLOSE TRANSFER MODAL
+============================================================ */
+
+function closeModal() {
+
+    const modal =
+        document.getElementById(
+            "transferModal"
+        );
+
+
+    if (modal) {
+
+        modal.classList.remove(
+            "active"
+        );
+
+    }
+
+
+    transferFrom =
+        null;
+
+
+    transferFromBalance =
+        0;
+
+
+    transferFromCurrency =
+        "USD";
+
+}
+
+
+/* ============================================================
+   ESCAPE KEY
+============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            closeAccountReport();
+
+            closeModal();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   BACKDROP - ACCOUNT REPORT
+============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        const accountModal =
+            document.getElementById(
+                "accountReportModal"
+            );
+
+
+        if (accountModal) {
+
+            accountModal.addEventListener(
+                "click",
+                function(event) {
+
+                    if (
+                        event.target === this
+                    ) {
+
+                        closeAccountReport();
+
+                    }
+
                 }
             );
 
-
-        const result =
-            await response.json()
-                .catch(() => ({}));
+        }
 
 
-        if (!response.ok) {
+        const transferModal =
+            document.getElementById(
+                "transferModal"
+            );
 
-            throw new Error(
-                result.error ||
-                result.message ||
-                'Delete failed.'
+
+        if (transferModal) {
+
+            transferModal.addEventListener(
+                "click",
+                function(event) {
+
+                    if (
+                        event.target === this
+                    ) {
+
+                        closeModal();
+
+                    }
+
+                }
             );
 
         }
 
+    }
+);
 
-        closeDeleteModal();
+
+/* ============================================================
+   SIMPLE MONEY FUNCTION
+   Used by ALL ACCOUNTS invoice.
+============================================================ */
+
+function money(
+    value,
+    currency
+) {
+
+    return formatMoney(
+        value,
+        currency || "USD"
+    );
+
+}
 
 
-        alert(
-            result.message ||
-            'Transfer deleted successfully.'
+/* ============================================================
+   PRINT ALL ACCOUNTS INVOICE
+============================================================ */
+
+function printAllAccountsInvoice() {
+
+    const reports =
+        Object.values(
+            accountReports
         );
 
 
-        window.location.reload();
+    const grand =
+        allAccountsReport || {};
 
 
-    } catch (error) {
+    if (
+        !reports ||
+        reports.length === 0
+    ) {
 
         alert(
-            error.message ||
-            'Unable to delete transfer.'
+            "No accounts available."
         );
 
+        return;
 
-        if (button) {
+    }
 
-            button.disabled = false;
 
-            button.innerHTML =
-                '<i class="feather-trash-2"></i> Delete Transfer';
+    /*
+       IMPORTANT:
+
+       Multiple currencies cannot safely be
+       mathematically combined.
+
+       We therefore use the first account currency
+       for the GRAND TOTAL display, matching the
+       backend grand report.
+    */
+
+    const currency =
+        reports[0].currency
+        ||
+        "USD";
+
+
+    let accountRows = "";
+
+
+    /* ========================================================
+       ACCOUNT ROWS
+    ======================================================== */
+
+    reports.forEach(
+        function(
+            account,
+            index
+        ) {
+
+            accountRows += `
+
+            <tr>
+
+                <td>
+                    ${index + 1}
+                </td>
+
+                <td>
+                    <strong>
+                        ${escapeHtml(
+                            account.name
+                        )}
+                    </strong>
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        account.type
+                    )}
+                </td>
+
+                <td class="right">
+                    ${money(
+                        account.opening_balance,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="income right">
+                    +${money(
+                        account.total_income,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="expense right">
+                    -${money(
+                        account.total_expense,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="transfer right">
+                    +${money(
+                        account.transfer_in,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="transfer right">
+                    -${money(
+                        account.transfer_out,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="net right">
+                    ${money(
+                        account.net_movement,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="balance right">
+                    ${money(
+                        account.current_balance,
+                        account.currency
+                    )}
+                </td>
+
+                <td class="center">
+                    ${account.transaction_count}
+                </td>
+
+            </tr>
+
+            `;
 
         }
+    );
+
+
+    /* ========================================================
+       GRAND TOTAL
+    ======================================================== */
+
+    accountRows += `
+
+    <tr class="grand">
+
+        <td colspan="3">
+            GRAND TOTAL
+        </td>
+
+
+        <td class="right">
+
+            ${money(
+                grand.opening_balance,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="income right">
+
+            +${money(
+                grand.total_income,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="expense right">
+
+            -${money(
+                grand.total_expense,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="transfer right">
+
+            +${money(
+                grand.transfer_in,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="transfer right">
+
+            -${money(
+                grand.transfer_out,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="net right">
+
+            ${money(
+                grand.net_movement,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="balance right">
+
+            ${money(
+                grand.current_balance,
+                currency
+            )}
+
+        </td>
+
+
+        <td class="center">
+
+            ${grand.transaction_count || 0}
+
+        </td>
+
+    </tr>
+
+    `;
+
+
+    /* ========================================================
+       ALL TRANSACTIONS
+    ======================================================== */
+
+    let transactions = [];
+
+
+    reports.forEach(
+        function(account) {
+
+            (
+                account.transactions || []
+            ).forEach(
+                function(transaction) {
+
+                    transactions.push({
+
+                        account:
+                            account.name,
+
+                        currency:
+                            account.currency,
+
+                        data:
+                            transaction
+
+                    });
+
+                }
+            );
+
+        }
+    );
+
+
+    transactions.sort(
+        function(a, b) {
+
+            return String(
+                b.data.date || ""
+            ).localeCompare(
+                String(
+                    a.data.date || ""
+                )
+            );
+
+        }
+    );
+
+
+    let transactionRows = "";
+
+
+    transactions.forEach(
+        function(
+            row,
+            index
+        ) {
+
+            const trx =
+                row.data;
+
+
+            const type =
+                getTransactionType(
+                    trx
+                );
+
+
+            const amount =
+                parseFloat(
+                    trx.amount || 0
+                );
+
+
+            let typeClass =
+                "transfer";
+
+
+            let prefix =
+                "";
+
+
+            let typeLabel =
+                type.toUpperCase();
+
+
+            if (
+                type === "income"
+            ) {
+
+                typeClass =
+                    "income";
+
+                prefix =
+                    "+";
+
+                typeLabel =
+                    "INCOME";
+
+            }
+
+            else if (
+                type === "expense"
+            ) {
+
+                typeClass =
+                    "expense";
+
+                prefix =
+                    "-";
+
+                typeLabel =
+                    "EXPENSE";
+
+            }
+
+            else if (
+                type === "transfer_in"
+                ||
+                type === "transfer-in"
+                ||
+                type === "transfer in"
+            ) {
+
+                typeClass =
+                    "transfer";
+
+                prefix =
+                    "+";
+
+                typeLabel =
+                    "TRANSFER IN";
+
+            }
+
+            else if (
+                type === "transfer_out"
+                ||
+                type === "transfer-out"
+                ||
+                type === "transfer out"
+            ) {
+
+                typeClass =
+                    "transfer";
+
+                prefix =
+                    "-";
+
+                typeLabel =
+                    "TRANSFER OUT";
+
+            }
+
+            else {
+
+                typeLabel =
+                    typeLabel ||
+                    "OTHER";
+
+            }
+
+
+            transactionRows += `
+
+            <tr>
+
+                <td>
+                    ${index + 1}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        trx.date || "-"
+                    )}
+                </td>
+
+                <td>
+
+                    <strong>
+                        ${escapeHtml(
+                            row.account
+                        )}
+                    </strong>
+
+                </td>
+
+                <td class="${typeClass}">
+
+                    ${escapeHtml(
+                        typeLabel
+                    )}
+
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        trx.category ||
+                        "Other"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        trx.item ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        trx.description ||
+                        trx.note ||
+                        "-"
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHtml(
+                        trx.reference_no ||
+                        trx.reference ||
+                        "-"
+                    )}
+                </td>
+
+                <td class="${typeClass} right">
+
+                    ${prefix}
+
+                    ${money(
+                        amount,
+                        row.currency
+                    )}
+
+                </td>
+
+            </tr>
+
+            `;
+
+        }
+    );
+
+
+    if (
+        !transactionRows
+    ) {
+
+        transactionRows = `
+
+        <tr>
+
+            <td
+                colspan="9"
+                class="center">
+
+                No transactions found.
+
+            </td>
+
+        </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       GRAND INCOME CATEGORIES
+    ======================================================== */
+
+    let incomeRows = "";
+
+
+    Object.entries(
+        grand.income_categories || {}
+    ).forEach(
+        function([
+            category,
+            amount
+        ]) {
+
+            incomeRows += `
+
+            <tr>
+
+                <td>
+                    ${escapeHtml(
+                        category
+                    )}
+                </td>
+
+                <td class="income right">
+
+                    +${money(
+                        amount,
+                        currency
+                    )}
+
+                </td>
+
+            </tr>
+
+            `;
+
+        }
+    );
+
+
+    if (!incomeRows) {
+
+        incomeRows = `
+
+            <tr>
+
+                <td colspan="2">
+                    No income categories
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       GRAND EXPENSE CATEGORIES
+    ======================================================== */
+
+    let expenseRows = "";
+
+
+    Object.entries(
+        grand.expense_categories || {}
+    ).forEach(
+        function([
+            category,
+            amount
+        ]) {
+
+            expenseRows += `
+
+            <tr>
+
+                <td>
+                    ${escapeHtml(
+                        category
+                    )}
+                </td>
+
+                <td class="expense right">
+
+                    -${money(
+                        amount,
+                        currency
+                    )}
+
+                </td>
+
+            </tr>
+
+            `;
+
+        }
+    );
+
+
+    if (!expenseRows) {
+
+        expenseRows = `
+
+            <tr>
+
+                <td colspan="2">
+                    No expense categories
+                </td>
+
+            </tr>
+
+        `;
+
+    }
+
+
+    /* ========================================================
+       OPEN PRINT WINDOW
+    ======================================================== */
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1400,height=900"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Popup blocked. Please allow popups."
+        );
+
+        return;
+
+    }
+
+
+    printWindow.document.open();
+
+
+    printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>
+All Accounts Financial Report
+</title>
+
+
+<style>
+
+* {
+    box-sizing:border-box;
+}
+
+
+body {
+
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
+
+    margin:0;
+
+    padding:20px;
+
+    color:#222;
+
+    font-size:11px;
+
+}
+
+
+.container {
+
+    max-width:1400px;
+
+    margin:auto;
+
+}
+
+
+.header {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:flex-start;
+
+    border-bottom:3px solid #1d3557;
+
+    padding-bottom:15px;
+
+    margin-bottom:20px;
+
+}
+
+
+.title {
+
+    font-size:24px;
+
+    font-weight:bold;
+
+    color:#1d3557;
+
+}
+
+
+.subtitle {
+
+    color:#777;
+
+    margin-top:5px;
+
+}
+
+
+.invoice-title {
+
+    text-align:right;
+
+}
+
+
+.invoice-title h2 {
+
+    margin:0;
+
+    color:#1d3557;
+
+}
+
+
+.summary {
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(6,1fr);
+
+    gap:10px;
+
+    margin-bottom:20px;
+
+}
+
+
+.box {
+
+    border:1px solid #ddd;
+
+    padding:12px;
+
+    border-radius:7px;
+
+}
+
+
+.box label {
+
+    display:block;
+
+    font-size:9px;
+
+    color:#777;
+
+    text-transform:uppercase;
+
+}
+
+
+.box strong {
+
+    display:block;
+
+    margin-top:6px;
+
+    font-size:15px;
+
+}
+
+
+.section {
+
+    margin-top:20px;
+
+}
+
+
+.section-title {
+
+    background:#1d3557;
+
+    color:white;
+
+    padding:9px;
+
+    font-weight:bold;
+
+}
+
+
+table {
+
+    width:100%;
+
+    border-collapse:collapse;
+
+}
+
+
+th,
+td {
+
+    border:1px solid #ddd;
+
+    padding:6px;
+
+}
+
+
+th {
+
+    background:#f1f3f5;
+
+    font-size:9px;
+
+}
+
+
+td {
+
+    font-size:9px;
+
+}
+
+
+.right {
+
+    text-align:right;
+
+}
+
+
+.center {
+
+    text-align:center;
+
+}
+
+
+.income {
+
+    color:#198754;
+
+    font-weight:bold;
+
+}
+
+
+.expense {
+
+    color:#dc3545;
+
+    font-weight:bold;
+
+}
+
+
+.transfer {
+
+    color:#8e44ad;
+
+    font-weight:bold;
+
+}
+
+
+.net {
+
+    color:#6f42c1;
+
+    font-weight:bold;
+
+}
+
+
+.balance {
+
+    color:#0d6efd;
+
+    font-weight:bold;
+
+}
+
+
+.grand {
+
+    background:#eaf0f6;
+
+    font-weight:bold;
+
+}
+
+
+.category-table {
+
+    margin:0;
+
+}
+
+
+.category-table td {
+
+    border:none;
+
+    padding:4px;
+
+}
+
+
+.final {
+
+    margin-top:20px;
+
+    border:2px solid #1d3557;
+
+    padding:15px;
+
+}
+
+
+.final-row {
+
+    display:flex;
+
+    justify-content:space-between;
+
+    padding:7px 0;
+
+    border-bottom:1px solid #eee;
+
+}
+
+
+.final-row:last-child {
+
+    border-bottom:none;
+
+}
+
+
+.final-balance {
+
+    font-size:20px;
+
+    color:#0d6efd;
+
+    font-weight:bold;
+
+}
+
+
+.footer {
+
+    margin-top:25px;
+
+    border-top:1px solid #ddd;
+
+    padding-top:10px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    color:#777;
+
+    font-size:9px;
+
+}
+
+
+@page {
+
+    size:A4 landscape;
+
+    margin:10mm;
+
+}
+
+
+@media print {
+
+    body {
+
+        padding:0;
 
     }
 
 }
 
+</style>
 
-/* =========================================================
-   CLOSE MODALS BY CLICKING BACKDROP
-========================================================= */
-
-document.addEventListener(
-    'click',
-    function(event) {
-
-        if (
-            event.target.id ===
-            'invoiceModal'
-        ) {
-
-            closeInvoice();
-
-        }
+</head>
 
 
-        if (
-            event.target.id ===
-            'deleteModal'
-        ) {
-
-            closeDeleteModal();
-
-        }
-
-    }
-);
+<body>
 
 
-/* =========================================================
-   ESCAPE KEY
-========================================================= */
+<div class="container">
 
-document.addEventListener(
-    'keydown',
-    function(event) {
 
-        if (event.key !== 'Escape') {
-            return;
-        }
+<!-- HEADER -->
 
-        closeInvoice();
+<div class="header">
 
-        closeDeleteModal();
+    <div>
 
-    }
-);
+        <div class="title">
+            ACCOUNT FINANCIAL REPORT
+        </div>
+
+        <div class="subtitle">
+            Complete All Accounts Financial Statement
+        </div>
+
+    </div>
+
+
+    <div class="invoice-title">
+
+        <h2>
+            ALL ACCOUNTS
+        </h2>
+
+        <div>
+            ${new Date().toLocaleString()}
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- SUMMARY -->
+
+<div class="summary">
+
+
+    <div class="box">
+
+        <label>
+            Total Accounts
+        </label>
+
+        <strong>
+            ${grand.total_accounts || reports.length}
+        </strong>
+
+    </div>
+
+
+    <div class="box">
+
+        <label>
+            Opening Balance
+        </label>
+
+        <strong>
+
+            ${money(
+                grand.opening_balance,
+                currency
+            )}
+
+        </strong>
+
+    </div>
+
+
+    <div class="box">
+
+        <label>
+            Total Income
+        </label>
+
+        <strong class="income">
+
+            +${money(
+                grand.total_income,
+                currency
+            )}
+
+        </strong>
+
+    </div>
+
+
+    <div class="box">
+
+        <label>
+            Total Expense
+        </label>
+
+        <strong class="expense">
+
+            -${money(
+                grand.total_expense,
+                currency
+            )}
+
+        </strong>
+
+    </div>
+
+
+    <div class="box">
+
+        <label>
+            Net Movement
+        </label>
+
+        <strong class="net">
+
+            ${money(
+                grand.net_movement,
+                currency
+            )}
+
+        </strong>
+
+    </div>
+
+
+    <div class="box">
+
+        <label>
+            Current Balance
+        </label>
+
+        <strong class="balance">
+
+            ${money(
+                grand.current_balance,
+                currency
+            )}
+
+        </strong>
+
+    </div>
+
+
+</div>
+
+
+<!-- ALL ACCOUNTS -->
+
+<div class="section">
+
+<div class="section-title">
+    ALL ACCOUNTS SUMMARY
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>#</th>
+
+<th>Account</th>
+
+<th>Type</th>
+
+<th>Opening</th>
+
+<th>Income</th>
+
+<th>Expense</th>
+
+<th>Transfer In</th>
+
+<th>Transfer Out</th>
+
+<th>Net Movement</th>
+
+<th>Current Balance</th>
+
+<th>Transactions</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+${accountRows}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- CATEGORY SUMMARY -->
+
+<div class="section">
+
+<div class="section-title">
+    CATEGORY SUMMARY
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>
+    Income Category
+</th>
+
+<th>
+    Total Income
+</th>
+
+<th>
+    Expense Category
+</th>
+
+<th>
+    Total Expense
+</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+<tr>
+
+
+<td>
+
+<table class="category-table">
+
+${incomeRows}
+
+</table>
+
+</td>
+
+
+<td class="right">
+
+<strong class="income">
+
++${money(
+    grand.total_income,
+    currency
+)}
+
+</strong>
+
+</td>
+
+
+<td>
+
+<table class="category-table">
+
+${expenseRows}
+
+</table>
+
+</td>
+
+
+<td class="right">
+
+<strong class="expense">
+
+-${money(
+    grand.total_expense,
+    currency
+)}
+
+</strong>
+
+</td>
+
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- TRANSACTIONS -->
+
+<div class="section">
+
+<div class="section-title">
+
+COMPLETE TRANSACTION HISTORY —
+ALL ACCOUNTS
+
+</div>
+
+
+<table>
+
+<thead>
+
+<tr>
+
+<th>#</th>
+
+<th>Date</th>
+
+<th>Account</th>
+
+<th>Type</th>
+
+<th>Category</th>
+
+<th>Item</th>
+
+<th>Description</th>
+
+<th>Reference</th>
+
+<th>Amount</th>
+
+</tr>
+
+</thead>
+
+
+<tbody>
+
+${transactionRows}
+
+</tbody>
+
+</table>
+
+</div>
+
+
+<!-- FINAL -->
+
+<div class="final">
+
+
+<div class="final-row">
+
+<span>
+    Opening Balance
+</span>
+
+<strong>
+
+${money(
+    grand.opening_balance,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span class="income">
+    + Total Income
+</span>
+
+<strong class="income">
+
+${money(
+    grand.total_income,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span class="expense">
+    - Total Expense
+</span>
+
+<strong class="expense">
+
+${money(
+    grand.total_expense,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span>
+    + Transfer In
+</span>
+
+<strong>
+
+${money(
+    grand.transfer_in,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span>
+    - Transfer Out
+</span>
+
+<strong>
+
+${money(
+    grand.transfer_out,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span>
+    Net Movement
+</span>
+
+<strong class="net">
+
+${money(
+    grand.net_movement,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+<div class="final-row">
+
+<span>
+    GRAND CURRENT BALANCE
+</span>
+
+<strong class="final-balance">
+
+${money(
+    grand.current_balance,
+    currency
+)}
+
+</strong>
+
+</div>
+
+
+</div>
+
+
+<!-- FOOTER -->
+
+<div class="footer">
+
+<span>
+    All Accounts Financial Report
+</span>
+
+<span>
+    Accounts:
+    ${grand.total_accounts || reports.length}
+</span>
+
+<span>
+    Transactions:
+    ${grand.transaction_count || 0}
+</span>
+
+<span>
+    Generated:
+    ${new Date().toLocaleString()}
+</span>
+
+</div>
+
+
+</div>
+
+
+<script>
+
+window.onload = function() {
+
+    setTimeout(
+        function() {
+
+            window.print();
+
+        },
+        500
+    );
+
+};
+
+<\/script>
+
+
+</body>
+
+</html>
+
+    `);
+
+
+    printWindow.document.close();
+
+}
 
 </script>
 
