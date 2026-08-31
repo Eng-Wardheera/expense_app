@@ -7302,7 +7302,6 @@ def account_transfer():
 # ============================================================
 # DELETE ACCOUNT / SAVING TRANSFER
 # ============================================================
-
 @bp.route(
     "/account/transfer/delete/<transfer_id>",
     methods=["POST", "DELETE"]
@@ -7312,42 +7311,53 @@ def delete_account_transfer(transfer_id):
 
     from bson import ObjectId
     from datetime import datetime
-    from flask import flash, redirect, url_for, jsonify
+    from flask import request, jsonify
 
-    # ========================================================
-    # HELPER
-    # ========================================================
+    # ============================================================
+    # HELPERS
+    # ============================================================
 
-    def redirect_back_success(message):
-        flash(message, "success")
-
-        return redirect(
-            url_for("main.all_account_transfers")
-        )
-
-    def redirect_back_error(message):
-        flash(message, "danger")
-
-        return redirect(
-            url_for("main.all_account_transfers")
-        )
-
-    def json_success(message):
+    def json_success(
+        message,
+        transfer_id=None,
+        transfer_type=None,
+        amount=None,
+        saving_history_deleted=0,
+        transaction_history_deleted=0
+    ):
         return jsonify({
             "success": True,
-            "message": message
+            "message": message,
+            "transfer_id": str(transfer_id) if transfer_id else "",
+            "transfer_type": transfer_type or "",
+            "amount": float(amount or 0),
+            "saving_history_deleted": int(
+                saving_history_deleted or 0
+            ),
+            "transaction_history_deleted": int(
+                transaction_history_deleted or 0
+            )
         }), 200
 
-    def json_error(message, status=400):
-        return jsonify({
+    def json_error(
+        message,
+        status=400,
+        details=None
+    ):
+        response = {
             "success": False,
             "error": message,
             "message": message
-        }), status
+        }
 
-    # ========================================================
-    # VALIDATE TRANSFER ID
-    # ========================================================
+        if details:
+            response["details"] = str(details)
+
+        return jsonify(response), status
+
+    # ============================================================
+    # NORMALIZE OBJECT ID
+    # ============================================================
 
     try:
 
@@ -7357,16 +7367,14 @@ def delete_account_transfer(transfer_id):
 
     except Exception:
 
-        message = "Invalid transfer ID."
+        return json_error(
+            "Invalid transfer ID.",
+            400
+        )
 
-        if request.method == "POST":
-            return redirect_back_error(message)
-
-        return json_error(message, 400)
-
-    # ========================================================
+    # ============================================================
     # CURRENT USER
-    # ========================================================
+    # ============================================================
 
     current_user_id = str(
         current_user.id
@@ -7382,15 +7390,11 @@ def delete_account_transfer(transfer_id):
 
         current_user_obj_id = None
 
-    # ========================================================
-    # FIND TRANSFER
-    # ========================================================
+    # ============================================================
+    # FIND TRANSFER WITH PERMISSION
+    # ============================================================
 
     try:
-
-        # ----------------------------------------------------
-        # SUPERADMIN CAN DELETE ANY TRANSFER
-        # ----------------------------------------------------
 
         if current_user.role == UserRole.superadmin.value:
 
@@ -7400,15 +7404,12 @@ def delete_account_transfer(transfer_id):
                 })
             )
 
-        # ----------------------------------------------------
-        # NORMAL USER
-        # ----------------------------------------------------
-
         else:
 
             user_conditions = [
                 {
-                    "user_id": current_user_id
+                    "user_id":
+                    current_user_id
                 }
             ]
 
@@ -7434,38 +7435,30 @@ def delete_account_transfer(transfer_id):
     except Exception as e:
 
         print(
-            "FIND TRANSFER DELETE ERROR:",
+            "FIND ACCOUNT TRANSFER DELETE ERROR:",
             repr(e)
         )
 
-        message = (
-            "Unable to find the transfer."
+        return json_error(
+            "Unable to find the transfer.",
+            500,
+            e
         )
 
-        if request.method == "POST":
-            return redirect_back_error(message)
-
-        return json_error(message, 500)
-
-    # ========================================================
+    # ============================================================
     # NOT FOUND
-    # ========================================================
+    # ============================================================
 
     if not transfer:
 
-        message = (
-            "Transfer not found or you do not "
-            "have permission to delete it."
+        return json_error(
+            "Transfer not found or you do not have permission to delete it.",
+            404
         )
 
-        if request.method == "POST":
-            return redirect_back_error(message)
-
-        return json_error(message, 404)
-
-    # ========================================================
+    # ============================================================
     # TRANSFER TYPE
-    # ========================================================
+    # ============================================================
 
     transfer_type = (
         transfer.get(
@@ -7474,9 +7467,9 @@ def delete_account_transfer(transfer_id):
         or "account_to_account"
     )
 
-    # ========================================================
+    # ============================================================
     # AMOUNT
-    # ========================================================
+    # ============================================================
 
     try:
 
@@ -7490,38 +7483,14 @@ def delete_account_transfer(transfer_id):
 
     if amount <= 0:
 
-        message = (
-            "Invalid transfer amount."
+        return json_error(
+            "Invalid transfer amount.",
+            400
         )
 
-        if request.method == "POST":
-            return redirect_back_error(message)
-
-        return json_error(message, 400)
-
-    # ========================================================
-    # IDS
-    # ========================================================
-
-    from_account_id = transfer.get(
-        "from_account"
-    )
-
-    to_account_id = transfer.get(
-        "to_account"
-    )
-
-    from_saving_id = transfer.get(
-        "from_saving"
-    )
-
-    to_saving_id = transfer.get(
-        "to_saving"
-    )
-
-    # ========================================================
-    # NORMALIZE OBJECT ID
-    # ========================================================
+    # ============================================================
+    # OBJECT ID HELPER
+    # ============================================================
 
     def normalize_object_id(value):
 
@@ -7544,581 +7513,358 @@ def delete_account_transfer(transfer_id):
 
             return None
 
-    from_account_obj = (
-        normalize_object_id(
-            from_account_id
-        )
+    # ============================================================
+    # IDS
+    # ============================================================
+
+    from_account_obj = normalize_object_id(
+        transfer.get("from_account")
     )
 
-    to_account_obj = (
-        normalize_object_id(
-            to_account_id
-        )
+    to_account_obj = normalize_object_id(
+        transfer.get("to_account")
     )
 
-    from_saving_obj = (
-        normalize_object_id(
-            from_saving_id
-        )
+    from_saving_obj = normalize_object_id(
+        transfer.get("from_saving")
     )
 
-    to_saving_obj = (
-        normalize_object_id(
-            to_saving_id
-        )
+    to_saving_obj = normalize_object_id(
+        transfer.get("to_saving")
     )
 
-    # ========================================================
+    # ============================================================
     # TIMESTAMP
-    # ========================================================
+    # ============================================================
 
     now = datetime.utcnow()
 
-    # ========================================================
-    # KEEP TRACK OF CHANGES
-    # ========================================================
+    # ============================================================
+    # TRACK BALANCE CHANGES
+    #
+    # This is important for rollback.
+    # ============================================================
 
     balance_changes = []
 
     history_deleted = 0
     transactions_deleted = 0
 
+    # ============================================================
+    # APPLY BALANCE CHANGE
+    # ============================================================
+
+    def change_account_balance(
+        account_id,
+        amount_change
+    ):
+
+        if not account_id:
+
+            raise Exception(
+                "Account information is missing."
+            )
+
+        result = (
+            mongo.db.accounts.update_one(
+
+                {
+                    "_id":
+                    account_id
+                },
+
+                {
+                    "$inc": {
+                        "balance":
+                        amount_change
+                    },
+
+                    "$set": {
+                        "updated_at":
+                        now
+                    }
+                }
+            )
+        )
+
+        if result.modified_count != 1:
+
+            raise Exception(
+                "Failed to update account balance."
+            )
+
+        balance_changes.append({
+            "collection":
+            "accounts",
+
+            "id":
+            account_id,
+
+            "amount":
+            amount_change
+        })
+
+    # ============================================================
+    # APPLY SAVING BALANCE CHANGE
+    # ============================================================
+
+    def change_saving_balance(
+        saving_id,
+        amount_change
+    ):
+
+        if not saving_id:
+
+            raise Exception(
+                "Saving information is missing."
+            )
+
+        result = (
+            mongo.db.savings.update_one(
+
+                {
+                    "_id":
+                    saving_id
+                },
+
+                {
+                    "$inc": {
+                        "current_balance":
+                        amount_change
+                    },
+
+                    "$set": {
+                        "updated_at":
+                        now
+                    }
+                }
+            )
+        )
+
+        if result.modified_count != 1:
+
+            raise Exception(
+                "Failed to update saving balance."
+            )
+
+        balance_changes.append({
+            "collection":
+            "savings",
+
+            "id":
+            saving_id,
+
+            "amount":
+            amount_change
+        })
+
+    # ============================================================
+    # CHECK EXISTING RECORDS
+    # ============================================================
+
     try:
 
-        # ====================================================
+        # ========================================================
         # ACCOUNT -> SAVING
-        # ====================================================
-        #
-        # Original:
-        #
-        # Account  - amount
-        # Saving   + amount
-        #
-        # DELETE:
-        #
-        # Account  + amount
-        # Saving   - amount
-        # ====================================================
+        # ========================================================
 
         if transfer_type == "account_to_saving":
 
             if not from_account_obj:
 
-                message = (
-                    "Source account information "
-                    "is missing."
+                return json_error(
+                    "Source account information is missing.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not to_saving_obj:
 
-                message = (
-                    "Destination saving information "
-                    "is missing."
+                return json_error(
+                    "Destination saving information is missing.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            account = mongo.db.accounts.find_one({
+                "_id":
+                from_account_obj
+            })
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # GET CURRENT RECORDS
-            # ------------------------------------------------
-
-            account = (
-                mongo.db.accounts.find_one({
-                    "_id":
-                    from_account_obj
-                })
-            )
-
-            saving = (
-                mongo.db.savings.find_one({
-                    "_id":
-                    to_saving_obj
-                })
-            )
+            saving = mongo.db.savings.find_one({
+                "_id":
+                to_saving_obj
+            })
 
             if not account:
 
-                message = (
-                    "Source account no longer exists."
+                return json_error(
+                    "Source account no longer exists.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not saving:
 
-                message = (
-                    "Destination saving no longer exists."
+                return json_error(
+                    "Destination saving no longer exists.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            # ----------------------------------------------------
+            # ORIGINAL:
+            #
+            # ACCOUNT  - amount
+            # SAVING   + amount
+            #
+            # DELETE:
+            #
+            # ACCOUNT  + amount
+            # SAVING   - amount
+            # ----------------------------------------------------
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # REVERSE ACCOUNT
-            # ------------------------------------------------
-
-            account_result = (
-                mongo.db.accounts.update_one(
-
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "balance":
-                            amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_account_balance(
+                from_account_obj,
+                amount
             )
 
-            if account_result.modified_count != 1:
-
-                raise Exception(
-                    "Failed to restore source account balance."
-                )
-
-            balance_changes.append({
-                "collection": "accounts",
-                "id": from_account_obj,
-                "operation": "restore",
-                "amount": amount
-            })
-
-            # ------------------------------------------------
-            # REVERSE SAVING
-            # ------------------------------------------------
-
-            saving_result = (
-                mongo.db.savings.update_one(
-
-                    {
-                        "_id":
-                        to_saving_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "current_balance":
-                            -amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_saving_balance(
+                to_saving_obj,
+                -amount
             )
 
-            if saving_result.modified_count != 1:
-
-                # Restore account if saving failed
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        },
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
-
-                raise Exception(
-                    "Failed to restore saving balance."
-                )
-
-            balance_changes.append({
-                "collection": "savings",
-                "id": to_saving_obj,
-                "operation": "restore",
-                "amount": -amount
-            })
-
-        # ====================================================
+        # ========================================================
         # SAVING -> ACCOUNT
-        # ====================================================
-        #
-        # Original:
-        #
-        # Saving  - amount
-        # Account + amount
-        #
-        # DELETE:
-        #
-        # Saving  + amount
-        # Account - amount
-        # ====================================================
+        # ========================================================
 
         elif transfer_type == "saving_to_account":
 
             if not from_saving_obj:
 
-                message = (
-                    "Source saving information "
-                    "is missing."
+                return json_error(
+                    "Source saving information is missing.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not to_account_obj:
 
-                message = (
-                    "Destination account information "
-                    "is missing."
+                return json_error(
+                    "Destination account information is missing.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            saving = mongo.db.savings.find_one({
+                "_id":
+                from_saving_obj
+            })
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # GET CURRENT RECORDS
-            # ------------------------------------------------
-
-            saving = (
-                mongo.db.savings.find_one({
-                    "_id":
-                    from_saving_obj
-                })
-            )
-
-            account = (
-                mongo.db.accounts.find_one({
-                    "_id":
-                    to_account_obj
-                })
-            )
+            account = mongo.db.accounts.find_one({
+                "_id":
+                to_account_obj
+            })
 
             if not saving:
 
-                message = (
-                    "Source saving no longer exists."
+                return json_error(
+                    "Source saving no longer exists.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not account:
 
-                message = (
-                    "Destination account no longer exists."
+                return json_error(
+                    "Destination account no longer exists.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            # ----------------------------------------------------
+            # ORIGINAL:
+            #
+            # SAVING  - amount
+            # ACCOUNT + amount
+            #
+            # DELETE:
+            #
+            # SAVING  + amount
+            # ACCOUNT - amount
+            # ----------------------------------------------------
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # REVERSE SAVING
-            # ------------------------------------------------
-
-            saving_result = (
-                mongo.db.savings.update_one(
-
-                    {
-                        "_id":
-                        from_saving_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "current_balance":
-                            amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_saving_balance(
+                from_saving_obj,
+                amount
             )
 
-            if saving_result.modified_count != 1:
-
-                raise Exception(
-                    "Failed to restore source saving balance."
-                )
-
-            balance_changes.append({
-                "collection": "savings",
-                "id": from_saving_obj,
-                "operation": "restore",
-                "amount": amount
-            })
-
-            # ------------------------------------------------
-            # REVERSE ACCOUNT
-            # ------------------------------------------------
-
-            account_result = (
-                mongo.db.accounts.update_one(
-
-                    {
-                        "_id":
-                        to_account_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_account_balance(
+                to_account_obj,
+                -amount
             )
 
-            if account_result.modified_count != 1:
-
-                # Restore saving if account failed
-                mongo.db.savings.update_one(
-                    {
-                        "_id":
-                        from_saving_obj
-                    },
-                    {
-                        "$inc": {
-                            "current_balance":
-                            -amount
-                        },
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
-
-                raise Exception(
-                    "Failed to restore destination account balance."
-                )
-
-            balance_changes.append({
-                "collection": "accounts",
-                "id": to_account_obj,
-                "operation": "restore",
-                "amount": -amount
-            })
-
-        # ====================================================
+        # ========================================================
         # ACCOUNT -> ACCOUNT
-        # ====================================================
-        #
-        # Original:
-        #
-        # From Account - amount
-        # To Account   + amount
-        #
-        # DELETE:
-        #
-        # From Account + amount
-        # To Account   - amount
-        # ====================================================
+        # ========================================================
 
         else:
 
             if not from_account_obj:
 
-                message = (
-                    "Source account information "
-                    "is missing."
+                return json_error(
+                    "Source account information is missing.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not to_account_obj:
 
-                message = (
-                    "Destination account information "
-                    "is missing."
+                return json_error(
+                    "Destination account information is missing.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            from_account = mongo.db.accounts.find_one({
+                "_id":
+                from_account_obj
+            })
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # GET ACCOUNTS
-            # ------------------------------------------------
-
-            from_account = (
-                mongo.db.accounts.find_one({
-                    "_id":
-                    from_account_obj
-                })
-            )
-
-            to_account = (
-                mongo.db.accounts.find_one({
-                    "_id":
-                    to_account_obj
-                })
-            )
+            to_account = mongo.db.accounts.find_one({
+                "_id":
+                to_account_obj
+            })
 
             if not from_account:
 
-                message = (
-                    "Source account no longer exists."
+                return json_error(
+                    "Source account no longer exists.",
+                    400
                 )
-
-                if request.method == "POST":
-                    return redirect_back_error(message)
-
-                return json_error(message, 400)
 
             if not to_account:
 
-                message = (
-                    "Destination account no longer exists."
+                return json_error(
+                    "Destination account no longer exists.",
+                    400
                 )
 
-                if request.method == "POST":
-                    return redirect_back_error(message)
+            # ----------------------------------------------------
+            # ORIGINAL:
+            #
+            # FROM ACCOUNT - amount
+            # TO ACCOUNT   + amount
+            #
+            # DELETE:
+            #
+            # FROM ACCOUNT + amount
+            # TO ACCOUNT   - amount
+            # ----------------------------------------------------
 
-                return json_error(message, 400)
-
-            # ------------------------------------------------
-            # REVERSE SOURCE ACCOUNT
-            # ------------------------------------------------
-
-            from_result = (
-                mongo.db.accounts.update_one(
-
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "balance":
-                            amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_account_balance(
+                from_account_obj,
+                amount
             )
 
-            if from_result.modified_count != 1:
-
-                raise Exception(
-                    "Failed to restore source account balance."
-                )
-
-            balance_changes.append({
-                "collection": "accounts",
-                "id": from_account_obj,
-                "operation": "restore",
-                "amount": amount
-            })
-
-            # ------------------------------------------------
-            # REVERSE DESTINATION ACCOUNT
-            # ------------------------------------------------
-
-            to_result = (
-                mongo.db.accounts.update_one(
-
-                    {
-                        "_id":
-                        to_account_obj
-                    },
-
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        },
-
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
+            change_account_balance(
+                to_account_obj,
+                -amount
             )
 
-            if to_result.modified_count != 1:
-
-                # Roll source back
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        },
-                        "$set": {
-                            "updated_at":
-                            now
-                        }
-                    }
-                )
-
-                raise Exception(
-                    "Failed to restore destination account balance."
-                )
-
-            balance_changes.append({
-                "collection": "accounts",
-                "id": to_account_obj,
-                "operation": "restore",
-                "amount": -amount
-            })
-
-        # ====================================================
-        # DELETE SAVING TRANSACTION HISTORY
-        # ====================================================
+        # ========================================================
+        # DELETE SAVING HISTORY
+        # ========================================================
 
         history_query = {
             "$or": [
@@ -8143,9 +7889,9 @@ def delete_account_transfer(transfer_id):
             history_result.deleted_count
         )
 
-        # ====================================================
+        # ========================================================
         # DELETE GENERAL TRANSACTION HISTORY
-        # ====================================================
+        # ========================================================
 
         transaction_conditions = [
             {
@@ -8157,10 +7903,6 @@ def delete_account_transfer(transfer_id):
                 str(transfer_obj_id)
             }
         ]
-
-        # ----------------------------------------------------
-        # ADD REFERENCE MATCHES ONLY IF THEY EXIST
-        # ----------------------------------------------------
 
         reference_no = transfer.get(
             "reference_no"
@@ -8197,9 +7939,9 @@ def delete_account_transfer(transfer_id):
             transaction_result.deleted_count
         )
 
-        # ====================================================
+        # ========================================================
         # DELETE MAIN TRANSFER
-        # ====================================================
+        # ========================================================
 
         delete_result = (
             mongo.db.account_transfers.delete_one({
@@ -8210,165 +7952,49 @@ def delete_account_transfer(transfer_id):
             })
         )
 
-        # ====================================================
-        # VERIFY MAIN DELETE
-        # ====================================================
+        # ========================================================
+        # VERIFY DELETE
+        # ========================================================
 
         if delete_result.deleted_count != 1:
-
-            # ------------------------------------------------
-            # IMPORTANT:
-            # Main transfer was not deleted.
-            # Restore balances because operation failed.
-            # ------------------------------------------------
-
-            if transfer_type == "account_to_saving":
-
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        }
-                    }
-                )
-
-                mongo.db.savings.update_one(
-                    {
-                        "_id":
-                        to_saving_obj
-                    },
-                    {
-                        "$inc": {
-                            "current_balance":
-                            amount
-                        }
-                    }
-                )
-
-            elif transfer_type == "saving_to_account":
-
-                mongo.db.savings.update_one(
-                    {
-                        "_id":
-                        from_saving_obj
-                    },
-                    {
-                        "$inc": {
-                            "current_balance":
-                            -amount
-                        }
-                    }
-                )
-
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        to_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            amount
-                        }
-                    }
-                )
-
-            else:
-
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        from_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            -amount
-                        }
-                    }
-                )
-
-                mongo.db.accounts.update_one(
-                    {
-                        "_id":
-                        to_account_obj
-                    },
-                    {
-                        "$inc": {
-                            "balance":
-                            amount
-                        }
-                    }
-                )
 
             raise Exception(
                 "Transfer could not be deleted."
             )
 
-        # ====================================================
-        # SUCCESS MESSAGE
-        # ====================================================
+        # ========================================================
+        # SUCCESS
+        # ========================================================
 
         success_message = (
             "Transfer deleted successfully. "
-            "Balances and financial movements "
+            "Balances and related financial history "
             "have been restored."
         )
 
-        # ====================================================
-        # POST -> FLASH MESSAGE
-        # ====================================================
+        return json_success(
 
-        if request.method == "POST":
-
-            flash(
-                success_message,
-                "success"
-            )
-
-            return redirect(
-                url_for(
-                    "main.all_account_transfers"
-                )
-            )
-
-        # ====================================================
-        # DELETE -> JSON
-        # ====================================================
-
-        return jsonify({
-
-            "success":
-            True,
-
-            "message":
             success_message,
 
-            "transfer_id":
-            str(transfer_obj_id),
+            transfer_id=
+            transfer_obj_id,
 
-            "transfer_type":
+            transfer_type=
             transfer_type,
 
-            "amount":
+            amount=
             amount,
 
-            "saving_history_deleted":
+            saving_history_deleted=
             history_deleted,
 
-            "transaction_history_deleted":
+            transaction_history_deleted=
             transactions_deleted
+        )
 
-        }), 200
-
-    # ========================================================
-    # EXCEPTION
-    # ========================================================
+    # ============================================================
+    # EXCEPTION + ROLLBACK
+    # ============================================================
 
     except Exception as e:
 
@@ -8377,44 +8003,91 @@ def delete_account_transfer(transfer_id):
             repr(e)
         )
 
-        error_message = (
+        # ========================================================
+        # ROLLBACK BALANCE CHANGES
+        # ========================================================
+
+        try:
+
+            for change in reversed(
+                balance_changes
+            ):
+
+                if (
+                    change["collection"]
+                    == "accounts"
+                ):
+
+                    mongo.db.accounts.update_one(
+
+                        {
+                            "_id":
+                            change["id"]
+                        },
+
+                        {
+                            "$inc": {
+                                "balance":
+                                -change["amount"]
+                            },
+
+                            "$set": {
+                                "updated_at":
+                                now
+                            }
+                        }
+                    )
+
+                elif (
+                    change["collection"]
+                    == "savings"
+                ):
+
+                    mongo.db.savings.update_one(
+
+                        {
+                            "_id":
+                            change["id"]
+                        },
+
+                        {
+                            "$inc": {
+                                "current_balance":
+                                -change["amount"]
+                            },
+
+                            "$set": {
+                                "updated_at":
+                                now
+                            }
+                        }
+                    )
+
+        except Exception as rollback_error:
+
+            print(
+                "DELETE TRANSFER ROLLBACK ERROR:",
+                repr(rollback_error)
+            )
+
+        # ========================================================
+        # IMPORTANT
+        #
+        # If histories were deleted before the main transfer
+        # failed, they cannot automatically be reconstructed.
+        # Therefore return clear JSON.
+        # ========================================================
+
+        return json_error(
+
             "Failed to delete transfer. "
-            "No complete deletion was performed."
+            "The balance changes were rolled back.",
+
+            500,
+
+            e
         )
-
-        # ----------------------------------------------------
-        # POST -> FLASH
-        # ----------------------------------------------------
-
-        if request.method == "POST":
-
-            flash(
-                error_message,
-                "danger"
-            )
-
-            return redirect(
-                url_for(
-                    "main.all_account_transfers"
-                )
-            )
-
-        # ----------------------------------------------------
-        # DELETE -> JSON
-        # ----------------------------------------------------
-
-        return jsonify({
-
-            "success":
-            False,
-
-            "error":
-            error_message,
-
-            "details":
-            str(e)
-
-        }), 500
+    
 
 
 # ============================================================
