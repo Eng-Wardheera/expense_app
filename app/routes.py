@@ -3428,50 +3428,949 @@ def view_saving_goal(id):
 
 
 
+# ============================================================
+# MY PROFILE
+# ============================================================
 
-@bp.route("/profile")
+
+# ============================================================
+# DEVICE / BROWSER / PLATFORM DETECTOR
+# ============================================================
+
+def get_device_info(user_agent):
+
+    ua = (user_agent or "").lower()
+
+    # ========================================================
+    # PLATFORM
+    # ========================================================
+
+    if "windows" in ua:
+        platform = "Windows"
+
+    elif "android" in ua:
+        platform = "Android"
+
+    elif "iphone" in ua:
+        platform = "iOS"
+
+    elif "ipad" in ua:
+        platform = "iPadOS"
+
+    elif "mac os x" in ua or "macintosh" in ua:
+        platform = "macOS"
+
+    elif "linux" in ua:
+        platform = "Linux"
+
+    else:
+        platform = "Unknown"
+
+
+    # ========================================================
+    # DEVICE
+    # ========================================================
+
+    if "ipad" in ua or "tablet" in ua:
+
+        device = "Tablet"
+
+    elif (
+        "mobile" in ua
+        or "android" in ua
+        or "iphone" in ua
+    ):
+
+        device = "Mobile"
+
+    else:
+
+        device = "Desktop"
+
+
+    # ========================================================
+    # BROWSER
+    # ========================================================
+
+    # Microsoft Edge must be checked before Chrome
+
+    if "edg/" in ua or "edge/" in ua:
+
+        browser = "Microsoft Edge"
+
+    elif "opr/" in ua or "opera" in ua:
+
+        browser = "Opera"
+
+    elif "firefox/" in ua:
+
+        browser = "Mozilla Firefox"
+
+    elif "chrome/" in ua:
+
+        browser = "Google Chrome"
+
+    elif "safari/" in ua:
+
+        browser = "Safari"
+
+    else:
+
+        browser = "Unknown"
+
+
+    # ========================================================
+    # DEVICE NAME
+    # ========================================================
+
+    if platform == "Windows":
+
+        device_name = "Windows PC"
+
+    elif platform == "macOS":
+
+        device_name = "Mac"
+
+    elif platform == "Android":
+
+        device_name = "Android Device"
+
+    elif platform == "iOS":
+
+        device_name = "iPhone"
+
+    elif platform == "iPadOS":
+
+        device_name = "iPad"
+
+    elif platform == "Linux":
+
+        device_name = "Linux PC"
+
+    else:
+
+        device_name = "Unknown Device"
+
+
+    # ========================================================
+    # INTERFACE
+    # ========================================================
+
+    interface_name = "Web Browser"
+
+
+    # ========================================================
+    # RETURN
+    # ========================================================
+
+    return {
+        "device": device,
+        "device_name": device_name,
+        "browser": browser,
+        "platform": platform,
+        "interface_name": interface_name
+    }
+
+
+# ============================================================
+# PROFILE
+# ============================================================
+
+@bp.route("/profile", methods=["GET"])
 @login_required
 def profile():
-    return render_template(
-        "backend/pages/components/users/profile.html",
-        user=current_user
+
+    from bson import ObjectId
+    from datetime import datetime
+
+    # ========================================================
+    # CURRENT USER ID
+    # ========================================================
+
+    try:
+
+        user_id = ObjectId(
+            str(current_user.id)
+        )
+
+    except Exception:
+
+        flash(
+            "Invalid user account.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.dashboard")
+        )
+
+
+    # ========================================================
+    # GET LATEST USER FROM MONGODB
+    # ========================================================
+
+    user_data = mongo.db.users.find_one(
+        {
+            "_id": user_id
+        }
     )
 
+
+    # ========================================================
+    # USER NOT FOUND
+    # ========================================================
+
+    if not user_data:
+
+        flash(
+            "User account not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.dashboard")
+        )
+
+
+    # ========================================================
+    # CURRENT USER AGENT
+    # ========================================================
+
+    current_user_agent = request.headers.get(
+        "User-Agent",
+        ""
+    )
+
+
+    # ========================================================
+    # GET DEVICE INFORMATION
+    # ========================================================
+
+    device_info = get_device_info(
+        current_user_agent
+    )
+
+
+    # ========================================================
+    # FIX MISSING DEVICE INFORMATION
+    #
+    # Haddii MongoDB horey u lahaa:
+    #
+    # device = None
+    # browser = None
+    # platform = None
+    #
+    # profile-ka hadda wuxuu isticmaali karaa
+    # current browser information.
+    # ========================================================
+
+    device = (
+        user_data.get("device")
+        or device_info["device"]
+    )
+
+    device_name = (
+        user_data.get("device_name")
+        or device_info["device_name"]
+    )
+
+    browser = (
+        user_data.get("browser")
+        or device_info["browser"]
+    )
+
+    platform = (
+        user_data.get("platform")
+        or device_info["platform"]
+    )
+
+    interface_name = (
+        user_data.get("interface_name")
+        or device_info["interface_name"]
+    )
+
+
+    # ========================================================
+    # BUILD PROFILE DATA
+    #
+    # Waxaan sameyneynaa copy si aan database object-ka
+    # original-ka u beddelin.
+    # ========================================================
+
+    profile_data = dict(user_data)
+
+
+    profile_data["device"] = device
+    profile_data["device_name"] = device_name
+    profile_data["browser"] = browser
+    profile_data["platform"] = platform
+    profile_data["interface_name"] = interface_name
+
+
+    # ========================================================
+    # AUTH STATUS
+    # ========================================================
+
+    profile_data["auth_status"] = (
+        user_data.get("auth_status")
+        or "login"
+    )
+
+
+    # ========================================================
+    # AUTH PROVIDER
+    # ========================================================
+
+    profile_data["auth_provider"] = (
+        user_data.get("auth_provider")
+        or "local"
+    )
+
+
+    # ========================================================
+    # PASSWORD SECURITY
+    # ========================================================
+
+    profile_data["last_password_change"] = (
+        user_data.get(
+            "last_password_change"
+        )
+    )
+
+    profile_data["password_changed_ip"] = (
+        user_data.get(
+            "password_changed_ip"
+        )
+    )
+
+    profile_data["password_changed_user_agent"] = (
+        user_data.get(
+            "password_changed_user_agent"
+        )
+    )
+
+
+    # ========================================================
+    # LOGIN INFORMATION
+    # ========================================================
+
+    profile_data["last_login_ip"] = (
+        user_data.get(
+            "last_login_ip"
+        )
+    )
+
+    profile_data["last_active"] = (
+        user_data.get(
+            "last_active"
+        )
+    )
+
+    profile_data["login_time"] = (
+        user_data.get(
+            "login_time"
+        )
+    )
+
+    profile_data["failed_login_attempts"] = (
+        user_data.get(
+            "failed_login_attempts",
+            0
+        )
+    )
+
+
+    # ========================================================
+    # VERIFICATION
+    # ========================================================
+
+    profile_data["is_verified"] = (
+        user_data.get(
+            "is_verified",
+            False
+        )
+    )
+
+    profile_data["phone_verified"] = (
+        user_data.get(
+            "phone_verified",
+            False
+        )
+    )
+
+    profile_data["two_factor_enabled"] = (
+        user_data.get(
+            "two_factor_enabled",
+            False
+        )
+    )
+
+
+    # ========================================================
+    # PHOTO VISIBILITY
+    # ========================================================
+
+    profile_data["photo_visibility"] = (
+        user_data.get(
+            "photo_visibility",
+            "everyone"
+        )
+    )
+
+
+    # ========================================================
+    # STATUS
+    # ========================================================
+
+    profile_data["status"] = (
+        user_data.get(
+            "status",
+            True
+        )
+    )
+
+
+    # ========================================================
+    # REFRESH CURRENT USER
+    # ========================================================
+
+    current_user.data = profile_data
+
+
+    # ========================================================
+    # BUILD USER OBJECT
+    # ========================================================
+
+    user = User(
+        profile_data
+    )
+
+
+    # ========================================================
+    # EXTRA ATTRIBUTES
+    #
+    # User class-ka haddii fields-kan uusan constructor-ka
+    # ku jirin, si toos ah ayaan ugu dari karnaa object-ka.
+    # ========================================================
+
+    user.last_password_change = (
+        profile_data.get(
+            "last_password_change"
+        )
+    )
+
+    user.password_changed_ip = (
+        profile_data.get(
+            "password_changed_ip"
+        )
+    )
+
+    user.password_changed_user_agent = (
+        profile_data.get(
+            "password_changed_user_agent"
+        )
+    )
+
+
+    # ========================================================
+    # PROFILE PAGE
+    # ========================================================
+
+    return render_template(
+        "backend/pages/components/users/profile.html",
+        user=user
+    )
+
+
+
+# ============================================================
+# CHANGE PASSWORD
+# ============================================================
 
 @bp.route("/change-password", methods=["GET", "POST"])
 @login_required
 def change_password():
-    if request.method == "POST":
 
-        old_password = request.form.get("old_password")
-        new_password = request.form.get("new_password")
-        confirm_password = request.form.get("confirm_password")
+    from bson import ObjectId
+    from datetime import datetime
+    from werkzeug.security import (
+        check_password_hash,
+        generate_password_hash
+    )
 
-        # 1. check passwords match
-        if new_password != confirm_password:
-            flash("Passwords do not match", "danger")
-            return redirect(url_for("main.change_password"))
+    # ========================================================
+    # CURRENT USER ID
+    # ========================================================
 
-        # 2. get user from DB
-        user = mongo.db.users.find_one({"_id": ObjectId(current_user.id)})
+    try:
+        user_id = ObjectId(str(current_user.id))
 
-        # 3. verify old password
-        if not check_password_hash(user["password"], old_password):
-            flash("Old password is incorrect", "danger")
-            return redirect(url_for("main.change_password"))
+    except Exception:
 
-        # 4. update password
-        hashed_password = generate_password_hash(new_password)
-
-        mongo.db.users.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": {"password": hashed_password}}
+        flash(
+            "Invalid user account.",
+            "danger"
         )
 
-        flash("Password changed successfully", "success")
-        return redirect(url_for("main.dashboard"))
+        return redirect(
+            url_for("main.dashboard")
+        )
 
-    return render_template("backend/pages/components/users/change_password.html")
+    # ========================================================
+    # GET USER FROM MONGODB
+    # ========================================================
+
+    user_data = mongo.db.users.find_one(
+        {
+            "_id": user_id
+        }
+    )
+
+    if not user_data:
+
+        flash(
+            "User account not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.dashboard")
+        )
+
+    # ========================================================
+    # GET
+    # ========================================================
+
+    if request.method == "GET":
+
+        user = User(user_data)
+
+        return render_template(
+            "backend/pages/components/users/change_password.html",
+            user=user
+        )
+
+    # ========================================================
+    # POST DATA
+    # ========================================================
+
+    old_password = request.form.get(
+        "old_password",
+        ""
+    ).strip()
+
+    new_password = request.form.get(
+        "new_password",
+        ""
+    )
+
+    confirm_password = request.form.get(
+        "confirm_password",
+        ""
+    )
+
+    # ========================================================
+    # REQUIRED
+    # ========================================================
+
+    if not old_password:
+
+        flash(
+            "Please enter your current password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    if not new_password:
+
+        flash(
+            "Please enter your new password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    if not confirm_password:
+
+        flash(
+            "Please confirm your new password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # PASSWORD MATCH
+    # ========================================================
+
+    if new_password != confirm_password:
+
+        flash(
+            "New passwords do not match.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # STORED PASSWORD
+    # ========================================================
+
+    stored_password = user_data.get("password")
+
+    if not stored_password:
+
+        flash(
+            "Your account does not have a valid password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # VERIFY OLD PASSWORD
+    # ========================================================
+
+    try:
+
+        password_valid = check_password_hash(
+            stored_password,
+            old_password
+        )
+
+    except Exception:
+
+        password_valid = False
+
+    if not password_valid:
+
+        flash(
+            "Current password is incorrect.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # SAME PASSWORD CHECK
+    # ========================================================
+
+    try:
+
+        if check_password_hash(
+            stored_password,
+            new_password
+        ):
+
+            flash(
+                "New password must be different from your current password.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.change_password")
+            )
+
+    except Exception:
+        pass
+
+    # ========================================================
+    # PASSWORD LENGTH
+    # ========================================================
+
+    if len(new_password) < 8:
+
+        flash(
+            "Password must be at least 8 characters long.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # PASSWORD STRENGTH
+    # ========================================================
+
+    if not any(
+        character.isupper()
+        for character in new_password
+    ):
+
+        flash(
+            "Password must contain at least one uppercase letter.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    if not any(
+        character.islower()
+        for character in new_password
+    ):
+
+        flash(
+            "Password must contain at least one lowercase letter.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    if not any(
+        character.isdigit()
+        for character in new_password
+    ):
+
+        flash(
+            "Password must contain at least one number.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # HASH NEW PASSWORD
+    # ========================================================
+
+    hashed_password = generate_password_hash(
+        new_password
+    )
+
+    # ========================================================
+    # CURRENT TIME
+    # ========================================================
+
+    now = datetime.utcnow()
+
+    # ========================================================
+    # IP ADDRESS
+    # ========================================================
+
+    ip_address = request.headers.get(
+        "X-Forwarded-For"
+    )
+
+    if ip_address:
+
+        ip_address = ip_address.split(",")[0].strip()
+
+    else:
+
+        ip_address = request.remote_addr
+
+    # ========================================================
+    # USER AGENT
+    # ========================================================
+
+    user_agent = request.headers.get(
+        "User-Agent",
+        ""
+    )
+
+    # ========================================================
+    # DEVICE INFORMATION
+    # ========================================================
+
+    device = user_data.get(
+        "device"
+    )
+
+    browser = user_data.get(
+        "browser"
+    )
+
+    platform = user_data.get(
+        "platform"
+    )
+
+    device_name = user_data.get(
+        "device_name"
+    )
+
+    interface_name = user_data.get(
+        "interface_name"
+    )
+
+    # ========================================================
+    # UPDATE PASSWORD
+    # ========================================================
+
+    try:
+
+        result = mongo.db.users.update_one(
+            {
+                "_id": user_id
+            },
+            {
+                "$set": {
+
+                    "password": hashed_password,
+
+                    "last_password_change": now,
+
+                    "password_changed_ip": ip_address,
+
+                    "password_changed_user_agent": user_agent,
+
+                    "updated_at": now
+                }
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            "PASSWORD UPDATE ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Unable to change password. Please try again.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # UPDATE FAILED
+    # ========================================================
+
+    if result.matched_count == 0:
+
+        flash(
+            "Password could not be changed.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
+
+    # ========================================================
+    # PASSWORD CHANGE HISTORY / LOG
+    # ========================================================
+
+    try:
+
+        mongo.db.password_change_logs.insert_one(
+            {
+                "user_id": user_id,
+
+                "username": user_data.get(
+                    "username"
+                ),
+
+                "fullname": user_data.get(
+                    "fullname"
+                ),
+
+                "email": user_data.get(
+                    "email"
+                ),
+
+                "action": "password_changed",
+
+                "changed_at": now,
+
+                "created_at": now,
+
+                "ip_address": ip_address,
+
+                "user_agent": user_agent,
+
+                "device": device,
+
+                "browser": browser,
+
+                "platform": platform,
+
+                "device_name": device_name,
+
+                "interface_name": interface_name
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            "PASSWORD LOG ERROR:",
+            repr(e)
+        )
+
+    # ========================================================
+    # REFRESH USER
+    # ========================================================
+
+    updated_user_data = mongo.db.users.find_one(
+        {
+            "_id": user_id
+        }
+    )
+
+    if updated_user_data:
+
+        current_user.data = updated_user_data
+
+        current_user.password = updated_user_data.get(
+            "password"
+        )
+
+        current_user.updated_at = updated_user_data.get(
+            "updated_at"
+        )
+
+        current_user.last_password_change = (
+            updated_user_data.get(
+                "last_password_change"
+            )
+        )
+
+        current_user.password_changed_ip = (
+            updated_user_data.get(
+                "password_changed_ip"
+            )
+        )
+
+        current_user.password_changed_user_agent = (
+            updated_user_data.get(
+                "password_changed_user_agent"
+            )
+        )
+
+    # ========================================================
+    # SUCCESS
+    # ========================================================
+
+    flash(
+        "Password changed successfully.",
+        "success"
+    )
+
+    return redirect(
+        url_for("main.change_password")
+    )
 
 # ============================================================
 # ACCOUNT SETTINGS
@@ -3807,7 +4706,6 @@ def account_settings():
         "backend/pages/components/users/account_settings.html",
         user=User(user)
     )
-
 
 
 
