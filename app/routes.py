@@ -3473,44 +3473,341 @@ def change_password():
 
     return render_template("backend/pages/components/users/change_password.html")
 
+# ============================================================
+# ACCOUNT SETTINGS
+# ============================================================
+
 @bp.route("/account-settings", methods=["GET", "POST"])
 @login_required
 def account_settings():
 
+    from bson import ObjectId
+    from datetime import datetime
+
+    # ========================================================
+    # CURRENT USER ID
+    # ========================================================
+
+    try:
+        current_user_id = ObjectId(str(current_user.id))
+    except Exception:
+        flash("Invalid user account.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    # ========================================================
+    # GET USER FROM MONGODB
+    # ========================================================
+
+    user = mongo.db.users.find_one({
+        "_id": current_user_id
+    })
+
+    if not user:
+        flash("User account not found.", "error")
+        return redirect(url_for("main.dashboard"))
+
+    # ========================================================
+    # POST - UPDATE ACCOUNT
+    # ========================================================
+
     if request.method == "POST":
 
-        data = {
-            "fullname": request.form.get("fullname"),
-            "username": request.form.get("username"),
-            "phone": request.form.get("phone"),
-            "country": request.form.get("country"),
-            "state": request.form.get("state"),
-            "city": request.form.get("city"),
-            "address": request.form.get("address"),
-            "bio": request.form.get("bio"),
-            "updated_at": datetime.utcnow()
-        }
+        try:
 
-        file = request.files.get("photo")
+            # ====================================================
+            # BASIC INFORMATION
+            # ====================================================
 
-        if file and file.filename:
+            fullname = request.form.get("fullname", "").strip()
+            username = request.form.get("username", "").strip()
 
-            upload_result = cloudinary.uploader.upload(file, folder="users")
+            phone = request.form.get("phone", "").strip()
+            country = request.form.get("country", "").strip()
+            state = request.form.get("state", "").strip()
+            city = request.form.get("city", "").strip()
+            address = request.form.get("address", "").strip()
+            bio = request.form.get("bio", "").strip()
 
-            data["photo"] = upload_result["secure_url"]  # 🔥 IMPORTANT
+            gender = request.form.get("gender", "").strip()
+            photo_visibility = request.form.get(
+                "photo_visibility",
+                "everyone"
+            ).strip()
 
-        mongo.db.users.update_one(
-            {"_id": ObjectId(current_user.id)},
-            {"$set": data}
-        )
+            # ====================================================
+            # SOCIAL ACCOUNTS
+            # ====================================================
 
-        flash("Account updated successfully.", "success")
-        return redirect(url_for("main.account_settings"))
+            facebook = request.form.get("facebook", "").strip()
+            twitter = request.form.get("twitter", "").strip()
+            google = request.form.get("google", "").strip()
+            whatsapp = request.form.get("whatsapp", "").strip()
+            instagram = request.form.get("instagram", "").strip()
+            github = request.form.get("github", "").strip()
+
+            # ====================================================
+            # VALIDATION
+            # ====================================================
+
+            if not fullname:
+                flash("Full name is required.", "error")
+                return render_template(
+                    "backend/pages/components/users/account_settings.html",
+                    user=User(user)
+                )
+
+            if not username:
+                flash("Username is required.", "error")
+                return render_template(
+                    "backend/pages/components/users/account_settings.html",
+                    user=User(user)
+                )
+
+            # ====================================================
+            # USERNAME DUPLICATE CHECK
+            # ====================================================
+
+            existing_username = mongo.db.users.find_one({
+                "username": username,
+                "_id": {
+                    "$ne": current_user_id
+                }
+            })
+
+            if existing_username:
+
+                flash(
+                    "This username is already taken.",
+                    "error"
+                )
+
+                return render_template(
+                    "backend/pages/components/users/account_settings.html",
+                    user=User(user)
+                )
+
+            # ====================================================
+            # PHOTO VISIBILITY VALIDATION
+            # ====================================================
+
+            allowed_visibility = [
+                "everyone",
+                "friends",
+                "only_me"
+            ]
+
+            if photo_visibility not in allowed_visibility:
+                photo_visibility = "everyone"
+
+            # ====================================================
+            # UPDATE DATA
+            # ====================================================
+
+            data = {
+                "fullname": fullname,
+                "username": username,
+
+                "phone": phone,
+                "country": country,
+                "state": state,
+                "city": city,
+                "address": address,
+                "bio": bio,
+
+                "gender": gender,
+                "photo_visibility": photo_visibility,
+
+                # Social accounts
+                "facebook": facebook,
+                "twitter": twitter,
+                "google": google,
+                "whatsapp": whatsapp,
+                "instagram": instagram,
+                "github": github,
+
+                # Timestamp
+                "updated_at": datetime.utcnow()
+            }
+
+            # ====================================================
+            # PROFILE PHOTO
+            # ====================================================
+
+            file = request.files.get("photo")
+
+            if file and file.filename:
+
+                upload_result = cloudinary.uploader.upload(
+                    file,
+                    folder="users",
+                    resource_type="image"
+                )
+
+                photo_url = upload_result.get("secure_url")
+
+                if photo_url:
+                    data["photo"] = photo_url
+
+            # ====================================================
+            # UPDATE MONGODB
+            # ====================================================
+
+            result = mongo.db.users.update_one(
+                {
+                    "_id": current_user_id
+                },
+                {
+                    "$set": data
+                }
+            )
+
+            # ====================================================
+            # CHECK UPDATE
+            # ====================================================
+
+            if result.matched_count == 0:
+
+                flash(
+                    "User account could not be found.",
+                    "error"
+                )
+
+                return redirect(
+                    url_for("main.account_settings")
+                )
+
+            # ====================================================
+            # REFRESH CURRENT USER
+            # ====================================================
+
+            updated_user = mongo.db.users.find_one({
+                "_id": current_user_id
+            })
+
+            if updated_user:
+
+                # Update Flask-Login current user object
+                current_user.data = updated_user
+
+                current_user.username = updated_user.get(
+                    "username"
+                )
+
+                current_user.fullname = updated_user.get(
+                    "fullname"
+                )
+
+                current_user.email = updated_user.get(
+                    "email"
+                )
+
+                current_user.phone = updated_user.get(
+                    "phone"
+                )
+
+                current_user.country = updated_user.get(
+                    "country"
+                )
+
+                current_user.state = updated_user.get(
+                    "state"
+                )
+
+                current_user.city = updated_user.get(
+                    "city"
+                )
+
+                current_user.address = updated_user.get(
+                    "address"
+                )
+
+                current_user.bio = updated_user.get(
+                    "bio"
+                )
+
+                current_user.gender = updated_user.get(
+                    "gender"
+                )
+
+                current_user.photo = updated_user.get(
+                    "photo"
+                )
+
+                current_user.photo_visibility = updated_user.get(
+                    "photo_visibility",
+                    "everyone"
+                )
+
+                current_user.facebook = updated_user.get(
+                    "facebook"
+                )
+
+                current_user.twitter = updated_user.get(
+                    "twitter"
+                )
+
+                current_user.google = updated_user.get(
+                    "google"
+                )
+
+                current_user.whatsapp = updated_user.get(
+                    "whatsapp"
+                )
+
+                current_user.instagram = updated_user.get(
+                    "instagram"
+                )
+
+                current_user.github = updated_user.get(
+                    "github"
+                )
+
+                current_user.updated_at = updated_user.get(
+                    "updated_at"
+                )
+
+            # ====================================================
+            # SUCCESS
+            # ====================================================
+
+            flash(
+                "Account updated successfully.",
+                "success"
+            )
+
+            return redirect(
+                url_for("main.account_settings")
+            )
+
+        # ========================================================
+        # MONGODB ERROR
+        # ========================================================
+
+        except Exception as e:
+
+            print(
+                "ACCOUNT SETTINGS ERROR:",
+                repr(e)
+            )
+
+            flash(
+                "Something went wrong while updating your account.",
+                "error"
+            )
+
+            return redirect(
+                url_for("main.account_settings")
+            )
+
+    # ============================================================
+    # GET
+    # ============================================================
 
     return render_template(
         "backend/pages/components/users/account_settings.html",
-        user=current_user
+        user=User(user)
     )
+
 
 
 
