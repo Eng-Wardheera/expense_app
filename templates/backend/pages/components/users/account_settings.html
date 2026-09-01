@@ -4,226 +4,1126 @@
 
 {% block content %}
 
+<style>
+    /* =========================================================
+       ACCOUNT SETTINGS
+       ========================================================= */
 
-<!-- [ page-header ] start -->
-<div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Users</h5>
-        </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">Profile Update</li>
-        </ul>
-    </div>
-    <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
+    .account-settings-wrapper {
+        padding-bottom: 30px;
+    }
+
+    /* =========================================================
+       PAGE HEADER
+       ========================================================= */
+
+    .account-page-header {
+        margin-bottom: 24px;
+    }
+
+    .account-page-header h5 {
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+
+    .account-page-header .breadcrumb {
+        margin-bottom: 0;
+    }
+
+    /* =========================================================
+       LEFT SIDEBAR
+       ========================================================= */
+
+    .account-sidebar {
+        position: sticky;
+        top: 20px;
+    }
+
+    .account-profile-card {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .account-profile-top {
+        padding: 28px 20px 22px;
+        text-align: center;
+        border-bottom: 1px solid #edf0f2;
+    }
+
+    .account-avatar-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 14px;
+    }
+
+    .account-avatar {
+        width: 110px;
+        height: 110px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, .12);
+    }
+
+    .account-avatar-status {
+        position: absolute;
+        right: 5px;
+        bottom: 7px;
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: #22c55e;
+        border: 3px solid #fff;
+    }
+
+    .account-profile-name {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #1f2937;
+    }
+
+    .account-profile-username {
+        font-size: 13px;
+        color: #7b8190;
+        margin-bottom: 0;
+    }
+
+    .account-profile-email {
+        font-size: 13px;
+        color: #7b8190;
+        margin-top: 5px;
+        word-break: break-word;
+    }
+
+    /* =========================================================
+       SIDEBAR NAVIGATION
+       ========================================================= */
+
+    .account-nav {
+        padding: 10px;
+    }
+
+    .account-nav .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 12px 14px;
+        margin-bottom: 4px;
+        border-radius: 9px;
+        color: #596273;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: left;
+        background: transparent;
+        border: 0;
+        transition: all .2s ease;
+    }
+
+    .account-nav .nav-link i {
+        width: 20px;
+        font-size: 17px;
+    }
+
+    .account-nav .nav-link:hover {
+        background: #f5f7fa;
+        color: #3454d1;
+    }
+
+    .account-nav .nav-link.active {
+        background: #eef2ff;
+        color: #3454d1;
+        font-weight: 600;
+    }
+
+    /* =========================================================
+       RIGHT CONTENT
+       ========================================================= */
+
+    .account-content-card {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .account-content-header {
+        padding: 22px 25px;
+        border-bottom: 1px solid #edf0f2;
+    }
+
+    .account-content-header h4 {
+        margin-bottom: 4px;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .account-content-header p {
+        margin-bottom: 0;
+        color: #7b8190;
+        font-size: 13px;
+    }
+
+    .account-tab-content {
+        padding: 25px;
+    }
+
+    /* =========================================================
+       FORM
+       ========================================================= */
+
+    .settings-section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 18px;
+    }
+
+    .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #4b5563;
+        margin-bottom: 7px;
+    }
+
+    .form-control,
+    .form-select {
+        min-height: 44px;
+        border-radius: 8px;
+        border-color: #dfe3e8;
+        font-size: 14px;
+    }
+
+    textarea.form-control {
+        min-height: auto;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #7c8cff;
+        box-shadow: 0 0 0 .15rem rgba(52, 84, 209, .08);
+    }
+
+    /* =========================================================
+       PHOTO UPLOAD
+       ========================================================= */
+
+    .photo-upload-box {
+        border: 1px dashed #d5dae0;
+        border-radius: 12px;
+        padding: 20px;
+        background: #fafbfc;
+    }
+
+    .photo-preview {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, .10);
+    }
+
+    .photo-help {
+        font-size: 12px;
+        color: #8a919d;
+        margin-top: 7px;
+    }
+
+    /* =========================================================
+       SOCIAL INPUT
+       ========================================================= */
+
+    .social-icon {
+        width: 38px;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dfe3e8;
+        border-right: 0;
+        border-radius: 8px 0 0 8px;
+        background: #f8f9fa;
+        color: #667085;
+    }
+
+    .social-group {
+        display: flex;
+    }
+
+    .social-group .form-control {
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+
+    .account-content-footer {
+        padding: 18px 25px;
+        border-top: 1px solid #edf0f2;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 991.98px) {
+
+        .account-sidebar {
+            position: static;
+            margin-bottom: 20px;
+        }
+
+        .account-nav {
+            display: flex;
+            overflow-x: auto;
+            gap: 5px;
+        }
+
+        .account-nav .nav-link {
+            white-space: nowrap;
+            width: auto;
+            margin-bottom: 0;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+
+        .account-tab-content {
+            padding: 18px;
+        }
+
+        .account-content-header {
+            padding: 18px;
+        }
+
+        .account-content-footer {
+            padding: 15px 18px;
+        }
+
+        .account-nav .nav-link span {
+            display: none;
+        }
+
+        .account-nav .nav-link {
+            justify-content: center;
+        }
+    }
+</style>
+
+
+<div class="account-settings-wrapper">
+
+    <!-- =====================================================
+         PAGE HEADER
+         ===================================================== -->
+
+    <div class="page-header account-page-header">
+
+        <div class="page-header-left d-flex align-items-center">
+
+            <div class="page-header-title">
+                <h5 class="m-b-10">
+                    Users
+                </h5>
             </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage">
-                    <i class="feather-layers me-2"></i>
-                    <span>Save as Draft</span>
-                </a>
-                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                    <i class="feather-user-plus me-2"></i>
-                    <span>Create Customer</span>
-                </a>
-            </div>
+
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('main.dashboard') }}">
+                        Home
+                    </a>
+                </li>
+
+                <li class="breadcrumb-item">
+                    Account Settings
+                </li>
+            </ul>
+
         </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
-            </a>
-        </div>
+
     </div>
-</div>
-<!-- [ page-header ] end -->
-
-<br>
 
 
+    <!-- =====================================================
+         MAIN ROW
+         ===================================================== -->
 
-<div class="main-content">
-    <div class="row">
+    <div class="row g-4">
 
-        <div class="col-lg-12">
 
-            <form method="POST" enctype="multipart/form-data">
+        <!-- =================================================
+             LEFT
+             ================================================= -->
 
-                <div class="card">
+        <div class="col-xl-3 col-lg-4">
 
-                    <div class="card-header">
-                        <h4 class="card-title mb-0">
-                            Account Settings
-                        </h4>
-                    </div>
+            <div class="account-sidebar">
 
-                    <div class="card-body">
+                <div class="account-profile-card">
 
-                        <!-- Profile Photo -->
-                        <div class="text-center mb-4">
+                    <!-- PROFILE -->
+                    <div class="account-profile-top">
+
+                        <div class="account-avatar-wrapper">
 
                             {% if user.photo %}
-                               <img src="{{ user.photo }}"
-                                    class="rounded-circle mb-3 shadow"
-                                    width="130"
-                                    height="130"
-                                    style="object-fit: cover;">
+
+                                <img
+                                    src="{{ user.photo }}"
+                                    class="account-avatar"
+                                    alt="Profile Photo"
+                                >
+
                             {% else %}
-                                <img src="{{ url_for('static', filename='backend/uploads/images/no_image.jpg') }}"
-                                     class="rounded-circle shadow"
-                                     width="120"
-                                     height="120">
+
+                                <img
+                                    src="{{ url_for(
+                                        'static',
+                                        filename='backend/uploads/images/no_image.jpg'
+                                    ) }}"
+                                    class="account-avatar"
+                                    alt="Profile Photo"
+                                >
+
                             {% endif %}
 
-                            <div class="mt-3">
-                                <input type="file"
-                                       name="photo"
-                                       class="form-control">
-                            </div>
+                            <span class="account-avatar-status"></span>
 
                         </div>
 
-                        <div class="row">
+                        <div class="account-profile-name">
+                            {{ user.fullname or 'User' }}
+                        </div>
 
-                            <!-- Full Name -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Full Name
-                                </label>
-                                <input type="text"
-                                       name="fullname"
-                                       class="form-control"
-                                       value="{{ user.fullname or '' }}">
+                        <div class="account-profile-username">
+                            @{{ user.username or 'username' }}
+                        </div>
+
+                        {% if user.email %}
+                            <div class="account-profile-email">
+                                {{ user.email }}
+                            </div>
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- NAVIGATION -->
+                    <div class="account-nav nav flex-column">
+
+                        <button
+                            type="button"
+                            class="nav-link active"
+                            data-bs-toggle="tab"
+                            data-bs-target="#profileTab"
+                        >
+                            <i class="feather-user"></i>
+                            <span>Profile</span>
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="nav-link"
+                            data-bs-toggle="tab"
+                            data-bs-target="#personalTab"
+                        >
+                            <i class="feather-edit-3"></i>
+                            <span>Personal Information</span>
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="nav-link"
+                            data-bs-toggle="tab"
+                            data-bs-target="#locationTab"
+                        >
+                            <i class="feather-map-pin"></i>
+                            <span>Location</span>
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="nav-link"
+                            data-bs-toggle="tab"
+                            data-bs-target="#bioTab"
+                        >
+                            <i class="feather-file-text"></i>
+                            <span>About Me</span>
+                        </button>
+
+
+                        <button
+                            type="button"
+                            class="nav-link"
+                            data-bs-toggle="tab"
+                            data-bs-target="#socialTab"
+                        >
+                            <i class="feather-share-2"></i>
+                            <span>Social Accounts</span>
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             RIGHT
+             ================================================= -->
+
+        <div class="col-xl-9 col-lg-8">
+
+            <form
+                method="POST"
+                action="{{ url_for('main.account_settings') }}"
+                enctype="multipart/form-data"
+            >
+
+                <div class="account-content-card">
+
+
+                    <!-- =================================================
+                         HEADER
+                         ================================================= -->
+
+                    <div class="account-content-header">
+
+                        <h4>
+                            Account Settings
+                        </h4>
+
+                        <p>
+                            Manage your profile information and account details.
+                        </p>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         TAB CONTENT
+                         ================================================= -->
+
+                    <div class="account-tab-content">
+
+                        <div class="tab-content">
+
+
+                            <!-- =================================================
+                                 PROFILE TAB
+                                 ================================================= -->
+
+                            <div
+                                class="tab-pane fade show active"
+                                id="profileTab"
+                            >
+
+                                <div class="settings-section-title">
+                                    Profile Photo
+                                </div>
+
+                                <div class="photo-upload-box">
+
+                                    <div class="row align-items-center">
+
+                                        <div class="col-md-auto text-center mb-3 mb-md-0">
+
+                                            {% if user.photo %}
+
+                                                <img
+                                                    src="{{ user.photo }}"
+                                                    class="photo-preview"
+                                                    alt="Profile"
+                                                >
+
+                                            {% else %}
+
+                                                <img
+                                                    src="{{ url_for(
+                                                        'static',
+                                                        filename='backend/uploads/images/no_image.jpg'
+                                                    ) }}"
+                                                    class="photo-preview"
+                                                    alt="Profile"
+                                                >
+
+                                            {% endif %}
+
+                                        </div>
+
+
+                                        <div class="col-md">
+
+                                            <label class="form-label">
+                                                Upload Profile Photo
+                                            </label>
+
+                                            <input
+                                                type="file"
+                                                name="photo"
+                                                class="form-control"
+                                                accept="image/*"
+                                            >
+
+                                            <div class="photo-help">
+                                                Recommended: JPG, JPEG or PNG.
+                                                Use a clear profile photo.
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <hr class="my-4">
+
+
+                                <div class="settings-section-title">
+                                    Basic Information
+                                </div>
+
+
+                                <div class="row">
+
+                                    <!-- Full Name -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Full Name
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="fullname"
+                                            class="form-control"
+                                            value="{{ user.fullname or '' }}"
+                                            placeholder="Enter full name"
+                                            required
+                                        >
+
+                                    </div>
+
+
+                                    <!-- Username -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Username
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="username"
+                                            class="form-control"
+                                            value="{{ user.username or '' }}"
+                                            placeholder="Enter username"
+                                            required
+                                        >
+
+                                    </div>
+
+
+                                    <!-- Email -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Email Address
+                                        </label>
+
+                                        <input
+                                            type="email"
+                                            class="form-control"
+                                            value="{{ user.email or '' }}"
+                                            readonly
+                                        >
+
+                                    </div>
+
+
+                                    <!-- Phone -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Phone Number
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="phone"
+                                            class="form-control"
+                                            value="{{ user.phone or '' }}"
+                                            placeholder="Enter phone number"
+                                        >
+
+                                    </div>
+
+                                </div>
+
                             </div>
 
-                            <!-- Username -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Username
-                                </label>
-                                <input type="text"
-                                       name="username"
-                                       class="form-control"
-                                       value="{{ user.username or '' }}">
+
+                            <!-- =================================================
+                                 PERSONAL TAB
+                                 ================================================= -->
+
+                            <div
+                                class="tab-pane fade"
+                                id="personalTab"
+                            >
+
+                                <div class="settings-section-title">
+                                    Personal Information
+                                </div>
+
+                                <div class="row">
+
+
+                                    <!-- Gender -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Gender
+                                        </label>
+
+                                        <select
+                                            name="gender"
+                                            class="form-select"
+                                        >
+
+                                            <option value="">
+                                                Select Gender
+                                            </option>
+
+                                            <option
+                                                value="Male"
+                                                {% if user.gender == "Male" %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                Male
+                                            </option>
+
+                                            <option
+                                                value="Female"
+                                                {% if user.gender == "Female" %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                Female
+                                            </option>
+
+                                        </select>
+
+                                    </div>
+
+
+                                    <!-- Photo Visibility -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Profile Photo Visibility
+                                        </label>
+
+                                        <select
+                                            name="photo_visibility"
+                                            class="form-select"
+                                        >
+
+                                            <option
+                                                value="everyone"
+                                                {% if user.photo_visibility == "everyone" %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                Everyone
+                                            </option>
+
+                                            <option
+                                                value="friends"
+                                                {% if user.photo_visibility == "friends" %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                Friends
+                                            </option>
+
+                                            <option
+                                                value="only_me"
+                                                {% if user.photo_visibility == "only_me" %}
+                                                    selected
+                                                {% endif %}
+                                            >
+                                                Only Me
+                                            </option>
+
+                                        </select>
+
+                                    </div>
+
+
+                                    <!-- Phone -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Phone
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="phone"
+                                            class="form-control"
+                                            value="{{ user.phone or '' }}"
+                                            placeholder="Phone number"
+                                        >
+
+                                    </div>
+
+                                </div>
+
                             </div>
 
-                            <!-- Email -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Email
-                                </label>
-                                <input type="email"
-                                       class="form-control"
-                                       value="{{ user.email }}"
-                                       readonly>
+
+                            <!-- =================================================
+                                 LOCATION TAB
+                                 ================================================= -->
+
+                            <div
+                                class="tab-pane fade"
+                                id="locationTab"
+                            >
+
+                                <div class="settings-section-title">
+                                    Location Information
+                                </div>
+
+                                <div class="row">
+
+
+                                    <!-- Country -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Country
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="country"
+                                            class="form-control"
+                                            value="{{ user.country or '' }}"
+                                            placeholder="Enter country"
+                                        >
+
+                                    </div>
+
+
+                                    <!-- State -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            State / Region
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="state"
+                                            class="form-control"
+                                            value="{{ user.state or '' }}"
+                                            placeholder="Enter state or region"
+                                        >
+
+                                    </div>
+
+
+                                    <!-- City -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            City
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            name="city"
+                                            class="form-control"
+                                            value="{{ user.city or '' }}"
+                                            placeholder="Enter city"
+                                        >
+
+                                    </div>
+
+
+                                    <!-- Address -->
+                                    <div class="col-md-12 mb-3">
+
+                                        <label class="form-label">
+                                            Address
+                                        </label>
+
+                                        <textarea
+                                            name="address"
+                                            rows="4"
+                                            class="form-control"
+                                            placeholder="Enter your full address"
+                                        >{{ user.address or '' }}</textarea>
+
+                                    </div>
+
+                                </div>
+
                             </div>
 
-                            <!-- Phone -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Phone
-                                </label>
-                                <input type="text"
-                                       name="phone"
-                                       class="form-control"
-                                       value="{{ user.phone or '' }}">
+
+                            <!-- =================================================
+                                 BIO TAB
+                                 ================================================= -->
+
+                            <div
+                                class="tab-pane fade"
+                                id="bioTab"
+                            >
+
+                                <div class="settings-section-title">
+                                    About Me
+                                </div>
+
+                                <div class="mb-3">
+
+                                    <label class="form-label">
+                                        Biography
+                                    </label>
+
+                                    <textarea
+                                        name="bio"
+                                        rows="8"
+                                        class="form-control"
+                                        placeholder="Tell something about yourself..."
+                                    >{{ user.bio or '' }}</textarea>
+
+                                </div>
+
+                                <div class="text-muted small">
+                                    Write a short description about yourself.
+                                </div>
+
                             </div>
 
-                            <!-- Country -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Country
-                                </label>
-                                <input type="text"
-                                       name="country"
-                                       class="form-control"
-                                       value="{{ user.country or '' }}">
+
+                            <!-- =================================================
+                                 SOCIAL TAB
+                                 ================================================= -->
+
+                            <div
+                                class="tab-pane fade"
+                                id="socialTab"
+                            >
+
+                                <div class="settings-section-title">
+                                    Social Accounts
+                                </div>
+
+                                <div class="row">
+
+
+                                    <!-- Facebook -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Facebook
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-facebook"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="facebook"
+                                                class="form-control"
+                                                value="{{ user.facebook or '' }}"
+                                                placeholder="Facebook profile"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Twitter -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Twitter / X
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-twitter"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="twitter"
+                                                class="form-control"
+                                                value="{{ user.twitter or '' }}"
+                                                placeholder="Twitter / X profile"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Instagram -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Instagram
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-instagram"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="instagram"
+                                                class="form-control"
+                                                value="{{ user.instagram or '' }}"
+                                                placeholder="Instagram profile"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- WhatsApp -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            WhatsApp
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-message-circle"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="whatsapp"
+                                                class="form-control"
+                                                value="{{ user.whatsapp or '' }}"
+                                                placeholder="WhatsApp number"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- Google -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            Google
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-google"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="google"
+                                                class="form-control"
+                                                value="{{ user.google or '' }}"
+                                                placeholder="Google profile"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- GitHub -->
+                                    <div class="col-md-6 mb-3">
+
+                                        <label class="form-label">
+                                            GitHub
+                                        </label>
+
+                                        <div class="social-group">
+
+                                            <div class="social-icon">
+                                                <i class="feather-github"></i>
+                                            </div>
+
+                                            <input
+                                                type="text"
+                                                name="github"
+                                                class="form-control"
+                                                value="{{ user.github or '' }}"
+                                                placeholder="GitHub profile"
+                                            >
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
                             </div>
 
-                            <!-- State -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    State
-                                </label>
-                                <input type="text"
-                                       name="state"
-                                       class="form-control"
-                                       value="{{ user.state or '' }}">
-                            </div>
-
-                            <!-- City -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    City
-                                </label>
-                                <input type="text"
-                                       name="city"
-                                       class="form-control"
-                                       value="{{ user.city or '' }}">
-                            </div>
-
-                            <!-- Gender -->
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    Gender
-                                </label>
-
-                                <select name="gender"
-                                        class="form-control">
-
-                                    <option value="">
-                                        Select Gender
-                                    </option>
-
-                                    <option value="Male"
-                                        {% if user.gender == "Male" %}selected{% endif %}>
-                                        Male
-                                    </option>
-
-                                    <option value="Female"
-                                        {% if user.gender == "Female" %}selected{% endif %}>
-                                        Female
-                                    </option>
-
-                                </select>
-                            </div>
-
-                            <!-- Address -->
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    Address
-                                </label>
-
-                                <textarea name="address"
-                                          rows="3"
-                                          class="form-control">{{ user.address or '' }}</textarea>
-                            </div>
-
-                            <!-- Bio -->
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">
-                                    Bio
-                                </label>
-
-                                <textarea name="bio"
-                                          rows="4"
-                                          class="form-control">{{ user.bio or '' }}</textarea>
-                            </div>
 
                         </div>
 
                     </div>
 
-                    <div class="card-footer text-end">
 
-                        <button type="submit"
-                                class="btn btn-primary">
+                    <!-- =================================================
+                         FOOTER
+                         ================================================= -->
+
+                    <div class="account-content-footer">
+
+                        <a
+                            href="{{ url_for('main.dashboard') }}"
+                            class="btn btn-light"
+                        >
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                        >
                             <i class="feather-save me-1"></i>
                             Save Changes
                         </button>
@@ -237,6 +1137,9 @@
         </div>
 
     </div>
+
 </div>
 
+
 {% endblock %}
+
