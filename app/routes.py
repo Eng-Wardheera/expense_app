@@ -3917,7 +3917,7 @@ def change_password():
         )
 
     # ========================================================
-    # GET USER FROM MONGODB
+    # GET CURRENT USER
     # ========================================================
 
     user_data = mongo.db.users.find_one(
@@ -3945,9 +3945,22 @@ def change_password():
 
         user = User(user_data)
 
+        # Password history
+        password_history = list(
+            mongo.db.password_change_logs.find(
+                {
+                    "user_id": user_id
+                }
+            ).sort(
+                "changed_at",
+                -1
+            ).limit(10)
+        )
+
         return render_template(
             "backend/pages/components/users/change_password.html",
-            user=user
+            user=user,
+            password_history=password_history
         )
 
     # ========================================================
@@ -3970,7 +3983,7 @@ def change_password():
     )
 
     # ========================================================
-    # REQUIRED
+    # REQUIRED FIELDS
     # ========================================================
 
     if not old_password:
@@ -4007,7 +4020,7 @@ def change_password():
         )
 
     # ========================================================
-    # PASSWORD MATCH
+    # CONFIRM PASSWORD
     # ========================================================
 
     if new_password != confirm_password:
@@ -4030,7 +4043,7 @@ def change_password():
     if not stored_password:
 
         flash(
-            "Your account does not have a valid password.",
+            "Your account does not have a valid password. Please contact the administrator.",
             "danger"
         )
 
@@ -4039,17 +4052,23 @@ def change_password():
         )
 
     # ========================================================
-    # VERIFY OLD PASSWORD
+    # VERIFY CURRENT PASSWORD
+    # IMPORTANT
     # ========================================================
 
     try:
 
         password_valid = check_password_hash(
-            stored_password,
+            str(stored_password),
             old_password
         )
 
-    except Exception:
+    except Exception as e:
+
+        print(
+            "CURRENT PASSWORD VERIFY ERROR:",
+            repr(e)
+        )
 
         password_valid = False
 
@@ -4065,27 +4084,30 @@ def change_password():
         )
 
     # ========================================================
-    # SAME PASSWORD CHECK
+    # NEW PASSWORD MUST BE DIFFERENT
     # ========================================================
 
     try:
 
-        if check_password_hash(
-            stored_password,
+        same_password = check_password_hash(
+            str(stored_password),
             new_password
-        ):
-
-            flash(
-                "New password must be different from your current password.",
-                "danger"
-            )
-
-            return redirect(
-                url_for("main.change_password")
-            )
+        )
 
     except Exception:
-        pass
+
+        same_password = False
+
+    if same_password:
+
+        flash(
+            "New password must be different from your current password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
 
     # ========================================================
     # PASSWORD LENGTH
@@ -4103,12 +4125,12 @@ def change_password():
         )
 
     # ========================================================
-    # PASSWORD STRENGTH
+    # UPPERCASE
     # ========================================================
 
     if not any(
-        character.isupper()
-        for character in new_password
+        char.isupper()
+        for char in new_password
     ):
 
         flash(
@@ -4120,9 +4142,13 @@ def change_password():
             url_for("main.change_password")
         )
 
+    # ========================================================
+    # LOWERCASE
+    # ========================================================
+
     if not any(
-        character.islower()
-        for character in new_password
+        char.islower()
+        for char in new_password
     ):
 
         flash(
@@ -4134,9 +4160,13 @@ def change_password():
             url_for("main.change_password")
         )
 
+    # ========================================================
+    # NUMBER
+    # ========================================================
+
     if not any(
-        character.isdigit()
-        for character in new_password
+        char.isdigit()
+        for char in new_password
     ):
 
         flash(
@@ -4152,9 +4182,27 @@ def change_password():
     # HASH NEW PASSWORD
     # ========================================================
 
-    hashed_password = generate_password_hash(
-        new_password
-    )
+    try:
+
+        hashed_password = generate_password_hash(
+            new_password
+        )
+
+    except Exception as e:
+
+        print(
+            "PASSWORD HASH ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Unable to secure your new password.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.change_password")
+        )
 
     # ========================================================
     # CURRENT TIME
@@ -4176,7 +4224,7 @@ def change_password():
 
     else:
 
-        ip_address = request.remote_addr
+        ip_address = request.remote_addr or "Unknown"
 
     # ========================================================
     # USER AGENT
@@ -4191,28 +4239,32 @@ def change_password():
     # DEVICE INFORMATION
     # ========================================================
 
-    device = user_data.get(
+    device_info = get_device_info(
+        user_agent
+    )
+
+    device = device_info.get(
         "device"
     )
 
-    browser = user_data.get(
+    browser = device_info.get(
         "browser"
     )
 
-    platform = user_data.get(
+    platform = device_info.get(
         "platform"
     )
 
-    device_name = user_data.get(
+    device_name = device_info.get(
         "device_name"
     )
 
-    interface_name = user_data.get(
+    interface_name = device_info.get(
         "interface_name"
     )
 
     # ========================================================
-    # UPDATE PASSWORD
+    # UPDATE USER
     # ========================================================
 
     try:
@@ -4231,6 +4283,16 @@ def change_password():
                     "password_changed_ip": ip_address,
 
                     "password_changed_user_agent": user_agent,
+
+                    "device": device,
+
+                    "device_name": device_name,
+
+                    "browser": browser,
+
+                    "platform": platform,
+
+                    "interface_name": interface_name,
 
                     "updated_at": now
                 }
@@ -4254,7 +4316,7 @@ def change_password():
         )
 
     # ========================================================
-    # UPDATE FAILED
+    # CHECK UPDATE
     # ========================================================
 
     if result.matched_count == 0:
@@ -4269,7 +4331,7 @@ def change_password():
         )
 
     # ========================================================
-    # PASSWORD CHANGE HISTORY / LOG
+    # PASSWORD CHANGE LOG
     # ========================================================
 
     try:
@@ -4290,6 +4352,11 @@ def change_password():
                     "email"
                 ),
 
+                "auth_provider": user_data.get(
+                    "auth_provider",
+                    "local"
+                ),
+
                 "action": "password_changed",
 
                 "changed_at": now,
@@ -4302,11 +4369,11 @@ def change_password():
 
                 "device": device,
 
+                "device_name": device_name,
+
                 "browser": browser,
 
                 "platform": platform,
-
-                "device_name": device_name,
 
                 "interface_name": interface_name
             }
@@ -4320,7 +4387,7 @@ def change_password():
         )
 
     # ========================================================
-    # REFRESH USER
+    # REFRESH CURRENT USER
     # ========================================================
 
     updated_user_data = mongo.db.users.find_one(
@@ -4359,6 +4426,28 @@ def change_password():
             )
         )
 
+        current_user.device = updated_user_data.get(
+            "device"
+        )
+
+        current_user.device_name = updated_user_data.get(
+            "device_name"
+        )
+
+        current_user.browser = updated_user_data.get(
+            "browser"
+        )
+
+        current_user.platform = updated_user_data.get(
+            "platform"
+        )
+
+        current_user.interface_name = (
+            updated_user_data.get(
+                "interface_name"
+            )
+        )
+
     # ========================================================
     # SUCCESS
     # ========================================================
@@ -4371,6 +4460,8 @@ def change_password():
     return redirect(
         url_for("main.change_password")
     )
+
+
 
 # ============================================================
 # ACCOUNT SETTINGS
