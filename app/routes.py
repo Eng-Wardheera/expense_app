@@ -313,33 +313,899 @@ def login_google():
 
 
 
+# ============================================================
+# GOOGLE CALLBACK
+# ============================================================
 @bp.route("/google/callback")
 def google_callback():
-    token = google.authorize_access_token()
-    user_info = token.get("userinfo")
-    email = user_info.get("email")
 
-    # 1. Check if the user exists in your database
-    raw_user = mongo.db.users.find_one({"email": email})
+    # ========================================================
+    # ALREADY LOGGED IN
+    # ========================================================
 
-    # 2. If the user does not exist, block the login
-    if not raw_user:
-        flash("You do not have an account. Please register first.", "danger")
-        return redirect(url_for("main.login"))
+    if current_user.is_authenticated:
 
-    # 3. Optional: Check if the account was registered via Google previously
-    # This prevents users from trying to log in with Google to an email 
-    # that was registered via standard email/password (if you prefer).
-    if raw_user.get("auth_provider") != "google":
-        # You could also choose to update their profile here instead of blocking
-        pass
+        return redirect(
+            url_for("main.dashboard")
+        )
 
-    # 4. Proceed with Login
-    user_obj = User(raw_user)
-    login_user(user_obj, remember=True)
-    
-    flash("Successfully logged in with Google!", "success")
-    return redirect(url_for("main.dashboard"))
+
+    # ========================================================
+    # IMPORTS
+    # ========================================================
+
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+
+    # ========================================================
+    # GOOGLE TOKEN
+    # ========================================================
+
+    try:
+
+        token = google.authorize_access_token()
+
+    except Exception as e:
+
+        print("=" * 60)
+        print("GOOGLE AUTHORIZE TOKEN ERROR:")
+        print(repr(e))
+        print("=" * 60)
+
+        error_text = str(e).lower()
+
+        if (
+            "issued in the future" in error_text
+            or "iat" in error_text
+        ):
+
+            flash(
+                "Google login lama shaqayn karin sababtoo ah waqtiga computer-ka/server-ka ayaa khaldan. Fadlan sax Date & Time kadib isku day mar kale.",
+                "danger"
+            )
+
+        else:
+
+            flash(
+                "Google login ayaa fashilmay. Fadlan mar kale isku day.",
+                "danger"
+            )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # GOOGLE USERINFO
+    # ========================================================
+
+    user_info = token.get(
+        "userinfo"
+    )
+
+
+    # ========================================================
+    # GET USERINFO IF TOKEN DOES NOT CONTAIN IT
+    # ========================================================
+
+    if not user_info:
+
+        try:
+
+            user_info = google.userinfo()
+
+        except Exception as e:
+
+            print(
+                "GOOGLE USERINFO ERROR:",
+                repr(e)
+            )
+
+            flash(
+                "Google account information lama heli karin.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.login")
+            )
+
+
+    # ========================================================
+    # USERINFO VALIDATION
+    # ========================================================
+
+    if not user_info:
+
+        flash(
+            "Google account information lama helin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # GOOGLE ID
+    # ========================================================
+
+    google_id = (
+        user_info.get("sub")
+        or ""
+    ).strip()
+
+
+    # ========================================================
+    # EMAIL
+    # ========================================================
+
+    email = (
+        user_info.get("email")
+        or ""
+    ).strip().lower()
+
+
+    # ========================================================
+    # FULL NAME
+    # ========================================================
+
+    fullname = (
+        user_info.get("name")
+        or user_info.get("given_name")
+        or ""
+    ).strip()
+
+
+    # ========================================================
+    # GOOGLE PICTURE
+    # ========================================================
+
+    picture = (
+        user_info.get("picture")
+        or ""
+    ).strip()
+
+
+    # ========================================================
+    # GOOGLE ID REQUIRED
+    # ========================================================
+
+    if not google_id:
+
+        flash(
+            "Google account ID lama helin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # EMAIL REQUIRED
+    # ========================================================
+
+    if not email:
+
+        flash(
+            "Google account email lama helin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # CURRENT TIME
+    # ========================================================
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+
+    # ========================================================
+    # FIND EXISTING USER
+    #
+    # FIRST:
+    # Search by Google ID
+    # ========================================================
+
+    try:
+
+        raw_user = mongo.db.users.find_one(
+            {
+                "google": google_id
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE ID SEARCH ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Database error ayaa dhacay.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # SECOND:
+    # Search by EMAIL
+    # ========================================================
+
+    if raw_user is None:
+
+        try:
+
+            raw_user = mongo.db.users.find_one(
+                {
+                    "email": email
+                }
+            )
+
+        except Exception as e:
+
+            print(
+                "GOOGLE EMAIL SEARCH ERROR:",
+                repr(e)
+            )
+
+            flash(
+                "Database error ayaa dhacay.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.login")
+            )
+
+
+    # ========================================================
+    # CREATE NEW USER IF NOT FOUND
+    # ========================================================
+
+    if raw_user is None:
+
+        print(
+            "GOOGLE USER NOT FOUND."
+        )
+
+        print(
+            "CREATING NEW USER:",
+            email
+        )
+
+
+        # ====================================================
+        # GENERATE BASE USERNAME
+        # ====================================================
+
+        base_username = (
+            email.split("@")[0]
+        ).strip().lower()
+
+
+        # ----------------------------------------------------
+        # CLEAN USERNAME
+        # ----------------------------------------------------
+
+        allowed_chars = (
+            "abcdefghijklmnopqrstuvwxyz"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "0123456789"
+            "_"
+            "."
+            "-"
+        )
+
+
+        base_username = "".join(
+
+            char
+            for char in base_username
+            if char in allowed_chars
+
+        )
+
+
+        # ----------------------------------------------------
+        # FALLBACK USERNAME
+        # ----------------------------------------------------
+
+        if not base_username:
+
+            base_username = "google_user"
+
+
+        # ====================================================
+        # UNIQUE USERNAME
+        # ====================================================
+
+        username = base_username
+
+        counter = 1
+
+
+        while mongo.db.users.find_one(
+            {
+                "username": username
+            }
+        ):
+
+            username = (
+                f"{base_username}_{counter}"
+            )
+
+            counter += 1
+
+
+        # ====================================================
+        # NEW USER DOCUMENT
+        # ====================================================
+
+        new_user = {
+
+            # ------------------------------------------------
+            # BASIC ACCOUNT
+            # ------------------------------------------------
+
+            "username": username,
+
+            "fullname": fullname,
+
+            "email": email,
+
+            # Google accounts don't need local password
+            "password": None,
+
+
+            # ------------------------------------------------
+            # GOOGLE
+            # ------------------------------------------------
+
+            "google": google_id,
+
+            "google_email": email,
+
+            "google_name": fullname,
+
+            "google_picture": picture,
+
+
+            # ------------------------------------------------
+            # AUTH
+            # ------------------------------------------------
+
+            "auth_provider": "google",
+
+            "auth_status": "login",
+
+            "is_verified": True,
+
+
+            # ------------------------------------------------
+            # ROLE
+            # ------------------------------------------------
+
+            "role": "admin",
+
+            "role_id": None,
+
+
+            # ------------------------------------------------
+            # ACCOUNT STATUS
+            # ------------------------------------------------
+
+            "status": True,
+
+            "failed_login_attempts": 0,
+
+
+            # ------------------------------------------------
+            # SESSION
+            # ------------------------------------------------
+
+            "session_token": str(
+                uuid4()
+            ),
+
+            "login_time": now,
+
+            "last_seen": now,
+
+            "last_active": now,
+
+
+            # ------------------------------------------------
+            # IP
+            # ------------------------------------------------
+
+            "last_login_ip": (
+                request.headers.get(
+                    "X-Forwarded-For"
+                )
+                or request.remote_addr
+                or "Unknown"
+            ),
+
+
+            # ------------------------------------------------
+            # DEVICE
+            # ------------------------------------------------
+
+            "device": (
+                request.headers.get(
+                    "User-Agent"
+                )
+                or "Unknown"
+            ),
+
+
+            # ------------------------------------------------
+            # PHONE
+            # ------------------------------------------------
+
+            "phone": None,
+
+            "phone_verified": False,
+
+
+            # ------------------------------------------------
+            # TWO FACTOR
+            # ------------------------------------------------
+
+            "two_factor_enabled": False,
+
+            "two_factor_code": None,
+
+            "two_factor_expires_at": None,
+
+
+            # ------------------------------------------------
+            # PROFILE
+            # ------------------------------------------------
+
+            "country": None,
+
+            "city": None,
+
+            "state": None,
+
+            "address": None,
+
+            "bio": None,
+
+            "photo": picture,
+
+            "gender": None,
+
+            "photo_visibility": "everyone",
+
+
+            # ------------------------------------------------
+            # SOCIAL
+            # ------------------------------------------------
+
+            "facebook": None,
+
+            "twitter": None,
+
+            "google": google_id,
+
+            "whatsapp": None,
+
+            "instagram": None,
+
+            "github": None,
+
+            "github_id": None,
+
+
+            # ------------------------------------------------
+            # REMEMBER
+            # ------------------------------------------------
+
+            "remember_token": None,
+
+
+            # ------------------------------------------------
+            # RELATIONSHIPS
+            # ------------------------------------------------
+
+            "user_logs": [],
+
+            "sessions": [],
+
+            "user_permissions": [],
+
+            "patient_appointments": [],
+
+            "doctor_appointments": [],
+
+
+            # ------------------------------------------------
+            # TIMESTAMPS
+            # ------------------------------------------------
+
+            "created_at": now,
+
+            "updated_at": now
+
+        }
+
+
+        # ====================================================
+        # INSERT USER
+        # ====================================================
+
+        try:
+
+            result = mongo.db.users.insert_one(
+                new_user
+            )
+
+        except Exception as e:
+
+            print("=" * 60)
+            print("GOOGLE CREATE USER ERROR:")
+            print(repr(e))
+            print("=" * 60)
+
+
+            flash(
+                "Google account lama abuuri karin database-ka.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.login")
+            )
+
+
+        # ====================================================
+        # GET CREATED USER
+        # ====================================================
+
+        raw_user = mongo.db.users.find_one(
+            {
+                "_id": result.inserted_id
+            }
+        )
+
+
+        # ====================================================
+        # VERIFY CREATION
+        # ====================================================
+
+        if not raw_user:
+
+            flash(
+                "Google account waa la abuuray laakiin user-ka lama soo celin karin.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.login")
+            )
+
+
+        print(
+            "NEW GOOGLE USER CREATED:",
+            raw_user.get("username")
+        )
+
+
+    # ========================================================
+    # EXISTING USER
+    # ========================================================
+
+    else:
+
+        print(
+            "EXISTING USER FOUND:",
+            raw_user.get("username")
+        )
+
+
+    # ========================================================
+    # USER ID
+    # ========================================================
+
+    user_id = raw_user.get(
+        "_id"
+    )
+
+
+    # ========================================================
+    # ACCOUNT STATUS
+    # ========================================================
+
+    status = raw_user.get(
+        "status",
+        True
+    )
+
+
+    if status in [
+        False,
+        0,
+        "false",
+        "False",
+        "inactive",
+        "disabled",
+        "blocked"
+    ]:
+
+        flash(
+            "Account-kaaga waa disabled ama blocked.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # UPDATE GOOGLE LOGIN INFORMATION
+    #
+    # This also links Google to an existing email account.
+    # ========================================================
+
+    try:
+
+        ip_address = (
+            request.headers.get(
+                "X-Forwarded-For"
+            )
+            or request.remote_addr
+            or "Unknown"
+        )
+
+
+        if "," in ip_address:
+
+            ip_address = (
+                ip_address
+                .split(",")[0]
+                .strip()
+            )
+
+
+        user_agent = (
+            request.headers.get(
+                "User-Agent"
+            )
+            or "Unknown"
+        )
+
+
+        session_token = str(
+            uuid4()
+        )
+
+
+        mongo.db.users.update_one(
+
+            {
+                "_id": user_id
+            },
+
+            {
+                "$set": {
+
+                    # ----------------------------------------
+                    # GOOGLE
+                    # ----------------------------------------
+
+                    "google": google_id,
+
+                    "google_email": email,
+
+                    "google_name": fullname,
+
+                    "google_picture": picture,
+
+
+                    # ----------------------------------------
+                    # AUTH
+                    # ----------------------------------------
+
+                    "auth_provider": "google",
+
+                    "auth_status": "login",
+
+                    "is_verified": True,
+
+
+                    # ----------------------------------------
+                    # SESSION
+                    # ----------------------------------------
+
+                    "session_token": session_token,
+
+                    "login_time": now,
+
+                    "last_seen": now,
+
+                    "last_active": now,
+
+
+                    # ----------------------------------------
+                    # SECURITY
+                    # ----------------------------------------
+
+                    "last_login_ip": ip_address,
+
+
+                    # ----------------------------------------
+                    # DEVICE
+                    # ----------------------------------------
+
+                    "device": user_agent,
+
+
+                    # ----------------------------------------
+                    # PROFILE PHOTO
+                    # ----------------------------------------
+
+                    "photo": picture,
+
+
+                    # ----------------------------------------
+                    # UPDATED
+                    # ----------------------------------------
+
+                    "updated_at": now
+
+                },
+
+                "$setOnInsert": {
+
+                    "created_at": now
+
+                }
+
+            }
+
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE LOGIN UPDATE ERROR:",
+            repr(e)
+        )
+
+        # We don't stop login here.
+
+
+    # ========================================================
+    # REFRESH USER
+    # ========================================================
+
+    try:
+
+        updated_user = mongo.db.users.find_one(
+            {
+                "_id": user_id
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE USER REFRESH ERROR:",
+            repr(e)
+        )
+
+        updated_user = raw_user
+
+
+    # ========================================================
+    # CREATE USER OBJECT
+    # ========================================================
+
+    try:
+
+        user_obj = User(
+            updated_user
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE USER OBJECT ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Google user account lama diyaarin karin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # FLASK LOGIN
+    # ========================================================
+
+    try:
+
+        login_user(
+            user_obj,
+            remember=True
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE FLASK LOGIN ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Login session lama abuuri karin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.login")
+        )
+
+
+    # ========================================================
+    # SUCCESS MESSAGE
+    # ========================================================
+
+    if raw_user.get("created_at") == now:
+
+        message = (
+            "Google account cusub ayaa la sameeyay, "
+            "si guul leh ayaadna u gashay."
+        )
+
+    else:
+
+        message = (
+            "Google login si guul leh ayuu u dhacay."
+        )
+
+
+    flash(
+        message,
+        "success"
+    )
+
+
+    # ========================================================
+    # DASHBOARD
+    # ========================================================
+
+    return redirect(
+        url_for(
+            "main.dashboard"
+        )
+    )
+
 
 
 @bp.route('/forgot-password', methods=['GET', 'POST'])
@@ -596,8 +1462,6 @@ def forgot_password_change_password():
     # =========================
     return render_template('backend/auth/auth-change-password.html', email=email)
 
-
-
 @bp.route("/dashboard")
 @login_required
 def dashboard():
@@ -605,7 +1469,7 @@ def dashboard():
     # =========================
     # ROLE PROTECTION
     # =========================
-    if current_user.role not in ["superadmin", "admin"]:
+    if current_user.role not in ["superadmin", "admin","user"]:
         abort(403)
 
     # =========================
@@ -1235,6 +2099,996 @@ def dashboard():
     ]
 
 
+    #
+    # ============================================================
+    # LATEST ACCOUNT TRANSFERS
+    # ============================================================
+
+    dashboard_transfers = []
+
+    total_account_transfers = 0
+    total_transfer_amount = 0.0
+
+
+    try:
+
+        # ========================================================
+        # CURRENT USER OBJECT ID
+        # ========================================================
+
+        try:
+            current_user_object_id = ObjectId(str(current_user.id))
+        except Exception:
+            current_user_object_id = None
+
+
+        # ========================================================
+        # TRANSFER FILTER
+        # ========================================================
+
+        if current_user.role == "superadmin":
+
+            transfer_filter = {}
+
+        else:
+
+            user_conditions = [
+                {"user_id": str(current_user.id)}
+            ]
+
+            if current_user_object_id:
+                user_conditions.append({
+                    "user_id": current_user_object_id
+                })
+
+            transfer_filter = {
+                "$or": user_conditions
+            }
+
+
+        # ========================================================
+        # GET LATEST TRANSFERS
+        # ========================================================
+
+        latest_account_transfers = list(
+            mongo.db.account_transfers.find(
+                transfer_filter
+            )
+            .sort([
+                ("created_at", -1),
+                ("date", -1)
+            ])
+            .limit(10)
+        )
+
+
+        # ========================================================
+        # TOTAL TRANSFERS
+        # ========================================================
+
+        total_account_transfers = (
+            mongo.db.account_transfers.count_documents(
+                transfer_filter
+            )
+        )
+
+
+        # ========================================================
+        # TOTAL TRANSFER AMOUNT
+        # ========================================================
+
+        transfer_amount_cursor = mongo.db.account_transfers.find(
+            transfer_filter,
+            {"amount": 1}
+        )
+
+        total_transfer_amount = sum(
+            safe_float(item.get("amount", 0))
+            for item in transfer_amount_cursor
+        )
+
+
+        # ========================================================
+        # ID HELPER
+        # ========================================================
+
+        def transfer_id(value):
+
+            if value is None:
+                return None
+
+            try:
+                return str(value)
+            except Exception:
+                return None
+
+
+        # ========================================================
+        # OBJECT ID HELPER
+        # ========================================================
+
+        def to_object_id(value):
+
+            if not value:
+                return None
+
+            try:
+
+                if isinstance(value, ObjectId):
+                    return value
+
+                return ObjectId(str(value))
+
+            except Exception:
+
+                return None
+
+
+        # ========================================================
+        # GET DOCUMENT
+        # ========================================================
+
+        def get_transfer_document(collection, value):
+
+            object_id = to_object_id(value)
+
+            if not object_id:
+                return None
+
+            try:
+
+                return mongo.db[collection].find_one({
+                    "_id": object_id
+                })
+
+            except Exception as e:
+
+                print(
+                    "TRANSFER DOCUMENT ERROR:",
+                    collection,
+                    repr(e)
+                )
+
+                return None
+
+
+        # ========================================================
+        # GET ACCOUNT NAME
+        # ========================================================
+
+        def get_account_name(value):
+
+            document = get_transfer_document(
+                "accounts",
+                value
+            )
+
+            if not document:
+                return "Unknown Account"
+
+            return (
+                document.get("name")
+                or document.get("account_name")
+                or document.get("title")
+                or "Unknown Account"
+            )
+
+
+        # ========================================================
+        # GET SAVING NAME
+        # ========================================================
+
+        def get_saving_name(value):
+
+            document = get_transfer_document(
+                "savings",
+                value
+            )
+
+            if not document:
+                return "Unknown Saving"
+
+            return (
+                document.get("title")
+                or document.get("name")
+                or document.get("saving_name")
+                or document.get("account_name")
+                or "Unknown Saving"
+            )
+
+
+        # ========================================================
+        # GET ACCOUNT BALANCE
+        # ========================================================
+
+        def get_account_balance(value):
+
+            document = get_transfer_document(
+                "accounts",
+                value
+            )
+
+            if not document:
+                return None
+
+            return safe_float(
+                document.get(
+                    "balance",
+                    document.get("current_balance", 0)
+                )
+            )
+
+
+        # ========================================================
+        # GET SAVING BALANCE
+        # ========================================================
+
+        def get_saving_balance(value):
+
+            document = get_transfer_document(
+                "savings",
+                value
+            )
+
+            if not document:
+                return None
+
+            return safe_float(
+                document.get(
+                    "current_balance",
+                    document.get("balance", 0)
+                )
+            )
+
+
+        # ========================================================
+        # GET FIRST EXISTING FIELD
+        # ========================================================
+
+        def first_value(document, *fields):
+
+            for field in fields:
+
+                value = document.get(field)
+
+                if value is not None and value != "":
+                    return value
+
+            return None
+
+
+        # ========================================================
+        # PREPARE TRANSFER DATA
+        # ========================================================
+
+        for transfer in latest_account_transfers:
+
+            # ====================================================
+            # TRANSFER TYPE
+            # ====================================================
+
+            transfer_type = first_value(
+                transfer,
+                "transfer_type",
+                "type",
+                "transaction_type"
+            ) or "account_to_account"
+
+
+            transfer_type = str(
+                transfer_type
+            ).lower().strip()
+
+
+            # ====================================================
+            # NORMALIZE TYPE
+            # ====================================================
+
+            if transfer_type in [
+                "account_to_saving",
+                "account-saving",
+                "account_to_save",
+                "account_to_savings",
+                "deposit_to_saving",
+                "account-saving-transfer"
+            ]:
+
+                transfer_type = "account_to_saving"
+
+
+            elif transfer_type in [
+                "saving_to_account",
+                "saving-account",
+                "saving_to_wallet",
+                "withdraw_from_saving",
+                "saving-account-transfer"
+            ]:
+
+                transfer_type = "saving_to_account"
+
+
+            else:
+
+                transfer_type = "account_to_account"
+
+
+            # ====================================================
+            # FROM ACCOUNT ID
+            # ====================================================
+
+            from_account_id = first_value(
+                transfer,
+                "from_account_id",
+                "from_account",
+                "source_account_id",
+                "source_account",
+                "account_id"
+            )
+
+
+            # ====================================================
+            # TO ACCOUNT ID
+            # ====================================================
+
+            to_account_id = first_value(
+                transfer,
+                "to_account_id",
+                "to_account",
+                "destination_account_id",
+                "destination_account"
+            )
+
+
+            # ====================================================
+            # FROM SAVING ID
+            # ====================================================
+
+            from_saving_id = first_value(
+                transfer,
+                "from_saving_id",
+                "from_saving",
+                "source_saving_id",
+                "source_saving"
+            )
+
+
+            # ====================================================
+            # TO SAVING ID
+            # ====================================================
+
+            to_saving_id = first_value(
+                transfer,
+                "to_saving_id",
+                "to_saving",
+                "destination_saving_id",
+                "destination_saving",
+                "saving_id"
+            )
+
+
+            # ====================================================
+            # IMPORTANT FALLBACKS
+            # ====================================================
+
+            # Account → Saving
+            if transfer_type == "account_to_saving":
+
+                if not from_account_id:
+                    from_account_id = first_value(
+                        transfer,
+                        "account_id",
+                        "source_id"
+                    )
+
+                if not to_saving_id:
+                    to_saving_id = first_value(
+                        transfer,
+                        "saving_id",
+                        "destination_id"
+                    )
+
+
+            # Saving → Account
+            elif transfer_type == "saving_to_account":
+
+                if not from_saving_id:
+                    from_saving_id = first_value(
+                        transfer,
+                        "saving_id",
+                        "source_id"
+                    )
+
+                if not to_account_id:
+                    to_account_id = first_value(
+                        transfer,
+                        "account_id",
+                        "destination_id"
+                    )
+
+
+            # ====================================================
+            # NAMES
+            # ====================================================
+
+            from_account_name = (
+                transfer.get("from_account_name")
+                or transfer.get("source_account_name")
+            )
+
+            to_account_name = (
+                transfer.get("to_account_name")
+                or transfer.get("destination_account_name")
+            )
+
+            from_saving_name = (
+                transfer.get("from_saving_name")
+                or transfer.get("source_saving_name")
+            )
+
+            to_saving_name = (
+                transfer.get("to_saving_name")
+                or transfer.get("destination_saving_name")
+            )
+
+
+            # ====================================================
+            # RESOLVE NAMES FROM DATABASE
+            # ====================================================
+
+            if from_account_id and not from_account_name:
+
+                from_account_name = get_account_name(
+                    from_account_id
+                )
+
+
+            if to_account_id and not to_account_name:
+
+                to_account_name = get_account_name(
+                    to_account_id
+                )
+
+
+            if from_saving_id and not from_saving_name:
+
+                from_saving_name = get_saving_name(
+                    from_saving_id
+                )
+
+
+            if to_saving_id and not to_saving_name:
+
+                to_saving_name = get_saving_name(
+                    to_saving_id
+                )
+
+
+            # ====================================================
+            # GENERAL FROM NAME
+            # ====================================================
+
+            if transfer_type == "account_to_saving":
+
+                from_name = (
+                    from_account_name
+                    or "Unknown Account"
+                )
+
+                to_name = (
+                    to_saving_name
+                    or "Unknown Saving"
+                )
+
+                type_label = "Account → Saving"
+
+
+            elif transfer_type == "saving_to_account":
+
+                from_name = (
+                    from_saving_name
+                    or "Unknown Saving"
+                )
+
+                to_name = (
+                    to_account_name
+                    or "Unknown Account"
+                )
+
+                type_label = "Saving → Account"
+
+
+            else:
+
+                from_name = (
+                    from_account_name
+                    or "Unknown Account"
+                )
+
+                to_name = (
+                    to_account_name
+                    or "Unknown Account"
+                )
+
+                type_label = "Account → Account"
+
+
+            # ====================================================
+            # AMOUNT
+            # ====================================================
+
+            amount = safe_float(
+                transfer.get("amount", 0)
+            )
+
+
+            # ====================================================
+            # ACCOUNT BALANCES
+            # ====================================================
+
+            from_account_balance_before = first_value(
+                transfer,
+                "from_account_balance_before",
+                "source_account_balance_before"
+            )
+
+            from_account_balance_after = first_value(
+                transfer,
+                "from_account_balance_after",
+                "source_account_balance_after"
+            )
+
+
+            to_account_balance_before = first_value(
+                transfer,
+                "to_account_balance_before",
+                "destination_account_balance_before"
+            )
+
+            to_account_balance_after = first_value(
+                transfer,
+                "to_account_balance_after",
+                "destination_account_balance_after"
+            )
+
+
+            # ====================================================
+            # SAVING BALANCES
+            # ====================================================
+
+            from_saving_balance_before = first_value(
+                transfer,
+                "from_saving_balance_before",
+                "source_saving_balance_before"
+            )
+
+            from_saving_balance_after = first_value(
+                transfer,
+                "from_saving_balance_after",
+                "source_saving_balance_after"
+            )
+
+
+            to_saving_balance_before = first_value(
+                transfer,
+                "to_saving_balance_before",
+                "destination_saving_balance_before"
+            )
+
+            to_saving_balance_after = first_value(
+                transfer,
+                "to_saving_balance_after",
+                "destination_saving_balance_after"
+            )
+
+
+            # ====================================================
+            # BALANCE FALLBACK
+            # ====================================================
+
+            if from_account_balance_after is None:
+
+                from_account_balance_after = (
+                    get_account_balance(
+                        from_account_id
+                    )
+                )
+
+
+            if to_account_balance_after is None:
+
+                to_account_balance_after = (
+                    get_account_balance(
+                        to_account_id
+                    )
+                )
+
+
+            if from_saving_balance_after is None:
+
+                from_saving_balance_after = (
+                    get_saving_balance(
+                        from_saving_id
+                    )
+                )
+
+
+            if to_saving_balance_after is None:
+
+                to_saving_balance_after = (
+                    get_saving_balance(
+                        to_saving_id
+                    )
+                )
+
+
+            # ====================================================
+            # BALANCE BEFORE FALLBACK
+            # ====================================================
+
+            if (
+                from_account_balance_before is None
+                and from_account_balance_after is not None
+            ):
+
+                from_account_balance_before = (
+                    from_account_balance_after + amount
+                )
+
+
+            if (
+                to_account_balance_before is None
+                and to_account_balance_after is not None
+            ):
+
+                to_account_balance_before = (
+                    to_account_balance_after - amount
+                )
+
+
+            if (
+                from_saving_balance_before is None
+                and from_saving_balance_after is not None
+            ):
+
+                if transfer_type == "saving_to_account":
+
+                    from_saving_balance_before = (
+                        from_saving_balance_after + amount
+                    )
+
+                else:
+
+                    from_saving_balance_before = (
+                        from_saving_balance_after
+                    )
+
+
+            if (
+                to_saving_balance_before is None
+                and to_saving_balance_after is not None
+            ):
+
+                if transfer_type == "account_to_saving":
+
+                    to_saving_balance_before = (
+                        to_saving_balance_after - amount
+                    )
+
+                else:
+
+                    to_saving_balance_before = (
+                        to_saving_balance_after
+                    )
+
+
+            # ====================================================
+            # CONVERT BALANCES
+            # ====================================================
+
+            if from_account_balance_before is not None:
+                from_account_balance_before = safe_float(
+                    from_account_balance_before
+                )
+
+            if from_account_balance_after is not None:
+                from_account_balance_after = safe_float(
+                    from_account_balance_after
+                )
+
+            if to_account_balance_before is not None:
+                to_account_balance_before = safe_float(
+                    to_account_balance_before
+                )
+
+            if to_account_balance_after is not None:
+                to_account_balance_after = safe_float(
+                    to_account_balance_after
+                )
+
+            if from_saving_balance_before is not None:
+                from_saving_balance_before = safe_float(
+                    from_saving_balance_before
+                )
+
+            if from_saving_balance_after is not None:
+                from_saving_balance_after = safe_float(
+                    from_saving_balance_after
+                )
+
+            if to_saving_balance_before is not None:
+                to_saving_balance_before = safe_float(
+                    to_saving_balance_before
+                )
+
+            if to_saving_balance_after is not None:
+                to_saving_balance_after = safe_float(
+                    to_saving_balance_after
+                )
+
+
+            # ====================================================
+            # DATE
+            # ====================================================
+
+            created_at = (
+                transfer.get("created_at")
+                or transfer.get("date")
+            )
+
+            updated_at = (
+                transfer.get("updated_at")
+            )
+
+
+            # ====================================================
+            # REFERENCE
+            # ====================================================
+
+            reference = (
+                transfer.get("reference_no")
+                or transfer.get("reference")
+                or "N/A"
+            )
+
+
+            # ====================================================
+            # STATUS
+            # ====================================================
+
+            status = (
+                transfer.get("status")
+                or "completed"
+            )
+
+
+            # ====================================================
+            # CURRENCY
+            # ====================================================
+
+            currency = (
+                transfer.get("currency")
+                or "USD"
+            )
+
+
+            # ====================================================
+            # DASHBOARD OBJECT
+            # ====================================================
+
+            dashboard_transfers.append({
+
+                # ------------------------------------------------
+                # BASIC
+                # ------------------------------------------------
+
+                "_id": transfer_id(
+                    transfer.get("_id")
+                ),
+
+                "user_id": transfer_id(
+                    transfer.get("user_id")
+                ),
+
+
+                # ------------------------------------------------
+                # TYPE
+                # ------------------------------------------------
+
+                "transfer_type": transfer_type,
+
+                "type": type_label,
+
+                "direction": (
+                    transfer.get("direction")
+                    or "transfer"
+                ),
+
+
+                # ------------------------------------------------
+                # FROM ACCOUNT
+                # ------------------------------------------------
+
+                "from_account": transfer_id(
+                    from_account_id
+                ),
+
+                "from_account_id": transfer_id(
+                    from_account_id
+                ),
+
+                "from_account_name": (
+                    from_account_name
+                    if from_account_id
+                    else None
+                ),
+
+
+                # ------------------------------------------------
+                # FROM SAVING
+                # ------------------------------------------------
+
+                "from_saving": transfer_id(
+                    from_saving_id
+                ),
+
+                "from_saving_id": transfer_id(
+                    from_saving_id
+                ),
+
+                "from_saving_name": (
+                    from_saving_name
+                    if from_saving_id
+                    else None
+                ),
+
+
+                # ------------------------------------------------
+                # GENERAL FROM
+                # ------------------------------------------------
+
+                "from_name": from_name,
+
+
+                # ------------------------------------------------
+                # TO ACCOUNT
+                # ------------------------------------------------
+
+                "to_account": transfer_id(
+                    to_account_id
+                ),
+
+                "to_account_id": transfer_id(
+                    to_account_id
+                ),
+
+                "to_account_name": (
+                    to_account_name
+                    if to_account_id
+                    else None
+                ),
+
+
+                # ------------------------------------------------
+                # TO SAVING
+                # ------------------------------------------------
+
+                "to_saving": transfer_id(
+                    to_saving_id
+                ),
+
+                "to_saving_id": transfer_id(
+                    to_saving_id
+                ),
+
+                "to_saving_name": (
+                    to_saving_name
+                    if to_saving_id
+                    else None
+                ),
+
+
+                # ------------------------------------------------
+                # GENERAL TO
+                # ------------------------------------------------
+
+                "to_name": to_name,
+
+
+                # ------------------------------------------------
+                # MONEY
+                # ------------------------------------------------
+
+                "amount": amount,
+
+                "currency": currency,
+
+
+                # ------------------------------------------------
+                # ACCOUNT BALANCES
+                # ------------------------------------------------
+
+                "from_account_balance_before":
+                    from_account_balance_before,
+
+                "from_account_balance_after":
+                    from_account_balance_after,
+
+                "to_account_balance_before":
+                    to_account_balance_before,
+
+                "to_account_balance_after":
+                    to_account_balance_after,
+
+
+                # ------------------------------------------------
+                # SAVING BALANCES
+                # ------------------------------------------------
+
+                "from_saving_balance_before":
+                    from_saving_balance_before,
+
+                "from_saving_balance_after":
+                    from_saving_balance_after,
+
+                "to_saving_balance_before":
+                    to_saving_balance_before,
+
+                "to_saving_balance_after":
+                    to_saving_balance_after,
+
+
+                # ------------------------------------------------
+                # REFERENCE
+                # ------------------------------------------------
+
+                "reference": reference,
+
+                "reference_no": reference,
+
+
+                # ------------------------------------------------
+                # DESCRIPTION
+                # ------------------------------------------------
+
+                "description": (
+                    transfer.get("description")
+                    or transfer.get("note")
+                    or ""
+                ),
+
+
+                # ------------------------------------------------
+                # STATUS
+                # ------------------------------------------------
+
+                "status": status,
+
+
+                # ------------------------------------------------
+                # DATES
+                # ------------------------------------------------
+
+                "created_at": created_at,
+
+                "updated_at": updated_at
+
+            })
+
+
+    except Exception as e:
+
+        print(
+            "DASHBOARD ACCOUNT TRANSFERS ERROR:",
+            repr(e)
+        )
+
+        dashboard_transfers = []
+
+        total_account_transfers = 0
+
+        total_transfer_amount = 0.0
+
+
     return render_template(
         "backend/home/dashboard.html",
         dashboard=dashboard,
@@ -1270,7 +3124,13 @@ saving_goals=saving_goals,
 saving_warnings=saving_warnings,
 
 saving_deposit_report=saving_deposit_report,
+
+dashboard_transfers=dashboard_transfers,
+total_account_transfers=total_account_transfers,
+total_transfer_amount=total_transfer_amount,
     )
+
+
 
 
 @bp.route("/saving-goals/view/<id>")
