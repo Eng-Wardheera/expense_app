@@ -1,115 +1,2104 @@
+
 {% extends 'backend/home/base.html' %}
 
 {% block title %}My Profile{% endblock %}
 
 {% block content %}
 
+<style>
 
-<!-- [ page-header ] start -->
-<div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Users</h5>
+/* ============================================================
+   PROFILE PAGE
+   ============================================================ */
+
+.profile-page {
+    width: 100%;
+    padding-bottom: 25px;
+}
+
+
+/* ============================================================
+   PAGE HEADER
+   ============================================================ */
+
+.profile-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.profile-page-header-left h4 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.profile-page-header-left p {
+    margin: 4px 0 0;
+    color: #89909e;
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   REPORT CARD
+   ============================================================ */
+
+.profile-report-card {
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #e7eaf0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, .035);
+}
+
+
+/* ============================================================
+   PROFILE SUMMARY
+   ============================================================ */
+
+.profile-summary {
+    position: relative;
+    padding: 28px 25px;
+    background:
+        linear-gradient(
+            135deg,
+            #f8faff 0%,
+            #ffffff 55%,
+            #f8faff 100%
+        );
+    border-bottom: 1px solid #edf0f3;
+}
+
+.profile-summary-inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.profile-avatar-wrapper {
+    position: relative;
+}
+
+.profile-avatar {
+    width: 105px;
+    height: 105px;
+    min-width: 105px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    background: #f3f5f8;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, .13);
+}
+
+.profile-online-dot {
+    position: absolute;
+    right: 7px;
+    bottom: 7px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #20b26b;
+    border: 3px solid #ffffff;
+}
+
+.profile-summary-info {
+    min-width: 0;
+    flex: 1;
+}
+
+.profile-summary-name {
+    margin: 0;
+    color: #1f2937;
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.profile-summary-username {
+    margin-top: 4px;
+    color: #89909e;
+    font-size: 12px;
+}
+
+.profile-summary-email {
+    margin-top: 4px;
+    color: #697386;
+    font-size: 12px;
+    word-break: break-word;
+}
+
+.profile-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 11px;
+}
+
+.profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.profile-badge-active {
+    color: #198754;
+    background: #eaf7ef;
+}
+
+.profile-badge-inactive {
+    color: #dc3545;
+    background: #fff0f0;
+}
+
+.profile-badge-role {
+    color: #3454d1;
+    background: #eef2ff;
+}
+
+.profile-badge-provider {
+    color: #6f42c1;
+    background: #f3edff;
+}
+
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+
+.profile-section {
+    padding: 23px 25px;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.profile-section:last-of-type {
+    border-bottom: 0;
+}
+
+.profile-section-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 17px;
+}
+
+.profile-section-icon {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #3454d1;
+    background: #eef2ff;
+    font-size: 15px;
+}
+
+.profile-section-heading h5 {
+    margin: 0;
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.profile-section-heading p {
+    margin: 3px 0 0;
+    color: #89909e;
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   INFO GRID
+   ============================================================ */
+
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid #edf0f3;
+    border-left: 1px solid #edf0f3;
+}
+
+.profile-info-item {
+    min-width: 0;
+    padding: 14px 15px;
+    border-right: 1px solid #edf0f3;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.profile-info-label {
+    margin-bottom: 5px;
+    color: #89909e;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.profile-info-value {
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.55;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.profile-info-value.empty {
+    color: #a0a7b3;
+    font-weight: 400;
+}
+
+
+/* ============================================================
+   SECURITY GRID
+   ============================================================ */
+
+.profile-security-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid #edf0f3;
+    border-left: 1px solid #edf0f3;
+}
+
+.profile-security-item {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 14px 15px;
+    border-right: 1px solid #edf0f3;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.profile-security-label {
+    color: #89909e;
+    font-size: 11px;
+}
+
+.profile-security-value {
+    color: #374151;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: right;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.security-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.security-status-success {
+    color: #198754;
+    background: #eaf7ef;
+}
+
+.security-status-warning {
+    color: #b7791f;
+    background: #fff7e6;
+}
+
+.security-status-danger {
+    color: #dc3545;
+    background: #fff0f0;
+}
+
+.security-status-info {
+    color: #3454d1;
+    background: #eef2ff;
+}
+
+
+/* ============================================================
+   TEXT BOX
+   ============================================================ */
+
+.profile-text-wrapper {
+    margin-top: 15px;
+}
+
+.profile-text-label {
+    margin-bottom: 6px;
+    color: #89909e;
+    font-size: 10px;
+}
+
+.profile-text-box {
+    padding: 13px 14px;
+    border: 1px solid #edf0f3;
+    border-radius: 8px;
+    background: #f8f9fb;
+    color: #697386;
+    font-size: 12px;
+    line-height: 1.7;
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   SOCIAL
+   ============================================================ */
+
+.social-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.social-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 11px;
+    border: 1px solid #e7eaf0;
+    border-radius: 7px;
+    color: #596273;
+    background: #ffffff;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all .2s ease;
+}
+
+.social-link:hover {
+    color: #3454d1;
+    border-color: #3454d1;
+    background: #f8f9ff;
+}
+
+
+/* ============================================================
+   USER AGENT
+   ============================================================ */
+
+.user-agent-box {
+    margin-top: 15px;
+    padding: 12px 14px;
+    border: 1px solid #edf0f3;
+    border-radius: 8px;
+    background: #f8f9fb;
+}
+
+.user-agent-label {
+    margin-bottom: 6px;
+    color: #89909e;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.user-agent-value {
+    color: #697386;
+    font-family: monospace;
+    font-size: 10px;
+    line-height: 1.65;
+    word-break: break-all;
+}
+
+
+/* ============================================================
+   SECURITY NOTICE
+   ============================================================ */
+
+.security-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 15px;
+    padding: 14px;
+    border: 1px solid #e5e9f0;
+    border-radius: 8px;
+    background: #f8f9fb;
+}
+
+.security-notice-icon {
+    width: 35px;
+    height: 35px;
+    min-width: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    color: #3454d1;
+    background: #eef2ff;
+}
+
+.security-notice-content strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #374151;
+    font-size: 12px;
+}
+
+.security-notice-content span {
+    color: #89909e;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.profile-report-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 16px 25px;
+    background: #fafbfc;
+    border-top: 1px solid #edf0f3;
+    color: #89909e;
+    font-size: 10px;
+}
+
+.profile-report-footer strong {
+    color: #526070;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 991px) {
+
+    .profile-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+
+@media (max-width: 767px) {
+
+    .profile-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .profile-summary-inner {
+        align-items: flex-start;
+    }
+
+    .profile-summary {
+        padding: 20px;
+    }
+
+    .profile-avatar {
+        width: 85px;
+        height: 85px;
+        min-width: 85px;
+    }
+
+    .profile-summary-name {
+        font-size: 19px;
+    }
+
+    .profile-section {
+        padding: 18px;
+    }
+
+    .profile-info-grid,
+    .profile-security-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-security-item {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .profile-security-value {
+        text-align: left;
+    }
+
+    .profile-report-footer {
+        align-items: center;
+        flex-direction: column;
+        text-align: center;
+    }
+
+}
+
+
+@media (max-width: 480px) {
+
+    .profile-summary-inner {
+        flex-direction: column;
+    }
+
+}
+
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+[data-bs-theme="dark"] .profile-report-card {
+    background: #1f2937;
+    border-color: #374151;
+}
+
+[data-bs-theme="dark"] .profile-summary {
+    background: #18212f;
+    border-color: #374151;
+}
+
+[data-bs-theme="dark"] .profile-summary-name,
+[data-bs-theme="dark"] .profile-section-heading h5,
+[data-bs-theme="dark"] .profile-info-value,
+[data-bs-theme="dark"] .profile-security-value,
+[data-bs-theme="dark"] .security-notice-content strong {
+    color: #f3f4f6;
+}
+
+[data-bs-theme="dark"] .profile-summary-username,
+[data-bs-theme="dark"] .profile-summary-email,
+[data-bs-theme="dark"] .profile-section-heading p,
+[data-bs-theme="dark"] .profile-info-label,
+[data-bs-theme="dark"] .profile-security-label,
+[data-bs-theme="dark"] .security-notice-content span,
+[data-bs-theme="dark"] .profile-report-footer {
+    color: #9ca3af;
+}
+
+[data-bs-theme="dark"] .profile-section,
+[data-bs-theme="dark"] .profile-info-grid,
+[data-bs-theme="dark"] .profile-security-grid,
+[data-bs-theme="dark"] .profile-info-item,
+[data-bs-theme="dark"] .profile-security-item {
+    border-color: #374151;
+}
+
+[data-bs-theme="dark"] .profile-text-box,
+[data-bs-theme="dark"] .user-agent-box,
+[data-bs-theme="dark"] .security-notice,
+[data-bs-theme="dark"] .profile-report-footer {
+    background: #18212f;
+    border-color: #374151;
+}
+
+[data-bs-theme="dark"] .social-link {
+    color: #d1d5db;
+    background: #1f2937;
+    border-color: #374151;
+}
+
+</style>
+
+
+<div class="profile-page">
+
+
+    <!-- ========================================================
+         PAGE HEADER
+         ======================================================== -->
+
+    <div class="profile-page-header">
+
+        <div class="profile-page-header-left">
+
+            <h4>
+                My Profile
+            </h4>
+
+            <p>
+                Account, security and device information
+            </p>
+
         </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">Profile View</li>
-        </ul>
-    </div>
-    <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-light-brand successAlertMessage">
-                    <i class="feather-layers me-2"></i>
-                    <span>Save as Draft</span>
-                </a>
-                <a href="javascript:void(0);" class="btn btn-primary successAlertMessage">
-                    <i class="feather-user-plus me-2"></i>
-                    <span>Create Customer</span>
-                </a>
-            </div>
-        </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
+
+
+        <div>
+
+            <a
+                href="{{ url_for('main.account_settings') }}"
+                class="btn btn-primary btn-sm"
+            >
+
+                <i class="feather-edit me-1"></i>
+
+                Edit Profile
+
             </a>
+
         </div>
+
     </div>
-</div>
-<!-- [ page-header ] end -->
 
-<br>
 
-<div class="container-fluid">
+    <!-- ========================================================
+         ONE REPORT CARD
+         ======================================================== -->
 
-    <div class="card">
-        <div class="card-body text-center">
+    <div class="profile-report-card">
 
-            {% if user.photo %}
-                <img src="{{ user.photo }}"
-                     class="rounded-circle mb-3 shadow"
-                     width="130"
-                     height="130"
-                     style="object-fit: cover;">
-            {% else %}
-                <img src="{{ url_for('static', filename='backend/uploads/images/no_image.jpg') }}"
-                     class="rounded-circle mb-3"
-                     width="120">
+
+        <!-- ====================================================
+             PROFILE SUMMARY
+             ==================================================== -->
+
+        <div class="profile-summary">
+
+            <div class="profile-summary-inner">
+
+
+                <!-- PHOTO -->
+
+                <div class="profile-avatar-wrapper">
+
+                    {% if user.photo %}
+
+                        <img
+                            src="{{ user.photo }}"
+                            alt="Profile Photo"
+                            class="profile-avatar"
+                        >
+
+                    {% else %}
+
+                        <img
+                            src="{{ url_for(
+                                'static',
+                                filename='backend/uploads/images/no_image.jpg'
+                            ) }}"
+                            alt="Profile Photo"
+                            class="profile-avatar"
+                        >
+
+                    {% endif %}
+
+
+                    {% if user.status %}
+
+                        <span class="profile-online-dot"></span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- USER INFO -->
+
+                <div class="profile-summary-info">
+
+                    <h3 class="profile-summary-name">
+
+                        {{ user.fullname or 'No Name' }}
+
+                    </h3>
+
+
+                    <div class="profile-summary-username">
+
+                        @{{ user.username or 'username' }}
+
+                    </div>
+
+
+                    {% if user.email %}
+
+                        <div class="profile-summary-email">
+
+                            <i class="feather-mail me-1"></i>
+
+                            {{ user.email }}
+
+                        </div>
+
+                    {% endif %}
+
+
+                    <div class="profile-badges">
+
+
+                        <!-- STATUS -->
+
+                        {% if user.status %}
+
+                            <span class="profile-badge profile-badge-active">
+
+                                <i class="feather-check-circle"></i>
+
+                                Active
+
+                            </span>
+
+                        {% else %}
+
+                            <span class="profile-badge profile-badge-inactive">
+
+                                <i class="feather-x-circle"></i>
+
+                                Inactive
+
+                            </span>
+
+                        {% endif %}
+
+
+                        <!-- ROLE -->
+
+                        <span class="profile-badge profile-badge-role">
+
+                            <i class="feather-shield"></i>
+
+                            {{ user.role|replace('_', ' ')|title }}
+
+                        </span>
+
+
+                        <!-- PROVIDER -->
+
+                        <span class="profile-badge profile-badge-provider">
+
+                            <i class="feather-log-in"></i>
+
+                            {{ user.auth_provider|replace('_', ' ')|title }}
+
+                        </span>
+
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             PERSONAL INFORMATION
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-user"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Personal Information
+                    </h5>
+
+                    <p>
+                        Basic profile and contact information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-info-grid">
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Full Name
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.fullname or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Username
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.username or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Email
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.email or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Phone
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.phone or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Gender
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.gender or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Country
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.country or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        State / Region
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.state or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        City
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.city or 'Not provided' }}
+
+                    </div>
+
+                </div>
+
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Photo Visibility
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.photo_visibility|replace('_', ' ')|title }}
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ADDRESS -->
+
+            <div class="profile-text-wrapper">
+
+                <div class="profile-text-label">
+                    Address
+                </div>
+
+                <div class="profile-text-box">
+
+                    {{ user.address or 'Not provided' }}
+
+                </div>
+
+            </div>
+
+
+            <!-- BIO -->
+
+            <div class="profile-text-wrapper">
+
+                <div class="profile-text-label">
+                    Biography
+                </div>
+
+                <div class="profile-text-box">
+
+                    {{ user.bio or 'No biography has been provided.' }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             SOCIAL ACCOUNTS
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-share-2"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Social Accounts
+                    </h5>
+
+                    <p>
+                        Connected social media accounts
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="social-list">
+
+
+                {% if user.facebook %}
+
+                    <a
+                        href="{{ user.facebook }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="social-link"
+                    >
+
+                        <i class="feather-facebook"></i>
+
+                        Facebook
+
+                    </a>
+
+                {% endif %}
+
+
+                {% if user.twitter %}
+
+                    <a
+                        href="{{ user.twitter }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="social-link"
+                    >
+
+                        <i class="feather-twitter"></i>
+
+                        Twitter
+
+                    </a>
+
+                {% endif %}
+
+
+                {% if user.instagram %}
+
+                    <a
+                        href="{{ user.instagram }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="social-link"
+                    >
+
+                        <i class="feather-instagram"></i>
+
+                        Instagram
+
+                    </a>
+
+                {% endif %}
+
+
+                {% if user.github %}
+
+                    <a
+                        href="{{ user.github }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="social-link"
+                    >
+
+                        <i class="feather-github"></i>
+
+                        GitHub
+
+                    </a>
+
+                {% endif %}
+
+
+                {% if user.google %}
+
+                    <span class="social-link">
+
+                        <i class="feather-globe"></i>
+
+                        Google Connected
+
+                    </span>
+
+                {% endif %}
+
+
+                {% if user.whatsapp %}
+
+                    <span class="social-link">
+
+                        <i class="feather-message-circle"></i>
+
+                        WhatsApp
+
+                    </span>
+
+                {% endif %}
+
+
+                {% if not user.facebook
+                    and not user.twitter
+                    and not user.instagram
+                    and not user.github
+                    and not user.google
+                    and not user.whatsapp %}
+
+                    <span class="profile-info-value empty">
+
+                        No social accounts connected.
+
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             ACCOUNT & AUTHENTICATION
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-shield"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Account & Authentication
+                    </h5>
+
+                    <p>
+                        Account role, provider and verification status
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-security-grid">
+
+
+                <!-- ROLE -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Account Role
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.role|replace('_', ' ')|title }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- PROVIDER -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Authentication Provider
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.auth_provider|replace('_', ' ')|title }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Account Status
+                    </span>
+
+                    {% if user.status %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-check"></i>
+
+                            Active
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="security-status security-status-danger">
+
+                            <i class="feather-x"></i>
+
+                            Inactive
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- AUTH STATUS -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Auth Status
+                    </span>
+
+                    {% if user.auth_status == 'login' %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-log-in"></i>
+
+                            Logged In
+
+                        </span>
+
+                    {% elif user.auth_status == 'logout' %}
+
+                        <span class="security-status security-status-warning">
+
+                            <i class="feather-log-out"></i>
+
+                            Logged Out
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="profile-security-value">
+
+                            {{ user.auth_status|replace('_', ' ')|title }}
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- EMAIL -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Email Verification
+                    </span>
+
+                    {% if user.is_verified %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-check-circle"></i>
+
+                            Verified
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="security-status security-status-warning">
+
+                            <i class="feather-alert-circle"></i>
+
+                            Not Verified
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- PHONE -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Phone Verification
+                    </span>
+
+                    {% if user.phone_verified %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-check-circle"></i>
+
+                            Verified
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="security-status security-status-warning">
+
+                            <i class="feather-alert-circle"></i>
+
+                            Not Verified
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- 2FA -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Two-Factor Authentication
+                    </span>
+
+                    {% if user.two_factor_enabled %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-shield"></i>
+
+                            Enabled
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="security-status security-status-warning">
+
+                            Disabled
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- PHOTO VISIBILITY -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Photo Visibility
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.photo_visibility|replace('_', ' ')|title }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             PASSWORD SECURITY
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-lock"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Password Security
+                    </h5>
+
+                    <p>
+                        Password and authentication security information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-security-grid">
+
+
+                <!-- LAST PASSWORD CHANGE -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Password Changed
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {% if user.last_password_change %}
+
+                            {{ user.last_password_change.strftime(
+                                '%d %b %Y, %I:%M %p'
+                            ) }}
+
+                        {% else %}
+
+                            Never
+
+                        {% endif %}
+
+                    </span>
+
+                </div>
+
+
+                <!-- PASSWORD CHANGE IP -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Password Changed IP
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.password_changed_ip or 'Not Available' }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- LAST LOGIN IP -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Login IP
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.last_login_ip or 'Not Available' }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- FAILED LOGIN -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Failed Login Attempts
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.failed_login_attempts or 0 }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- PASSWORD STATUS -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Password Status
+                    </span>
+
+                    {% if user.last_password_change %}
+
+                        <span class="security-status security-status-success">
+
+                            <i class="feather-check-circle"></i>
+
+                            Password Set
+
+                        </span>
+
+                    {% else %}
+
+                        <span class="security-status security-status-warning">
+
+                            <i class="feather-alert-circle"></i>
+
+                            Never Changed
+
+                        </span>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- PROVIDER -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Authentication Provider
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.auth_provider|replace('_', ' ')|title }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- PASSWORD USER AGENT -->
+
+            {% if user.password_changed_user_agent %}
+
+                <div class="user-agent-box">
+
+                    <div class="user-agent-label">
+
+                        Password Changed User Agent
+
+                    </div>
+
+                    <div class="user-agent-value">
+
+                        {{ user.password_changed_user_agent }}
+
+                    </div>
+
+                </div>
+
             {% endif %}
 
-            <h3>{{ user.fullname }}</h3>
-            <p class="text-muted">{{ user.email }}</p>
 
-            <hr>
+            <!-- SECURITY NOTICE -->
 
-            <div class="row text-start">
+            <div class="security-notice">
 
-                <div class="col-md-6 mb-3">
-                    <strong>Username:</strong>
-                    {{ user.username }}
+                <div class="security-notice-icon">
+
+                    <i class="feather-shield"></i>
+
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <strong>Role:</strong>
-                    {{ user.role }}
-                </div>
+                <div class="security-notice-content">
 
-                <div class="col-md-6 mb-3">
-                    <strong>Phone:</strong>
-                    {{ user.phone or 'N/A' }}
-                </div>
+                    <strong>
+                        Protect your account
+                    </strong>
 
-                <div class="col-md-6 mb-3">
-                    <strong>Country:</strong>
-                    {{ user.country or 'N/A' }}
-                </div>
+                    <span>
+                        Use a strong password and enable two-factor
+                        authentication whenever possible.
+                    </span>
 
-                <div class="col-md-6 mb-3">
-                    <strong>State:</strong>
-                    {{ user.state or 'N/A' }}
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <strong>City:</strong>
-                    {{ user.city or 'N/A' }}
-                </div>
-
-                <div class="col-md-12 mb-3">
-                    <strong>Address:</strong>
-                    {{ user.address or 'N/A' }}
                 </div>
 
             </div>
 
         </div>
+
+
+        <!-- ====================================================
+             DEVICE INFORMATION
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-monitor"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Device Information
+                    </h5>
+
+                    <p>
+                        Latest device, browser and platform information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-info-grid">
+
+
+                <!-- DEVICE -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Device
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.device or 'Unknown' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- DEVICE NAME -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Device Name
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.device_name or 'Unknown Device' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- BROWSER -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Browser
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.browser or 'Unknown' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- PLATFORM -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Platform
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.platform or 'Unknown' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- INTERFACE -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Interface
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {{ user.interface_name or 'Web Browser' }}
+
+                    </div>
+
+                </div>
+
+
+                <!-- AUTH STATUS -->
+
+                <div class="profile-info-item">
+
+                    <div class="profile-info-label">
+                        Auth Status
+                    </div>
+
+                    <div class="profile-info-value">
+
+                        {% if user.auth_status == 'login' %}
+
+                            <span class="security-status security-status-success">
+
+                                <i class="feather-check-circle"></i>
+
+                                Logged In
+
+                            </span>
+
+                        {% elif user.auth_status == 'logout' %}
+
+                            <span class="security-status security-status-warning">
+
+                                <i class="feather-log-out"></i>
+
+                                Logged Out
+
+                            </span>
+
+                        {% else %}
+
+                            {{ user.auth_status|replace('_', ' ')|title }}
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CURRENT USER AGENT -->
+
+            {% if user.data.get('password_changed_user_agent') %}
+
+                <div class="user-agent-box">
+
+                    <div class="user-agent-label">
+
+                        Latest Password Change Browser
+
+                    </div>
+
+                    <div class="user-agent-value">
+
+                        {{ user.data.get(
+                            'password_changed_user_agent'
+                        ) }}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- ====================================================
+             ACTIVITY INFORMATION
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-activity"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Activity Information
+                    </h5>
+
+                    <p>
+                        Recent login and account activity
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-security-grid">
+
+
+                <!-- LAST ACTIVE -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Active
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {% if user.last_active %}
+
+                            {{ user.last_active.strftime(
+                                '%d %b %Y, %I:%M %p'
+                            ) }}
+
+                        {% else %}
+
+                            Never
+
+                        {% endif %}
+
+                    </span>
+
+                </div>
+
+
+                <!-- LOGIN TIME -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Login
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {% if user.login_time %}
+
+                            {{ user.login_time.strftime(
+                                '%d %b %Y, %I:%M %p'
+                            ) }}
+
+                        {% else %}
+
+                            Not Available
+
+                        {% endif %}
+
+                    </span>
+
+                </div>
+
+
+                <!-- LOGIN IP -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Login IP
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.last_login_ip or 'Not Available' }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- AUTH STATUS -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Current Auth Status
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.auth_status|replace('_', ' ')|title }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             ACCOUNT DATES
+             ==================================================== -->
+
+        <div class="profile-section">
+
+            <div class="profile-section-heading">
+
+                <div class="profile-section-icon">
+
+                    <i class="feather-calendar"></i>
+
+                </div>
+
+                <div>
+
+                    <h5>
+                        Account Dates
+                    </h5>
+
+                    <p>
+                        Account creation and update information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="profile-security-grid">
+
+
+                <!-- CREATED -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Account Created
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {% if user.created_at %}
+
+                            {{ user.created_at.strftime(
+                                '%d %b %Y, %I:%M %p'
+                            ) }}
+
+                        {% else %}
+
+                            Not Available
+
+                        {% endif %}
+
+                    </span>
+
+                </div>
+
+
+                <!-- UPDATED -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Last Account Update
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {% if user.updated_at %}
+
+                            {{ user.updated_at.strftime(
+                                '%d %b %Y, %I:%M %p'
+                            ) }}
+
+                        {% else %}
+
+                            Not Available
+
+                        {% endif %}
+
+                    </span>
+
+                </div>
+
+
+                <!-- USER ID -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        User ID
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.id }}
+
+                    </span>
+
+                </div>
+
+
+                <!-- ROLE ID -->
+
+                <div class="profile-security-item">
+
+                    <span class="profile-security-label">
+                        Role ID
+                    </span>
+
+                    <span class="profile-security-value">
+
+                        {{ user.role_id or 'Not Available' }}
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             REPORT FOOTER
+             ==================================================== -->
+
+        <div class="profile-report-footer">
+
+            <span>
+
+                Copyright ©
+                {% if user.created_at %}
+                    {{ user.created_at.year }}
+                {% else %}
+                    2026
+                {% endif %}
+
+            </span>
+
+
+            <span>
+
+                <strong>
+                    Account Profile Report
+                </strong>
+
+            </span>
+
+
+            <span>
+
+                By:
+                <strong>
+                    Eng Kulmiye
+                </strong>
+
+            </span>
+
+        </div>
+
+
     </div>
 
 </div>
 
 {% endblock %}
+
