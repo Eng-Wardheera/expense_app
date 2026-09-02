@@ -3882,6 +3882,76 @@ def profile():
     )
 
 
+@bp.route("/change-password/check-current", methods=["POST"])
+@login_required
+def check_current_password():
+
+    from bson import ObjectId
+    from werkzeug.security import check_password_hash
+
+    try:
+        user_id = ObjectId(str(current_user.id))
+    except Exception:
+        return jsonify({
+            "success": False,
+            "valid": False,
+            "message": "Invalid user account."
+        }), 400
+
+    data = request.get_json(silent=True) or {}
+
+    current_password = data.get("current_password") or ""
+
+    if not current_password:
+        return jsonify({
+            "success": True,
+            "valid": False,
+            "message": ""
+        })
+
+    user_data = mongo.db.users.find_one({
+        "_id": user_id
+    })
+
+    if not user_data:
+        return jsonify({
+            "success": False,
+            "valid": False,
+            "message": "User account not found."
+        }), 404
+
+    stored_password = user_data.get("password")
+
+    if not stored_password:
+        return jsonify({
+            "success": False,
+            "valid": False,
+            "message": "No valid password found."
+        }), 400
+
+    try:
+        password_valid = check_password_hash(
+            stored_password,
+            current_password
+        )
+    except Exception:
+        password_valid = False
+
+    if password_valid:
+
+        return jsonify({
+            "success": True,
+            "valid": True,
+            "message": "Current password is correct."
+        })
+
+    return jsonify({
+        "success": True,
+        "valid": False,
+        "message": "Current password is incorrect."
+    })
+
+
 
 # ============================================================
 # CHANGE PASSWORD
