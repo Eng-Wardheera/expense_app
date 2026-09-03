@@ -12427,6 +12427,742 @@ def all_account_transfers():
         account_transfer_count=account_transfer_count
     )
 
+@bp.route("/account/transfers/edit/<transfer_id>", methods=["GET", "POST"])
+@login_required
+def edit_account_transfer(transfer_id):
+
+    from bson import ObjectId
+    from datetime import datetime
+    from flask import request, render_template, redirect, url_for, flash
+
+    # ============================================================
+    # VALIDATE TRANSFER ID
+    # ============================================================
+
+    try:
+        transfer_object_id = ObjectId(transfer_id)
+
+    except Exception:
+        flash("Invalid transfer ID.", "error")
+        return redirect(
+            url_for("main.all_account_transfers")
+        )
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    current_user_id = str(current_user.id)
+
+    # ============================================================
+    # FIND TRANSFER
+    # ============================================================
+
+    transfer = mongo.db.account_transfers.find_one({
+        "_id": transfer_object_id
+    })
+
+    if not transfer:
+
+        flash("Transfer not found.", "error")
+
+        return redirect(
+            url_for("main.all_account_transfers")
+        )
+
+    # ============================================================
+    # ACCESS CONTROL
+    # ============================================================
+
+    transfer_user_id = transfer.get("user_id")
+
+    transfer_user_id_string = (
+        str(transfer_user_id)
+        if transfer_user_id is not None
+        else ""
+    )
+
+    is_superadmin = (
+        current_user.role == UserRole.superadmin.value
+    )
+
+    if not is_superadmin:
+
+        if transfer_user_id_string != current_user_id:
+
+            flash(
+                "You are not allowed to edit this transfer.",
+                "error"
+            )
+
+            return redirect(
+                url_for("main.all_account_transfers")
+            )
+
+    # ============================================================
+    # HELPER
+    # ============================================================
+
+    def safe_float(value, default=0.0):
+
+        try:
+
+            if value is None:
+                return default
+
+            return float(value)
+
+        except (TypeError, ValueError):
+
+            return default
+
+    def safe_string(value, default=""):
+
+        if value is None:
+            return default
+
+        return str(value)
+
+    # ============================================================
+    # GET ACCOUNT IDS
+    # ============================================================
+
+    account_ids = []
+
+    for key in [
+        "from_account",
+        "to_account"
+    ]:
+
+        value = transfer.get(key)
+
+        if value:
+
+            value_string = str(value)
+
+            if value_string not in account_ids:
+
+                account_ids.append(value_string)
+
+    # ============================================================
+    # LOAD ACCOUNTS
+    # ============================================================
+
+    accounts = []
+
+    for account_id in account_ids:
+
+        try:
+
+            account = mongo.db.accounts.find_one({
+                "_id": ObjectId(account_id)
+            })
+
+            if account:
+
+                accounts.append({
+                    "id": str(account["_id"]),
+
+                    "name": (
+                        account.get("name")
+                        or account.get("account_name")
+                        or "Unnamed Account"
+                    ),
+
+                    "currency": (
+                        account.get("currency")
+                        or "USD"
+                    )
+                })
+
+        except Exception:
+
+            continue
+
+    # ============================================================
+    # LOAD ALL USER ACCOUNTS
+    # Useful for EDIT FORM
+    # ============================================================
+
+    if is_superadmin:
+
+        accounts_raw = list(
+            mongo.db.accounts.find({}).sort(
+                "name",
+                1
+            )
+        )
+
+    else:
+
+        accounts_raw = list(
+            mongo.db.accounts.find({
+                "$or": [
+                    {"user_id": current_user_id},
+                    {"user_id": ObjectId(current_user_id)}
+                ]
+            }).sort(
+                "name",
+                1
+            )
+        )
+
+    accounts = []
+
+    for account in accounts_raw:
+
+        accounts.append({
+
+            "id": str(
+                account.get("_id")
+            ),
+
+            "name": (
+                account.get("name")
+                or account.get("account_name")
+                or "Unnamed Account"
+            ),
+
+            "currency": (
+                account.get("currency")
+                or "USD"
+            ),
+
+            "balance": safe_float(
+                account.get("balance")
+                or account.get("current_balance")
+                or account.get("available_balance")
+            )
+        })
+
+    # ============================================================
+    # LOAD SAVINGS
+    # ============================================================
+
+    if is_superadmin:
+
+        savings_raw = list(
+            mongo.db.savings.find({}).sort(
+                "name",
+                1
+            )
+        )
+
+    else:
+
+        savings_raw = list(
+            mongo.db.savings.find({
+                "$or": [
+                    {"user_id": current_user_id},
+                    {"user_id": ObjectId(current_user_id)}
+                ]
+            }).sort(
+                "name",
+                1
+            )
+        )
+
+    savings = []
+
+    for saving in savings_raw:
+
+        savings.append({
+
+            "id": str(
+                saving.get("_id")
+            ),
+
+            "name": (
+                saving.get("name")
+                or saving.get("saving_name")
+                or saving.get("title")
+                or "Unnamed Saving"
+            ),
+
+            "currency": (
+                saving.get("currency")
+                or "USD"
+            ),
+
+            "balance": safe_float(
+                saving.get("balance")
+                or saving.get("current_balance")
+            )
+        })
+
+    # ============================================================
+    # POST - UPDATE TRANSFER
+    # ============================================================
+
+    if request.method == "POST":
+
+        transfer_type = (
+            request.form.get("transfer_type")
+            or transfer.get("transfer_type")
+            or "account_to_account"
+        )
+
+        amount_raw = (
+            request.form.get("amount")
+        )
+
+        currency = (
+            request.form.get("currency")
+            or transfer.get("currency")
+            or "USD"
+        )
+
+        reference_no = (
+            request.form.get("reference_no")
+            or request.form.get("reference")
+            or transfer.get("reference_no")
+            or ""
+        ).strip()
+
+        description = (
+            request.form.get("description")
+            or ""
+        ).strip()
+
+        status = (
+            request.form.get("status")
+            or transfer.get("status")
+            or "completed"
+        )
+
+        # ========================================================
+        # VALIDATE AMOUNT
+        # ========================================================
+
+        try:
+
+            amount = float(amount_raw)
+
+            if amount <= 0:
+
+                raise ValueError
+
+        except (TypeError, ValueError):
+
+            flash(
+                "Please enter a valid amount.",
+                "error"
+            )
+
+            return render_template(
+
+                "backend/pages/components/accounts/edit_account_transfer.html",
+
+                transfer=transfer,
+
+                accounts=accounts,
+
+                savings=savings
+            )
+
+        # ========================================================
+        # BASE UPDATE
+        # ========================================================
+
+        update_data = {
+
+            "transfer_type": transfer_type,
+
+            "amount": amount,
+
+            "currency": currency,
+
+            "reference_no": reference_no,
+
+            "reference": reference_no,
+
+            "description": description,
+
+            "status": status,
+
+            "updated_at": datetime.utcnow()
+        }
+
+        # ========================================================
+        # ACCOUNT → ACCOUNT
+        # ========================================================
+
+        if transfer_type == "account_to_account":
+
+            from_account_id = (
+                request.form.get("from_account")
+            )
+
+            to_account_id = (
+                request.form.get("to_account")
+            )
+
+            if not from_account_id or not to_account_id:
+
+                flash(
+                    "Please select both source and destination accounts.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            if from_account_id == to_account_id:
+
+                flash(
+                    "Source and destination accounts cannot be the same.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            try:
+
+                from_account_object_id = ObjectId(
+                    from_account_id
+                )
+
+                to_account_object_id = ObjectId(
+                    to_account_id
+                )
+
+            except Exception:
+
+                flash(
+                    "Invalid account selection.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            update_data.update({
+
+                "from_account":
+                    from_account_object_id,
+
+                "to_account":
+                    to_account_object_id,
+
+                "from_account_name":
+                    next(
+                        (
+                            a["name"]
+                            for a in accounts
+                            if a["id"] == from_account_id
+                        ),
+                        ""
+                    ),
+
+                "to_account_name":
+                    next(
+                        (
+                            a["name"]
+                            for a in accounts
+                            if a["id"] == to_account_id
+                        ),
+                        ""
+                    )
+            })
+
+        # ========================================================
+        # ACCOUNT → SAVING
+        # ========================================================
+
+        elif transfer_type == "account_to_saving":
+
+            from_account_id = (
+                request.form.get("from_account")
+            )
+
+            to_saving_id = (
+                request.form.get("to_saving")
+            )
+
+            if not from_account_id or not to_saving_id:
+
+                flash(
+                    "Please select source account and destination saving.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            try:
+
+                from_account_object_id = ObjectId(
+                    from_account_id
+                )
+
+                to_saving_object_id = ObjectId(
+                    to_saving_id
+                )
+
+            except Exception:
+
+                flash(
+                    "Invalid account or saving selection.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            update_data.update({
+
+                "from_account":
+                    from_account_object_id,
+
+                "to_saving":
+                    to_saving_object_id,
+
+                "from_account_name":
+                    next(
+                        (
+                            a["name"]
+                            for a in accounts
+                            if a["id"] == from_account_id
+                        ),
+                        ""
+                    ),
+
+                "to_saving_name":
+                    next(
+                        (
+                            s["name"]
+                            for s in savings
+                            if s["id"] == to_saving_id
+                        ),
+                        ""
+                    )
+            })
+
+        # ========================================================
+        # SAVING → ACCOUNT
+        # ========================================================
+
+        elif transfer_type == "saving_to_account":
+
+            from_saving_id = (
+                request.form.get("from_saving")
+            )
+
+            to_account_id = (
+                request.form.get("to_account")
+            )
+
+            if not from_saving_id or not to_account_id:
+
+                flash(
+                    "Please select source saving and destination account.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            try:
+
+                from_saving_object_id = ObjectId(
+                    from_saving_id
+                )
+
+                to_account_object_id = ObjectId(
+                    to_account_id
+                )
+
+            except Exception:
+
+                flash(
+                    "Invalid saving or account selection.",
+                    "error"
+                )
+
+                return render_template(
+
+                    "backend/pages/components/accounts/edit_account_transfer.html",
+
+                    transfer=transfer,
+
+                    accounts=accounts,
+
+                    savings=savings
+                )
+
+            update_data.update({
+
+                "from_saving":
+                    from_saving_object_id,
+
+                "to_account":
+                    to_account_object_id,
+
+                "from_saving_name":
+                    next(
+                        (
+                            s["name"]
+                            for s in savings
+                            if s["id"] == from_saving_id
+                        ),
+                        ""
+                    ),
+
+                "to_account_name":
+                    next(
+                        (
+                            a["name"]
+                            for a in accounts
+                            if a["id"] == to_account_id
+                        ),
+                        ""
+                    )
+            })
+
+        else:
+
+            flash(
+                "Invalid transfer type.",
+                "error"
+            )
+
+            return render_template(
+
+                "backend/pages/components/accounts/edit_account_transfer.html",
+
+                transfer=transfer,
+
+                accounts=accounts,
+
+                savings=savings
+            )
+
+        # ========================================================
+        # UPDATE DATABASE
+        # ========================================================
+
+        mongo.db.account_transfers.update_one(
+
+            {
+                "_id": transfer_object_id
+            },
+
+            {
+                "$set": update_data
+            }
+
+        )
+
+        # ========================================================
+        # SUCCESS
+        # ========================================================
+
+        flash(
+            "Transfer updated successfully.",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "main.all_account_transfers"
+            )
+        )
+
+    # ============================================================
+    # PREPARE TEMPLATE TRANSFER
+    # ============================================================
+
+    transfer["id"] = str(
+        transfer.get("_id")
+    )
+
+    transfer["from_account_id"] = (
+        str(transfer.get("from_account"))
+        if transfer.get("from_account")
+        else ""
+    )
+
+    transfer["to_account_id"] = (
+        str(transfer.get("to_account"))
+        if transfer.get("to_account")
+        else ""
+    )
+
+    transfer["from_saving_id"] = (
+        str(transfer.get("from_saving"))
+        if transfer.get("from_saving")
+        else ""
+    )
+
+    transfer["to_saving_id"] = (
+        str(transfer.get("to_saving"))
+        if transfer.get("to_saving")
+        else ""
+    )
+
+    # ============================================================
+    # RENDER
+    # ============================================================
+
+    return render_template(
+
+        "backend/pages/components/accounts/edit_account_transfer.html",
+
+        transfer=transfer,
+
+        accounts=accounts,
+
+        savings=savings
+    )
 
 
 @bp.route("/saving-topup", methods=["POST"])
@@ -15708,6 +16444,272 @@ def persons():
         "backend/pages/components/transactions/persons.html",
         persons=persons
     )
+
+@bp.route("/persons/delete/<path:person_name>", methods=["POST", "GET"])
+@login_required
+def delete_person(person_name):
+
+    import re
+    from bson import ObjectId
+    from flask import redirect, url_for, flash
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    current_user_id = str(current_user.id)
+
+    try:
+        current_user_object_id = ObjectId(
+            current_user_id
+        )
+    except Exception:
+        current_user_object_id = None
+
+    # ============================================================
+    # NORMALIZE PERSON NAME
+    # ============================================================
+
+    person_name = str(
+        person_name or ""
+    ).strip()
+
+    # Remove "By"
+    person_name = re.sub(
+        r"^by\s*",
+        "",
+        person_name,
+        flags=re.IGNORECASE
+    )
+
+    person_name = " ".join(
+        person_name.split()
+    ).strip()
+
+    if not person_name:
+
+        flash(
+            "Invalid person name.",
+            "error"
+        )
+
+        return redirect(
+            url_for("main.persons")
+        )
+
+    # ============================================================
+    # USER QUERY
+    # ============================================================
+
+    user_conditions = [
+        {
+            "user_id": current_user_id
+        }
+    ]
+
+    if current_user_object_id:
+
+        user_conditions.append({
+            "user_id": current_user_object_id
+        })
+
+    # ============================================================
+    # FIND TRANSACTIONS BELONGING TO PERSON
+    # ============================================================
+
+    transactions_collection = (
+        mongo.db.transactions
+    )
+
+    transactions = transactions_collection.find({
+
+        "$and": [
+
+            {
+                "$or": user_conditions
+            },
+
+            {
+                "$or": [
+
+                    {
+                        "person_name": {
+                            "$regex": (
+                                "^\\s*by\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    },
+
+                    {
+                        "person_name": {
+                            "$regex": (
+                                "^\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    },
+
+                    {
+                        "description": {
+                            "$regex": (
+                                "^\\s*by\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    },
+
+                    {
+                        "description": {
+                            "$regex": (
+                                "^\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    },
+
+                    {
+                        "note": {
+                            "$regex": (
+                                "^\\s*by\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    },
+
+                    {
+                        "note": {
+                            "$regex": (
+                                "^\\s*"
+                                + re.escape(person_name)
+                                + "\\s*$"
+                            ),
+                            "$options": "i"
+                        }
+                    }
+
+                ]
+            }
+
+        ]
+
+    })
+
+    transaction_ids = [
+        transaction["_id"]
+        for transaction in transactions
+    ]
+
+    # ============================================================
+    # DELETE NORMAL TRANSACTIONS
+    # ============================================================
+
+    deleted_transactions = 0
+
+    if transaction_ids:
+
+        result = transactions_collection.delete_many({
+
+            "_id": {
+                "$in": transaction_ids
+            }
+
+        })
+
+        deleted_transactions = (
+            result.deleted_count
+        )
+
+    # ============================================================
+    # DELETE PERSON OPENING / MANUAL TRANSACTIONS
+    # ============================================================
+
+    opening_collection = (
+        mongo.db.person_opening_transactions
+    )
+
+    # Case-insensitive exact person name
+    opening_query = {
+
+        "$and": [
+
+            {
+                "$or": user_conditions
+            },
+
+            {
+                "person_name": {
+                    "$regex": (
+                        "^\\s*by\\s*"
+                        + re.escape(person_name)
+                        + "\\s*$"
+                    ),
+                    "$options": "i"
+                }
+
+            }
+
+        ]
+
+    }
+
+    opening_result = (
+        opening_collection.delete_many(
+            opening_query
+        )
+    )
+
+    deleted_opening_transactions = (
+        opening_result.deleted_count
+    )
+
+    # ============================================================
+    # TOTAL
+    # ============================================================
+
+    total_deleted = (
+        deleted_transactions
+        +
+        deleted_opening_transactions
+    )
+
+    # ============================================================
+    # FLASH MESSAGE
+    # ============================================================
+
+    if total_deleted > 0:
+
+        flash(
+            f"Person '{person_name}' and "
+            f"{total_deleted} transaction(s) were deleted successfully.",
+            "success"
+        )
+
+    else:
+
+        flash(
+            f"No transactions found for '{person_name}'.",
+            "warning"
+        )
+
+    # ============================================================
+    # REDIRECT
+    # ============================================================
+
+    return redirect(
+        url_for("main.persons")
+    )
+
 
 
 @bp.route("/person/<person_name>/invoice")
