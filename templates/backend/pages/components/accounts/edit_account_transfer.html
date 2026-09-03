@@ -1,0 +1,864 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Edit Account Transfer | Expense Tracker{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+
+<div class="page-header">
+
+    <div class="page-header-left d-flex align-items-center">
+
+        <div class="page-header-title">
+            <h5 class="m-b-10">Account Transfers</h5>
+        </div>
+
+        <ul class="breadcrumb">
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.all_account_transfers') }}">
+                    Home
+                </a>
+            </li>
+
+            <li class="breadcrumb-item">
+                Account Transfers
+            </li>
+
+            <li class="breadcrumb-item">
+                Edit Transfer
+            </li>
+
+        </ul>
+
+    </div>
+
+
+    <div class="page-header-right ms-auto">
+
+        <div class="page-header-right-items">
+
+            <div class="d-flex d-md-none">
+
+                <a
+                    href="javascript:void(0)"
+                    class="page-header-right-close-toggle"
+                >
+                    <i class="feather-arrow-left me-2"></i>
+                    <span>Back</span>
+                </a>
+
+            </div>
+
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+
+                <a
+                    href="{{ url_for('main.all_account_transfers') }}"
+                    class="btn btn-light-brand"
+                >
+                    <i class="feather-arrow-left me-2"></i>
+                    <span>Back to Transfers</span>
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="d-md-none d-flex align-items-center">
+
+            <a
+                href="javascript:void(0)"
+                class="page-header-right-open-toggle"
+            >
+                <i class="feather-align-right fs-20"></i>
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+
+<div class="main-content">
+
+    <div class="row">
+
+        <div class="col-12">
+
+            <form
+                method="POST"
+                action="{{ url_for(
+                    'main.edit_account_transfer',
+                    transfer_id=transfer.id
+                ) }}"
+                id="editTransferForm"
+            >
+
+                <div class="card shadow-sm">
+
+                    <!-- ====================================================
+                         CARD HEADER
+                    ==================================================== -->
+
+                    <div class="card-header bg-white">
+
+                        <div class="d-flex align-items-center justify-content-between">
+
+                            <div>
+
+                                <h5 class="mb-1">
+                                    Edit Account Transfer
+                                </h5>
+
+                                <small class="text-muted">
+                                    Reference:
+                                    <strong>
+                                        {{ transfer.reference_no or transfer.reference or '-' }}
+                                    </strong>
+                                </small>
+
+                            </div>
+
+                            <span class="badge bg-light-primary text-primary">
+                                Edit Mode
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ====================================================
+                         CARD BODY
+                    ==================================================== -->
+
+                    <div class="card-body">
+
+                        <!-- ==================================================
+                             TRANSFER TYPE
+                        ================================================== -->
+
+                        <div class="row mb-4">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Transfer Type
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="transfer_type"
+                                    id="transferType"
+                                    class="form-select"
+                                    required
+                                >
+
+                                    <option
+                                        value="account_to_account"
+                                        {% if transfer.transfer_type == 'account_to_account' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Account → Account
+                                    </option>
+
+                                    <option
+                                        value="account_to_saving"
+                                        {% if transfer.transfer_type == 'account_to_saving' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Account → Saving
+                                    </option>
+
+                                    <option
+                                        value="saving_to_account"
+                                        {% if transfer.transfer_type == 'saving_to_account' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Saving → Account
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             FROM ACCOUNT
+                        ================================================== -->
+
+                        <div
+                            class="row mb-3 transfer-field"
+                            id="fromAccountWrapper"
+                        >
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                From Account
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="from_account"
+                                    id="fromAccount"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        Select Account
+                                    </option>
+
+                                    {% for account in accounts %}
+
+                                        <option
+                                            value="{{ account.id }}"
+                                            {% if transfer.from_account_id == account.id %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ account.name }}
+
+                                            {% if account.currency %}
+                                                — {{ account.currency }}
+                                            {% endif %}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             FROM SAVING
+                        ================================================== -->
+
+                        <div
+                            class="row mb-3 transfer-field"
+                            id="fromSavingWrapper"
+                        >
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                From Saving
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="from_saving"
+                                    id="fromSaving"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        Select Saving
+                                    </option>
+
+                                    {% for saving in savings %}
+
+                                        <option
+                                            value="{{ saving.id }}"
+                                            {% if transfer.from_saving_id == saving.id %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ saving.name }}
+
+                                            {% if saving.currency %}
+                                                — {{ saving.currency }}
+                                            {% endif %}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             TO ACCOUNT
+                        ================================================== -->
+
+                        <div
+                            class="row mb-3 transfer-field"
+                            id="toAccountWrapper"
+                        >
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                To Account
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="to_account"
+                                    id="toAccount"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        Select Account
+                                    </option>
+
+                                    {% for account in accounts %}
+
+                                        <option
+                                            value="{{ account.id }}"
+                                            {% if transfer.to_account_id == account.id %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ account.name }}
+
+                                            {% if account.currency %}
+                                                — {{ account.currency }}
+                                            {% endif %}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             TO SAVING
+                        ================================================== -->
+
+                        <div
+                            class="row mb-3 transfer-field"
+                            id="toSavingWrapper"
+                        >
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                To Saving
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="to_saving"
+                                    id="toSaving"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        Select Saving
+                                    </option>
+
+                                    {% for saving in savings %}
+
+                                        <option
+                                            value="{{ saving.id }}"
+                                            {% if transfer.to_saving_id == saving.id %}
+                                                selected
+                                            {% endif %}
+                                        >
+                                            {{ saving.name }}
+
+                                            {% if saving.currency %}
+                                                — {{ saving.currency }}
+                                            {% endif %}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             AMOUNT
+                        ================================================== -->
+
+                        <div class="row mb-3">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Amount
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <div class="input-group">
+
+                                    <span
+                                        class="input-group-text"
+                                        id="currencyPrefix"
+                                    >
+                                        {{ transfer.currency or 'USD' }}
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        name="amount"
+                                        id="amount"
+                                        class="form-control"
+                                        step="0.01"
+                                        min="0.01"
+                                        value="{{ transfer.amount or '' }}"
+                                        placeholder="0.00"
+                                        required
+                                    >
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             CURRENCY
+                        ================================================== -->
+
+                        <div class="row mb-3">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Currency
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <input
+                                    type="text"
+                                    name="currency"
+                                    id="currency"
+                                    class="form-control"
+                                    value="{{ transfer.currency or 'USD' }}"
+                                    maxlength="10"
+                                    required
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             REFERENCE
+                        ================================================== -->
+
+                        <div class="row mb-3">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Reference No
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <input
+                                    type="text"
+                                    name="reference_no"
+                                    class="form-control"
+                                    value="{{ transfer.reference_no or transfer.reference or '' }}"
+                                    placeholder="Transfer reference"
+                                    maxlength="100"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             STATUS
+                        ================================================== -->
+
+                        <div class="row mb-3">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Status
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <select
+                                    name="status"
+                                    class="form-select"
+                                >
+
+                                    {% set current_status = transfer.status or 'completed' %}
+
+                                    <option
+                                        value="completed"
+                                        {% if current_status in ['completed', 'Completed'] %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Completed
+                                    </option>
+
+                                    <option
+                                        value="pending"
+                                        {% if current_status in ['pending', 'Pending'] %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Pending
+                                    </option>
+
+                                    <option
+                                        value="cancelled"
+                                        {% if current_status in ['cancelled', 'Cancelled'] %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Cancelled
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             DESCRIPTION
+                        ================================================== -->
+
+                        <div class="row mb-3">
+
+                            <label class="col-lg-3 col-form-label fw-bold">
+                                Description
+                            </label>
+
+                            <div class="col-lg-9">
+
+                                <textarea
+                                    name="description"
+                                    class="form-control"
+                                    rows="4"
+                                    placeholder="Enter transfer description..."
+                                >{{ transfer.description or '' }}</textarea>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ====================================================
+                         FOOTER
+                    ==================================================== -->
+
+                    <div class="card-footer bg-white">
+
+                        <div class="d-flex justify-content-end gap-2">
+
+                            <a
+                                href="{{ url_for('main.all_account_transfers') }}"
+                                class="btn btn-light"
+                            >
+                                <i class="feather-x me-1"></i>
+                                Cancel
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary px-4"
+                                id="updateTransferBtn"
+                            >
+                                <i class="feather-save me-1"></i>
+                                Update Transfer
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const transferType = document.getElementById("transferType");
+
+    const fromAccountWrapper =
+        document.getElementById("fromAccountWrapper");
+
+    const fromSavingWrapper =
+        document.getElementById("fromSavingWrapper");
+
+    const toAccountWrapper =
+        document.getElementById("toAccountWrapper");
+
+    const toSavingWrapper =
+        document.getElementById("toSavingWrapper");
+
+    const fromAccount =
+        document.getElementById("fromAccount");
+
+    const fromSaving =
+        document.getElementById("fromSaving");
+
+    const toAccount =
+        document.getElementById("toAccount");
+
+    const toSaving =
+        document.getElementById("toSaving");
+
+    const currency =
+        document.getElementById("currency");
+
+    const currencyPrefix =
+        document.getElementById("currencyPrefix");
+
+    const form =
+        document.getElementById("editTransferForm");
+
+    const updateButton =
+        document.getElementById("updateTransferBtn");
+
+
+    // ============================================================
+    // UPDATE CURRENCY DISPLAY
+    // ============================================================
+
+    function updateCurrencyPrefix() {
+
+        const value =
+            currency.value.trim();
+
+        currencyPrefix.textContent =
+            value || "USD";
+    }
+
+
+    currency.addEventListener(
+        "input",
+        updateCurrencyPrefix
+    );
+
+
+    // ============================================================
+    // TOGGLE TRANSFER FIELDS
+    // ============================================================
+
+    function updateTransferFields() {
+
+        const type =
+            transferType.value;
+
+
+        // Hide everything first
+
+        fromAccountWrapper.style.display = "none";
+        fromSavingWrapper.style.display = "none";
+        toAccountWrapper.style.display = "none";
+        toSavingWrapper.style.display = "none";
+
+
+        // Disable everything first
+
+        fromAccount.disabled = true;
+        fromSaving.disabled = true;
+        toAccount.disabled = true;
+        toSaving.disabled = true;
+
+
+        // ========================================================
+        // ACCOUNT → ACCOUNT
+        // ========================================================
+
+        if (type === "account_to_account") {
+
+            fromAccountWrapper.style.display = "";
+            toAccountWrapper.style.display = "";
+
+            fromAccount.disabled = false;
+            toAccount.disabled = false;
+
+            fromAccount.required = true;
+            toAccount.required = true;
+
+            fromSaving.required = false;
+            toSaving.required = false;
+        }
+
+
+        // ========================================================
+        // ACCOUNT → SAVING
+        // ========================================================
+
+        else if (type === "account_to_saving") {
+
+            fromAccountWrapper.style.display = "";
+            toSavingWrapper.style.display = "";
+
+            fromAccount.disabled = false;
+            toSaving.disabled = false;
+
+            fromAccount.required = true;
+            toSaving.required = true;
+
+            fromSaving.required = false;
+            toAccount.required = false;
+        }
+
+
+        // ========================================================
+        // SAVING → ACCOUNT
+        // ========================================================
+
+        else if (type === "saving_to_account") {
+
+            fromSavingWrapper.style.display = "";
+            toAccountWrapper.style.display = "";
+
+            fromSaving.disabled = false;
+            toAccount.disabled = false;
+
+            fromSaving.required = true;
+            toAccount.required = true;
+
+            fromAccount.required = false;
+            toSaving.required = false;
+        }
+
+    }
+
+
+    transferType.addEventListener(
+        "change",
+        updateTransferFields
+    );
+
+
+    // ============================================================
+    // PREVENT SAME ACCOUNT
+    // ============================================================
+
+    function validateSameAccount() {
+
+        if (
+            transferType.value ===
+            "account_to_account"
+        ) {
+
+            if (
+                fromAccount.value &&
+                toAccount.value &&
+                fromAccount.value === toAccount.value
+            ) {
+
+                toAccount.setCustomValidity(
+                    "Source and destination accounts cannot be the same."
+                );
+
+            } else {
+
+                toAccount.setCustomValidity("");
+
+            }
+        }
+
+        else {
+
+            toAccount.setCustomValidity("");
+        }
+    }
+
+
+    fromAccount.addEventListener(
+        "change",
+        validateSameAccount
+    );
+
+    toAccount.addEventListener(
+        "change",
+        validateSameAccount
+    );
+
+
+    // ============================================================
+    // FORM SUBMIT
+    // ============================================================
+
+    form.addEventListener(
+        "submit",
+        function (event) {
+
+            validateSameAccount();
+
+            if (!form.checkValidity()) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                form.classList.add("was-validated");
+
+                return;
+            }
+
+
+            updateButton.disabled = true;
+
+            updateButton.innerHTML =
+                '<i class="feather-loader me-1"></i> Updating...';
+
+        }
+    );
+
+
+    // ============================================================
+    // INITIAL STATE
+    // ============================================================
+
+    updateTransferFields();
+
+    updateCurrencyPrefix();
+
+    validateSameAccount();
+
+});
+
+</script>
+
+{% endblock %}
+
