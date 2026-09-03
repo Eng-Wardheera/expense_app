@@ -16250,10 +16250,17 @@ item_recommendations=item_recommendations,
 
 
 
-
 @bp.route("/persons")
 @login_required
 def persons():
+
+    import re
+    from collections import defaultdict
+    from bson import ObjectId
+
+    # ============================================================
+    # PERSONS STORAGE
+    # ============================================================
 
     persons_dict = defaultdict(lambda: {
         "_id": "",
@@ -16264,166 +16271,483 @@ def persons():
         "transactions": 0
     })
 
+    # ============================================================
+    # NORMALIZE PERSON NAME
+    # ============================================================
 
-    # ==================================================
+    def normalize_person_name(value):
+
+        if value is None:
+            return ""
+
+        value = str(value).strip()
+
+        if not value:
+            return ""
+
+        # --------------------------------------------------------
+        # Remove leading "By"
+        #
+        # By Cumar
+        # by Cumar
+        # BY Cumar
+        # --------------------------------------------------------
+
+        value = re.sub(
+            r"^by\s*",
+            "",
+            value,
+            flags=re.IGNORECASE
+        )
+
+        # --------------------------------------------------------
+        # Remove extra spaces
+        # --------------------------------------------------------
+
+        value = " ".join(
+            value.split()
+        ).strip()
+
+        if not value:
+            return ""
+
+        # --------------------------------------------------------
+        # Ignore obvious system/transaction descriptions
+        # --------------------------------------------------------
+
+        if is_system_description(value):
+            return ""
+
+        # --------------------------------------------------------
+        # Normalize case
+        # --------------------------------------------------------
+
+        return value.title()
+
+    # ============================================================
+    # SYSTEM / TRANSACTION DESCRIPTION CHECK
+    # ============================================================
+
+    def is_system_description(value):
+
+        if not value:
+            return False
+
+        text = str(value).strip().lower()
+
+        # --------------------------------------------------------
+        # Transfer descriptions
+        #
+        # Example:
+        # Transfer From Salaam Bank 38478813 To Primary Hormuud Walet
+        # --------------------------------------------------------
+
+        transfer_patterns = [
+
+            r"^transfer\s+from\b",
+            r"^transfer\s+to\b",
+            r"\btransfer\s+from\b",
+            r"\btransfer\s+to\b",
+
+            r"^transferred\s+from\b",
+            r"^transferred\s+to\b",
+
+            r"^account\s+transfer\b",
+            r"^bank\s+transfer\b",
+
+        ]
+
+        for pattern in transfer_patterns:
+
+            if re.search(
+                pattern,
+                text,
+                flags=re.IGNORECASE
+            ):
+                return True
+
+        # --------------------------------------------------------
+        # Other obvious system descriptions
+        # --------------------------------------------------------
+
+        system_patterns = [
+
+            r"^payment\s+from\b",
+            r"^payment\s+to\b",
+
+            r"^deposit\s+from\b",
+            r"^deposit\s+to\b",
+
+            r"^withdrawal\s+from\b",
+            r"^withdrawal\s+to\b",
+
+            r"^withdraw\s+from\b",
+            r"^withdraw\s+to\b",
+
+            r"^received\s+from\b",
+            r"^sent\s+to\b",
+
+            r"^income\s+from\b",
+            r"^expense\s+to\b",
+
+            r"^opening\s+balance\b",
+            r"^opening\s+transaction\b",
+
+        ]
+
+        for pattern in system_patterns:
+
+            if re.search(
+                pattern,
+                text,
+                flags=re.IGNORECASE
+            ):
+                return True
+
+        return False
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    current_user_id = str(
+        current_user.id
+    )
+
+    try:
+
+        current_user_object_id = ObjectId(
+            current_user.id
+        )
+
+    except Exception:
+
+        current_user_object_id = None
+
+    # ============================================================
+    # USER CONDITIONS
+    # ============================================================
+
+    user_conditions = [
+        {
+            "user_id": current_user_id
+        }
+    ]
+
+    if current_user_object_id is not None:
+
+        user_conditions.append({
+            "user_id": current_user_object_id
+        })
+
+    # ============================================================
     # 1. NORMAL TRANSACTIONS
-    # ==================================================
+    # ============================================================
 
     transactions = mongo.db.transactions.find({
-        "$or": [
-            {
-                "user_id": str(current_user.id)
-            },
-            {
-                "user_id": ObjectId(current_user.id)
-            }
-        ]
+
+        "$or": user_conditions
+
     }).sort(
         "date",
         -1
     )
 
+    # ============================================================
+    # PROCESS NORMAL TRANSACTIONS
+    # ============================================================
 
     for trx in transactions:
 
+        # ========================================================
+        # AMOUNT
+        # ========================================================
 
-        raw_name = (
-            trx.get("person_name")
-            or trx.get("description")
-            or trx.get("note")
-            or ""
-        )
+        try:
 
+            amount = float(
+                trx.get("amount", 0) or 0
+            )
 
-        raw_name = str(raw_name).strip()
+        except (TypeError, ValueError):
 
+            amount = 0.0
 
-        if not raw_name:
+        # ========================================================
+        # TRANSACTION TYPE
+        # ========================================================
+
+        transaction_type = str(
+            trx.get("transaction_type")
+            or trx.get("type")
+            or "expense"
+        ).lower().strip()
+
+        if transaction_type not in (
+            "income",
+            "expense"
+        ):
+
+            transaction_type = "expense"
+
+        # ========================================================
+        # RAW VALUES
+        #
+        # We read them separately.
+        #
+        # person_name
+        # description
+        # note
+        # ========================================================
+
+        raw_person_name = str(
+            trx.get("person_name") or ""
+        ).strip()
+
+        raw_description = str(
+            trx.get("description") or ""
+        ).strip()
+
+        raw_note = str(
+            trx.get("note") or ""
+        ).strip()
+
+        # ========================================================
+        # COLLECT PERSONS
+        # ========================================================
+
+        transaction_persons = []
+
+        seen_names = set()
+
+        # ========================================================
+        # HELPER
+        # ========================================================
+
+        def add_person(value):
+
+            normalized = normalize_person_name(
+                value
+            )
+
+            if not normalized:
+                return
+
+            name_key = normalized.lower()
+
+            if name_key in seen_names:
+                return
+
+            seen_names.add(
+                name_key
+            )
+
+            transaction_persons.append(
+                normalized
+            )
+
+        # ========================================================
+        # 1. PERSON_NAME
+        #
+        # Highest priority because this field is explicitly
+        # designed for a person.
+        # ========================================================
+
+        if raw_person_name:
+
+            add_person(
+                raw_person_name
+            )
+
+        # ========================================================
+        # 2. DESCRIPTION
+        #
+        # IMPORTANT:
+        #
+        # Do NOT treat system descriptions as persons.
+        #
+        # Example:
+        #
+        # Transfer From Salaam Bank 38478813
+        # To Primary Hormuud Walet
+        #
+        # This must NOT become a Person.
+        # ========================================================
+
+        if raw_description:
+
+            if not is_system_description(
+                raw_description
+            ):
+
+                add_person(
+                    raw_description
+                )
+
+        # ========================================================
+        # 3. NOTE
+        #
+        # Example:
+        #
+        # note = By Cumar Cumar Omar
+        #
+        # Result:
+        #
+        # Cumar Cumar Omar
+        # ========================================================
+
+        if raw_note:
+
+            add_person(
+                raw_note
+            )
+
+        # ========================================================
+        # NO PERSON
+        # ========================================================
+
+        if not transaction_persons:
+
             continue
 
+        # ========================================================
+        # ADD TRANSACTION TO EACH PERSON
+        # ========================================================
 
+        for person_name in transaction_persons:
 
-        # Remove By / by
-        raw_name = re.sub(
-            r"^by\s*",
-            "",
-            raw_name,
-            flags=re.IGNORECASE
+            # ----------------------------------------------------
+            # PERSON DATA
+            # ----------------------------------------------------
+
+            person = persons_dict[
+                person_name
+            ]
+
+            person["_id"] = person_name
+
+            person["name"] = person_name
+
+            person["transactions"] += 1
+
+            # ----------------------------------------------------
+            # INCOME
+            # ----------------------------------------------------
+
+            if transaction_type == "income":
+
+                person["total_income"] += amount
+
+            # ----------------------------------------------------
+            # EXPENSE
+            # ----------------------------------------------------
+
+            else:
+
+                person["total_expense"] += amount
+
+    # ============================================================
+    # 2. MANUAL / OPENING PERSON TRANSACTIONS
+    # ============================================================
+
+    old_transactions = mongo.db.person_opening_transactions.find({
+
+        "$or": user_conditions
+
+    }).sort(
+        "date",
+        -1
+    )
+
+    # ============================================================
+    # PROCESS MANUAL TRANSACTIONS
+    # ============================================================
+
+    for old in old_transactions:
+
+        # ========================================================
+        # PERSON NAME
+        # ========================================================
+
+        person_name = normalize_person_name(
+            old.get("person_name")
         )
-
-
-        person_name = " ".join(
-            raw_name.split()
-        ).title()
-
-
 
         if not person_name:
             continue
 
+        # ========================================================
+        # AMOUNT
+        # ========================================================
 
+        try:
 
-        amount = float(
-            trx.get("amount", 0) or 0
-        )
+            amount = float(
+                old.get("amount", 0) or 0
+            )
 
+        except (TypeError, ValueError):
 
-        persons_dict[person_name]["_id"] = person_name
+            amount = 0.0
 
-        persons_dict[person_name]["name"] = person_name
+        # ========================================================
+        # TRANSACTION TYPE
+        # ========================================================
 
-        persons_dict[person_name]["transactions"] += 1
+        transaction_type = str(
+            old.get("type")
+            or old.get("transaction_type")
+            or "expense"
+        ).lower().strip()
 
+        if transaction_type not in (
+            "income",
+            "expense"
+        ):
 
+            transaction_type = "expense"
 
-        if trx.get("transaction_type") == "income":
+        # ========================================================
+        # PERSON DATA
+        # ========================================================
 
-            persons_dict[person_name]["total_income"] += amount
+        person = persons_dict[
+            person_name
+        ]
 
-        else:
+        person["_id"] = person_name
 
-            persons_dict[person_name]["total_expense"] += amount
+        person["name"] = person_name
 
+        person["transactions"] += 1
 
+        # ========================================================
+        # INCOME
+        # ========================================================
 
+        if transaction_type == "income":
 
+            person["total_income"] += amount
 
-    # ==================================================
-    # 2. OLD EXCEL / MANUAL TRANSACTIONS
-    # ==================================================
-
-    old_transactions = mongo.db.person_opening_transactions.find({
-
-        "user_id": ObjectId(current_user.id)
-
-    }).sort(
-        "date",
-        -1
-    )
-
-
-    for old in old_transactions:
-
-
-        raw_name = str(
-            old.get("person_name", "")
-        ).strip()
-
-
-        if not raw_name:
-            continue
-
-
-
-        raw_name = re.sub(
-            r"^by\s*",
-            "",
-            raw_name,
-            flags=re.IGNORECASE
-        )
-
-
-
-        person_name = " ".join(
-            raw_name.split()
-        ).title()
-
-
-
-        amount = float(
-            old.get("amount", 0) or 0
-        )
-
-
-
-        persons_dict[person_name]["_id"] = person_name
-
-        persons_dict[person_name]["name"] = person_name
-
-        persons_dict[person_name]["transactions"] += 1
-
-
-
-        if old.get("type") == "income":
-
-            persons_dict[person_name]["total_income"] += amount
+        # ========================================================
+        # EXPENSE
+        # ========================================================
 
         else:
 
-            persons_dict[person_name]["total_expense"] += amount
+            person["total_expense"] += amount
 
-
-
-
-
-    # ==================================================
+    # ============================================================
     # FINAL DATA
-    # ==================================================
+    # ============================================================
 
     persons = []
 
-
     for person in persons_dict.values():
+
+        # ========================================================
+        # BALANCE
+        # ========================================================
 
         person["balance"] = (
             person["total_income"]
@@ -16431,19 +16755,47 @@ def persons():
             person["total_expense"]
         )
 
-        persons.append(person)
+        # ========================================================
+        # ROUND MONEY
+        # ========================================================
 
+        person["total_income"] = round(
+            person["total_income"],
+            2
+        )
 
+        person["total_expense"] = round(
+            person["total_expense"],
+            2
+        )
+
+        person["balance"] = round(
+            person["balance"],
+            2
+        )
+
+        persons.append(
+            person
+        )
+
+    # ============================================================
+    # SORT BY NAME
+    # ============================================================
 
     persons.sort(
         key=lambda x: x["name"].lower()
     )
 
+    # ============================================================
+    # RENDER
+    # ============================================================
 
     return render_template(
         "backend/pages/components/transactions/persons.html",
         persons=persons
     )
+
+
 
 @bp.route("/persons/delete/<path:person_name>", methods=["POST", "GET"])
 @login_required
