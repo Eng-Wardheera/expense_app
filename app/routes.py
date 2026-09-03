@@ -16272,88 +16272,111 @@ def persons():
     })
 
     # ============================================================
-    # NORMALIZE PERSON NAME
+    # CURRENT USER
     # ============================================================
 
-    def normalize_person_name(value):
+    current_user_id = str(current_user.id)
 
-        if value is None:
-            return ""
-
-        value = str(value).strip()
-
-        if not value:
-            return ""
-
-        # --------------------------------------------------------
-        # Remove leading "By"
-        #
-        # By Cumar
-        # by Cumar
-        # BY Cumar
-        # --------------------------------------------------------
-
-        value = re.sub(
-            r"^by\s*",
-            "",
-            value,
-            flags=re.IGNORECASE
+    try:
+        current_user_object_id = ObjectId(
+            current_user.id
         )
-
-        # --------------------------------------------------------
-        # Remove extra spaces
-        # --------------------------------------------------------
-
-        value = " ".join(
-            value.split()
-        ).strip()
-
-        if not value:
-            return ""
-
-        # --------------------------------------------------------
-        # Ignore obvious system/transaction descriptions
-        # --------------------------------------------------------
-
-        if is_system_description(value):
-            return ""
-
-        # --------------------------------------------------------
-        # Normalize case
-        # --------------------------------------------------------
-
-        return value.title()
+    except Exception:
+        current_user_object_id = None
 
     # ============================================================
-    # SYSTEM / TRANSACTION DESCRIPTION CHECK
+    # USER CONDITIONS
+    # ============================================================
+
+    user_conditions = [
+        {
+            "user_id": current_user_id
+        }
+    ]
+
+    if current_user_object_id is not None:
+        user_conditions.append({
+            "user_id": current_user_object_id
+        })
+
+    # ============================================================
+    # SYSTEM DESCRIPTION DETECTOR
+    #
+    # Anything that is clearly an accounting/system description
+    # must NEVER become a person.
     # ============================================================
 
     def is_system_description(value):
 
-        if not value:
+        if value is None:
             return False
 
         text = str(value).strip().lower()
 
+        if not text:
+            return False
+
         # --------------------------------------------------------
-        # Transfer descriptions
-        #
-        # Example:
-        # Transfer From Salaam Bank 38478813 To Primary Hormuud Walet
+        # NORMALIZE SPACES
+        # --------------------------------------------------------
+
+        text = re.sub(
+            r"\s+",
+            " ",
+            text
+        ).strip()
+
+        # --------------------------------------------------------
+        # TRANSFER DESCRIPTIONS
         # --------------------------------------------------------
 
         transfer_patterns = [
 
+            # Transfer From ...
             r"^transfer\s+from\b",
-            r"^transfer\s+to\b",
-            r"\btransfer\s+from\b",
-            r"\btransfer\s+to\b",
 
+            # Transfer To ...
+            r"^transfer\s+to\b",
+
+            # Transferred From ...
             r"^transferred\s+from\b",
+
+            # Transferred To ...
             r"^transferred\s+to\b",
 
+            # Money Transferred From ...
+            r"^money\s+transferred\s+from\b",
+
+            # Money Transferred To ...
+            r"^money\s+transferred\s+to\b",
+
+            # Money Transfer From ...
+            r"^money\s+transfer\s+from\b",
+
+            # Money Transfer To ...
+            r"^money\s+transfer\s+to\b",
+
+            # Account Transfer ...
             r"^account\s+transfer\b",
+
+            # Bank Transfer ...
             r"^bank\s+transfer\b",
+
+            # Wallet Transfer ...
+            r"^wallet\s+transfer\b",
+
+            # Fund Transfer ...
+            r"^fund\s+transfer\b",
+
+            # Funds Transfer ...
+            r"^funds\s+transfer\b",
+
+            # Internal Transfer ...
+            r"^internal\s+transfer\b",
+
+            # Transfered ... common typo
+            r"^transfered\s+from\b",
+            r"^transfered\s+to\b",
 
         ]
 
@@ -16367,13 +16390,51 @@ def persons():
                 return True
 
         # --------------------------------------------------------
-        # Other obvious system descriptions
+        # TRANSFER WORD ANYWHERE
+        #
+        # Example:
+        # Salaam Bank -> Primary Wallet Money Transferred To
+        # --------------------------------------------------------
+
+        transfer_phrases = [
+
+            "money transferred to",
+            "money transferred from",
+
+            "money transfer to",
+            "money transfer from",
+
+            "transferred to",
+            "transferred from",
+
+            "transfer to",
+            "transfer from",
+
+            "account transfer",
+            "bank transfer",
+            "wallet transfer",
+            "fund transfer",
+            "funds transfer",
+            "internal transfer",
+
+        ]
+
+        for phrase in transfer_phrases:
+
+            if phrase in text:
+                return True
+
+        # --------------------------------------------------------
+        # PAYMENT / DEPOSIT / WITHDRAWAL SYSTEM DESCRIPTIONS
         # --------------------------------------------------------
 
         system_patterns = [
 
             r"^payment\s+from\b",
             r"^payment\s+to\b",
+
+            r"^paid\s+to\b",
+            r"^paid\s+from\b",
 
             r"^deposit\s+from\b",
             r"^deposit\s+to\b",
@@ -16385,10 +16446,13 @@ def persons():
             r"^withdraw\s+to\b",
 
             r"^received\s+from\b",
-            r"^sent\s+to\b",
+            r"^received\s+to\b",
 
-            r"^income\s+from\b",
-            r"^expense\s+to\b",
+            r"^sent\s+to\b",
+            r"^sent\s+from\b",
+
+            r"^cash\s+transfer\b",
+            r"^cash\s+movement\b",
 
             r"^opening\s+balance\b",
             r"^opening\s+transaction\b",
@@ -16407,38 +16471,97 @@ def persons():
         return False
 
     # ============================================================
-    # CURRENT USER
+    # NORMALIZE PERSON NAME
     # ============================================================
 
-    current_user_id = str(
-        current_user.id
-    )
+    def normalize_person_name(
+        value,
+        allow_system_description=False
+    ):
 
-    try:
+        if value is None:
+            return ""
 
-        current_user_object_id = ObjectId(
-            current_user.id
+        value = str(value).strip()
+
+        if not value:
+            return ""
+
+        # --------------------------------------------------------
+        # Remove leading "By"
+        #
+        # By Cumar
+        # by Cumar
+        # BY Cumar
+        # By    Cumar
+        # --------------------------------------------------------
+
+        value = re.sub(
+            r"^by\s+",
+            "",
+            value,
+            flags=re.IGNORECASE
+        ).strip()
+
+        # --------------------------------------------------------
+        # Remove extra spaces
+        # --------------------------------------------------------
+
+        value = re.sub(
+            r"\s+",
+            " ",
+            value
+        ).strip()
+
+        if not value:
+            return ""
+
+        # --------------------------------------------------------
+        # Do NOT allow system descriptions
+        # --------------------------------------------------------
+
+        if not allow_system_description:
+
+            if is_system_description(value):
+                return ""
+
+        # --------------------------------------------------------
+        # Normalize capitalization
+        # --------------------------------------------------------
+
+        return value.title()
+
+    # ============================================================
+    # ADD PERSON HELPER
+    # ============================================================
+
+    def add_person(
+        transaction_persons,
+        seen_names,
+        value,
+        allow_system_description=False
+    ):
+
+        normalized = normalize_person_name(
+            value,
+            allow_system_description=allow_system_description
         )
 
-    except Exception:
+        if not normalized:
+            return
 
-        current_user_object_id = None
+        name_key = normalized.casefold()
 
-    # ============================================================
-    # USER CONDITIONS
-    # ============================================================
+        if name_key in seen_names:
+            return
 
-    user_conditions = [
-        {
-            "user_id": current_user_id
-        }
-    ]
+        seen_names.add(
+            name_key
+        )
 
-    if current_user_object_id is not None:
-
-        user_conditions.append({
-            "user_id": current_user_object_id
-        })
+        transaction_persons.append(
+            normalized
+        )
 
     # ============================================================
     # 1. NORMAL TRANSACTIONS
@@ -16481,7 +16604,7 @@ def persons():
             trx.get("transaction_type")
             or trx.get("type")
             or "expense"
-        ).lower().strip()
+        ).strip().lower()
 
         if transaction_type not in (
             "income",
@@ -16492,12 +16615,6 @@ def persons():
 
         # ========================================================
         # RAW VALUES
-        #
-        # We read them separately.
-        #
-        # person_name
-        # description
-        # note
         # ========================================================
 
         raw_person_name = str(
@@ -16521,57 +16638,36 @@ def persons():
         seen_names = set()
 
         # ========================================================
-        # HELPER
-        # ========================================================
-
-        def add_person(value):
-
-            normalized = normalize_person_name(
-                value
-            )
-
-            if not normalized:
-                return
-
-            name_key = normalized.lower()
-
-            if name_key in seen_names:
-                return
-
-            seen_names.add(
-                name_key
-            )
-
-            transaction_persons.append(
-                normalized
-            )
-
-        # ========================================================
         # 1. PERSON_NAME
         #
-        # Highest priority because this field is explicitly
-        # designed for a person.
+        # This field is explicitly intended for a person.
         # ========================================================
 
         if raw_person_name:
 
             add_person(
-                raw_person_name
+                transaction_persons,
+                seen_names,
+                raw_person_name,
+                allow_system_description=False
             )
 
         # ========================================================
         # 2. DESCRIPTION
         #
-        # IMPORTANT:
+        # Description is ONLY accepted if it is not a system
+        # description.
         #
-        # Do NOT treat system descriptions as persons.
+        # Therefore:
         #
-        # Example:
+        # Samiro
+        #       -> accepted
         #
-        # Transfer From Salaam Bank 38478813
-        # To Primary Hormuud Walet
+        # Transfer From Salaam Bank ...
+        #       -> rejected
         #
-        # This must NOT become a Person.
+        # Money Transferred To Primary Hormuud Walet
+        #       -> rejected
         # ========================================================
 
         if raw_description:
@@ -16581,7 +16677,10 @@ def persons():
             ):
 
                 add_person(
-                    raw_description
+                    transaction_persons,
+                    seen_names,
+                    raw_description,
+                    allow_system_description=False
                 )
 
         # ========================================================
@@ -16589,25 +16688,34 @@ def persons():
         #
         # Example:
         #
-        # note = By Cumar Cumar Omar
+        # By Cumar Cumar Omar
         #
-        # Result:
+        # becomes:
         #
         # Cumar Cumar Omar
+        #
+        # NOTE:
+        # System descriptions are also rejected here.
         # ========================================================
 
         if raw_note:
 
-            add_person(
+            if not is_system_description(
                 raw_note
-            )
+            ):
+
+                add_person(
+                    transaction_persons,
+                    seen_names,
+                    raw_note,
+                    allow_system_description=False
+                )
 
         # ========================================================
-        # NO PERSON
+        # NO PERSON FOUND
         # ========================================================
 
         if not transaction_persons:
-
             continue
 
         # ========================================================
@@ -16616,13 +16724,13 @@ def persons():
 
         for person_name in transaction_persons:
 
-            # ----------------------------------------------------
-            # PERSON DATA
-            # ----------------------------------------------------
-
             person = persons_dict[
                 person_name
             ]
+
+            # ----------------------------------------------------
+            # BASIC DATA
+            # ----------------------------------------------------
 
             person["_id"] = person_name
 
@@ -16670,7 +16778,8 @@ def persons():
         # ========================================================
 
         person_name = normalize_person_name(
-            old.get("person_name")
+            old.get("person_name"),
+            allow_system_description=False
         )
 
         if not person_name:
@@ -16691,14 +16800,14 @@ def persons():
             amount = 0.0
 
         # ========================================================
-        # TRANSACTION TYPE
+        # TYPE
         # ========================================================
 
         transaction_type = str(
             old.get("type")
             or old.get("transaction_type")
             or "expense"
-        ).lower().strip()
+        ).strip().lower()
 
         if transaction_type not in (
             "income",
@@ -16756,7 +16865,7 @@ def persons():
         )
 
         # ========================================================
-        # ROUND MONEY
+        # ROUND VALUES
         # ========================================================
 
         person["total_income"] = round(
@@ -16779,11 +16888,11 @@ def persons():
         )
 
     # ============================================================
-    # SORT BY NAME
+    # SORT
     # ============================================================
 
     persons.sort(
-        key=lambda x: x["name"].lower()
+        key=lambda x: x["name"].casefold()
     )
 
     # ============================================================
@@ -16794,7 +16903,6 @@ def persons():
         "backend/pages/components/transactions/persons.html",
         persons=persons
     )
-
 
 
 @bp.route("/persons/delete/<path:person_name>", methods=["POST", "GET"])
