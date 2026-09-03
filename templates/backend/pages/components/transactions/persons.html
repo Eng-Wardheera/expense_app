@@ -197,25 +197,54 @@
 
                             </td>
 
-                            <td class="text-end">
+                       
+                        <td class="text-end">
 
-                            <a href="{{ url_for('main.person_invoice', person_name=person.name) }}"
-                                class="btn btn-success btn-sm">
-
-                                    <i class="bi bi-receipt"></i>
-                                    Invoice
-
+                            <!-- INVOICE -->
+                            <a
+                                href="{{ url_for(
+                                    'main.person_invoice',
+                                    person_name=person.name
+                                ) }}"
+                                class="btn btn-success btn-sm"
+                            >
+                                <i class="bi bi-receipt"></i>
+                                Invoice
                             </a>
 
-                                
-                            <a href="{{ url_for('main.person_ledger', person_id=person._id) }}"
-                                    class="btn btn-primary btn-sm">
-                                        <i class="bi bi-journal-text"></i>
-                                        View
 
+                            <!-- VIEW -->
+                            <a
+                                href="{{ url_for(
+                                    'main.person_ledger',
+                                    person_id=person._id
+                                ) }}"
+                                class="btn btn-primary btn-sm"
+                            >
+                                <i class="bi bi-journal-text"></i>
+                                View
                             </a>
 
-                            </td>
+
+                            <!-- DELETE -->
+                            <button
+                                type="button"
+                                class="btn btn-danger btn-sm"
+                                onclick="confirmDeletePerson(
+                                    '{{ person.name|replace("'", "\\'") }}',
+                                    '{{ url_for(
+                                        "main.delete_person",
+                                        person_name=person.name
+                                    ) }}'
+                                )"
+                            >
+                                <i class="bi bi-trash"></i>
+                                Delete
+                            </button>
+
+                        </td>
+
+
 
                         </tr>
 
@@ -252,5 +281,32 @@
   
 
 </div>
+
+<script>
+
+function confirmDeletePerson(personName, deleteUrl) {
+
+    const message =
+        "Delete all transactions for \"" +
+        personName +
+        "\"?\n\n" +
+        "This action cannot be undone.";
+
+    if (!confirm(message)) {
+        return;
+    }
+
+    // POST request
+    const form = document.createElement("form");
+
+    form.method = "POST";
+    form.action = deleteUrl;
+
+    document.body.appendChild(form);
+
+    form.submit();
+}
+
+</script>
 
 {% endblock %}
