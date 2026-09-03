@@ -4,300 +4,2627 @@
 
 {% block content %}
 
- <!-- [ page-header ] start -->
-<div class="page-header">
-    <div class="page-header-left d-flex align-items-center">
-        <div class="page-header-title">
-            <h5 class="m-b-10">Persons Transactions List</h5>
-        </div>
-        <ul class="breadcrumb">
-            <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-            <li class="breadcrumb-item">All Persons Transactions </li>
-        </ul>
-    </div>
-    <div class="page-header-right ms-auto">
-        <div class="page-header-right-items">
-            <div class="d-flex d-md-none">
-                <a href="javascript:void(0)" class="page-header-right-close-toggle">
-                    <i class="feather-arrow-left me-2"></i>
-                    <span>Back</span>
-                </a>
-            </div>
-            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
-                <a href="javascript:void(0);" class="btn btn-icon btn-light-brand" data-bs-toggle="collapse" data-bs-target="#collapseOne">
-                    <i class="feather-bar-chart"></i>
-                </a>
-              
-                
-                <a href="leads-create.html" class="btn btn-primary">
-                    <i class="feather-plus me-2"></i>
-                    <span>Create Lead</span>
-                </a>
-            </div>
-        </div>
-        <div class="d-md-none d-flex align-items-center">
-            <a href="javascript:void(0)" class="page-header-right-open-toggle">
-                <i class="feather-align-right fs-20"></i>
-            </a>
-        </div>
-    </div>
-</div>
+{# ============================================================
+   PERSONS LEDGER — FULL ADVANCED VERSION
+   ------------------------------------------------------------
+   FEATURES
+   • Inline SVG icons only
+   • Highest expense highlighted in red
+   • Highest expense = 100%
+   • Expense progress for every person
+   • Income / Expense / Net Profit
+   • Automatic Top 3 expense voice announcement
+   • #1 highest spender = "You are the loser on this list"
+   • No music / no additional sound
+   • Flowers on every reload
+   • Search
+   • Responsive
+   • Invoice / View / Delete
+   • Manual transaction links
+   ============================================================ #}
 
 
+{# ============================================================
+   INLINE SVG ICON MACRO
+   ============================================================ #}
 
-<div class="main-content ">
-<div class="row">
-      <div class="card shadow-sm">
+{% macro icon(name, size=20, stroke=2) %}
 
-        <div class="card-header bg-white py-3">
+<svg
+    class="pl-icon"
+    width="{{ size }}"
+    height="{{ size }}"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="{{ stroke }}"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+>
 
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+    {% if name == 'people' %}
 
-    <h5 class="mb-0 fw-bold">
-        Persons Ledger
-    </h5>
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
 
-    <div class="d-flex flex-column flex-sm-row gap-2">
+    {% elif name == 'person' %}
 
-        <a href="{{ url_for('main.transaction_list') }}"
-           class="btn btn-primary btn-sm">
-            <i class="bi bi-arrow-left"></i>
-            Transactions
-        </a>
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 21a8 8 0 0 1 16 0"/>
 
-        <a href="{{ url_for('main.add_manual_person_transaction') }}"
-           class="btn btn-success btn-sm">
-            <i class="bi bi-plus-circle"></i>
-            Add Manual
-        </a>
+    {% elif name == 'income' %}
 
-        <a href="{{ url_for('main.person_opening_transactions') }}"
-           class="btn btn-secondary btn-sm">
-            <i class="bi bi-plus-circle"></i>
-            All Manual Transactions
-        </a>
+        <path d="M12 19V5"/>
+        <path d="m5 12 7-7 7 7"/>
 
-    </div>
+    {% elif name == 'expense' %}
 
-</div>
+        <path d="M12 5v14"/>
+        <path d="m19 12-7 7-7-7"/>
 
-        </div>
+    {% elif name == 'profit' %}
 
-        <div class="card-body p-0">
+        <path d="M3 3v18h18"/>
+        <path d="m7 16 4-5 3 3 5-7"/>
 
-            <div class="table-responsive">
+    {% elif name == 'wallet' %}
 
-                <table class="table table-hover align-middle mb-0" id="leadList">
+        <path d="M20 7V6a2 2 0 0 0-2-2H5a3 3 0 0 0 0 6h15v8a2 2 0 0 1-2 2H5a3 3 0 0 1-3-3V7"/>
+        <path d="M16 13h.01"/>
 
-                    <thead class="table-light">
+    {% elif name == 'transactions' %}
 
-                    <tr>
+        <path d="M3 7h13"/>
+        <path d="m13 3 4 4-4 4"/>
+        <path d="M21 17H8"/>
+        <path d="m11 13-4 4 4 4"/>
 
-                        <th>#</th>
+    {% elif name == 'percent' %}
 
-                        <th>Person</th>
+        <line x1="19" y1="5" x2="5" y2="19"/>
+        <circle cx="6.5" cy="6.5" r="2.5"/>
+        <circle cx="17.5" cy="17.5" r="2.5"/>
 
-                        <th class="text-end">
-                            Total Income
-                        </th>
+    {% elif name == 'search' %}
 
-                        <th class="text-end">
-                            Total Expense
-                        </th>
+        <circle cx="11" cy="11" r="7"/>
+        <path d="m20 20-4-4"/>
 
-                        <th class="text-end">
-                            Balance
-                        </th>
+    {% elif name == 'plus' %}
 
-                        <th class="text-center">
-                            Transactions
-                        </th>
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
 
-                        <th class="text-end">
-                            Action
-                        </th>
+    {% elif name == 'list' %}
 
-                    </tr>
+        <line x1="8" y1="6" x2="21" y2="6"/>
+        <line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/>
+        <line x1="3" y1="6" x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/>
+        <line x1="3" y1="18" x2="3.01" y2="18"/>
 
-                    </thead>
+    {% elif name == 'journal' %}
 
-                    <tbody>
+        <path d="M4 4h16v16H4z"/>
+        <path d="M8 8h8"/>
+        <path d="M8 12h8"/>
+        <path d="M8 16h5"/>
 
-                    {% if persons %}
+    {% elif name == 'receipt' %}
 
-                        {% for person in persons %}
+        <path d="M4 2v20l4-2 4 2 4-2 4 2V2l-4 2-4-2-4 2z"/>
+        <path d="M8 8h8"/>
+        <path d="M8 12h8"/>
+        <path d="M8 16h4"/>
 
-                        <tr>
+    {% elif name == 'eye' %}
 
-                            <td>
+        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+        <circle cx="12" cy="12" r="3"/>
 
-                                {{ loop.index }}
+    {% elif name == 'trash' %}
 
-                            </td>
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6"/>
+        <path d="M14 11v6"/>
+        <path d="M9 6V3h6v3"/>
 
-                           <td>
+    {% elif name == 'check' %}
 
-    {% if person.name %}
+        <circle cx="12" cy="12" r="9"/>
+        <polyline points="8 12 11 15 16 9"/>
 
-        <strong>
-            {{ person.name }}
-        </strong>
+    {% elif name == 'alert' %}
 
-    {% else %}
+        <path d="M10.3 3.2 2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.2a2 2 0 0 0-3.4 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/>
+        <line x1="12" y1="17" x2="12.01" y2="17"/>
 
-        <span class="text-danger">
-            Unknown
-        </span>
+    {% elif name == 'arrow-left' %}
+
+        <line x1="19" y1="12" x2="5" y2="12"/>
+        <polyline points="12 19 5 12 12 5"/>
+
+    {% elif name == 'arrow-down' %}
+
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <polyline points="19 12 12 19 5 12"/>
+
+    {% elif name == 'arrow-up' %}
+
+        <line x1="12" y1="19" x2="12" y2="5"/>
+        <polyline points="5 12 12 5 19 12"/>
+
+    {% elif name == 'chart-down' %}
+
+        <path d="M3 3v18h18"/>
+        <path d="m7 7 4 4 3-3 5 5"/>
+        <path d="m16 13 3 3v-3"/>
+
+    {% elif name == 'chart-up' %}
+
+        <path d="M3 3v18h18"/>
+        <path d="m7 16 4-5 3 3 5-7"/>
+
+    {% elif name == 'star' %}
+
+        <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.3 21 12 17.7 5.7 21 7 14.1 2 9.3 9 8.5 12 2"/>
+
+    {% elif name == 'speaker' %}
+
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M15.5 8.5a5 5 0 0 1 0 7"/>
+        <path d="M18.5 5.5a9 9 0 0 1 0 13"/>
+
+    {% elif name == 'speaker-off' %}
+
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <line x1="23" y1="9" x2="17" y2="15"/>
+        <line x1="17" y1="9" x2="23" y2="15"/>
+
+    {% elif name == 'home' %}
+
+        <path d="m3 11 9-8 9 8"/>
+        <path d="M5 10v10h14V10"/>
+        <path d="M9 20v-6h6v6"/>
+
+    {% elif name == 'volume' %}
+
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M15 9a5 5 0 0 1 0 6"/>
+        <path d="M18 6a9 9 0 0 1 0 12"/>
+
+    {% elif name == 'crown' %}
+
+        <path d="m3 7 4 4 5-7 5 7 4-4-2 12H5L3 7z"/>
+        <path d="M5 19h14"/>
+
+    {% elif name == 'sparkle' %}
+
+        <path d="m12 3-1.5 5.5L5 10l5.5 1.5L12 17l1.5-5.5L19 10l-5.5-1.5L12 3z"/>
+        <path d="m19 16-.7 2.3L16 19l2.3.7L19 22l.7-2.3L22 19l-2.3-.7L19 16z"/>
 
     {% endif %}
 
-</td>
+</svg>
 
-                            <td class="text-end text-success fw-bold">
-
-                                ${{ "{:,.2f}".format(person.total_income) }}
-
-                            </td>
-
-                            <td class="text-end text-danger fw-bold">
-
-                                ${{ "{:,.2f}".format(person.total_expense) }}
-
-                            </td>
-
-                            <td class="text-end">
-
-                                {% if person.balance >= 0 %}
-
-                                    <span class="badge bg-success">
-
-                                        ${{ "{:,.2f}".format(person.balance) }}
-
-                                    </span>
-
-                                {% else %}
-
-                                    <span class="badge bg-danger">
-
-                                        ${{ "{:,.2f}".format(person.balance) }}
-
-                                    </span>
-
-                                {% endif %}
-
-                            </td>
-
-                            <td class="text-center">
-
-                                <span class="badge bg-primary">
-
-                                    {{ person.transactions }}
-
-                                </span>
-
-                            </td>
-
-                       
-                        <td class="text-end">
-
-                            <!-- INVOICE -->
-                            <a
-                                href="{{ url_for(
-                                    'main.person_invoice',
-                                    person_name=person.name
-                                ) }}"
-                                class="btn btn-success btn-sm"
-                            >
-                                <i class="bi bi-receipt"></i>
-                                Invoice
-                            </a>
-
-
-                            <!-- VIEW -->
-                            <a
-                                href="{{ url_for(
-                                    'main.person_ledger',
-                                    person_id=person._id
-                                ) }}"
-                                class="btn btn-primary btn-sm"
-                            >
-                                <i class="bi bi-journal-text"></i>
-                                View
-                            </a>
-
-
-                            <!-- DELETE -->
-                            <button
-                                type="button"
-                                class="btn btn-danger btn-sm"
-                                onclick="confirmDeletePerson(
-                                    '{{ person.name|replace("'", "\\'") }}',
-                                    '{{ url_for(
-                                        "main.delete_person",
-                                        person_name=person.name
-                                    ) }}'
-                                )"
-                            >
-                                <i class="bi bi-trash"></i>
-                                Delete
-                            </button>
-
-                        </td>
+{% endmacro %}
 
 
 
-                        </tr>
+{# ============================================================
+   SUMMARY CALCULATIONS
+   ============================================================ #}
 
-                        {% endfor %}
+{% set ns = namespace(
+    total_income=0,
+    total_expense=0,
+    total_balance=0,
+    total_transactions=0,
+    highest_expense=0,
+    highest_expense_person='-',
+    highest_income=0,
+    highest_income_person='-'
+) %}
 
-                    {% else %}
 
-                        <tr>
+{% for person in persons %}
 
-                            <td colspan="7" class="text-center py-5">
+    {% set income = person.total_income or 0 %}
+    {% set expense = person.total_expense or 0 %}
+    {% set balance = person.balance or 0 %}
+    {% set transactions = person.transactions or 0 %}
 
-                                <h6 class="text-muted">
+    {% set ns.total_income = ns.total_income + income %}
+    {% set ns.total_expense = ns.total_expense + expense %}
+    {% set ns.total_balance = ns.total_balance + balance %}
+    {% set ns.total_transactions = ns.total_transactions + transactions %}
 
-                                    No Persons Found
+    {% if expense > ns.highest_expense %}
 
-                                </h6>
+        {% set ns.highest_expense = expense %}
+        {% set ns.highest_expense_person = person.name or 'Unknown' %}
 
-                            </td>
+    {% endif %}
 
-                        </tr>
+    {% if income > ns.highest_income %}
 
-                    {% endif %}
+        {% set ns.highest_income = income %}
+        {% set ns.highest_income_person = person.name or 'Unknown' %}
 
-                    </tbody>
+    {% endif %}
 
-                </table>
+{% endfor %}
+
+
+{# ============================================================
+   TOTAL NET PROFIT
+   IMPORTANT:
+   Income - Expense
+   ============================================================ #}
+
+{% set total_net_profit =
+    ns.total_income - ns.total_expense
+%}
+
+
+
+{# ============================================================
+   EXPENSE RATE
+   ============================================================ #}
+
+{% if ns.total_income > 0 %}
+
+    {% set expense_rate =
+        (ns.total_expense / ns.total_income) * 100
+    %}
+
+{% else %}
+
+    {% set expense_rate = 0 %}
+
+{% endif %}
+
+
+{% if expense_rate > 100 %}
+
+    {% set display_expense_rate = 100 %}
+
+{% elif expense_rate < 0 %}
+
+    {% set display_expense_rate = 0 %}
+
+{% else %}
+
+    {% set display_expense_rate = expense_rate %}
+
+{% endif %}
+
+
+
+<style>
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.persons-ledger-page {
+    position: relative;
+    z-index: 1;
+}
+
+
+/* ============================================================
+   ICONS
+   ============================================================ */
+
+.pl-icon {
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+
+.icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.persons-page-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+.persons-page-title-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd;
+    background: rgba(13,110,253,.10);
+    box-shadow: 0 6px 20px rgba(13,110,253,.10);
+}
+
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+
+.summary-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px !important;
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease;
+}
+
+
+.summary-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 35px rgba(0,0,0,.08) !important;
+}
+
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    bottom: -40px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    pointer-events: none;
+}
+
+
+.summary-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .7px;
+    color: #6c757d;
+}
+
+
+.summary-value {
+    font-size: 26px;
+    line-height: 1.1;
+    font-weight: 800;
+}
+
+
+.summary-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 17px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ============================================================
+   HIGHEST EXPENSE
+   ============================================================ */
+
+.highest-expense-summary {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(220,53,69,.20) !important;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(220,53,69,.07),
+            rgba(255,255,255,1)
+        );
+}
+
+
+.highest-expense-summary::before {
+    content: "TOP SPENDER";
+    position: absolute;
+    top: 12px;
+    right: -31px;
+    padding: 4px 35px;
+    transform: rotate(45deg);
+    background: #dc3545;
+    color: white;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .8px;
+}
+
+
+.highest-expense-person {
+    color: #dc3545;
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.persons-table-card {
+    border-radius: 18px !important;
+    overflow: hidden;
+}
+
+
+#personsTable thead th {
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    color: #667085;
+    border-bottom: 1px solid #eaecf0;
+}
+
+
+#personsTable tbody tr {
+    transition:
+        background-color .2s ease,
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+
+#personsTable tbody tr:hover {
+    background: rgba(13,110,253,.025);
+}
+
+
+/* ============================================================
+   HIGHEST EXPENSE ROW
+   ============================================================ */
+
+.highest-expense-row {
+    position: relative;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(220,53,69,.12),
+            rgba(220,53,69,.035),
+            rgba(255,255,255,1)
+        ) !important;
+
+    box-shadow:
+        inset 6px 0 0 #dc3545;
+}
+
+
+.highest-expense-row:hover {
+    background:
+        linear-gradient(
+            90deg,
+            rgba(220,53,69,.16),
+            rgba(220,53,69,.045),
+            rgba(255,255,255,1)
+        ) !important;
+}
+
+
+.highest-expense-row .person-avatar {
+    color: #dc3545 !important;
+    background: rgba(220,53,69,.12) !important;
+    border: 2px solid rgba(220,53,69,.20);
+}
+
+
+.highest-expense-row .person-name {
+    color: #b02a37;
+}
+
+
+.highest-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 8px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+}
+
+
+/* ============================================================
+   LOSER BADGE
+   ============================================================ */
+
+.loser-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 5px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    background: rgba(220,53,69,.10);
+    color: #b02a37;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+
+/* ============================================================
+   PERSON
+   ============================================================ */
+
+.person-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: #0d6efd;
+    background: rgba(13,110,253,.09);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .25s ease;
+}
+
+
+.person-row:hover .person-avatar {
+    transform: rotate(-3deg) scale(1.05);
+}
+
+
+.person-name {
+    font-weight: 800;
+    color: #344054;
+}
+
+
+/* ============================================================
+   EXPENSE PROGRESS
+   ============================================================ */
+
+.expense-progress-wrapper {
+    min-width: 190px;
+}
+
+
+.expense-progress-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+
+.expense-progress-label {
+    color: #98a2b3;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+}
+
+
+.expense-progress-percent {
+    color: #dc3545;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+
+.expense-progress-track {
+    width: 100%;
+    height: 8px;
+    padding: 1px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #f1f3f5;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.04);
+}
+
+
+.expense-progress-fill {
+    height: 100%;
+    min-width: 0;
+    border-radius: 999px;
+    background:
+        linear-gradient(
+            90deg,
+            #ff7b7b,
+            #dc3545
+        );
+    box-shadow:
+        0 2px 8px rgba(220,53,69,.20);
+    transition:
+        width 1s cubic-bezier(.22,1,.36,1);
+}
+
+
+.expense-progress-fill.highest {
+    background:
+        linear-gradient(
+            90deg,
+            #dc3545,
+            #a71d2a
+        );
+    box-shadow:
+        0 3px 12px rgba(220,53,69,.35);
+}
+
+
+/* ============================================================
+   MONEY
+   ============================================================ */
+
+.money-income {
+    color: #198754;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+
+.money-expense {
+    color: #dc3545;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+
+.money-profit {
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+
+.profit-positive {
+    color: #198754;
+}
+
+
+.profit-negative {
+    color: #dc3545;
+}
+
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.ledger-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 31px;
+    padding: 6px 10px;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+
+.ledger-badge-success {
+    color: #146c43;
+    background: rgba(25,135,84,.10);
+}
+
+
+.ledger-badge-danger {
+    color: #b02a37;
+    background: rgba(220,53,69,.10);
+}
+
+
+.ledger-badge-primary {
+    color: #084298;
+    background: rgba(13,110,253,.10);
+}
+
+
+/* ============================================================
+   ACTION BUTTONS
+   ============================================================ */
+
+.ledger-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border-radius: 9px !important;
+    font-weight: 700;
+    transition: all .2s ease;
+}
+
+
+.ledger-action-btn:hover {
+    transform: translateY(-2px);
+}
+
+
+/* ============================================================
+   SPEAKER BUTTON
+   ============================================================ */
+
+.person-speaker-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd;
+    background: rgba(13,110,253,.08);
+    transition: all .2s ease;
+}
+
+
+.person-speaker-btn:hover {
+    color: #fff;
+    background: #0d6efd;
+    transform: scale(1.08);
+}
+
+
+.highest-expense-row .person-speaker-btn {
+    color: #dc3545;
+    background: rgba(220,53,69,.10);
+}
+
+
+.highest-expense-row .person-speaker-btn:hover {
+    color: #fff;
+    background: #dc3545;
+}
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.person-search-wrapper {
+    position: relative;
+    min-width: 290px;
+}
+
+
+.person-search-wrapper .search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    color: #98a2b3;
+    pointer-events: none;
+}
+
+
+#personSearch {
+    padding-left: 42px;
+    border-radius: 11px;
+    min-height: 42px;
+}
+
+
+#personSearch:focus {
+    box-shadow:
+        0 0 0 3px rgba(13,110,253,.10);
+}
+
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.ledger-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+
+.ledger-status-danger {
+    color: #b02a37;
+    background: rgba(220,53,69,.09);
+}
+
+
+.ledger-status-primary {
+    color: #084298;
+    background: rgba(13,110,253,.09);
+}
+
+
+/* ============================================================
+   FLOWERS
+   ============================================================ */
+
+.reload-celebration {
+    position: fixed;
+    inset: 0;
+    z-index: 99990;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+
+.flower-particle {
+    position: absolute;
+    top: -40px;
+    animation: flowerFall linear forwards;
+    opacity: 0;
+    user-select: none;
+}
+
+
+@keyframes flowerFall {
+
+    0% {
+        transform:
+            translate3d(0,-50px,0)
+            rotate(0deg)
+            scale(.7);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        transform:
+            translate3d(
+                var(--drift),
+                110vh,
+                0
+            )
+            rotate(
+                var(--rotation)
+            )
+            scale(1.1);
+        opacity: 0;
+    }
+}
+
+
+/* ============================================================
+   VOICE PANEL
+   ============================================================ */
+
+.voice-panel {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 99999;
+    width: min(390px, calc(100vw - 30px));
+    padding: 16px;
+    border-radius: 18px;
+    background: rgba(255,255,255,.97);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(0,0,0,.07);
+    box-shadow: 0 20px 55px rgba(0,0,0,.15);
+    transform: translateY(25px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all .3s ease;
+}
+
+
+.voice-panel.show {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+
+.voice-panel-title {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: #dc3545;
+}
+
+
+.voice-rank {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    margin-top: 3px;
+    border-radius: 6px;
+    background: rgba(220,53,69,.10);
+    color: #b02a37;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+
+.voice-current-person {
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: 900;
+    color: #344054;
+}
+
+
+.voice-current-text {
+    margin-top: 6px;
+    color: #667085;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+
+.voice-progress {
+    width: 100%;
+    height: 5px;
+    overflow: hidden;
+    margin-top: 11px;
+    border-radius: 999px;
+    background: #eaecf0;
+}
+
+
+.voice-progress-fill {
+    width: 0;
+    height: 100%;
+    background: #dc3545;
+    border-radius: inherit;
+    transition: width .25s ease;
+}
+
+
+.voice-stop-btn {
+    border: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc3545;
+    background: rgba(220,53,69,.08);
+}
+
+
+.voice-stop-btn:hover {
+    color: #fff;
+    background: #dc3545;
+}
+
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.empty-state-icon {
+    width: 78px;
+    height: 78px;
+    border-radius: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #98a2b3;
+    background: #f8f9fa;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 991.98px) {
+
+    .person-search-wrapper {
+        min-width: 100%;
+    }
+
+    .expense-progress-wrapper {
+        min-width: 150px;
+    }
+
+}
+
+
+@media (max-width: 767.98px) {
+
+    .persons-page-title-icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .summary-value {
+        font-size: 22px;
+    }
+
+    .expense-progress-wrapper {
+        min-width: 130px;
+    }
+
+}
+
+
+@media (max-width: 575.98px) {
+
+    .voice-panel {
+        right: 10px;
+        bottom: 10px;
+        width: calc(100vw - 20px);
+    }
+
+}
+
+</style>
+
+
+
+<!-- ============================================================
+     PAGE WRAPPER
+     ============================================================ -->
+
+<div class="persons-ledger-page">
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="page-header">
+
+        <div class="page-header-left d-flex align-items-center">
+
+            <div class="page-header-title">
+
+                <div class="persons-page-title">
+
+                    <span class="persons-page-title-icon">
+                        {{ icon('people', 22) }}
+                    </span>
+
+                    <div>
+
+                        <h5 class="m-b-3">
+                            Persons Transactions List
+                        </h5>
+
+                        <small class="text-muted">
+                            Income • Expense • Net Profit
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <ul class="breadcrumb ms-3">
+
+                <li class="breadcrumb-item">
+
+                    <a href="{{ url_for('main.transaction_list') }}">
+
+                        {{ icon('home', 14) }}
+
+                        Home
+
+                    </a>
+
+                </li>
+
+                <li class="breadcrumb-item">
+                    Persons Ledger
+                </li>
+
+            </ul>
+
+        </div>
+
+
+        <!-- ====================================================
+             HEADER RIGHT
+             TOP VOICE BUTTON REMOVED
+             ==================================================== -->
+
+        <div class="page-header-right ms-auto">
+
+            <div class="page-header-right-items">
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+
+
+                    <!-- SUMMARY -->
+
+                    <button
+                        type="button"
+                        class="btn btn-icon btn-light-brand"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#personsSummary"
+                        title="Show / Hide Summary"
+                    >
+
+                        {{ icon('chart-up', 18) }}
+
+                    </button>
+
+
+                    <!-- TRANSACTIONS -->
+
+                    <a
+                        href="{{ url_for('main.transaction_list') }}"
+                        class="btn btn-primary"
+                    >
+
+                        {{ icon('list', 17) }}
+
+                        <span class="ms-1">
+                            Transactions
+                        </span>
+
+                    </a>
+
+                </div>
 
             </div>
 
         </div>
 
     </div>
-</div>
-  
+
+
+
+    <!-- ========================================================
+         MAIN CONTENT
+         ======================================================== -->
+
+    <div class="main-content">
+
+        <div class="row">
+
+            <div class="col-12">
+
+
+                <!-- =================================================
+                     SUMMARY
+                     ================================================= -->
+
+                <div
+                    class="collapse show mb-4"
+                    id="personsSummary"
+                >
+
+                    <div class="row g-3">
+
+
+                        <!-- TOTAL PERSONS -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex justify-content-between align-items-center">
+
+                                        <div>
+
+                                            <div class="summary-label">
+                                                TOTAL PERSONS
+                                            </div>
+
+                                            <div class="summary-value text-primary mt-2">
+                                                {{ persons|length }}
+                                            </div>
+
+                                            <small class="text-muted">
+                                                Registered persons
+                                            </small>
+
+                                        </div>
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#0d6efd;
+                                                background:rgba(13,110,253,.10);
+                                            "
+                                        >
+                                            {{ icon('people', 25) }}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- TOTAL INCOME -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex justify-content-between align-items-center">
+
+                                        <div>
+
+                                            <div class="summary-label">
+                                                TOTAL INCOME
+                                            </div>
+
+                                            <div class="summary-value text-success mt-2">
+
+                                                ${{ "{:,.2f}".format(ns.total_income) }}
+
+                                            </div>
+
+                                            <small class="text-muted">
+                                                Money received
+                                            </small>
+
+                                        </div>
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#198754;
+                                                background:rgba(25,135,84,.10);
+                                            "
+                                        >
+                                            {{ icon('income', 25) }}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- TOTAL EXPENSE -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex justify-content-between align-items-center">
+
+                                        <div>
+
+                                            <div class="summary-label">
+                                                TOTAL EXPENSE
+                                            </div>
+
+                                            <div class="summary-value text-danger mt-2">
+
+                                                ${{ "{:,.2f}".format(ns.total_expense) }}
+
+                                            </div>
+
+                                            <small class="text-muted">
+                                                Money spent
+                                            </small>
+
+                                        </div>
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#dc3545;
+                                                background:rgba(220,53,69,.10);
+                                            "
+                                        >
+                                            {{ icon('expense', 25) }}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- NET PROFIT -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex justify-content-between align-items-center">
+
+                                        <div>
+
+                                            <div class="summary-label">
+
+                                                {% if total_net_profit >= 0 %}
+                                                    NET PROFIT
+                                                {% else %}
+                                                    NET LOSS
+                                                {% endif %}
+
+                                            </div>
+
+                                            <div
+                                                class="
+                                                    summary-value
+                                                    mt-2
+                                                    {% if total_net_profit >= 0 %}
+                                                        text-success
+                                                    {% else %}
+                                                        text-danger
+                                                    {% endif %}
+                                                "
+                                            >
+
+                                                {% if total_net_profit >= 0 %}
+
+                                                    +${{
+                                                        "{:,.2f}".format(
+                                                            total_net_profit
+                                                        )
+                                                    }}
+
+                                                {% else %}
+
+                                                    -${{
+                                                        "{:,.2f}".format(
+                                                            total_net_profit|abs
+                                                        )
+                                                    }}
+
+                                                {% endif %}
+
+                                            </div>
+
+                                            <small class="text-muted">
+                                                Income − Expense
+                                            </small>
+
+                                        </div>
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                {% if total_net_profit >= 0 %}
+                                                    color:#198754;
+                                                    background:rgba(25,135,84,.10);
+                                                {% else %}
+                                                    color:#dc3545;
+                                                    background:rgba(220,53,69,.10);
+                                                {% endif %}
+                                            "
+                                        >
+                                            {{ icon('profit', 25) }}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- =================================================
+                         SECOND SUMMARY
+                         ================================================= -->
+
+                    <div class="row g-3 mt-1">
+
+
+                        <!-- TRANSACTIONS -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#0dcaf0;
+                                                background:rgba(13,202,240,.10);
+                                            "
+                                        >
+                                            {{ icon('transactions', 22) }}
+                                        </div>
+
+                                        <div>
+
+                                            <div class="summary-label">
+                                                TRANSACTIONS
+                                            </div>
+
+                                            <h5 class="mb-0 fw-bold">
+                                                {{ ns.total_transactions }}
+                                            </h5>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- EXPENSE RATE -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#f59f00;
+                                                background:rgba(245,159,0,.10);
+                                            "
+                                        >
+                                            {{ icon('percent', 22) }}
+                                        </div>
+
+                                        <div class="flex-grow-1">
+
+                                            <div class="summary-label">
+                                                EXPENSE RATE
+                                            </div>
+
+                                            <h5 class="mb-1 fw-bold">
+
+                                                {{ "{:.1f}".format(expense_rate) }}%
+
+                                            </h5>
+
+                                            <div
+                                                class="progress"
+                                                style="
+                                                    height:7px;
+                                                    border-radius:999px;
+                                                "
+                                            >
+
+                                                <div
+                                                    class="
+                                                        progress-bar
+                                                        {% if expense_rate >= 80 %}
+                                                            bg-danger
+                                                        {% elif expense_rate >= 60 %}
+                                                            bg-warning
+                                                        {% else %}
+                                                            bg-success
+                                                        {% endif %}
+                                                    "
+                                                    style="
+                                                        width:{{ display_expense_rate }}%;
+                                                        border-radius:999px;
+                                                    "
+                                                ></div>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- HIGHEST EXPENSE -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div
+                                class="
+                                    card
+                                    shadow-sm
+                                    h-100
+                                    summary-card
+                                    highest-expense-summary
+                                "
+                            >
+
+                                <div class="card-body">
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#dc3545;
+                                                background:rgba(220,53,69,.12);
+                                            "
+                                        >
+                                            {{ icon('crown', 22) }}
+                                        </div>
+
+                                        <div class="overflow-hidden">
+
+                                            <div class="summary-label">
+                                                HIGHEST EXPENSE
+                                            </div>
+
+                                            <div
+                                                class="highest-expense-person text-truncate"
+                                                title="{{ ns.highest_expense_person }}"
+                                            >
+                                                {{ ns.highest_expense_person }}
+                                            </div>
+
+                                            <small class="text-danger fw-bold">
+
+                                                ${{ "{:,.2f}".format(
+                                                    ns.highest_expense
+                                                ) }}
+
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="mt-3">
+
+                                        <div class="d-flex justify-content-between">
+
+                                            <small class="text-muted">
+                                                Spending level
+                                            </small>
+
+                                            <small class="text-danger fw-bold">
+                                                100%
+                                            </small>
+
+                                        </div>
+
+                                        <div
+                                            class="expense-progress-track mt-1"
+                                            style="height:8px;"
+                                        >
+
+                                            <div
+                                                class="expense-progress-fill highest"
+                                                style="width:100%;"
+                                            ></div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- HIGHEST INCOME -->
+
+                        <div class="col-xl-3 col-md-6">
+
+                            <div class="card border-0 shadow-sm h-100 summary-card">
+
+                                <div class="card-body">
+
+                                    <div class="d-flex align-items-center gap-3">
+
+                                        <div
+                                            class="summary-icon"
+                                            style="
+                                                color:#198754;
+                                                background:rgba(25,135,84,.10);
+                                            "
+                                        >
+                                            {{ icon('chart-up', 22) }}
+                                        </div>
+
+                                        <div class="overflow-hidden">
+
+                                            <div class="summary-label">
+                                                HIGHEST INCOME
+                                            </div>
+
+                                            <div
+                                                class="fw-bold text-success text-truncate"
+                                                title="{{ ns.highest_income_person }}"
+                                            >
+                                                {{ ns.highest_income_person }}
+                                            </div>
+
+                                            <small class="text-muted">
+
+                                                ${{ "{:,.2f}".format(
+                                                    ns.highest_income
+                                                ) }}
+
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- ====================================================
+                     PERSONS TABLE
+                     ==================================================== -->
+
+                <div class="card shadow-sm border-0 persons-table-card">
+
+
+                    <!-- CARD HEADER -->
+
+                    <div class="card-header bg-white py-3">
+
+                        <div
+                            class="
+                                d-flex
+                                flex-column
+                                flex-lg-row
+                                justify-content-between
+                                align-items-lg-center
+                                gap-3
+                            "
+                        >
+
+                            <div>
+
+                                <h5 class="mb-1 fw-bold d-flex align-items-center gap-2">
+
+                                    {{ icon('journal', 20) }}
+
+                                    Persons Ledger
+
+                                </h5>
+
+                                <small class="text-muted">
+
+                                    Ranked from highest expense to lowest expense
+
+                                </small>
+
+                            </div>
+
+
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+
+
+                                <a
+                                    href="{{ url_for('main.transaction_list') }}"
+                                    class="btn btn-primary btn-sm ledger-action-btn"
+                                >
+
+                                    {{ icon('arrow-left', 15) }}
+
+                                    Transactions
+
+                                </a>
+
+
+                                <a
+                                    href="{{ url_for(
+                                        'main.add_manual_person_transaction'
+                                    ) }}"
+                                    class="btn btn-success btn-sm ledger-action-btn"
+                                >
+
+                                    {{ icon('plus', 15) }}
+
+                                    Add Manual
+
+                                </a>
+
+
+                                <a
+                                    href="{{ url_for(
+                                        'main.person_opening_transactions'
+                                    ) }}"
+                                    class="btn btn-secondary btn-sm ledger-action-btn"
+                                >
+
+                                    {{ icon('journal', 15) }}
+
+                                    All Manual
+
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- CARD BODY -->
+
+                    <div class="card-body">
+
+
+                        <!-- FILTER -->
+
+                        <div
+                            class="
+                                d-flex
+                                flex-column
+                                flex-md-row
+                                justify-content-between
+                                align-items-md-center
+                                gap-3
+                                mb-4
+                            "
+                        >
+
+                            <div class="d-flex flex-wrap gap-2">
+
+                                <span class="ledger-status-pill ledger-status-danger">
+
+                                    {{ icon('chart-down', 13) }}
+
+                                    Highest Expense First
+
+                                </span>
+
+
+                                <span class="ledger-status-pill ledger-status-primary">
+
+                                    {{ icon('people', 13) }}
+
+                                    <span id="totalPersonBadge">
+                                        {{ persons|length }}
+                                    </span>
+
+                                    Persons
+
+                                </span>
+
+
+                                <span class="ledger-status-pill ledger-status-danger">
+
+                                    {{ icon('speaker', 13) }}
+
+                                    Top 3 Voice
+
+                                </span>
+
+                            </div>
+
+
+                            <div class="person-search-wrapper">
+
+                                <span class="search-icon">
+                                    {{ icon('search', 18) }}
+                                </span>
+
+                                <input
+                                    type="text"
+                                    id="personSearch"
+                                    class="form-control"
+                                    placeholder="Search person..."
+                                    autocomplete="off"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+
+                        <!-- TABLE -->
+
+                        <div class="table-responsive">
+
+                            <table
+                                class="table table-hover align-middle mb-0"
+                                id="leadList"
+                            >
+
+                                <thead class="table-light">
+
+                                    <tr>
+
+                                        <th style="width:60px;">
+                                            #
+                                        </th>
+
+                                        <th style="min-width:270px;">
+                                            Person
+                                        </th>
+
+                                        <th class="text-end">
+                                            Income
+                                        </th>
+
+                                        <th
+                                            class="text-end"
+                                            style="min-width:230px;"
+                                        >
+                                            Expense
+                                        </th>
+
+                                        <th class="text-end">
+                                            Net Profit
+                                        </th>
+
+                                        <th class="text-center">
+                                            Transactions
+                                        </th>
+
+                                        <th
+                                            class="text-end"
+                                            style="min-width:230px;"
+                                        >
+                                            Action
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="personsTableBody">
+
+                                {% if persons %}
+
+                                    {% for person in persons|sort(
+                                        attribute='total_expense'
+                                    )|reverse %}
+
+
+                                        {% set income =
+                                            person.total_income or 0
+                                        %}
+
+
+                                        {% set expense =
+                                            person.total_expense or 0
+                                        %}
+
+
+                                        {% set transaction_count =
+                                            person.transactions or 0
+                                        %}
+
+
+                                        {% set net_profit =
+                                            income - expense
+                                        %}
+
+
+                                        {% if ns.highest_expense > 0 %}
+
+                                            {% set expense_progress =
+                                                (expense / ns.highest_expense) * 100
+                                            %}
+
+                                        {% else %}
+
+                                            {% set expense_progress = 0 %}
+
+                                        {% endif %}
+
+
+                                        {% if expense_progress > 100 %}
+
+                                            {% set expense_progress = 100 %}
+
+                                        {% endif %}
+
+
+                                        {% set is_highest_expense =
+                                            expense > 0 and
+                                            expense == ns.highest_expense
+                                        %}
+
+
+
+                                        <tr
+                                            class="
+                                                person-row
+                                                {% if is_highest_expense %}
+                                                    highest-expense-row
+                                                {% endif %}
+                                            "
+                                            data-name="{{ person.name or 'Unknown' }}"
+                                            data-expense="{{ expense }}"
+                                            data-income="{{ income }}"
+                                            data-profit="{{ net_profit }}"
+                                        >
+
+
+                                            <!-- NUMBER -->
+
+                                            <td>
+
+                                                <span class="row-number fw-bold text-muted">
+
+                                                    {{ loop.index }}
+
+                                                </span>
+
+                                            </td>
+
+
+
+                                            <!-- PERSON -->
+
+                                            <td>
+
+                                                <div
+                                                    class="
+                                                        d-flex
+                                                        align-items-center
+                                                        gap-3
+                                                    "
+                                                >
+
+                                                    <div class="person-avatar">
+
+                                                        {% if is_highest_expense %}
+
+                                                            {{ icon('crown', 20) }}
+
+                                                        {% else %}
+
+                                                            {{ icon('person', 20) }}
+
+                                                        {% endif %}
+
+                                                    </div>
+
+
+                                                    <div class="overflow-hidden">
+
+                                                        <div
+                                                            class="
+                                                                d-flex
+                                                                align-items-center
+                                                                gap-2
+                                                            "
+                                                        >
+
+                                                            <div
+                                                                class="
+                                                                    fw-bold
+                                                                    person-name
+                                                                    text-truncate
+                                                                "
+                                                                style="max-width:210px;"
+                                                                title="{{ person.name or 'Unknown' }}"
+                                                            >
+
+                                                                {{ person.name or 'Unknown' }}
+
+                                                            </div>
+
+
+                                                            <!-- INDIVIDUAL SPEAKER -->
+
+                                                            <button
+                                                                type="button"
+                                                                class="person-speaker-btn"
+                                                                title="Read this person"
+                                                                onclick="speakIndividualPerson(this.closest('.person-row'))"
+                                                            >
+
+                                                                {{ icon('speaker', 14) }}
+
+                                                            </button>
+
+                                                        </div>
+
+
+                                                        {% if is_highest_expense %}
+
+                                                            <span class="highest-badge">
+
+                                                                {{ icon('star', 9) }}
+
+                                                                #1 Highest Expense
+
+                                                            </span>
+
+
+                                                            <span class="loser-badge">
+
+                                                                {{ icon('alert', 9) }}
+
+                                                                Biggest • Loser
+
+                                                            </span>
+
+                                                        {% else %}
+
+                                                            <small class="text-muted">
+                                                                Person Ledger
+                                                            </small>
+
+                                                        {% endif %}
+
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
+
+
+
+                                            <!-- INCOME -->
+
+                                            <td class="text-end">
+
+                                                <div class="money-income">
+
+                                                    {{ icon('income', 14) }}
+
+                                                    ${{ "{:,.2f}".format(income) }}
+
+                                                </div>
+
+                                            </td>
+
+
+
+                                            <!-- EXPENSE -->
+
+                                            <td>
+
+                                                <div
+                                                    class="
+                                                        expense-progress-wrapper
+                                                        ms-auto
+                                                    "
+                                                >
+
+                                                    <div
+                                                        class="
+                                                            d-flex
+                                                            justify-content-end
+                                                            align-items-center
+                                                            gap-2
+                                                        "
+                                                    >
+
+                                                        <span class="money-expense">
+
+                                                            {{ icon('expense', 14) }}
+
+                                                            ${{ "{:,.2f}".format(expense) }}
+
+                                                        </span>
+
+
+                                                        {% if is_highest_expense %}
+
+                                                            <span
+                                                                class="badge bg-danger"
+                                                                style="
+                                                                    font-size:8px;
+                                                                    font-weight:900;
+                                                                "
+                                                            >
+                                                                TOP
+                                                            </span>
+
+                                                        {% endif %}
+
+                                                    </div>
+
+
+                                                    <div class="expense-progress-header mt-2">
+
+                                                        <span class="expense-progress-label">
+                                                            Expense Level
+                                                        </span>
+
+                                                        <span class="expense-progress-percent">
+
+                                                            {{ "{:.1f}".format(
+                                                                expense_progress
+                                                            ) }}%
+
+                                                        </span>
+
+                                                    </div>
+
+
+                                                    <div class="expense-progress-track">
+
+                                                        <div
+                                                            class="
+                                                                expense-progress-fill
+                                                                {% if is_highest_expense %}
+                                                                    highest
+                                                                {% endif %}
+                                                            "
+                                                            data-width="{{ expense_progress }}"
+                                                            style="width:0%;"
+                                                        ></div>
+
+                                                    </div>
+
+                                                </div>
+
+                                            </td>
+
+
+
+                                            <!-- NET PROFIT -->
+
+                                            <td class="text-end">
+
+                                                <div
+                                                    class="
+                                                        money-profit
+                                                        {% if net_profit >= 0 %}
+                                                            profit-positive
+                                                        {% else %}
+                                                            profit-negative
+                                                        {% endif %}
+                                                    "
+                                                >
+
+                                                    {% if net_profit >= 0 %}
+
+                                                        {{ icon('profit', 14) }}
+
+                                                        +${{
+                                                            "{:,.2f}".format(
+                                                                net_profit
+                                                            )
+                                                        }}
+
+                                                    {% else %}
+
+                                                        {{ icon('alert', 14) }}
+
+                                                        -${{
+                                                            "{:,.2f}".format(
+                                                                net_profit|abs
+                                                            )
+                                                        }}
+
+                                                    {% endif %}
+
+                                                </div>
+
+
+                                                <small class="text-muted">
+
+                                                    {% if net_profit >= 0 %}
+                                                        Net Profit
+                                                    {% else %}
+                                                        Net Loss
+                                                    {% endif %}
+
+                                                </small>
+
+                                            </td>
+
+
+
+                                            <!-- TRANSACTIONS -->
+
+                                            <td class="text-center">
+
+                                                <span
+                                                    class="
+                                                        ledger-badge
+                                                        ledger-badge-primary
+                                                    "
+                                                >
+
+                                                    {{ icon('transactions', 14) }}
+
+                                                    {{ transaction_count }}
+
+                                                </span>
+
+                                            </td>
+
+
+
+                                            <!-- ACTION -->
+
+                                            <td class="text-end">
+
+                                                <div
+                                                    class="
+                                                        d-flex
+                                                        justify-content-end
+                                                        gap-1
+                                                        flex-wrap
+                                                    "
+                                                >
+
+
+                                                    <!-- INVOICE -->
+
+                                                    <a
+                                                        href="{{ url_for(
+                                                            'main.person_invoice',
+                                                            person_name=person.name
+                                                        ) }}"
+                                                        class="
+                                                            btn
+                                                            btn-success
+                                                            btn-sm
+                                                            ledger-action-btn
+                                                        "
+                                                        title="View Invoice"
+                                                    >
+
+                                                        {{ icon('receipt', 14) }}
+
+                                                        <span class="d-none d-xl-inline">
+                                                            Invoice
+                                                        </span>
+
+                                                    </a>
+
+
+
+                                                    <!-- VIEW -->
+
+                                                    <a
+                                                        href="{{ url_for(
+                                                            'main.person_ledger',
+                                                            person_id=person._id
+                                                        ) }}"
+                                                        class="
+                                                            btn
+                                                            btn-primary
+                                                            btn-sm
+                                                            ledger-action-btn
+                                                        "
+                                                        title="View Person Ledger"
+                                                    >
+
+                                                        {{ icon('eye', 14) }}
+
+                                                        <span class="d-none d-xl-inline">
+                                                            View
+                                                        </span>
+
+                                                    </a>
+
+
+
+                                                    <!-- DELETE -->
+
+                                                    <button
+                                                        type="button"
+                                                        class="
+                                                            btn
+                                                            btn-danger
+                                                            btn-sm
+                                                            ledger-action-btn
+                                                        "
+                                                        title="Delete Person"
+                                                        onclick='confirmDeletePerson(
+                                                            {{ person.name|tojson }},
+                                                            {{ url_for(
+                                                                "main.delete_person",
+                                                                person_name=person.name
+                                                            )|tojson }}
+                                                        )'
+                                                    >
+
+                                                        {{ icon('trash', 14) }}
+
+                                                        <span class="d-none d-xl-inline">
+                                                            Delete
+                                                        </span>
+
+                                                    </button>
+
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+
+                                    {% endfor %}
+
+                                {% else %}
+
+                                    <!-- EMPTY -->
+
+                                    <tr>
+
+                                        <td
+                                            colspan="7"
+                                            class="text-center py-5"
+                                        >
+
+                                            <div class="py-4">
+
+                                                <div class="empty-state-icon mb-3">
+
+                                                    {{ icon('people', 34) }}
+
+                                                </div>
+
+
+                                                <h5 class="fw-bold text-muted">
+                                                    No Persons Found
+                                                </h5>
+
+
+                                                <p class="text-muted">
+                                                    No person transactions are available.
+                                                </p>
+
+
+                                                <a
+                                                    href="{{ url_for(
+                                                        'main.add_manual_person_transaction'
+                                                    ) }}"
+                                                    class="
+                                                        btn
+                                                        btn-success
+                                                        ledger-action-btn
+                                                    "
+                                                >
+
+                                                    {{ icon('plus', 16) }}
+
+                                                    Add Manual Transaction
+
+                                                </a>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                {% endif %}
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+
+
+                        <!-- SEARCH EMPTY -->
+
+                        <div
+                            id="noSearchResult"
+                            class="d-none text-center py-5"
+                        >
+
+                            <div class="empty-state-icon mb-3">
+                                {{ icon('search', 30) }}
+                            </div>
+
+                            <h6 class="fw-bold text-muted">
+                                No matching person found
+                            </h6>
+
+                            <p class="text-muted mb-0">
+                                Try another person name.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
+
+
+
+<!-- ============================================================
+     VOICE PANEL
+     ============================================================ -->
+
+<div
+    id="voicePanel"
+    class="voice-panel"
+>
+
+    <div class="d-flex align-items-center justify-content-between">
+
+        <div class="d-flex align-items-center gap-2">
+
+            <span
+                style="
+                    width:36px;
+                    height:36px;
+                    border-radius:10px;
+                    display:inline-flex;
+                    align-items:center;
+                    justify-content:center;
+                    color:#dc3545;
+                    background:rgba(220,53,69,.10);
+                "
+            >
+
+                {{ icon('speaker', 18) }}
+
+            </span>
+
+
+            <div>
+
+                <div class="voice-panel-title">
+                    Top 3 Highest Expense
+                </div>
+
+                <div id="voiceRank" class="voice-rank">
+                    Preparing
+                </div>
+
+                <div
+                    id="voicePerson"
+                    class="voice-current-person"
+                >
+                    Preparing...
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ONLY STOP BUTTON -->
+        <button
+            type="button"
+            id="stopVoiceBtn"
+            class="voice-stop-btn"
+            title="Stop voice"
+        >
+
+            {{ icon('speaker-off', 15) }}
+
+        </button>
+
+    </div>
+
+
+    <div
+        id="voiceText"
+        class="voice-current-text"
+    >
+        Preparing Top 3 highest expense announcement...
+    </div>
+
+
+    <div class="voice-progress">
+
+        <div
+            id="voiceProgressFill"
+            class="voice-progress-fill"
+        ></div>
+
+    </div>
+
+</div>
+
+
+
+<!-- ============================================================
+     RELOAD FLOWERS
+     ============================================================ -->
+
+<div
+    id="reloadCelebration"
+    class="reload-celebration"
+    aria-hidden="true"
+></div>
+
+
+
+<!-- ============================================================
+     DELETE PERSON
+     ============================================================ -->
 
 <script>
 
 function confirmDeletePerson(personName, deleteUrl) {
 
     const message =
-        "Delete all transactions for \"" +
+        'Delete all transactions for "' +
         personName +
-        "\"?\n\n" +
-        "This action cannot be undone.";
+        '"?\n\n' +
+        'This action cannot be undone.';
 
     if (!confirm(message)) {
         return;
     }
 
-    // POST request
-    const form = document.createElement("form");
+    const form =
+        document.createElement("form");
 
     form.method = "POST";
     form.action = deleteUrl;
@@ -305,7 +2632,1413 @@ function confirmDeletePerson(personName, deleteUrl) {
     document.body.appendChild(form);
 
     form.submit();
+
 }
+
+</script>
+
+
+
+<!-- ============================================================
+     SEARCH
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const searchInput =
+            document.getElementById("personSearch");
+
+        const tableBody =
+            document.getElementById("personsTableBody");
+
+        const noSearchResult =
+            document.getElementById("noSearchResult");
+
+
+        if (!searchInput || !tableBody) {
+            return;
+        }
+
+
+        function updateNumbers() {
+
+            const rows =
+                Array.from(
+                    tableBody.querySelectorAll(".person-row")
+                );
+
+            let visibleIndex = 0;
+
+
+            rows.forEach(function (row) {
+
+                if (row.style.display === "none") {
+                    return;
+                }
+
+                visibleIndex++;
+
+                const number =
+                    row.querySelector(".row-number");
+
+                if (number) {
+                    number.textContent = visibleIndex;
+                }
+
+            });
+
+        }
+
+
+        searchInput.addEventListener(
+            "input",
+            function () {
+
+                const searchValue =
+                    this.value
+                        .trim()
+                        .toLowerCase();
+
+
+                const rows =
+                    tableBody.querySelectorAll(".person-row");
+
+
+                let visibleRows = 0;
+
+
+                rows.forEach(function (row) {
+
+                    const name =
+                        (
+                            row.dataset.name || ""
+                        )
+                        .trim()
+                        .toLowerCase();
+
+
+                    if (
+                        !searchValue ||
+                        name.includes(searchValue)
+                    ) {
+
+                        row.style.display = "";
+                        visibleRows++;
+
+                    } else {
+
+                        row.style.display = "none";
+
+                    }
+
+                });
+
+
+                updateNumbers();
+
+
+                if (
+                    searchValue &&
+                    visibleRows === 0
+                ) {
+
+                    noSearchResult.classList.remove("d-none");
+
+                } else {
+
+                    noSearchResult.classList.add("d-none");
+
+                }
+
+            }
+        );
+
+    }
+);
+
+</script>
+
+
+
+<!-- ============================================================
+     EXPENSE PROGRESS
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const progressBars =
+            document.querySelectorAll(
+                ".expense-progress-fill[data-width]"
+            );
+
+
+        progressBars.forEach(function (bar) {
+
+            const width =
+                parseFloat(bar.dataset.width) || 0;
+
+
+            requestAnimationFrame(function () {
+
+                setTimeout(function () {
+
+                    bar.style.width =
+                        Math.min(
+                            Math.max(width, 0),
+                            100
+                        ) + "%";
+
+                }, 120);
+
+            });
+
+        });
+
+    }
+);
+
+</script>
+
+
+
+<!-- ============================================================
+     FLOWERS ON EVERY PAGE RELOAD
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const container =
+            document.getElementById(
+                "reloadCelebration"
+            );
+
+
+        if (!container) {
+            return;
+        }
+
+
+        const flowers = [
+            "🌸",
+            "🌺",
+            "🌼",
+            "🌻",
+            "💐",
+            "🌷",
+            "🪻",
+            "✨",
+            "🌹",
+            "💮"
+        ];
+
+
+        const flowerCount = 32;
+
+
+        for (
+            let i = 0;
+            i < flowerCount;
+            i++
+        ) {
+
+            const flower =
+                document.createElement("span");
+
+
+            flower.className =
+                "flower-particle";
+
+
+            flower.textContent =
+                flowers[
+                    Math.floor(
+                        Math.random() *
+                        flowers.length
+                    )
+                ];
+
+
+            flower.style.left =
+                Math.random() * 100 + "%";
+
+
+            flower.style.fontSize =
+                (
+                    14 +
+                    Math.random() * 18
+                ) + "px";
+
+
+            flower.style.animationDuration =
+                (
+                    3 +
+                    Math.random() * 4
+                ) + "s";
+
+
+            flower.style.animationDelay =
+                (
+                    Math.random() * 1.5
+                ) + "s";
+
+
+            flower.style.setProperty(
+                "--drift",
+                (
+                    -120 +
+                    Math.random() * 240
+                ) + "px"
+            );
+
+
+            flower.style.setProperty(
+                "--rotation",
+                (
+                    360 +
+                    Math.random() * 720
+                ) + "deg"
+            );
+
+
+            container.appendChild(flower);
+
+        }
+
+
+        setTimeout(function () {
+
+            container.innerHTML = "";
+
+        }, 8500);
+
+    }
+);
+
+</script>
+
+
+
+<!-- ============================================================
+     TOP 3 HIGHEST EXPENSE VOICE SYSTEM
+     ------------------------------------------------------------
+     AUTOMATIC ON PAGE RELOAD
+
+     #1:
+     Name
+     Income received
+     Expense paid
+     Net profit / net loss
+     "You are the biggest spender.
+      You are the loser on this list."
+
+     #2:
+     Name
+     Income received
+     Expense paid
+     Net profit / net loss
+
+     #3:
+     Name
+     Income received
+     Expense paid
+     Net profit / net loss
+
+     NO MUSIC.
+     NO EXTRA SOUND.
+     ONLY BROWSER SPEECH SYNTHESIS.
+     ============================================================ -->
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    let voiceQueue = [];
+
+    let currentVoiceIndex = 0;
+
+    let stoppedManually = false;
+
+    let speechSupported = false;
+
+
+
+    /* =========================================================
+       ELEMENTS
+       ========================================================= */
+
+    const voicePanel =
+        document.getElementById("voicePanel");
+
+    const voiceRank =
+        document.getElementById("voiceRank");
+
+    const voicePerson =
+        document.getElementById("voicePerson");
+
+    const voiceText =
+        document.getElementById("voiceText");
+
+    const voiceProgressFill =
+        document.getElementById("voiceProgressFill");
+
+    const stopVoiceBtn =
+        document.getElementById("stopVoiceBtn");
+
+
+
+    /* =========================================================
+       CHECK BROWSER SUPPORT
+       ========================================================= */
+
+    speechSupported =
+        "speechSynthesis" in window &&
+        "SpeechSynthesisUtterance" in window;
+
+
+    if (!speechSupported) {
+
+        if (voicePanel) {
+
+            voicePanel.classList.add("show");
+
+        }
+
+        if (voiceRank) {
+
+            voiceRank.textContent =
+                "Voice unsupported";
+
+        }
+
+        if (voicePerson) {
+
+            voicePerson.textContent =
+                "Speech synthesis is unavailable";
+
+        }
+
+        if (voiceText) {
+
+            voiceText.textContent =
+                "Your browser does not support voice announcements.";
+
+        }
+
+        return;
+
+    }
+
+
+
+    /* =========================================================
+       MONEY FORMAT
+       ========================================================= */
+
+    function moneyForSpeech(value) {
+
+        const number =
+            Number(value) || 0;
+
+
+        return number.toLocaleString(
+            "en-US",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        ) + " dollars";
+
+    }
+
+
+
+    /* =========================================================
+       FIND BEST VOICE
+       ========================================================= */
+
+    function getBestVoice() {
+
+        const voices =
+            window.speechSynthesis.getVoices();
+
+
+        if (!voices || !voices.length) {
+            return null;
+        }
+
+
+        /*
+         * Prefer Somali voice if browser has one.
+         */
+
+        const somaliVoice =
+            voices.find(function (voice) {
+
+                return /^so([-_])/i.test(
+                    voice.lang || ""
+                );
+
+            });
+
+
+        if (somaliVoice) {
+            return somaliVoice;
+        }
+
+
+        /*
+         * Otherwise use English US.
+         */
+
+        const englishUS =
+            voices.find(function (voice) {
+
+                return /^en-US/i.test(
+                    voice.lang || ""
+                );
+
+            });
+
+
+        if (englishUS) {
+            return englishUS;
+        }
+
+
+        /*
+         * Otherwise any English voice.
+         */
+
+        const english =
+            voices.find(function (voice) {
+
+                return /^en/i.test(
+                    voice.lang || ""
+                );
+
+            });
+
+
+        if (english) {
+            return english;
+        }
+
+
+        return voices[0] || null;
+
+    }
+
+
+
+    /* =========================================================
+       CREATE FINANCIAL SENTENCE
+       ========================================================= */
+
+    function createSpeechData(
+        row,
+        rank
+    ) {
+
+        const name =
+            row.dataset.name ||
+            "Unknown";
+
+
+        const income =
+            Number(
+                row.dataset.income
+            ) || 0;
+
+
+        const expense =
+            Number(
+                row.dataset.expense
+            ) || 0;
+
+
+        const profit =
+            Number(
+                row.dataset.profit
+            ) || 0;
+
+
+
+        let profitSentence;
+
+
+        if (profit > 0) {
+
+            profitSentence =
+                "Net profit is " +
+                moneyForSpeech(profit) +
+                ".";
+
+        }
+
+        else if (profit < 0) {
+
+            profitSentence =
+                "Net loss is " +
+                moneyForSpeech(
+                    Math.abs(profit)
+                ) +
+                ".";
+
+        }
+
+        else {
+
+            profitSentence =
+                "Net profit is zero dollars.";
+
+        }
+
+
+
+        /*
+         * #1 gets the special loser announcement.
+         */
+
+        let loserSentence = "";
+
+
+        if (rank === 1) {
+
+            loserSentence =
+                "You are the biggest spender. " +
+                "You are the loser on this list.";
+
+        }
+
+
+
+        const sentence =
+            "Number " +
+            rank +
+            ". " +
+            name +
+            ". " +
+
+            "Income received is " +
+            moneyForSpeech(income) +
+            ". " +
+
+            "Expense paid is " +
+            moneyForSpeech(expense) +
+            ". " +
+
+            profitSentence +
+            " " +
+
+            loserSentence;
+
+
+        return {
+
+            rank: rank,
+
+            name: name,
+
+            income: income,
+
+            expense: expense,
+
+            profit: profit,
+
+            sentence: sentence
+
+        };
+
+    }
+
+
+
+    /* =========================================================
+       BUILD TOP 3 ONLY
+       ========================================================= */
+
+    function buildTopThreeQueue() {
+
+        const rows =
+            Array.from(
+                document.querySelectorAll(
+                    ".person-row"
+                )
+            );
+
+
+        /*
+         * Sort by EXPENSE descending.
+         */
+
+        rows.sort(function (a, b) {
+
+            const expenseA =
+                Number(
+                    a.dataset.expense
+                ) || 0;
+
+
+            const expenseB =
+                Number(
+                    b.dataset.expense
+                ) || 0;
+
+
+            return expenseB - expenseA;
+
+        });
+
+
+        /*
+         * Only TOP 3.
+         */
+
+        const topThree =
+            rows.slice(0, 3);
+
+
+        voiceQueue =
+            topThree.map(function (row, index) {
+
+                return createSpeechData(
+                    row,
+                    index + 1
+                );
+
+            });
+
+
+        return voiceQueue;
+
+    }
+
+
+
+    /* =========================================================
+       SHOW PANEL
+       ========================================================= */
+
+    function showVoicePanel(person) {
+
+        if (!voicePanel) {
+            return;
+        }
+
+
+        voicePanel.classList.add("show");
+
+
+        if (voiceRank) {
+
+            voiceRank.textContent =
+                "#" +
+                person.rank +
+                " Highest Expense";
+
+        }
+
+
+        if (voicePerson) {
+
+            voicePerson.textContent =
+                person.name;
+
+        }
+
+
+        let profitText;
+
+
+        if (person.profit > 0) {
+
+            profitText =
+                "Net Profit: +" +
+                moneyForSpeech(
+                    person.profit
+                );
+
+        }
+
+        else if (person.profit < 0) {
+
+            profitText =
+                "Net Loss: -" +
+                moneyForSpeech(
+                    Math.abs(person.profit)
+                );
+
+        }
+
+        else {
+
+            profitText =
+                "Net Profit: $0.00";
+
+        }
+
+
+        let extraText = "";
+
+
+        if (person.rank === 1) {
+
+            extraText =
+                " • BIGGEST SPENDER • LOSER";
+
+        }
+
+
+        if (voiceText) {
+
+            voiceText.textContent =
+                "Income Received: " +
+                moneyForSpeech(
+                    person.income
+                ) +
+
+                " • Expense Paid: " +
+                moneyForSpeech(
+                    person.expense
+                ) +
+
+                " • " +
+                profitText +
+
+                extraText;
+
+        }
+
+
+        const percentage =
+            voiceQueue.length
+                ? (
+                    (
+                        person.rank /
+                        voiceQueue.length
+                    ) * 100
+                )
+                : 0;
+
+
+        if (voiceProgressFill) {
+
+            voiceProgressFill.style.width =
+                percentage + "%";
+
+        }
+
+    }
+
+
+
+    /* =========================================================
+       SPEAK ONE ITEM
+       ========================================================= */
+
+    function speakNext() {
+
+        if (!speechSupported) {
+            return;
+        }
+
+
+        if (stoppedManually) {
+            return;
+        }
+
+
+        if (
+            currentVoiceIndex >=
+            voiceQueue.length
+        ) {
+
+            finishVoice();
+
+            return;
+
+        }
+
+
+        const person =
+            voiceQueue[
+                currentVoiceIndex
+            ];
+
+
+        showVoicePanel(person);
+
+
+        const utterance =
+            new SpeechSynthesisUtterance(
+                person.sentence
+            );
+
+
+        /*
+         * Language
+         */
+
+        utterance.lang =
+            "en-US";
+
+
+        /*
+         * Voice
+         */
+
+        const selectedVoice =
+            getBestVoice();
+
+
+        if (selectedVoice) {
+
+            utterance.voice =
+                selectedVoice;
+
+        }
+
+
+        /*
+         * Speaking speed
+         */
+
+        utterance.rate =
+            0.88;
+
+
+        utterance.pitch =
+            1;
+
+
+        utterance.volume =
+            1;
+
+
+
+        utterance.onstart =
+            function () {
+
+                if (voicePanel) {
+
+                    voicePanel.classList.add(
+                        "show"
+                    );
+
+                }
+
+            };
+
+
+
+        utterance.onend =
+            function () {
+
+                if (stoppedManually) {
+                    return;
+                }
+
+
+                currentVoiceIndex++;
+
+
+                setTimeout(
+                    function () {
+
+                        speakNext();
+
+                    },
+                    700
+                );
+
+            };
+
+
+
+        utterance.onerror =
+            function () {
+
+                if (stoppedManually) {
+                    return;
+                }
+
+
+                currentVoiceIndex++;
+
+
+                setTimeout(
+                    function () {
+
+                        speakNext();
+
+                    },
+                    350
+                );
+
+            };
+
+
+
+        try {
+
+            window.speechSynthesis.speak(
+                utterance
+            );
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "Voice announcement error:",
+                error
+            );
+
+            finishVoice();
+
+        }
+
+    }
+
+
+
+    /* =========================================================
+       START TOP 3 VOICE
+       ========================================================= */
+
+    function startTopThreeVoice() {
+
+        if (!speechSupported) {
+            return;
+        }
+
+
+        stoppedManually = false;
+
+
+        window.speechSynthesis.cancel();
+
+
+        buildTopThreeQueue();
+
+
+        if (!voiceQueue.length) {
+
+            if (voicePerson) {
+
+                voicePerson.textContent =
+                    "No persons available";
+
+            }
+
+            if (voiceText) {
+
+                voiceText.textContent =
+                    "There are no expense records to announce.";
+
+            }
+
+            return;
+
+        }
+
+
+        currentVoiceIndex = 0;
+
+
+        if (voicePanel) {
+
+            voicePanel.classList.add("show");
+
+        }
+
+
+        if (voiceRank) {
+
+            voiceRank.textContent =
+                "TOP 3 HIGHEST EXPENSE";
+
+        }
+
+
+        if (voicePerson) {
+
+            voicePerson.textContent =
+                "Preparing...";
+
+        }
+
+
+        if (voiceText) {
+
+            voiceText.textContent =
+                "Announcing the three people with the highest expenses.";
+
+        }
+
+
+        /*
+         * Wait until page rendering is complete.
+         */
+
+        setTimeout(
+            function () {
+
+                if (stoppedManually) {
+                    return;
+                }
+
+                speakNext();
+
+            },
+            1600
+        );
+
+    }
+
+
+
+    /* =========================================================
+       FINISH
+       ========================================================= */
+
+    function finishVoice() {
+
+        currentVoiceIndex =
+            voiceQueue.length;
+
+
+        if (voiceRank) {
+
+            voiceRank.textContent =
+                "Completed";
+
+        }
+
+
+        if (voicePerson) {
+
+            voicePerson.textContent =
+                "Top 3 announcement finished";
+
+        }
+
+
+        if (voiceText) {
+
+            voiceText.textContent =
+                "The Top 3 highest expense people have been announced.";
+
+        }
+
+
+        if (voiceProgressFill) {
+
+            voiceProgressFill.style.width =
+                "100%";
+
+        }
+
+
+        setTimeout(
+            function () {
+
+                if (voicePanel) {
+
+                    voicePanel.classList.remove(
+                        "show"
+                    );
+
+                }
+
+            },
+            2500
+        );
+
+    }
+
+
+
+    /* =========================================================
+       STOP
+       ========================================================= */
+
+    function stopVoice() {
+
+        stoppedManually = true;
+
+
+        try {
+
+            window.speechSynthesis.cancel();
+
+        }
+
+        catch (error) {
+
+            console.warn(error);
+
+        }
+
+
+        currentVoiceIndex =
+            voiceQueue.length;
+
+
+        if (voicePanel) {
+
+            voicePanel.classList.remove(
+                "show"
+            );
+
+        }
+
+
+        if (voiceProgressFill) {
+
+            voiceProgressFill.style.width =
+                "0%";
+
+        }
+
+    }
+
+
+
+    /* =========================================================
+       STOP BUTTON
+       ========================================================= */
+
+    if (stopVoiceBtn) {
+
+        stopVoiceBtn.addEventListener(
+            "click",
+            function () {
+
+                stopVoice();
+
+            }
+        );
+
+    }
+
+
+
+    /* =========================================================
+       INDIVIDUAL PERSON SPEAKER
+       ---------------------------------------------------------
+       This is manual.
+       It does NOT affect automatic Top 3.
+       ========================================================= */
+
+    window.speakIndividualPerson =
+        function (row) {
+
+            if (!speechSupported || !row) {
+                return;
+            }
+
+
+            stoppedManually = false;
+
+
+            window.speechSynthesis.cancel();
+
+
+            const person =
+                createSpeechData(
+                    row,
+                    1
+                );
+
+
+            /*
+             * Individual person does not get the
+             * "loser" sentence unless they are actually
+             * the highest expense person.
+             */
+
+            const allRows =
+                Array.from(
+                    document.querySelectorAll(
+                        ".person-row"
+                    )
+                );
+
+
+            allRows.sort(function (a, b) {
+
+                return (
+                    Number(
+                        b.dataset.expense || 0
+                    ) -
+                    Number(
+                        a.dataset.expense || 0
+                    )
+                );
+
+            });
+
+
+            const actualIndex =
+                allRows.indexOf(row);
+
+
+            const actualRank =
+                actualIndex >= 0
+                    ? actualIndex + 1
+                    : 1;
+
+
+            const actualPerson =
+                createSpeechData(
+                    row,
+                    actualRank
+                );
+
+
+            voiceQueue =
+                [actualPerson];
+
+
+            currentVoiceIndex = 0;
+
+
+            if (voicePanel) {
+
+                voicePanel.classList.add(
+                    "show"
+                );
+
+            }
+
+
+            speakNext();
+
+        };
+
+
+
+    /* =========================================================
+       VOICES READY
+       ========================================================= */
+
+    if (
+        "onvoiceschanged" in
+        window.speechSynthesis
+    ) {
+
+        window.speechSynthesis.onvoiceschanged =
+            function () {
+
+                getBestVoice();
+
+            };
+
+    }
+
+
+
+    /* =========================================================
+       AUTO START ON PAGE RELOAD
+       ========================================================= */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            /*
+             * Build Top 3 immediately.
+             */
+
+            buildTopThreeQueue();
+
+
+            /*
+             * Start automatically.
+             */
+
+            setTimeout(
+                function () {
+
+                    startTopThreeVoice();
+
+                },
+                800
+            );
+
+        }
+    );
+
+})();
+
+</script>
+
+
+
+<!-- ============================================================
+     FINAL ROW ENTRANCE ANIMATION
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const rows =
+            document.querySelectorAll(
+                ".person-row"
+            );
+
+
+        rows.forEach(
+            function (row, index) {
+
+                row.style.opacity = "0";
+
+                row.style.transform =
+                    "translateY(8px)";
+
+
+                setTimeout(
+                    function () {
+
+                        row.style.transition =
+                            "opacity .35s ease, transform .35s ease";
+
+
+                        row.style.opacity =
+                            "1";
+
+
+                        row.style.transform =
+                            "translateY(0)";
+
+                    },
+                    50 + (index * 35)
+                );
+
+            }
+        );
+
+    }
+);
 
 </script>
 
