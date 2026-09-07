@@ -1,0 +1,2777 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Saving Progress Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   SAVING PROGRESS REPORT
+   ADVANCED FULL UI
+   ============================================================ */
+
+:root {
+    --spr-primary: #2563eb;
+    --spr-primary-dark: #1d4ed8;
+    --spr-success: #16a34a;
+    --spr-warning: #d97706;
+    --spr-danger: #dc2626;
+    --spr-info: #0891b2;
+    --spr-purple: #7c3aed;
+    --spr-dark: #111827;
+    --spr-muted: #6b7280;
+    --spr-border: #e5e7eb;
+    --spr-bg: #f8fafc;
+    --spr-white: #ffffff;
+    --spr-radius: 18px;
+    --spr-shadow: 0 8px 30px rgba(15, 23, 42, .07);
+}
+
+.spr-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--spr-bg);
+    padding: 22px;
+    box-sizing: border-box;
+}
+
+.spr-container {
+    width: 100%;
+    max-width: 1700px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.spr-header {
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 22px;
+    box-shadow: var(--spr-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.spr-header::before,
+.spr-header::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.spr-header::before {
+    width: 260px;
+    height: 260px;
+    right: -90px;
+    top: -110px;
+    background: rgba(255,255,255,.06);
+}
+
+.spr-header::after {
+    width: 180px;
+    height: 180px;
+    left: 35%;
+    bottom: -120px;
+    background: rgba(255,255,255,.04);
+}
+
+.spr-header-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.spr-title-area {
+    min-width: 260px;
+}
+
+.spr-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    font-size: 12px;
+    color: rgba(255,255,255,.7);
+    margin-bottom: 10px;
+}
+
+.spr-breadcrumb a {
+    color: rgba(255,255,255,.85);
+    text-decoration: none;
+}
+
+.spr-breadcrumb a:hover {
+    color: #fff;
+}
+
+.spr-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.spr-subtitle {
+    margin: 8px 0 0;
+    color: rgba(255,255,255,.76);
+    font-size: 14px;
+}
+
+.spr-header-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.spr-btn {
+    border: 0;
+    border-radius: 11px;
+    padding: 10px 15px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    transition: .2s ease;
+}
+
+.spr-btn:hover {
+    transform: translateY(-1px);
+}
+
+.spr-btn-light {
+    background: rgba(255,255,255,.13);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.18);
+}
+
+.spr-btn-light:hover {
+    background: rgba(255,255,255,.2);
+}
+
+.spr-btn-primary {
+    background: var(--spr-primary);
+    color: #fff;
+}
+
+.spr-btn-success {
+    background: var(--spr-success);
+    color: #fff;
+}
+
+.spr-btn-dark {
+    background: #111827;
+    color: #fff;
+}
+
+/* ============================================================
+   REPORT STATUS
+   ============================================================ */
+
+.spr-status-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.spr-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    background: #fff;
+    border: 1px solid var(--spr-border);
+    border-radius: 999px;
+    color: var(--spr-dark);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.spr-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--spr-success);
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.spr-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.spr-kpi {
+    background: var(--spr-white);
+    border: 1px solid var(--spr-border);
+    border-radius: var(--spr-radius);
+    padding: 18px;
+    box-shadow: var(--spr-shadow);
+    min-width: 0;
+}
+
+.spr-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.spr-kpi-label {
+    font-size: 11px;
+    color: var(--spr-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.spr-kpi-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: #eff6ff;
+    color: var(--spr-primary);
+}
+
+.spr-kpi-value {
+    margin-top: 12px;
+    font-size: 25px;
+    font-weight: 850;
+    color: var(--spr-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spr-kpi-meta {
+    margin-top: 5px;
+    color: var(--spr-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+
+.spr-grid-2 {
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.spr-panel {
+    background: #fff;
+    border: 1px solid var(--spr-border);
+    border-radius: var(--spr-radius);
+    box-shadow: var(--spr-shadow);
+    overflow: hidden;
+}
+
+.spr-panel-header {
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--spr-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.spr-panel-title {
+    margin: 0;
+    color: var(--spr-dark);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.spr-panel-subtitle {
+    margin: 3px 0 0;
+    color: var(--spr-muted);
+    font-size: 11px;
+}
+
+.spr-panel-body {
+    padding: 20px;
+}
+
+/* ============================================================
+   OVERALL PROGRESS
+   ============================================================ */
+
+.spr-overall {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 24px;
+    align-items: center;
+}
+
+.spr-progress-circle {
+    width: 165px;
+    height: 165px;
+    border-radius: 50%;
+    margin: auto;
+    background:
+        conic-gradient(
+            var(--spr-primary) 0deg,
+            var(--spr-primary) calc(var(--progress, 0) * 3.6deg),
+            #e5e7eb calc(var(--progress, 0) * 3.6deg),
+            #e5e7eb 360deg
+        );
+    display: grid;
+    place-items: center;
+}
+
+.spr-progress-circle-inner {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    background: #fff;
+    display: grid;
+    place-items: center;
+    text-align: center;
+}
+
+.spr-progress-number {
+    font-size: 29px;
+    font-weight: 900;
+    color: var(--spr-dark);
+}
+
+.spr-progress-label {
+    font-size: 11px;
+    color: var(--spr-muted);
+    margin-top: -25px;
+}
+
+.spr-progress-info {
+    min-width: 0;
+}
+
+.spr-progress-main-value {
+    font-size: 31px;
+    font-weight: 900;
+    color: var(--spr-dark);
+}
+
+.spr-progress-description {
+    margin-top: 5px;
+    color: var(--spr-muted);
+    font-size: 13px;
+}
+
+.spr-progress-bar {
+    width: 100%;
+    height: 14px;
+    background: #eef2f7;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 18px;
+}
+
+.spr-progress-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    background: linear-gradient(90deg, var(--spr-primary), #60a5fa);
+    border-radius: inherit;
+    transition: width .7s ease;
+}
+
+.spr-progress-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 17px;
+}
+
+.spr-mini-stat {
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.spr-mini-label {
+    color: var(--spr-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.spr-mini-value {
+    color: var(--spr-dark);
+    font-size: 15px;
+    font-weight: 800;
+    margin-top: 4px;
+}
+
+/* ============================================================
+   PROGRESS LEVELS
+   ============================================================ */
+
+.spr-level-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.spr-level {
+    border: 1px solid var(--spr-border);
+    border-radius: 14px;
+    padding: 15px;
+    background: #fff;
+}
+
+.spr-level-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+}
+
+.spr-level-name {
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--spr-dark);
+}
+
+.spr-level-count {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--spr-muted);
+}
+
+.spr-level-bar {
+    height: 9px;
+    background: #edf0f4;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 12px;
+}
+
+.spr-level-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    border-radius: inherit;
+    transition: width .6s ease;
+}
+
+.spr-level-percent {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--spr-muted);
+    font-weight: 700;
+}
+
+/* ============================================================
+   HIGHLIGHTS
+   ============================================================ */
+
+.spr-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.spr-highlight {
+    background: #fff;
+    border: 1px solid var(--spr-border);
+    border-radius: 16px;
+    padding: 17px;
+    box-shadow: var(--spr-shadow);
+}
+
+.spr-highlight-label {
+    color: var(--spr-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.spr-highlight-name {
+    margin-top: 9px;
+    font-size: 15px;
+    font-weight: 850;
+    color: var(--spr-dark);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spr-highlight-value {
+    margin-top: 5px;
+    font-size: 21px;
+    font-weight: 900;
+    color: var(--spr-primary);
+}
+
+.spr-highlight-meta {
+    color: var(--spr-muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+
+.spr-filter-panel {
+    margin-bottom: 22px;
+}
+
+.spr-filter-body {
+    padding: 18px;
+}
+
+.spr-filter-grid {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.spr-field label {
+    display: block;
+    font-size: 10px;
+    color: var(--spr-muted);
+    font-weight: 800;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.spr-field input,
+.spr-field select {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #d9dee7;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0 11px;
+    font-size: 12px;
+    color: var(--spr-dark);
+    outline: none;
+    box-sizing: border-box;
+}
+
+.spr-field input:focus,
+.spr-field select:focus {
+    border-color: var(--spr-primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+}
+
+.spr-filter-actions {
+    display: flex;
+    gap: 7px;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.spr-table-panel {
+    margin-bottom: 22px;
+}
+
+.spr-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.spr-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1100px;
+}
+
+.spr-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    padding: 13px 14px;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--spr-border);
+}
+
+.spr-table td {
+    padding: 14px;
+    border-bottom: 1px solid #eef1f5;
+    font-size: 12px;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.spr-table tbody tr {
+    transition: .15s ease;
+}
+
+.spr-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.spr-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: #eff6ff;
+    color: var(--spr-primary);
+    display: grid;
+    place-items: center;
+    font-weight: 900;
+    font-size: 11px;
+}
+
+.spr-saving-name {
+    font-weight: 800;
+    color: var(--spr-dark);
+}
+
+.spr-saving-meta {
+    color: var(--spr-muted);
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.spr-amount {
+    font-weight: 800;
+    color: var(--spr-dark);
+}
+
+.spr-remaining {
+    font-weight: 800;
+    color: var(--spr-warning);
+}
+
+.spr-progress-cell {
+    min-width: 180px;
+}
+
+.spr-progress-cell-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.spr-small-bar {
+    width: 100%;
+    height: 7px;
+    background: #edf0f4;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.spr-small-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    background: var(--spr-primary);
+    border-radius: inherit;
+}
+
+.spr-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.spr-badge-success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.spr-badge-warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.spr-badge-danger {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.spr-badge-info {
+    background: #cffafe;
+    color: #155e75;
+}
+
+.spr-badge-muted {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* ============================================================
+   TOP LISTS
+   ============================================================ */
+
+.spr-list-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.spr-list {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.spr-list-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 0;
+    border-bottom: 1px solid #eef1f5;
+}
+
+.spr-list-item:last-child {
+    border-bottom: 0;
+}
+
+.spr-list-number {
+    width: 27px;
+    height: 27px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: var(--spr-primary);
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+
+.spr-list-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.spr-list-name {
+    color: var(--spr-dark);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spr-list-meta {
+    color: var(--spr-muted);
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.spr-list-value {
+    color: var(--spr-dark);
+    font-size: 12px;
+    font-weight: 850;
+    text-align: right;
+}
+
+/* ============================================================
+   ACCOUNT / CATEGORY ANALYSIS
+   ============================================================ */
+
+.spr-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.spr-analysis-row {
+    padding: 14px 0;
+    border-bottom: 1px solid #eef1f5;
+}
+
+.spr-analysis-row:last-child {
+    border-bottom: 0;
+}
+
+.spr-analysis-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.spr-analysis-name {
+    font-weight: 800;
+    color: var(--spr-dark);
+}
+
+.spr-analysis-percent {
+    font-weight: 850;
+    color: var(--spr-primary);
+}
+
+.spr-analysis-bar {
+    margin-top: 8px;
+    height: 7px;
+    background: #edf0f4;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.spr-analysis-fill {
+    height: 100%;
+    width: 0;
+    max-width: 100%;
+    background: linear-gradient(90deg, var(--spr-primary), #60a5fa);
+    border-radius: inherit;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.spr-empty {
+    padding: 45px 20px;
+    text-align: center;
+    color: var(--spr-muted);
+}
+
+.spr-empty-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 16px;
+    background: #eff6ff;
+    color: var(--spr-primary);
+    display: grid;
+    place-items: center;
+    margin: 0 auto 12px;
+}
+
+.spr-empty-title {
+    color: var(--spr-dark);
+    font-weight: 800;
+    font-size: 15px;
+}
+
+.spr-empty-text {
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.spr-footer {
+    background: #fff;
+    border: 1px solid var(--spr-border);
+    border-radius: 16px;
+    padding: 15px 18px;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+    color: var(--spr-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+    .spr-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .spr-filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1100px) {
+    .spr-grid-2,
+    .spr-analysis-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-highlight-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .spr-level-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .spr-list-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .spr-wrapper {
+        padding: 10px;
+    }
+
+    .spr-header {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .spr-title {
+        font-size: 23px;
+    }
+
+    .spr-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .spr-highlight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-level-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-overall {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-progress-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-filter-actions {
+        width: 100%;
+    }
+
+    .spr-filter-actions .spr-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .spr-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .spr-kpi-value {
+        font-size: 22px;
+    }
+
+    .spr-header-actions {
+        width: 100%;
+    }
+
+    .spr-header-actions .spr-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    .spr-wrapper {
+        padding: 0;
+        background: #fff;
+    }
+
+    .spr-header {
+        color: #000 !important;
+        background: #fff !important;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+
+    .spr-header-actions,
+    .spr-filter-panel {
+        display: none !important;
+    }
+
+    .spr-panel,
+    .spr-kpi,
+    .spr-highlight,
+    .spr-footer {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .spr-table {
+        min-width: 0;
+    }
+}
+</style>
+
+
+<div class="spr-wrapper">
+<div class="spr-container">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="spr-header">
+
+        <div class="spr-header-content">
+
+            <div class="spr-title-area">
+
+                <div class="spr-breadcrumb">
+                    <a href="{{ url_for('main.dashboard') }}">
+                        Dashboard
+                    </a>
+
+                    <span>/</span>
+
+                    <span>Reports</span>
+
+                    <span>/</span>
+
+                    <span>Saving Progress</span>
+                </div>
+
+                <h1 class="spr-title">
+                    Saving Progress Report
+                </h1>
+
+                <p class="spr-subtitle">
+                    Advanced analysis of savings targets, progress,
+                    remaining balances and saving performance.
+                </p>
+
+            </div>
+
+
+            <div class="spr-header-actions">
+
+                <button
+                    type="button"
+                    class="spr-btn spr-btn-light"
+                    onclick="window.print()"
+                >
+                    <i data-feather="printer"></i>
+                    Print
+                </button>
+
+                <button
+                    type="button"
+                    class="spr-btn spr-btn-light"
+                    onclick="exportSavingProgressCSV()"
+                >
+                    <i data-feather="download"></i>
+                    Export CSV
+                </button>
+
+                <button
+                    type="button"
+                    class="spr-btn spr-btn-light"
+                    onclick="location.reload()"
+                >
+                    <i data-feather="refresh-cw"></i>
+                    Refresh
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         STATUS
+         ======================================================== -->
+
+    <div class="spr-status-row">
+
+        <div class="spr-status">
+            <span class="spr-status-dot"></span>
+            {{ progress_report_status|default('Report Ready') }}
+        </div>
+
+        <div class="spr-status">
+            <i data-feather="calendar" style="width:13px;"></i>
+            Generated:
+            {{ generated_at|default('N/A') }}
+        </div>
+
+        <div class="spr-status">
+            <i data-feather="target" style="width:13px;"></i>
+            {{ total_savings|default(0) }} Savings
+        </div>
+
+        <div class="spr-status">
+            <i data-feather="activity" style="width:13px;"></i>
+            {{ total_transactions|default(0) }} Transactions
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="spr-kpi-grid">
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Total Savings</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="target"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ total_savings|default(0) }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                All saving goals
+            </div>
+        </div>
+
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Target Amount</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="flag"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ "%.2f"|format(total_target_amount|default(0)|float) }}
+                {{ currency|default('USD') }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                Total planned target
+            </div>
+        </div>
+
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Saved Amount</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="trending-up"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ "%.2f"|format(total_saved_amount|default(0)|float) }}
+                {{ currency|default('USD') }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                Money already saved
+            </div>
+        </div>
+
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Remaining</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="clock"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ "%.2f"|format(total_remaining_amount|default(0)|float) }}
+                {{ currency|default('USD') }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                Amount left to target
+            </div>
+        </div>
+
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Active Goals</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="play-circle"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ active_savings|default(0) }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                Currently active
+            </div>
+        </div>
+
+
+        <div class="spr-kpi">
+            <div class="spr-kpi-top">
+                <span class="spr-kpi-label">Completed</span>
+                <span class="spr-kpi-icon">
+                    <i data-feather="check-circle"></i>
+                </span>
+            </div>
+
+            <div class="spr-kpi-value">
+                {{ completed_savings|default(0) }}
+            </div>
+
+            <div class="spr-kpi-meta">
+                Successfully completed
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         OVERALL + PROGRESS LEVELS
+         ======================================================== -->
+
+    <div class="spr-grid-2">
+
+        <!-- OVERALL -->
+
+        <section class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Overall Saving Progress
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Total saved compared with total target
+                    </p>
+                </div>
+
+                <span class="spr-badge spr-badge-info">
+                    {{ "%.1f"|format(overall_progress_percentage|default(0)|float) }}%
+                </span>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                {% set overall_pct =
+                    overall_progress_percentage
+                    |default(0)
+                    |float
+                %}
+
+                {% if overall_pct < 0 %}
+                    {% set overall_pct = 0 %}
+                {% endif %}
+
+                {% if overall_pct > 100 %}
+                    {% set overall_pct = 100 %}
+                {% endif %}
+
+                <div class="spr-overall">
+
+                    <div
+                        class="spr-progress-circle"
+                        style="--progress: {{ overall_pct|round(2) }};"
+                    >
+
+                        <div class="spr-progress-circle-inner">
+
+                            <div>
+                                <div class="spr-progress-number">
+                                    {{ overall_pct|round(1) }}%
+                                </div>
+
+                                <div class="spr-progress-label">
+                                    Overall
+                                </div>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="spr-progress-info">
+
+                        <div class="spr-progress-main-value">
+                            {{ "%.2f"|format(total_saved_amount|default(0)|float) }}
+                            {{ currency|default('USD') }}
+                        </div>
+
+                        <div class="spr-progress-description">
+                            saved from
+                            {{ "%.2f"|format(total_target_amount|default(0)|float) }}
+                            {{ currency|default('USD') }}
+                            total target.
+                        </div>
+
+                        <div class="spr-progress-bar">
+
+                            <div
+                                class="spr-progress-fill"
+                                style="width: {{ overall_pct|round(2) }}%;"
+                            ></div>
+
+                        </div>
+
+
+                        <div class="spr-progress-stats">
+
+                            <div class="spr-mini-stat">
+
+                                <div class="spr-mini-label">
+                                    Remaining
+                                </div>
+
+                                <div class="spr-mini-value">
+                                    {{ "%.2f"|format(total_remaining_amount|default(0)|float) }}
+                                </div>
+
+                            </div>
+
+
+                            <div class="spr-mini-stat">
+
+                                <div class="spr-mini-label">
+                                    Transactions
+                                </div>
+
+                                <div class="spr-mini-value">
+                                    {{ total_transactions|default(0) }}
+                                </div>
+
+                            </div>
+
+
+                            <div class="spr-mini-stat">
+
+                                <div class="spr-mini-label">
+                                    Currency
+                                </div>
+
+                                <div class="spr-mini-value">
+                                    {{ currency|default('USD') }}
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- PROGRESS LEVELS -->
+
+        <section class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Progress Levels
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Distribution of savings by progress
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                <div class="spr-level-grid">
+
+                    {% for level in progress_status_summary|default([]) %}
+
+                        {% set level_percentage =
+                            level.percentage
+                            |default(0)
+                            |float
+                        %}
+
+                        {% if level_percentage < 0 %}
+                            {% set level_percentage = 0 %}
+                        {% endif %}
+
+                        {% if level_percentage > 100 %}
+                            {% set level_percentage = 100 %}
+                        {% endif %}
+
+                        <div class="spr-level">
+
+                            <div class="spr-level-top">
+
+                                <div class="spr-level-name">
+                                    {{ level.status|default('Unknown') }}
+                                </div>
+
+                                <div class="spr-level-count">
+                                    {{ level.count|default(0) }}
+                                </div>
+
+                            </div>
+
+                            <div class="spr-level-bar">
+
+                                <div
+                                    class="spr-level-fill"
+                                    style="
+                                        width: {{ level_percentage|round(2) }}%;
+                                        background:
+                                        {% if level_percentage >= 80 %}
+                                            #16a34a
+                                        {% elif level_percentage >= 50 %}
+                                            #2563eb
+                                        {% elif level_percentage >= 25 %}
+                                            #d97706
+                                        {% else %}
+                                            #dc2626
+                                        {% endif %};
+                                    "
+                                ></div>
+
+                            </div>
+
+                            <div class="spr-level-percent">
+                                {{ level_percentage|round(1) }}%
+                                of goals
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="spr-empty" style="grid-column:1/-1;">
+                            <div class="spr-empty-icon">
+                                <i data-feather="bar-chart-2"></i>
+                            </div>
+
+                            <div class="spr-empty-title">
+                                No progress levels available
+                            </div>
+
+                            <div class="spr-empty-text">
+                                There is no saving progress data to analyze.
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+
+    <!-- ========================================================
+         HIGHLIGHTS
+         ======================================================== -->
+
+    <section class="spr-highlight-grid">
+
+        <div class="spr-highlight">
+
+            <div class="spr-highlight-label">
+                Highest Progress
+            </div>
+
+            <div class="spr-highlight-name">
+                {{ highest_progress_saving.name|default('No saving') }}
+            </div>
+
+            <div class="spr-highlight-value">
+                {{ "%.1f"|format(highest_progress|default(0)|float) }}%
+            </div>
+
+            <div class="spr-highlight-meta">
+                Best performing saving goal
+            </div>
+
+        </div>
+
+
+        <div class="spr-highlight">
+
+            <div class="spr-highlight-label">
+                Lowest Progress
+            </div>
+
+            <div class="spr-highlight-name">
+                {{ lowest_progress_saving.name|default('No saving') }}
+            </div>
+
+            <div class="spr-highlight-value">
+                {{ "%.1f"|format(lowest_progress|default(0)|float) }}%
+            </div>
+
+            <div class="spr-highlight-meta">
+                Goal requiring most attention
+            </div>
+
+        </div>
+
+
+        <div class="spr-highlight">
+
+            <div class="spr-highlight-label">
+                Most Saved
+            </div>
+
+            <div class="spr-highlight-name">
+                {{ highest_saved_saving.name|default('No saving') }}
+            </div>
+
+            <div class="spr-highlight-value">
+                {{ "%.2f"|format(highest_saved|default(0)|float) }}
+                {{ currency|default('USD') }}
+            </div>
+
+            <div class="spr-highlight-meta">
+                Highest amount currently saved
+            </div>
+
+        </div>
+
+
+        <div class="spr-highlight">
+
+            <div class="spr-highlight-label">
+                Inactive Goals
+            </div>
+
+            <div class="spr-highlight-name">
+                Savings requiring attention
+            </div>
+
+            <div class="spr-highlight-value">
+                {{ inactive_savings|default(0) }}
+            </div>
+
+            <div class="spr-highlight-meta">
+                Inactive saving goals
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="spr-panel spr-filter-panel">
+
+        <div class="spr-panel-header">
+
+            <div>
+                <h2 class="spr-panel-title">
+                    Filter Saving Goals
+                </h2>
+
+                <p class="spr-panel-subtitle">
+                    Search and filter the saving progress table
+                </p>
+            </div>
+
+        </div>
+
+        <div class="spr-filter-body">
+
+            <div class="spr-filter-grid">
+
+                <div class="spr-field">
+
+                    <label for="sprSearch">
+                        Search
+                    </label>
+
+                    <input
+                        type="text"
+                        id="sprSearch"
+                        placeholder="Search saving, account, category..."
+                    >
+
+                </div>
+
+
+                <div class="spr-field">
+
+                    <label for="sprAccount">
+                        Account
+                    </label>
+
+                    <select id="sprAccount">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account in progress_by_account|default([]) %}
+
+                            <option value="{{ account.name|default('')|lower }}">
+                                {{ account.name|default('Unknown') }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="spr-field">
+
+                    <label for="sprCategory">
+                        Category
+                    </label>
+
+                    <select id="sprCategory">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in report_saving_categories|default([]) %}
+
+                            <option value="{{ category|string|lower }}">
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="spr-field">
+
+                    <label for="sprStatus">
+                        Status
+                    </label>
+
+                    <select id="sprStatus">
+
+                        <option value="">
+                            All Statuses
+                        </option>
+
+                        {% for status in report_saving_statuses|default([]) %}
+
+                            <option value="{{ status|string|lower }}">
+                                {{ status }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="spr-field">
+
+                    <label for="sprCurrency">
+                        Currency
+                    </label>
+
+                    <select id="sprCurrency">
+
+                        <option value="">
+                            All Currencies
+                        </option>
+
+                        {% for curr in report_currencies|default([]) %}
+
+                            <option value="{{ curr|string|lower }}">
+                                {{ curr }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="spr-filter-actions">
+
+                    <button
+                        type="button"
+                        class="spr-btn spr-btn-primary"
+                        onclick="applySavingFilters()"
+                    >
+                        <i data-feather="filter"></i>
+                        Filter
+                    </button>
+
+                    <button
+                        type="button"
+                        class="spr-btn spr-btn-dark"
+                        onclick="resetSavingFilters()"
+                    >
+                        <i data-feather="x"></i>
+                        Reset
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FULL SAVINGS TABLE
+         ======================================================== -->
+
+    <section class="spr-panel spr-table-panel">
+
+        <div class="spr-panel-header">
+
+            <div>
+                <h2 class="spr-panel-title">
+                    Saving Goals Progress
+                </h2>
+
+                <p class="spr-panel-subtitle">
+                    Complete saving goal performance details
+                </p>
+            </div>
+
+            <span
+                class="spr-badge spr-badge-info"
+                id="sprVisibleCount"
+            >
+                {{ savings|default([])|length }} records
+            </span>
+
+        </div>
+
+
+        <div class="spr-table-wrap">
+
+            <table
+                class="spr-table"
+                id="savingProgressTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+                        <th>Saving Goal</th>
+                        <th>Account</th>
+                        <th>Category</th>
+                        <th>Target</th>
+                        <th>Saved</th>
+                        <th>Remaining</th>
+                        <th>Progress</th>
+                        <th>Status</th>
+                        <th>Transactions</th>
+                        <th>Last Activity</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for saving in savings|default([]) %}
+
+                        {% set saving_pct =
+                            saving.progress_percentage
+                            |default(0)
+                            |float
+                        %}
+
+                        {% if saving_pct < 0 %}
+                            {% set saving_pct = 0 %}
+                        {% endif %}
+
+                        {% if saving_pct > 100 %}
+                            {% set saving_pct = 100 %}
+                        {% endif %}
+
+
+                        <tr
+                            data-name="{{ saving.name|default('')|lower }}"
+                            data-account="{{ saving.account_name|default('')|lower }}"
+                            data-category="{{ saving.category|default('')|lower }}"
+                            data-status="{{ saving.status|default('')|lower }}"
+                            data-currency="{{ saving.currency|default(currency|default('USD'))|lower }}"
+                        >
+
+                            <td>
+
+                                <div class="spr-rank">
+                                    {{ saving.rank|default(loop.index) }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="spr-saving-name">
+                                    {{ saving.name|default('Unnamed Saving') }}
+                                </div>
+
+                                <div class="spr-saving-meta">
+                                    {{ saving.description|default('Saving goal') }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+                                {{ saving.account_name|default('Unknown Account') }}
+                            </td>
+
+
+                            <td>
+                                {{ saving.category|default('Uncategorized') }}
+                            </td>
+
+
+                            <td>
+
+                                <span class="spr-amount">
+                                    {{ "%.2f"|format(saving.target_amount|default(0)|float) }}
+                                </span>
+
+                                <small>
+                                    {{ saving.currency|default(currency|default('USD')) }}
+                                </small>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="spr-amount">
+                                    {{ "%.2f"|format(saving.saved_amount|default(0)|float) }}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="spr-remaining">
+                                    {{ "%.2f"|format(saving.remaining_amount|default(0)|float) }}
+                                </span>
+
+                            </td>
+
+
+                            <td class="spr-progress-cell">
+
+                                <div class="spr-progress-cell-top">
+
+                                    <span>
+                                        {{ saving_pct|round(1) }}%
+                                    </span>
+
+                                    <span>
+                                        {{ saving.progress_status|default('N/A') }}
+                                    </span>
+
+                                </div>
+
+                                <div class="spr-small-bar">
+
+                                    <div
+                                        class="spr-small-fill"
+                                        style="
+                                            width: {{ saving_pct|round(2) }}%;
+                                            background:
+                                            {% if saving_pct >= 100 %}
+                                                #16a34a
+                                            {% elif saving_pct >= 75 %}
+                                                #2563eb
+                                            {% elif saving_pct >= 50 %}
+                                                #0891b2
+                                            {% elif saving_pct >= 25 %}
+                                                #d97706
+                                            {% else %}
+                                                #dc2626
+                                            {% endif %};
+                                        "
+                                    ></div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                {% set current_status =
+                                    saving.progress_status
+                                    |default(saving.status|default('Unknown'))
+                                    |string
+                                    |lower
+                                %}
+
+                                {% if 'complete' in current_status
+                                    or '100' in current_status %}
+
+                                    <span class="spr-badge spr-badge-success">
+                                        {{ saving.progress_status|default('Completed') }}
+                                    </span>
+
+                                {% elif 'good' in current_status
+                                    or saving_pct >= 75 %}
+
+                                    <span class="spr-badge spr-badge-success">
+                                        {{ saving.progress_status|default('Good Progress') }}
+                                    </span>
+
+                                {% elif saving_pct >= 50 %}
+
+                                    <span class="spr-badge spr-badge-info">
+                                        {{ saving.progress_status|default('Moderate') }}
+                                    </span>
+
+                                {% elif saving_pct >= 25 %}
+
+                                    <span class="spr-badge spr-badge-warning">
+                                        {{ saving.progress_status|default('Needs Attention') }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="spr-badge spr-badge-danger">
+                                        {{ saving.progress_status|default('Low Progress') }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+                                {{ saving.transaction_count|default(0) }}
+                            </td>
+
+
+                            <td>
+                                {{ saving.last_activity_display|default('No activity') }}
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="11">
+
+                                <div class="spr-empty">
+
+                                    <div class="spr-empty-icon">
+                                        <i data-feather="target"></i>
+                                    </div>
+
+                                    <div class="spr-empty-title">
+                                        No Saving Goals Found
+                                    </div>
+
+                                    <div class="spr-empty-text">
+                                        There are currently no saving goals
+                                        available for this report.
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP 5 LISTS
+         ======================================================== -->
+
+    <section class="spr-list-grid">
+
+        <!-- TOP SAVED -->
+
+        <div class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Top 5 Most Saved
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Goals with the highest saved amounts
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                <ul class="spr-list">
+
+                    {% for saving in top_5_saved_savings|default([]) %}
+
+                        <li class="spr-list-item">
+
+                            <div class="spr-list-number">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="spr-list-content">
+
+                                <div class="spr-list-name">
+                                    {{ saving.name|default('Unnamed') }}
+                                </div>
+
+                                <div class="spr-list-meta">
+                                    {{ saving.account_name|default('Unknown') }}
+                                </div>
+
+                            </div>
+
+                            <div class="spr-list-value">
+                                {{ "%.2f"|format(saving.saved_amount|default(0)|float) }}
+                            </div>
+
+                        </li>
+
+                    {% else %}
+
+                        <li class="spr-empty">
+                            No data
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP PROGRESS -->
+
+        <div class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Top 5 Progress
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Goals closest to completion
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                <ul class="spr-list">
+
+                    {% for saving in top_5_progress_savings|default([]) %}
+
+                        <li class="spr-list-item">
+
+                            <div class="spr-list-number">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="spr-list-content">
+
+                                <div class="spr-list-name">
+                                    {{ saving.name|default('Unnamed') }}
+                                </div>
+
+                                <div class="spr-list-meta">
+                                    {{ saving.saved_amount|default(0) }}
+                                    /
+                                    {{ saving.target_amount|default(0) }}
+                                </div>
+
+                            </div>
+
+                            <div class="spr-list-value">
+                                {{ "%.1f"|format(saving.progress_percentage|default(0)|float) }}%
+                            </div>
+
+                        </li>
+
+                    {% else %}
+
+                        <li class="spr-empty">
+                            No data
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+        </div>
+
+
+        <!-- MOST REMAINING -->
+
+        <div class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Top 5 Remaining
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Goals with the largest remaining targets
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                <ul class="spr-list">
+
+                    {% for saving in top_5_remaining_savings|default([]) %}
+
+                        <li class="spr-list-item">
+
+                            <div class="spr-list-number">
+                                {{ loop.index }}
+                            </div>
+
+                            <div class="spr-list-content">
+
+                                <div class="spr-list-name">
+                                    {{ saving.name|default('Unnamed') }}
+                                </div>
+
+                                <div class="spr-list-meta">
+                                    {{ "%.1f"|format(saving.progress_percentage|default(0)|float) }}%
+                                    complete
+                                </div>
+
+                            </div>
+
+                            <div class="spr-list-value">
+                                {{ "%.2f"|format(saving.remaining_amount|default(0)|float) }}
+                            </div>
+
+                        </li>
+
+                    {% else %}
+
+                        <li class="spr-empty">
+                            No data
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ACCOUNT + CATEGORY ANALYSIS
+         ======================================================== -->
+
+    <section class="spr-analysis-grid">
+
+        <!-- ACCOUNT -->
+
+        <div class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Progress by Account
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Saving performance grouped by account
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                {% for group in progress_by_account|default([]) %}
+
+                    {% set account_progress =
+                        group.progress
+                        |default(group.percentage|default(0))
+                        |float
+                    %}
+
+                    {% if account_progress < 0 %}
+                        {% set account_progress = 0 %}
+                    {% endif %}
+
+                    {% if account_progress > 100 %}
+                        {% set account_progress = 100 %}
+                    {% endif %}
+
+                    <div class="spr-analysis-row">
+
+                        <div class="spr-analysis-top">
+
+                            <span class="spr-analysis-name">
+                                {{ group.name|default('Unknown Account') }}
+                            </span>
+
+                            <span class="spr-analysis-percent">
+                                {{ account_progress|round(1) }}%
+                            </span>
+
+                        </div>
+
+                        <div class="spr-analysis-bar">
+
+                            <div
+                                class="spr-analysis-fill"
+                                style="width: {{ account_progress|round(2) }}%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="spr-empty">
+
+                        <div class="spr-empty-icon">
+                            <i data-feather="credit-card"></i>
+                        </div>
+
+                        <div class="spr-empty-title">
+                            No Account Data
+                        </div>
+
+                        <div class="spr-empty-text">
+                            Account progress is not available.
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORY -->
+
+        <div class="spr-panel">
+
+            <div class="spr-panel-header">
+
+                <div>
+                    <h2 class="spr-panel-title">
+                        Progress by Category
+                    </h2>
+
+                    <p class="spr-panel-subtitle">
+                        Saving performance grouped by category
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="spr-panel-body">
+
+                {% for group in progress_by_category|default([]) %}
+
+                    {% set category_progress =
+                        group.progress
+                        |default(group.percentage|default(0))
+                        |float
+                    %}
+
+                    {% if category_progress < 0 %}
+                        {% set category_progress = 0 %}
+                    {% endif %}
+
+                    {% if category_progress > 100 %}
+                        {% set category_progress = 100 %}
+                    {% endif %}
+
+                    <div class="spr-analysis-row">
+
+                        <div class="spr-analysis-top">
+
+                            <span class="spr-analysis-name">
+                                {{ group.name|default('Unknown Category') }}
+                            </span>
+
+                            <span class="spr-analysis-percent">
+                                {{ category_progress|round(1) }}%
+                            </span>
+
+                        </div>
+
+                        <div class="spr-analysis-bar">
+
+                            <div
+                                class="spr-analysis-fill"
+                                style="width: {{ category_progress|round(2) }}%;"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="spr-empty">
+
+                        <div class="spr-empty-icon">
+                            <i data-feather="layers"></i>
+                        </div>
+
+                        <div class="spr-empty-title">
+                            No Category Data
+                        </div>
+
+                        <div class="spr-empty-text">
+                            Category progress is not available.
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <footer class="spr-footer">
+
+        <div>
+            <strong>Saving Progress Report</strong>
+            <span> — Advanced Financial Analytics</span>
+        </div>
+
+        <div>
+            {{ generated_at|default('N/A') }}
+        </div>
+
+    </footer>
+
+</div>
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+    initializeSavingFilters();
+
+});
+
+
+/* ============================================================
+   FILTER INITIALIZATION
+   ============================================================ */
+
+function initializeSavingFilters() {
+
+    const search = document.getElementById("sprSearch");
+    const account = document.getElementById("sprAccount");
+    const category = document.getElementById("sprCategory");
+    const status = document.getElementById("sprStatus");
+    const currency = document.getElementById("sprCurrency");
+
+    [
+        search,
+        account,
+        category,
+        status,
+        currency
+    ].forEach(function (element) {
+
+        if (!element) return;
+
+        element.addEventListener("input", applySavingFilters);
+        element.addEventListener("change", applySavingFilters);
+
+    });
+
+}
+
+
+/* ============================================================
+   APPLY FILTERS
+   ============================================================ */
+
+function applySavingFilters() {
+
+    const searchValue =
+        (document.getElementById("sprSearch")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const accountValue =
+        (document.getElementById("sprAccount")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const categoryValue =
+        (document.getElementById("sprCategory")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const statusValue =
+        (document.getElementById("sprStatus")?.value || "")
+        .trim()
+        .toLowerCase();
+
+    const currencyValue =
+        (document.getElementById("sprCurrency")?.value || "")
+        .trim()
+        .toLowerCase();
+
+
+    const rows =
+        document.querySelectorAll(
+            "#savingProgressTable tbody tr[data-name]"
+        );
+
+
+    let visible = 0;
+
+
+    rows.forEach(function (row) {
+
+        const name =
+            row.dataset.name || "";
+
+        const account =
+            row.dataset.account || "";
+
+        const category =
+            row.dataset.category || "";
+
+        const status =
+            row.dataset.status || "";
+
+        const currency =
+            row.dataset.currency || "";
+
+
+        const searchMatch =
+            !searchValue ||
+            name.includes(searchValue) ||
+            account.includes(searchValue) ||
+            category.includes(searchValue) ||
+            status.includes(searchValue);
+
+
+        const accountMatch =
+            !accountValue ||
+            account === accountValue;
+
+
+        const categoryMatch =
+            !categoryValue ||
+            category === categoryValue;
+
+
+        const statusMatch =
+            !statusValue ||
+            status === statusValue;
+
+
+        const currencyMatch =
+            !currencyValue ||
+            currency === currencyValue;
+
+
+        const show =
+            searchMatch &&
+            accountMatch &&
+            categoryMatch &&
+            statusMatch &&
+            currencyMatch;
+
+
+        row.style.display =
+            show ? "" : "none";
+
+
+        if (show) {
+            visible++;
+        }
+
+    });
+
+
+    const counter =
+        document.getElementById("sprVisibleCount");
+
+
+    if (counter) {
+
+        counter.textContent =
+            visible + " records";
+
+    }
+
+}
+
+
+/* ============================================================
+   RESET FILTERS
+   ============================================================ */
+
+function resetSavingFilters() {
+
+    const ids = [
+        "sprSearch",
+        "sprAccount",
+        "sprCategory",
+        "sprStatus",
+        "sprCurrency"
+    ];
+
+
+    ids.forEach(function (id) {
+
+        const element =
+            document.getElementById(id);
+
+        if (!element) return;
+
+        element.value = "";
+
+    });
+
+
+    applySavingFilters();
+
+}
+
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+
+function exportSavingProgressCSV() {
+
+    const table =
+        document.getElementById("savingProgressTable");
+
+    if (!table) {
+        return;
+    }
+
+
+    const rows =
+        table.querySelectorAll("tr");
+
+
+    const csv = [];
+
+
+    rows.forEach(function (row) {
+
+        if (row.style.display === "none") {
+            return;
+        }
+
+
+        const cells =
+            row.querySelectorAll("th, td");
+
+
+        const rowData = [];
+
+
+        cells.forEach(function (cell) {
+
+            let text =
+                cell.innerText
+                .replace(/\s+/g, " ")
+                .trim();
+
+
+            text =
+                '"' +
+                text.replace(/"/g, '""') +
+                '"';
+
+
+            rowData.push(text);
+
+        });
+
+
+        csv.push(rowData.join(","));
+
+    });
+
+
+    const blob =
+        new Blob(
+            [csv.join("\n")],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href = url;
+
+    link.download =
+        "saving_progress_report.csv";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* ============================================================
+   ESC KEY RESET
+   ============================================================ */
+
+document.addEventListener("keydown", function (event) {
+
+    if (event.key === "Escape") {
+
+        const search =
+            document.getElementById("sprSearch");
+
+        if (search && search.value) {
+
+            search.value = "";
+
+            applySavingFilters();
+
+        }
+
+    }
+
+});
+</script>
+
+{% endblock %}
+

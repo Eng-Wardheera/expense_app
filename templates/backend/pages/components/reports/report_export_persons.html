@@ -1,0 +1,3123 @@
+
+{% extends "backend/home/base.html" %}
+
+{% block title %}
+Persons Report
+{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   PERSONS REPORT
+   PURE CSS
+   NO BOOTSTRAP
+   ============================================================ */
+
+:root {
+    --pe-primary: #2563eb;
+    --pe-primary-dark: #1d4ed8;
+    --pe-primary-soft: #eff6ff;
+
+    --pe-green: #16a34a;
+    --pe-green-soft: #f0fdf4;
+
+    --pe-red: #dc2626;
+    --pe-red-soft: #fef2f2;
+
+    --pe-orange: #ea580c;
+    --pe-orange-soft: #fff7ed;
+
+    --pe-purple: #7c3aed;
+    --pe-purple-soft: #f5f3ff;
+
+    --pe-text: #172033;
+    --pe-muted: #64748b;
+
+    --pe-border: #e2e8f0;
+    --pe-border-light: #eef2f7;
+
+    --pe-bg: #f8fafc;
+    --pe-white: #ffffff;
+
+    --pe-radius: 18px;
+    --pe-radius-sm: 12px;
+
+    --pe-shadow:
+        0 8px 30px rgba(15, 23, 42, .07);
+
+    --pe-shadow-lg:
+        0 20px 60px rgba(15, 23, 42, .15);
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.pe-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--pe-bg);
+    color: var(--pe-text);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.pe-container {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.pe-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.pe-header-left {
+    min-width: 0;
+}
+
+.pe-title {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    color: var(--pe-text);
+}
+
+.pe-subtitle {
+    margin: 7px 0 0;
+    color: var(--pe-muted);
+    font-size: 14px;
+}
+
+.pe-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.pe-btn {
+    border: 1px solid transparent;
+    border-radius: 12px;
+    min-height: 42px;
+    padding: 0 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    transition:
+        transform .15s ease,
+        box-shadow .15s ease,
+        background .15s ease,
+        border-color .15s ease;
+    white-space: nowrap;
+}
+
+.pe-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pe-btn:active {
+    transform: translateY(0);
+}
+
+.pe-btn-primary {
+    background: var(--pe-primary);
+    color: #fff;
+    box-shadow: 0 7px 18px rgba(37, 99, 235, .20);
+}
+
+.pe-btn-primary:hover {
+    background: var(--pe-primary-dark);
+}
+
+.pe-btn-light {
+    background: #fff;
+    color: var(--pe-text);
+    border-color: var(--pe-border);
+}
+
+.pe-btn-light:hover {
+    background: #f8fafc;
+}
+
+.pe-btn-green {
+    background: var(--pe-green);
+    color: #fff;
+}
+
+.pe-btn-red {
+    background: var(--pe-red);
+    color: #fff;
+}
+
+.pe-btn-purple {
+    background: var(--pe-purple);
+    color: #fff;
+}
+
+.pe-btn-orange {
+    background: var(--pe-orange);
+    color: #fff;
+}
+
+.pe-btn-sm {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 12px;
+    border-radius: 10px;
+}
+
+/* ============================================================
+   QUICK RANGE BAR
+   ============================================================ */
+
+.pe-toolbar {
+    background: var(--pe-white);
+    border: 1px solid var(--pe-border);
+    border-radius: var(--pe-radius);
+    box-shadow: var(--pe-shadow);
+    padding: 15px;
+    margin-bottom: 18px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.pe-range-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.pe-range-label {
+    color: var(--pe-muted);
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.pe-range {
+    border: 1px solid var(--pe-border);
+    background: #fff;
+    color: var(--pe-text);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s ease;
+}
+
+.pe-range:hover {
+    border-color: #bfdbfe;
+    background: var(--pe-primary-soft);
+    color: var(--pe-primary);
+}
+
+.pe-range.active {
+    border-color: var(--pe-primary);
+    background: var(--pe-primary);
+    color: #fff;
+}
+
+.pe-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   FILTER CHIPS
+   ============================================================ */
+
+.pe-filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+
+.pe-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid var(--pe-border);
+    color: var(--pe-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.pe-chip strong {
+    color: var(--pe-text);
+}
+
+.pe-chip-clear {
+    color: var(--pe-red);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+/* ============================================================
+   STAT CARDS
+   ============================================================ */
+
+.pe-stats {
+    display: grid;
+    grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.pe-stat {
+    background: #fff;
+    border: 1px solid var(--pe-border);
+    border-radius: var(--pe-radius);
+    padding: 18px;
+    box-shadow: var(--pe-shadow);
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.pe-stat::after {
+    content: "";
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    right: -35px;
+    top: -35px;
+    background: var(--pe-primary-soft);
+}
+
+.pe-stat-top {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.pe-stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pe-primary-soft);
+    color: var(--pe-primary);
+    font-size: 18px;
+}
+
+.pe-stat-label {
+    color: var(--pe-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pe-stat-value {
+    margin-top: 11px;
+    font-size: 24px;
+    line-height: 1.1;
+    font-weight: 850;
+    letter-spacing: -.4px;
+}
+
+.pe-stat-income .pe-stat-icon {
+    background: var(--pe-green-soft);
+    color: var(--pe-green);
+}
+
+.pe-stat-income::after {
+    background: var(--pe-green-soft);
+}
+
+.pe-stat-expense .pe-stat-icon {
+    background: var(--pe-red-soft);
+    color: var(--pe-red);
+}
+
+.pe-stat-expense::after {
+    background: var(--pe-red-soft);
+}
+
+.pe-stat-balance .pe-stat-icon {
+    background: var(--pe-purple-soft);
+    color: var(--pe-purple);
+}
+
+.pe-stat-balance::after {
+    background: var(--pe-purple-soft);
+}
+
+.pe-stat-transactions .pe-stat-icon {
+    background: var(--pe-orange-soft);
+    color: var(--pe-orange);
+}
+
+.pe-stat-transactions::after {
+    background: var(--pe-orange-soft);
+}
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.pe-insights {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.pe-insight {
+    background: #fff;
+    border: 1px solid var(--pe-border);
+    border-radius: var(--pe-radius);
+    padding: 16px;
+    box-shadow: var(--pe-shadow);
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.pe-insight-icon {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pe-primary-soft);
+    color: var(--pe-primary);
+    font-size: 18px;
+}
+
+.pe-insight.expense .pe-insight-icon {
+    background: var(--pe-red-soft);
+    color: var(--pe-red);
+}
+
+.pe-insight.income .pe-insight-icon {
+    background: var(--pe-green-soft);
+    color: var(--pe-green);
+}
+
+.pe-insight-content {
+    min-width: 0;
+}
+
+.pe-insight-title {
+    font-size: 11px;
+    color: var(--pe-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.pe-insight-person {
+    margin-top: 3px;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.pe-insight-amount {
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* ============================================================
+   MAIN PANEL
+   ============================================================ */
+
+.pe-panel {
+    background: #fff;
+    border: 1px solid var(--pe-border);
+    border-radius: var(--pe-radius);
+    box-shadow: var(--pe-shadow);
+    overflow: hidden;
+}
+
+.pe-panel-header {
+    padding: 17px 18px;
+    border-bottom: 1px solid var(--pe-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.pe-panel-title {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.pe-panel-meta {
+    color: var(--pe-muted);
+    font-size: 12px;
+}
+
+.pe-search-wrap {
+    position: relative;
+    width: 280px;
+    max-width: 100%;
+}
+
+.pe-search {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--pe-border);
+    border-radius: 11px;
+    outline: none;
+    padding: 0 13px 0 38px;
+    font-size: 13px;
+    color: var(--pe-text);
+    background: #fff;
+    box-sizing: border-box;
+}
+
+.pe-search:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.pe-search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.pe-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.pe-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 980px;
+}
+
+.pe-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 800;
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--pe-border);
+    white-space: nowrap;
+}
+
+.pe-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--pe-border-light);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.pe-table tbody tr {
+    transition: background .12s ease;
+}
+
+.pe-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.pe-person {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 180px;
+}
+
+.pe-avatar {
+    width: 37px;
+    height: 37px;
+    flex: 0 0 37px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pe-primary-soft);
+    color: var(--pe-primary);
+    font-weight: 850;
+    font-size: 13px;
+}
+
+.pe-person-name {
+    font-weight: 800;
+    color: var(--pe-text);
+}
+
+.pe-person-sub {
+    margin-top: 2px;
+    color: var(--pe-muted);
+    font-size: 10px;
+}
+
+.pe-money {
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.pe-money-income {
+    color: var(--pe-green);
+}
+
+.pe-money-expense {
+    color: var(--pe-red);
+}
+
+.pe-money-positive {
+    color: var(--pe-green);
+}
+
+.pe-money-negative {
+    color: var(--pe-red);
+}
+
+.pe-money-neutral {
+    color: var(--pe-text);
+}
+
+.pe-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 9px;
+    background: #f1f5f9;
+    color: var(--pe-text);
+    font-weight: 800;
+}
+
+.pe-source-count {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pe-source-line {
+    font-size: 10px;
+    color: var(--pe-muted);
+}
+
+.pe-source-line strong {
+    color: var(--pe-text);
+}
+
+.pe-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 35px;
+    height: 35px;
+    border: 1px solid var(--pe-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--pe-primary);
+    cursor: pointer;
+    transition: all .15s ease;
+}
+
+.pe-action:hover {
+    background: var(--pe-primary-soft);
+    border-color: #bfdbfe;
+}
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.pe-empty {
+    padding: 65px 25px;
+    text-align: center;
+}
+
+.pe-empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 15px;
+    border-radius: 18px;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.pe-empty-title {
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.pe-empty-text {
+    margin-top: 6px;
+    color: var(--pe-muted);
+    font-size: 13px;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.pe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.pe-modal.show {
+    display: flex;
+}
+
+.pe-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .48);
+    backdrop-filter: blur(3px);
+}
+
+.pe-modal-card {
+    position: relative;
+    z-index: 2;
+    width: min(720px, 100%);
+    max-height: min(850px, 92vh);
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: var(--pe-shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.pe-modal-wide {
+    width: min(1100px, 100%);
+}
+
+.pe-modal-header {
+    padding: 17px 18px;
+    border-bottom: 1px solid var(--pe-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.pe-modal-title {
+    font-size: 16px;
+    font-weight: 850;
+}
+
+.pe-modal-close {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    border: 1px solid var(--pe-border);
+    background: #fff;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--pe-muted);
+}
+
+.pe-modal-body {
+    padding: 18px;
+    overflow-y: auto;
+}
+
+.pe-modal-footer {
+    padding: 14px 18px;
+    border-top: 1px solid var(--pe-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ============================================================
+   FILTER FORM
+   ============================================================ */
+
+.pe-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.pe-field {
+    min-width: 0;
+}
+
+.pe-field-full {
+    grid-column: 1 / -1;
+}
+
+.pe-label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--pe-text);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.pe-input,
+.pe-select {
+    width: 100%;
+    height: 42px;
+    box-sizing: border-box;
+    border: 1px solid var(--pe-border);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--pe-text);
+    padding: 0 12px;
+    font-size: 13px;
+    outline: none;
+}
+
+.pe-input:focus,
+.pe-select:focus {
+    border-color: #93c5fd;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+/* ============================================================
+   QUICK FILTERS
+   ============================================================ */
+
+.pe-quick-box {
+    padding: 13px;
+    border-radius: 13px;
+    background: #f8fafc;
+    border: 1px solid var(--pe-border-light);
+}
+
+.pe-quick-title {
+    font-size: 11px;
+    font-weight: 800;
+    margin-bottom: 9px;
+}
+
+.pe-quick-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.pe-quick-button {
+    border: 1px solid var(--pe-border);
+    background: #fff;
+    border-radius: 9px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pe-quick-button:hover {
+    background: var(--pe-primary-soft);
+    border-color: #bfdbfe;
+    color: var(--pe-primary);
+}
+
+/* ============================================================
+   DETAIL HEADER
+   ============================================================ */
+
+.pe-detail-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 17px;
+}
+
+.pe-detail-stat {
+    border: 1px solid var(--pe-border);
+    border-radius: 13px;
+    padding: 12px;
+    background: #f8fafc;
+}
+
+.pe-detail-stat-label {
+    color: var(--pe-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.pe-detail-stat-value {
+    margin-top: 5px;
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.pe-detail-table-wrap {
+    border: 1px solid var(--pe-border);
+    border-radius: 13px;
+    overflow: auto;
+}
+
+.pe-detail-table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+}
+
+.pe-detail-table th {
+    background: #f8fafc;
+    padding: 10px;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--pe-muted);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.pe-detail-table td {
+    padding: 10px;
+    border-top: 1px solid var(--pe-border-light);
+    font-size: 11px;
+}
+
+.pe-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 5px 8px;
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.pe-badge-income {
+    color: var(--pe-green);
+    background: var(--pe-green-soft);
+}
+
+.pe-badge-expense {
+    color: var(--pe-red);
+    background: var(--pe-red-soft);
+}
+
+.pe-badge-opening {
+    color: var(--pe-purple);
+    background: var(--pe-purple-soft);
+}
+
+.pe-badge-transaction {
+    color: var(--pe-primary);
+    background: var(--pe-primary-soft);
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.pe-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 10050;
+    min-width: 250px;
+    max-width: 380px;
+    background: #172033;
+    color: #fff;
+    border-radius: 13px;
+    padding: 13px 15px;
+    box-shadow: var(--pe-shadow-lg);
+    font-size: 12px;
+    font-weight: 700;
+    opacity: 0;
+    transform: translateY(15px);
+    pointer-events: none;
+    transition: all .2s ease;
+}
+
+.pe-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+
+    .pe-stats {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 850px) {
+
+    .pe-page {
+        padding: 15px;
+    }
+
+    .pe-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pe-header-actions {
+        width: 100%;
+    }
+
+    .pe-header-actions .pe-btn {
+        flex: 1;
+    }
+
+    .pe-stats {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .pe-insights {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .pe-toolbar-right {
+        width: 100%;
+    }
+
+    .pe-toolbar-right .pe-btn {
+        flex: 1;
+    }
+
+    .pe-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-field-full {
+        grid-column: auto;
+    }
+
+    .pe-detail-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 550px) {
+
+    .pe-page {
+        padding: 10px;
+    }
+
+    .pe-title {
+        font-size: 23px;
+    }
+
+    .pe-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .pe-stat-value {
+        font-size: 22px;
+    }
+
+    .pe-header-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pe-range-group {
+        width: 100%;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 3px;
+    }
+
+    .pe-range {
+        flex: 0 0 auto;
+    }
+
+    .pe-search-wrap {
+        width: 100%;
+    }
+
+    .pe-detail-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pe-modal {
+        padding: 8px;
+    }
+
+    .pe-modal-card {
+        border-radius: 16px;
+    }
+
+}
+</style>
+
+
+<div class="pe-page">
+
+    <div class="pe-container">
+
+        <!-- ==================================================
+             HEADER
+             ================================================== -->
+
+        <div class="pe-header">
+
+            <div class="pe-header-left">
+
+                <h1 class="pe-title">
+                    Persons Report
+                </h1>
+
+                <p class="pe-subtitle">
+                    Transactions + Person Opening Transactions
+                    combined into one person ledger.
+                </p>
+
+            </div>
+
+            <div class="pe-header-actions">
+
+                <button
+                    type="button"
+                    class="pe-btn pe-btn-light"
+                    onclick="openFilterModal()"
+                >
+                    ⚙
+                    Filters
+                </button>
+
+                <a
+                    class="pe-btn pe-btn-green"
+                    href="{{ url_for('main.report_export_persons',
+                        start_date=start_date_value,
+                        end_date=end_date_value,
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter,
+                        range=range_filter,
+                        format='xlsx'
+                    ) }}"
+                >
+                    ↓ Excel
+                </a>
+
+                <a
+                    class="pe-btn pe-btn-primary"
+                    href="{{ url_for('main.report_export_persons',
+                        start_date=start_date_value,
+                        end_date=end_date_value,
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter,
+                        range=range_filter,
+                        format='csv'
+                    ) }}"
+                >
+                    ↓ CSV
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             QUICK RANGE TOOLBAR
+             ================================================== -->
+
+        <div class="pe-toolbar">
+
+            <div class="pe-range-group">
+
+                <span class="pe-range-label">
+                    Quick range
+                </span>
+
+                <a
+                    class="pe-range {% if range_filter == '7' %}active{% endif %}"
+                    href="{{ url_for('main.report_export_persons',
+                        range='7',
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter
+                    ) }}"
+                >
+                    7 Days
+                </a>
+
+                <a
+                    class="pe-range {% if range_filter == '30' %}active{% endif %}"
+                    href="{{ url_for('main.report_export_persons',
+                        range='30',
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter
+                    ) }}"
+                >
+                    30 Days
+                </a>
+
+                <a
+                    class="pe-range {% if range_filter == '90' %}active{% endif %}"
+                    href="{{ url_for('main.report_export_persons',
+                        range='90',
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter
+                    ) }}"
+                >
+                    90 Days
+                </a>
+
+                <a
+                    class="pe-range {% if range_filter == 'month' %}active{% endif %}"
+                    href="{{ url_for('main.report_export_persons',
+                        range='month',
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter
+                    ) }}"
+                >
+                    This Month
+                </a>
+
+                <a
+                    class="pe-range {% if range_filter == 'all' %}active{% endif %}"
+                    href="{{ url_for('main.report_export_persons',
+                        range='all',
+                        person=person_filter,
+                        transaction_type=transaction_type_filter,
+                        account=account_filter,
+                        search=search_filter
+                    ) }}"
+                >
+                    All
+                </a>
+
+            </div>
+
+
+            <div class="pe-toolbar-right">
+
+                <span class="pe-panel-meta">
+                    {{ start_date_value or 'All' }}
+                    →
+                    {{ end_date_value or 'All' }}
+                </span>
+
+                <button
+                    type="button"
+                    class="pe-btn pe-btn-primary pe-btn-sm"
+                    onclick="openFilterModal()"
+                >
+                    + Custom Filter
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             FILTER CHIPS
+             ================================================== -->
+
+        <div class="pe-filter-chips">
+
+            {% if person_filter %}
+                <span class="pe-chip">
+                    Person:
+                    <strong>{{ person_filter }}</strong>
+                </span>
+            {% endif %}
+
+            {% if transaction_type_filter %}
+                <span class="pe-chip">
+                    Type:
+                    <strong>
+                        {{ transaction_type_filter|title }}
+                    </strong>
+                </span>
+            {% endif %}
+
+            {% if account_filter %}
+                <span class="pe-chip">
+                    Account:
+                    <strong>{{ account_filter }}</strong>
+                </span>
+            {% endif %}
+
+            {% if search_filter %}
+                <span class="pe-chip">
+                    Search:
+                    <strong>{{ search_filter }}</strong>
+                </span>
+            {% endif %}
+
+            {% if not person_filter
+                  and not transaction_type_filter
+                  and not account_filter
+                  and not search_filter %}
+
+                <span class="pe-chip">
+                    Report:
+                    <strong>All Persons</strong>
+                </span>
+
+            {% endif %}
+
+            {% if person_filter
+                  or transaction_type_filter
+                  or account_filter
+                  or search_filter
+                  or start_date_value
+                  or end_date_value %}
+
+                <a
+                    class="pe-chip pe-chip-clear"
+                    href="{{ url_for('main.report_export_persons', range='30') }}"
+                >
+                    Clear Filters ×
+                </a>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- ==================================================
+             STATISTICS
+             ================================================== -->
+
+        <div class="pe-stats">
+
+            <!-- PEOPLE -->
+
+            <div class="pe-stat">
+
+                <div class="pe-stat-top">
+
+                    <div class="pe-stat-label">
+                        People
+                    </div>
+
+                    <div class="pe-stat-icon">
+                        👥
+                    </div>
+
+                </div>
+
+                <div class="pe-stat-value">
+                    {{ total_people }}
+                </div>
+
+            </div>
+
+
+            <!-- INCOME -->
+
+            <div class="pe-stat pe-stat-income">
+
+                <div class="pe-stat-top">
+
+                    <div class="pe-stat-label">
+                        Total Income
+                    </div>
+
+                    <div class="pe-stat-icon">
+                        ↑
+                    </div>
+
+                </div>
+
+                <div class="pe-stat-value pe-money-income">
+                    ${{ "%.2f"|format(total_income|float) }}
+                </div>
+
+            </div>
+
+
+            <!-- EXPENSE -->
+
+            <div class="pe-stat pe-stat-expense">
+
+                <div class="pe-stat-top">
+
+                    <div class="pe-stat-label">
+                        Total Expense
+                    </div>
+
+                    <div class="pe-stat-icon">
+                        ↓
+                    </div>
+
+                </div>
+
+                <div class="pe-stat-value pe-money-expense">
+                    ${{ "%.2f"|format(total_expense|float) }}
+                </div>
+
+            </div>
+
+
+            <!-- BALANCE -->
+
+            <div class="pe-stat pe-stat-balance">
+
+                <div class="pe-stat-top">
+
+                    <div class="pe-stat-label">
+                        Net Balance
+                    </div>
+
+                    <div class="pe-stat-icon">
+                        $
+                    </div>
+
+                </div>
+
+                <div
+                    class="pe-stat-value
+                    {% if total_balance|float >= 0 %}
+                        pe-money-positive
+                    {% else %}
+                        pe-money-negative
+                    {% endif %}"
+                >
+                    ${{ "%.2f"|format(total_balance|float) }}
+                </div>
+
+            </div>
+
+
+            <!-- TRANSACTIONS -->
+
+            <div class="pe-stat pe-stat-transactions">
+
+                <div class="pe-stat-top">
+
+                    <div class="pe-stat-label">
+                        Total Entries
+                    </div>
+
+                    <div class="pe-stat-icon">
+                        #
+                    </div>
+
+                </div>
+
+                <div class="pe-stat-value">
+                    {{ total_transactions }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             INSIGHTS
+             ================================================== -->
+
+        {% if top_spender or top_income_person %}
+
+        <div class="pe-insights">
+
+            {% if top_spender %}
+
+            <div class="pe-insight expense">
+
+                <div class="pe-insight-icon">
+                    ↓
+                </div>
+
+                <div class="pe-insight-content">
+
+                    <div class="pe-insight-title">
+                        Highest Spender
+                    </div>
+
+                    <div class="pe-insight-person">
+                        {{ top_spender.person }}
+                    </div>
+
+                    <div class="pe-insight-amount pe-money-expense">
+                        ${{ "%.2f"|format(
+                            top_spender.total_expense|float
+                        ) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+
+            {% if top_income_person %}
+
+            <div class="pe-insight income">
+
+                <div class="pe-insight-icon">
+                    ↑
+                </div>
+
+                <div class="pe-insight-content">
+
+                    <div class="pe-insight-title">
+                        Highest Income
+                    </div>
+
+                    <div class="pe-insight-person">
+                        {{ top_income_person.person }}
+                    </div>
+
+                    <div class="pe-insight-amount pe-money-income">
+                        ${{ "%.2f"|format(
+                            top_income_person.total_income|float
+                        ) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- ==================================================
+             MAIN TABLE
+             ================================================== -->
+
+        <div class="pe-panel">
+
+            <div class="pe-panel-header">
+
+                <div>
+
+                    <div class="pe-panel-title">
+                        Person Ledger
+                    </div>
+
+                    <div class="pe-panel-meta">
+                        Both collections are combined
+                        into one report.
+                    </div>
+
+                </div>
+
+
+                <div class="pe-search-wrap">
+
+                    <span class="pe-search-icon">
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        id="personSearch"
+                        class="pe-search"
+                        placeholder="Search person..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+            </div>
+
+
+            {% if person_rows %}
+
+            <div class="pe-table-wrap">
+
+                <table
+                    class="pe-table"
+                    id="personsTable"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                #
+                            </th>
+
+                            <th>
+                                Person
+                            </th>
+
+                            <th>
+                                Income
+                            </th>
+
+                            <th>
+                                Expense
+                            </th>
+
+                            <th>
+                                Balance
+                            </th>
+
+                            <th>
+                                Entries
+                            </th>
+
+                            <th>
+                                Sources
+                            </th>
+
+                            <th>
+                                Account
+                            </th>
+
+                            <th>
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for row in person_rows %}
+
+                        {% set person_name =
+                            row.person|default(
+                                'Unknown',
+                                true
+                            )
+                        %}
+
+                        <tr
+                            class="pe-person-row"
+                            data-person="{{ person_name|lower }}"
+                        >
+
+                            <!-- NUMBER -->
+
+                            <td>
+
+                                <span class="pe-count">
+                                    {{ loop.index }}
+                                </span>
+
+                            </td>
+
+
+                            <!-- PERSON -->
+
+                            <td>
+
+                                <div class="pe-person">
+
+                                    <div class="pe-avatar">
+
+                                        {{ person_name[0]|upper
+                                           if person_name
+                                           else '?' }}
+
+                                    </div>
+
+                                    <div>
+
+                                        <div class="pe-person-name">
+                                            {{ person_name }}
+                                        </div>
+
+                                        <div class="pe-person-sub">
+
+                                            {{ row["categories"]|length }}
+                                            categories
+
+                                            {% if row["items"]|length %}
+                                                ·
+                                                {{ row["items"]|length }}
+                                                items
+                                            {% endif %}
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- INCOME -->
+
+                            <td>
+
+                                <span class="pe-money pe-money-income">
+
+                                    ${{ "%.2f"|format(
+                                        row.total_income|float
+                                    ) }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- EXPENSE -->
+
+                            <td>
+
+                                <span class="pe-money pe-money-expense">
+
+                                    ${{ "%.2f"|format(
+                                        row.total_expense|float
+                                    ) }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- BALANCE -->
+
+                            <td>
+
+                                {% if row.balance|float >= 0 %}
+
+                                    <span class="pe-money pe-money-positive">
+
+                                        +${{ "%.2f"|format(
+                                            row.balance|float
+                                        ) }}
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="pe-money pe-money-negative">
+
+                                        -${{ "%.2f"|format(
+                                            row.balance|float|abs
+                                        ) }}
+
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- ENTRIES -->
+
+                            <td>
+
+                                <span class="pe-count">
+
+                                    {{ row.transaction_count }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- SOURCES -->
+
+                            <td>
+
+                                <div class="pe-source-count">
+
+                                    <div class="pe-source-line">
+
+                                        Transactions:
+                                        <strong>
+                                            {{
+                                                row.transaction_count
+                                                -
+                                                row.opening_transaction_count
+                                            }}
+                                        </strong>
+
+                                    </div>
+
+                                    <div class="pe-source-line">
+
+                                        Opening:
+                                        <strong>
+                                            {{
+                                                row.opening_transaction_count
+                                            }}
+                                        </strong>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- ACCOUNTS -->
+
+                            <td>
+
+                                {% if row["accounts"] %}
+
+                                    <span class="pe-person-sub">
+
+                                        {{ row["accounts"]|join(', ') }}
+
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="pe-person-sub">
+                                        Unknown
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- ACTION -->
+
+                            <td>
+
+                                <button
+                                    type="button"
+                                    class="pe-action"
+                                    title="View details"
+                                    data-person-index="{{ loop.index0 }}"
+                                    onclick="openPersonDetails(this)"
+                                >
+                                    →
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- ==================================================
+                 NO SEARCH RESULT
+                 ================================================== -->
+
+            <div
+                class="pe-empty"
+                id="searchEmpty"
+                style="display:none;"
+            >
+
+                <div class="pe-empty-icon">
+                    🔍
+                </div>
+
+                <div class="pe-empty-title">
+                    No person found
+                </div>
+
+                <div class="pe-empty-text">
+                    Try another search term.
+                </div>
+
+            </div>
+
+
+            {% else %}
+
+            <!-- ==================================================
+                 EMPTY DATABASE / FILTER
+                 ================================================== -->
+
+            <div class="pe-empty">
+
+                <div class="pe-empty-icon">
+                    👥
+                </div>
+
+                <div class="pe-empty-title">
+                    No person transactions found
+                </div>
+
+                <div class="pe-empty-text">
+                    No matching records were found in
+                    transactions or
+                    person_opening_transactions.
+                </div>
+
+                <br>
+
+                <button
+                    type="button"
+                    class="pe-btn pe-btn-primary"
+                    onclick="openFilterModal()"
+                >
+                    Adjust Filters
+                </button>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     FILTER MODAL
+     ============================================================ -->
+
+<div
+    class="pe-modal"
+    id="filterModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="pe-modal-backdrop"
+        onclick="closeFilterModal()"
+    ></div>
+
+
+    <div class="pe-modal-card">
+
+        <div class="pe-modal-header">
+
+            <div class="pe-modal-title">
+                Filter Persons Report
+            </div>
+
+            <button
+                type="button"
+                class="pe-modal-close"
+                onclick="closeFilterModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_export_persons') }}"
+        >
+
+            <div class="pe-modal-body">
+
+                <!-- ==========================================
+                     QUICK FILTER
+                     ========================================== -->
+
+                <div class="pe-quick-box">
+
+                    <div class="pe-quick-title">
+                        Quick Date Range
+                    </div>
+
+                    <div class="pe-quick-buttons">
+
+                        <button
+                            type="button"
+                            class="pe-quick-button"
+                            onclick="setQuickRange('7')"
+                        >
+                            Last 7 Days
+                        </button>
+
+                        <button
+                            type="button"
+                            class="pe-quick-button"
+                            onclick="setQuickRange('30')"
+                        >
+                            Last 30 Days
+                        </button>
+
+                        <button
+                            type="button"
+                            class="pe-quick-button"
+                            onclick="setQuickRange('90')"
+                        >
+                            Last 90 Days
+                        </button>
+
+                        <button
+                            type="button"
+                            class="pe-quick-button"
+                            onclick="setQuickRange('month')"
+                        >
+                            This Month
+                        </button>
+
+                        <button
+                            type="button"
+                            class="pe-quick-button"
+                            onclick="setQuickRange('all')"
+                        >
+                            All
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <br>
+
+
+                <!-- ==========================================
+                     FILTER GRID
+                     ========================================== -->
+
+                <div class="pe-filter-grid">
+
+                    <!-- PERSON -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            Person
+                        </label>
+
+                        <input
+                            type="text"
+                            name="person"
+                            class="pe-input"
+                            value="{{ person_filter }}"
+                            placeholder="e.g. Samiro"
+                        >
+
+                    </div>
+
+
+                    <!-- TYPE -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            Transaction Type
+                        </label>
+
+                        <select
+                            name="transaction_type"
+                            class="pe-select"
+                        >
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            <option
+                                value="income"
+                                {% if transaction_type_filter == 'income' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Income
+                            </option>
+
+                            <option
+                                value="expense"
+                                {% if transaction_type_filter == 'expense' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Expense
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- ACCOUNT -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            Account
+                        </label>
+
+                        <select
+                            name="account"
+                            class="pe-select"
+                        >
+
+                            <option value="">
+                                All Accounts
+                            </option>
+
+                            {% for account in accounts %}
+
+                                <option
+                                    value="{{ account.name }}"
+                                    {% if account_filter == account.name %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ account.name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- SEARCH -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            Search
+                        </label>
+
+                        <input
+                            type="text"
+                            name="search"
+                            class="pe-input"
+                            value="{{ search_filter }}"
+                            placeholder="Category, item, note..."
+                        >
+
+                    </div>
+
+
+                    <!-- START DATE -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="start_date"
+                            id="filterStartDate"
+                            class="pe-input"
+                            value="{{ start_date_value }}"
+                        >
+
+                    </div>
+
+
+                    <!-- END DATE -->
+
+                    <div class="pe-field">
+
+                        <label class="pe-label">
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="end_date"
+                            id="filterEndDate"
+                            class="pe-input"
+                            value="{{ end_date_value }}"
+                        >
+
+                    </div>
+
+
+                    <!-- RANGE -->
+
+                    <div class="pe-field pe-field-full">
+
+                        <label class="pe-label">
+                            Range
+                        </label>
+
+                        <select
+                            name="range"
+                            id="filterRange"
+                            class="pe-select"
+                        >
+
+                            <option value="">
+                                Custom Date Range
+                            </option>
+
+                            <option
+                                value="7"
+                                {% if range_filter == '7' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Last 7 Days
+                            </option>
+
+                            <option
+                                value="30"
+                                {% if range_filter == '30' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Last 30 Days
+                            </option>
+
+                            <option
+                                value="90"
+                                {% if range_filter == '90' %}
+                                    selected
+                                {% endif %}
+                            >
+                                Last 90 Days
+                            </option>
+
+                            <option
+                                value="month"
+                                {% if range_filter == 'month' %}
+                                    selected
+                                {% endif %}
+                            >
+                                This Month
+                            </option>
+
+                            <option
+                                value="all"
+                                {% if range_filter == 'all' %}
+                                    selected
+                                {% endif %}
+                            >
+                                All Dates
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="pe-modal-footer">
+
+                <a
+                    href="{{ url_for(
+                        'main.report_export_persons',
+                        range='30'
+                    ) }}"
+                    class="pe-btn pe-btn-light"
+                >
+                    Reset
+                </a>
+
+                <button
+                    type="button"
+                    class="pe-btn pe-btn-light"
+                    onclick="closeFilterModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="pe-btn pe-btn-primary"
+                >
+                    Apply Filters
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     PERSON DETAILS MODAL
+     ============================================================ -->
+
+<div
+    class="pe-modal"
+    id="personDetailsModal"
+    aria-hidden="true"
+>
+
+    <div
+        class="pe-modal-backdrop"
+        onclick="closePersonDetails()"
+    ></div>
+
+
+    <div class="pe-modal-card pe-modal-wide">
+
+        <div class="pe-modal-header">
+
+            <div>
+
+                <div
+                    class="pe-modal-title"
+                    id="detailsPersonName"
+                >
+                    Person Details
+                </div>
+
+                <div
+                    class="pe-panel-meta"
+                    id="detailsPersonMeta"
+                >
+                    Combined transactions
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="pe-modal-close"
+                onclick="closePersonDetails()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="pe-modal-body">
+
+            <!-- SUMMARY -->
+
+            <div class="pe-detail-summary">
+
+                <div class="pe-detail-stat">
+
+                    <div class="pe-detail-stat-label">
+                        Income
+                    </div>
+
+                    <div
+                        class="pe-detail-stat-value pe-money-income"
+                        id="detailsIncome"
+                    >
+                        $0.00
+                    </div>
+
+                </div>
+
+
+                <div class="pe-detail-stat">
+
+                    <div class="pe-detail-stat-label">
+                        Expense
+                    </div>
+
+                    <div
+                        class="pe-detail-stat-value pe-money-expense"
+                        id="detailsExpense"
+                    >
+                        $0.00
+                    </div>
+
+                </div>
+
+
+                <div class="pe-detail-stat">
+
+                    <div class="pe-detail-stat-label">
+                        Balance
+                    </div>
+
+                    <div
+                        class="pe-detail-stat-value"
+                        id="detailsBalance"
+                    >
+                        $0.00
+                    </div>
+
+                </div>
+
+
+                <div class="pe-detail-stat">
+
+                    <div class="pe-detail-stat-label">
+                        Entries
+                    </div>
+
+                    <div
+                        class="pe-detail-stat-value"
+                        id="detailsCount"
+                    >
+                        0
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TRANSACTION TABLE -->
+
+            <div class="pe-detail-table-wrap">
+
+                <table class="pe-detail-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th>
+                                Account
+                            </th>
+
+                            <th>
+                                Source
+                            </th>
+
+                            <th>
+                                Note
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="detailsTransactions">
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <div class="pe-modal-footer">
+
+            <button
+                type="button"
+                class="pe-btn pe-btn-light"
+                onclick="closePersonDetails()"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+
+<div
+    class="pe-toast"
+    id="peToast"
+></div>
+
+
+<!-- ============================================================
+     DATA FOR JAVASCRIPT
+     ============================================================ -->
+
+<script>
+/*
+ * IMPORTANT:
+ * Route already converts ObjectId -> string.
+ * Therefore tojson is safe here.
+ */
+
+const PERSON_ROWS = {{ person_rows|tojson|safe }};
+
+
+/* ============================================================
+   MODAL HELPERS
+   ============================================================ */
+
+function openFilterModal() {
+
+    const modal =
+        document.getElementById("filterModal");
+
+    if (!modal) return;
+
+    modal.classList.add("show");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.style.overflow = "hidden";
+}
+
+
+function closeFilterModal() {
+
+    const modal =
+        document.getElementById("filterModal");
+
+    if (!modal) return;
+
+    modal.classList.remove("show");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.style.overflow = "";
+}
+
+
+/* ============================================================
+   QUICK RANGE
+   ============================================================ */
+
+function setQuickRange(range) {
+
+    const rangeInput =
+        document.getElementById("filterRange");
+
+    if (!rangeInput) return;
+
+    rangeInput.value = range;
+
+    const startInput =
+        document.getElementById("filterStartDate");
+
+    const endInput =
+        document.getElementById("filterEndDate");
+
+    /*
+     * Let server calculate the dates.
+     */
+
+    if (range === "all") {
+
+        if (startInput) {
+            startInput.value = "";
+        }
+
+        if (endInput) {
+            endInput.value = "";
+        }
+
+    }
+
+}
+
+
+/* ============================================================
+   PERSON DETAILS
+   ============================================================ */
+
+function openPersonDetails(button) {
+
+    const index =
+        Number(
+            button.getAttribute(
+                "data-person-index"
+            )
+        );
+
+    const row =
+        PERSON_ROWS[index];
+
+    if (!row) {
+
+        showToast(
+            "Person data not found."
+        );
+
+        return;
+    }
+
+    renderPersonDetails(row);
+
+    const modal =
+        document.getElementById(
+            "personDetailsModal"
+        );
+
+    if (!modal) return;
+
+    modal.classList.add("show");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+    document.body.style.overflow = "hidden";
+}
+
+
+function closePersonDetails() {
+
+    const modal =
+        document.getElementById(
+            "personDetailsModal"
+        );
+
+    if (!modal) return;
+
+    modal.classList.remove("show");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+    document.body.style.overflow = "";
+}
+
+
+/* ============================================================
+   FORMAT MONEY
+   ============================================================ */
+
+function formatMoney(value) {
+
+    const number =
+        Number(value || 0);
+
+    return "$" +
+        number.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+
+/* ============================================================
+   ESCAPE HTML
+   ============================================================ */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+/* ============================================================
+   RENDER PERSON DETAILS
+   ============================================================ */
+
+function renderPersonDetails(row) {
+
+    const name =
+        row.person || "Unknown";
+
+    const income =
+        Number(
+            row.total_income || 0
+        );
+
+    const expense =
+        Number(
+            row.total_expense || 0
+        );
+
+    const balance =
+        Number(
+            row.balance || 0
+        );
+
+    const transactions =
+        Array.isArray(
+            row.transactions
+        )
+        ? row.transactions
+        : [];
+
+
+    /*
+     * Header
+     */
+
+    document.getElementById(
+        "detailsPersonName"
+    ).textContent = name;
+
+
+    document.getElementById(
+        "detailsPersonMeta"
+    ).textContent =
+        transactions.length +
+        " combined entries from transactions + person opening transactions";
+
+
+    /*
+     * Summary
+     */
+
+    document.getElementById(
+        "detailsIncome"
+    ).textContent =
+        formatMoney(income);
+
+
+    document.getElementById(
+        "detailsExpense"
+    ).textContent =
+        formatMoney(expense);
+
+
+    const balanceElement =
+        document.getElementById(
+            "detailsBalance"
+        );
+
+    balanceElement.textContent =
+        formatMoney(balance);
+
+    balanceElement.classList.remove(
+        "pe-money-positive",
+        "pe-money-negative"
+    );
+
+    balanceElement.classList.add(
+        balance >= 0
+            ? "pe-money-positive"
+            : "pe-money-negative"
+    );
+
+
+    document.getElementById(
+        "detailsCount"
+    ).textContent =
+        transactions.length;
+
+
+    /*
+     * Details table
+     */
+
+    const tbody =
+        document.getElementById(
+            "detailsTransactions"
+        );
+
+    tbody.innerHTML = "";
+
+
+    if (!transactions.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8"
+                    style="
+                        text-align:center;
+                        padding:35px;
+                        color:#64748b;
+                    ">
+                    No transaction details.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    transactions.forEach(function(transaction) {
+
+        const type =
+            String(
+                transaction.type || "expense"
+            ).toLowerCase();
+
+        const source =
+            String(
+                transaction.source || ""
+            );
+
+
+        const typeBadge =
+            type === "income"
+                ? `
+                    <span class="pe-badge pe-badge-income">
+                        Income
+                    </span>
+                  `
+                : `
+                    <span class="pe-badge pe-badge-expense">
+                        Expense
+                    </span>
+                  `;
+
+
+        const sourceBadge =
+            source ===
+            "person_opening_transactions"
+
+                ? `
+                    <span class="pe-badge pe-badge-opening">
+                        Person Opening
+                    </span>
+                  `
+
+                : `
+                    <span class="pe-badge pe-badge-transaction">
+                        Transaction
+                    </span>
+                  `;
+
+
+        const amount =
+            Number(
+                transaction.amount || 0
+            );
+
+
+        const amountHtml =
+            type === "income"
+
+                ? `
+                    <span class="pe-money-income">
+                        +${formatMoney(amount)}
+                    </span>
+                  `
+
+                : `
+                    <span class="pe-money-expense">
+                        -${formatMoney(amount)}
+                    </span>
+                  `;
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        tr.innerHTML = `
+
+            <td>
+                ${escapeHtml(
+                    transaction.date || ""
+                )}
+            </td>
+
+            <td>
+                ${typeBadge}
+            </td>
+
+            <td>
+                <strong>
+                    ${amountHtml}
+                </strong>
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    transaction.category || ""
+                )}
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    transaction.item || ""
+                )}
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    transaction.account || ""
+                )}
+            </td>
+
+            <td>
+                ${sourceBadge}
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    transaction.note || ""
+                )}
+            </td>
+
+        `;
+
+
+        tbody.appendChild(tr);
+
+    });
+
+}
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+(function initPersonSearch() {
+
+    const input =
+        document.getElementById(
+            "personSearch"
+        );
+
+    if (!input) return;
+
+
+    input.addEventListener(
+        "input",
+        function() {
+
+            const query =
+                this.value
+                    .trim()
+                    .toLowerCase();
+
+
+            const rows =
+                document.querySelectorAll(
+                    ".pe-person-row"
+                );
+
+            let visible = 0;
+
+
+            rows.forEach(function(row) {
+
+                const person =
+                    row.getAttribute(
+                        "data-person"
+                    ) || "";
+
+
+                if (
+                    !query ||
+                    person.includes(query)
+                ) {
+
+                    row.style.display = "";
+
+                    visible++;
+
+                } else {
+
+                    row.style.display = "none";
+
+                }
+
+            });
+
+
+            const empty =
+                document.getElementById(
+                    "searchEmpty"
+                );
+
+            if (empty) {
+
+                empty.style.display =
+                    visible === 0
+                        ? ""
+                        : "none";
+
+            }
+
+        }
+    );
+
+})();
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+let toastTimer = null;
+
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById(
+            "peToast"
+        );
+
+    if (!toast) return;
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+
+    clearTimeout(toastTimer);
+
+
+    toastTimer =
+        setTimeout(
+            function() {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            2500
+        );
+
+}
+
+
+/* ============================================================
+   ESC KEY
+   ============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        closeFilterModal();
+
+        closePersonDetails();
+
+    }
+);
+
+
+/* ============================================================
+   CLICK OUTSIDE
+   ============================================================ */
+
+document.addEventListener(
+    "click",
+    function(event) {
+
+        /*
+         * Nothing here intentionally.
+         * Backdrops handle modal closing.
+         */
+
+    }
+);
+
+</script>
+
+{% endblock %}
+

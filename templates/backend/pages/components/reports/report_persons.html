@@ -1,0 +1,2810 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Persons Financial Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   PERSONS REPORT
+   Bootstrap-free responsive design
+   ============================================================ */
+
+.persons-report {
+    --pr-primary: #2563eb;
+    --pr-primary-dark: #1d4ed8;
+    --pr-success: #16a34a;
+    --pr-danger: #dc2626;
+    --pr-warning: #d97706;
+    --pr-info: #0891b2;
+    --pr-purple: #7c3aed;
+    --pr-dark: #111827;
+    --pr-text: #374151;
+    --pr-muted: #6b7280;
+    --pr-border: #e5e7eb;
+    --pr-bg: #f8fafc;
+    --pr-white: #ffffff;
+    --pr-radius: 16px;
+    --pr-shadow: 0 8px 25px rgba(15, 23, 42, .07);
+
+    width: 100%;
+    min-height: 100%;
+    background: var(--pr-bg);
+    color: var(--pr-text);
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.persons-report * {
+    box-sizing: border-box;
+}
+
+.persons-report button,
+.persons-report input,
+.persons-report select {
+    font: inherit;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.pr-header {
+    background: var(--pr-white);
+    border: 1px solid var(--pr-border);
+    border-radius: var(--pr-radius);
+    padding: 22px;
+    box-shadow: var(--pr-shadow);
+    margin-bottom: 20px;
+}
+
+.pr-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.pr-title-area {
+    min-width: 0;
+}
+
+.pr-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--pr-primary);
+    margin-bottom: 7px;
+}
+
+.pr-title {
+    margin: 0;
+    font-size: clamp(24px, 3vw, 34px);
+    line-height: 1.15;
+    font-weight: 900;
+    color: var(--pr-dark);
+}
+
+.pr-subtitle {
+    margin: 8px 0 0;
+    color: var(--pr-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.pr-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.pr-btn {
+    border: 1px solid var(--pr-border);
+    background: #fff;
+    color: var(--pr-dark);
+    min-height: 40px;
+    padding: 9px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: .2s ease;
+}
+
+.pr-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+}
+
+.pr-btn-primary {
+    background: var(--pr-primary);
+    border-color: var(--pr-primary);
+    color: #fff;
+}
+
+.pr-btn-primary:hover {
+    background: var(--pr-primary-dark);
+    color: #fff;
+}
+
+.pr-btn-dark {
+    background: var(--pr-dark);
+    border-color: var(--pr-dark);
+    color: #fff;
+}
+
+.pr-btn-danger {
+    color: var(--pr-danger);
+}
+
+.pr-breadcrumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 18px;
+    font-size: 12px;
+    color: var(--pr-muted);
+}
+
+.pr-breadcrumbs span:last-child {
+    color: var(--pr-dark);
+    font-weight: 800;
+}
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.pr-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--pr-border);
+}
+
+.pr-status-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.pr-status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--pr-success);
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, .10);
+}
+
+.pr-status-text {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--pr-success);
+}
+
+.pr-generated {
+    font-size: 12px;
+    color: var(--pr-muted);
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.pr-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.pr-kpi {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--pr-border);
+    border-radius: var(--pr-radius);
+    padding: 18px;
+    box-shadow: var(--pr-shadow);
+}
+
+.pr-kpi::after {
+    content: "";
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    right: -30px;
+    top: -30px;
+    background: rgba(37, 99, 235, .06);
+}
+
+.pr-kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(37, 99, 235, .10);
+    color: var(--pr-primary);
+    margin-bottom: 12px;
+}
+
+.pr-kpi.success .pr-kpi-icon {
+    background: rgba(22, 163, 74, .10);
+    color: var(--pr-success);
+}
+
+.pr-kpi.danger .pr-kpi-icon {
+    background: rgba(220, 38, 38, .10);
+    color: var(--pr-danger);
+}
+
+.pr-kpi.warning .pr-kpi-icon {
+    background: rgba(217, 119, 6, .10);
+    color: var(--pr-warning);
+}
+
+.pr-kpi.purple .pr-kpi-icon {
+    background: rgba(124, 58, 237, .10);
+    color: var(--pr-purple);
+}
+
+.pr-kpi-label {
+    color: var(--pr-muted);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.pr-kpi-value {
+    color: var(--pr-dark);
+    font-size: 25px;
+    line-height: 1.2;
+    font-weight: 900;
+    word-break: break-word;
+}
+
+.pr-kpi-value.positive {
+    color: var(--pr-success);
+}
+
+.pr-kpi-value.negative {
+    color: var(--pr-danger);
+}
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+
+.pr-section {
+    background: #fff;
+    border: 1px solid var(--pr-border);
+    border-radius: var(--pr-radius);
+    box-shadow: var(--pr-shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.pr-section-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--pr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.pr-section-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--pr-dark);
+}
+
+.pr-section-description {
+    margin: 4px 0 0;
+    color: var(--pr-muted);
+    font-size: 12px;
+}
+
+.pr-section-body {
+    padding: 20px;
+}
+
+/* ============================================================
+   TOP PERSONS
+   ============================================================ */
+
+.pr-top-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.pr-top-card {
+    border: 1px solid var(--pr-border);
+    border-radius: 14px;
+    padding: 16px;
+    background: #fff;
+}
+
+.pr-top-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.pr-top-card-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--pr-dark);
+}
+
+.pr-top-card-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pr-bg);
+    color: var(--pr-primary);
+}
+
+.pr-top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.pr-top-item {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) auto;
+    gap: 9px;
+    align-items: center;
+    padding: 9px;
+    border-radius: 10px;
+    background: var(--pr-bg);
+}
+
+.pr-rank {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid var(--pr-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--pr-primary);
+}
+
+.pr-person-name-small {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--pr-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pr-person-sub-small {
+    font-size: 10px;
+    color: var(--pr-muted);
+    margin-top: 2px;
+}
+
+.pr-top-amount {
+    text-align: right;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   HIGHLIGHTS
+   ============================================================ */
+
+.pr-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.pr-highlight {
+    border: 1px solid var(--pr-border);
+    border-radius: 14px;
+    padding: 17px;
+    background: #fff;
+}
+
+.pr-highlight-label {
+    color: var(--pr-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+}
+
+.pr-highlight-name {
+    margin-top: 7px;
+    color: var(--pr-dark);
+    font-size: 16px;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pr-highlight-amount {
+    margin-top: 5px;
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.pr-highlight.income .pr-highlight-amount {
+    color: var(--pr-success);
+}
+
+.pr-highlight.expense .pr-highlight-amount {
+    color: var(--pr-danger);
+}
+
+.pr-highlight.balance .pr-highlight-amount {
+    color: var(--pr-primary);
+}
+
+.pr-highlight.low .pr-highlight-amount {
+    color: var(--pr-warning);
+}
+
+.pr-highlight-meta {
+    margin-top: 5px;
+    color: var(--pr-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.pr-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(160px, 1fr)) auto;
+    gap: 10px;
+    padding: 16px;
+    background: var(--pr-bg);
+    border-bottom: 1px solid var(--pr-border);
+}
+
+.pr-input-wrap {
+    position: relative;
+}
+
+.pr-input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--pr-muted);
+    pointer-events: none;
+}
+
+.pr-input,
+.pr-select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--pr-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--pr-dark);
+    padding: 0 12px;
+    outline: none;
+    font-size: 13px;
+}
+
+.pr-input {
+    padding-left: 37px;
+}
+
+.pr-input:focus,
+.pr-select:focus {
+    border-color: var(--pr-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.pr-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.pr-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pr-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+}
+
+.pr-table th {
+    background: #f9fafb;
+    color: var(--pr-muted);
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--pr-border);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.pr-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid #f0f2f5;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.pr-table tbody tr {
+    transition: .15s ease;
+}
+
+.pr-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.pr-table tbody tr.hidden-row {
+    display: none;
+}
+
+.pr-person-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 210px;
+}
+
+.pr-avatar {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 11px;
+    background: #eff6ff;
+    color: var(--pr-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 13px;
+}
+
+.pr-person-main {
+    min-width: 0;
+}
+
+.pr-person-name {
+    color: var(--pr-dark);
+    font-weight: 900;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pr-person-rank {
+    margin-top: 3px;
+    color: var(--pr-muted);
+    font-size: 10px;
+}
+
+.pr-money {
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.pr-income {
+    color: var(--pr-success);
+}
+
+.pr-expense {
+    color: var(--pr-danger);
+}
+
+.pr-positive {
+    color: var(--pr-success);
+}
+
+.pr-negative {
+    color: var(--pr-danger);
+}
+
+.pr-zero {
+    color: var(--pr-muted);
+}
+
+.pr-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 25px;
+    padding: 0 8px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: var(--pr-dark);
+    font-weight: 900;
+    font-size: 11px;
+}
+
+.pr-category-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 230px;
+}
+
+.pr-tag {
+    display: inline-flex;
+    align-items: center;
+    max-width: 105px;
+    padding: 4px 7px;
+    border-radius: 7px;
+    background: #f3f4f6;
+    color: var(--pr-text);
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pr-more {
+    font-size: 9px;
+    color: var(--pr-muted);
+    padding: 4px 2px;
+    font-weight: 800;
+}
+
+.pr-date {
+    white-space: nowrap;
+    color: var(--pr-muted);
+    font-size: 11px;
+}
+
+.pr-invoice-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 34px;
+    padding: 7px 10px;
+    border-radius: 9px;
+    text-decoration: none;
+    color: var(--pr-primary);
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.pr-invoice-btn:hover {
+    background: #dbeafe;
+    color: var(--pr-primary-dark);
+}
+
+.pr-empty {
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.pr-empty-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 12px;
+    border-radius: 16px;
+    background: #f3f4f6;
+    color: var(--pr-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pr-empty-title {
+    color: var(--pr-dark);
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.pr-empty-text {
+    color: var(--pr-muted);
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   SUMMARY BARS
+   ============================================================ */
+
+.pr-money-analysis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.pr-analysis-card {
+    border: 1px solid var(--pr-border);
+    border-radius: 14px;
+    padding: 18px;
+}
+
+.pr-analysis-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.pr-analysis-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--pr-dark);
+}
+
+.pr-analysis-value {
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.pr-progress {
+    height: 10px;
+    background: #f1f5f9;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.pr-progress-bar {
+    height: 100%;
+    border-radius: 20px;
+    width: 0;
+}
+
+.pr-progress-income {
+    background: var(--pr-success);
+}
+
+.pr-progress-expense {
+    background: var(--pr-danger);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.pr-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    color: var(--pr-muted);
+    font-size: 11px;
+    padding: 6px 2px 25px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+    .pr-kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .pr-top-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pr-highlight-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pr-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 800px) {
+    .persons-report {
+        padding: 12px;
+    }
+
+    .pr-header-top {
+        flex-direction: column;
+    }
+
+    .pr-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .pr-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pr-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pr-money-analysis {
+        grid-template-columns: 1fr;
+    }
+
+    .pr-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .pr-filter-actions {
+        width: 100%;
+    }
+
+    .pr-filter-actions .pr-btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 520px) {
+    .persons-report {
+        padding: 8px;
+    }
+
+    .pr-header {
+        padding: 16px;
+    }
+
+    .pr-section-body {
+        padding: 14px;
+    }
+
+    .pr-section-header {
+        padding: 15px;
+    }
+
+    .pr-kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .pr-highlight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pr-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pr-actions .pr-btn:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .pr-title {
+        font-size: 24px;
+    }
+
+    .pr-kpi-value {
+        font-size: 23px;
+    }
+
+    .pr-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    .persons-report {
+        padding: 0;
+        background: #fff;
+    }
+
+    .pr-actions,
+    .pr-filters,
+    .pr-invoice-btn,
+    .pr-footer,
+    .pr-top-grid,
+    .pr-highlight-grid {
+        display: none !important;
+    }
+
+    .pr-header,
+    .pr-section,
+    .pr-kpi {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .pr-section {
+        break-inside: avoid;
+    }
+
+    .pr-table {
+        min-width: 0;
+    }
+
+    .pr-table th,
+    .pr-table td {
+        font-size: 9px;
+        padding: 7px;
+    }
+
+    .pr-table-wrap {
+        overflow: visible;
+    }
+
+    .pr-kpis {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+</style>
+
+
+<div class="persons-report">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="pr-header">
+
+        <div class="pr-header-top">
+
+            <div class="pr-title-area">
+
+                <div class="pr-eyebrow">
+                    <i data-feather="users"></i>
+                    Financial Reports
+                </div>
+
+                <h1 class="pr-title">
+                    Persons Financial Report
+                </h1>
+
+                <p class="pr-subtitle">
+                    Complete person-by-person financial activity
+                    combining normal transactions and manual/opening
+                    person transactions.
+                </p>
+
+            </div>
+
+
+            <div class="pr-actions">
+
+                <button
+                    type="button"
+                    class="pr-btn"
+                    onclick="goBack()"
+                >
+                    <i data-feather="arrow-left"></i>
+                    Back
+                </button>
+
+                <button
+                    type="button"
+                    class="pr-btn"
+                    onclick="window.print()"
+                >
+                    <i data-feather="printer"></i>
+                    Print
+                </button>
+
+                <button
+                    type="button"
+                    class="pr-btn pr-btn-primary"
+                    onclick="exportPersonsCSV()"
+                >
+                    <i data-feather="download"></i>
+                    Export CSV
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- Breadcrumb -->
+
+        <div class="pr-breadcrumbs">
+
+            <span>
+                <i data-feather="home"></i>
+            </span>
+
+            <span>Reports</span>
+
+            <span>›</span>
+
+            <span>Persons</span>
+
+        </div>
+
+
+        <!-- Status -->
+
+        <div class="pr-status">
+
+            <div class="pr-status-left">
+
+                <span class="pr-status-dot"></span>
+
+                <span class="pr-status-text">
+                    {% if report_persons_status|default('success') == 'success' %}
+                        Report Ready
+                    {% else %}
+                        Report Loaded
+                    {% endif %}
+                </span>
+
+            </div>
+
+            <div class="pr-generated">
+                Generated:
+                {{ generated_at|default(now|default('—')) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="pr-kpis">
+
+        <!-- Persons -->
+
+        <div class="pr-kpi">
+
+            <div class="pr-kpi-icon">
+                <i data-feather="users"></i>
+            </div>
+
+            <div class="pr-kpi-label">
+                Total Persons
+            </div>
+
+            <div class="pr-kpi-value">
+                {{ total_persons|default(0) }}
+            </div>
+
+        </div>
+
+
+        <!-- Income -->
+
+        <div class="pr-kpi success">
+
+            <div class="pr-kpi-icon">
+                <i data-feather="trending-up"></i>
+            </div>
+
+            <div class="pr-kpi-label">
+                Total Income
+            </div>
+
+            <div class="pr-kpi-value positive">
+                ${{ "%.2f"|format(total_income|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+
+        <div class="pr-kpi danger">
+
+            <div class="pr-kpi-icon">
+                <i data-feather="trending-down"></i>
+            </div>
+
+            <div class="pr-kpi-label">
+                Total Expense
+            </div>
+
+            <div class="pr-kpi-value negative">
+                ${{ "%.2f"|format(total_expense|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <!-- Balance -->
+
+        <div class="pr-kpi {% if total_balance|default(0)|float < 0 %}danger{% else %}success{% endif %}">
+
+            <div class="pr-kpi-icon">
+                <i data-feather="dollar-sign"></i>
+            </div>
+
+            <div class="pr-kpi-label">
+                Net Balance
+            </div>
+
+            <div class="pr-kpi-value {% if total_balance|default(0)|float >= 0 %}positive{% else %}negative{% endif %}">
+                ${{ "%.2f"|format(total_balance|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+
+        <div class="pr-kpi purple">
+
+            <div class="pr-kpi-icon">
+                <i data-feather="activity"></i>
+            </div>
+
+            <div class="pr-kpi-label">
+                Total Transactions
+            </div>
+
+            <div class="pr-kpi-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MONEY ANALYSIS
+         ======================================================== -->
+
+    <div class="pr-section">
+
+        <div class="pr-section-header">
+
+            <div>
+                <h2 class="pr-section-title">
+                    Financial Distribution
+                </h2>
+
+                <p class="pr-section-description">
+                    Income and expense distribution across all persons.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="pr-section-body">
+
+            <div class="pr-money-analysis">
+
+                <!-- Income -->
+
+                <div class="pr-analysis-card">
+
+                    <div class="pr-analysis-head">
+
+                        <div class="pr-analysis-title">
+                            Income
+                        </div>
+
+                        <div class="pr-analysis-value pr-income">
+                            {{ "%.1f"|format(income_percentage|default(0)|float) }}%
+                        </div>
+
+                    </div>
+
+                    <div class="pr-progress">
+
+                        <div
+                            class="pr-progress-bar pr-progress-income"
+                            style="width: {{ [income_percentage|default(0)|float, 100]|min }}%;"
+                        ></div>
+
+                    </div>
+
+                    <div style="margin-top:8px;font-size:11px;color:#6b7280;">
+                        {{ income_transaction_count|default(0) }}
+                        income transactions
+                    </div>
+
+                </div>
+
+
+                <!-- Expense -->
+
+                <div class="pr-analysis-card">
+
+                    <div class="pr-analysis-head">
+
+                        <div class="pr-analysis-title">
+                            Expense
+                        </div>
+
+                        <div class="pr-analysis-value pr-expense">
+                            {{ "%.1f"|format(expense_percentage|default(0)|float) }}%
+                        </div>
+
+                    </div>
+
+                    <div class="pr-progress">
+
+                        <div
+                            class="pr-progress-bar pr-progress-expense"
+                            style="width: {{ [expense_percentage|default(0)|float, 100]|min }}%;"
+                        ></div>
+
+                    </div>
+
+                    <div style="margin-top:8px;font-size:11px;color:#6b7280;">
+                        {{ expense_transaction_count|default(0) }}
+                        expense transactions
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP 5 PERSONS
+         ======================================================== -->
+
+    <div class="pr-section">
+
+        <div class="pr-section-header">
+
+            <div>
+
+                <h2 class="pr-section-title">
+                    Top Persons
+                </h2>
+
+                <p class="pr-section-description">
+                    Highest financial activity by different measurements.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="pr-section-body">
+
+            <div class="pr-top-grid">
+
+                <!-- TOP INCOME -->
+
+                <div class="pr-top-card">
+
+                    <div class="pr-top-card-header">
+
+                        <div class="pr-top-card-title">
+                            Top Income
+                        </div>
+
+                        <div class="pr-top-card-badge">
+                            <i data-feather="arrow-up"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="pr-top-list">
+
+                        {% for person in top_income_persons|default([]) %}
+
+                        <div class="pr-top-item">
+
+                            <div class="pr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pr-person-name-small">
+                                    {{ person['person_name']|default('Unknown') }}
+                                </div>
+
+                                <div class="pr-person-sub-small">
+                                    {{ person['total_transactions']|default(0) }}
+                                    transactions
+                                </div>
+
+                            </div>
+
+                            <div class="pr-top-amount pr-income">
+                                ${{ "%.2f"|format(person['total_income']|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                        {% else %}
+
+                        <div style="font-size:12px;color:#6b7280;">
+                            No income data.
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <!-- TOP EXPENSE -->
+
+                <div class="pr-top-card">
+
+                    <div class="pr-top-card-header">
+
+                        <div class="pr-top-card-title">
+                            Top Expense
+                        </div>
+
+                        <div class="pr-top-card-badge">
+                            <i data-feather="arrow-down"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="pr-top-list">
+
+                        {% for person in top_expense_persons|default([]) %}
+
+                        <div class="pr-top-item">
+
+                            <div class="pr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pr-person-name-small">
+                                    {{ person['person_name']|default('Unknown') }}
+                                </div>
+
+                                <div class="pr-person-sub-small">
+                                    {{ person['expense_count']|default(0) }}
+                                    expenses
+                                </div>
+
+                            </div>
+
+                            <div class="pr-top-amount pr-expense">
+                                ${{ "%.2f"|format(person['total_expense']|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                        {% else %}
+
+                        <div style="font-size:12px;color:#6b7280;">
+                            No expense data.
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <!-- TOP BALANCE -->
+
+                <div class="pr-top-card">
+
+                    <div class="pr-top-card-header">
+
+                        <div class="pr-top-card-title">
+                            Highest Balance
+                        </div>
+
+                        <div class="pr-top-card-badge">
+                            <i data-feather="bar-chart-2"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="pr-top-list">
+
+                        {% for person in top_balance_persons|default([]) %}
+
+                        <div class="pr-top-item">
+
+                            <div class="pr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pr-person-name-small">
+                                    {{ person['person_name']|default('Unknown') }}
+                                </div>
+
+                                <div class="pr-person-sub-small">
+                                    Net balance
+                                </div>
+
+                            </div>
+
+                            <div class="pr-top-amount {% if person['balance']|default(0)|float >= 0 %}pr-income{% else %}pr-expense{% endif %}">
+                                ${{ "%.2f"|format(person['balance']|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                        {% else %}
+
+                        <div style="font-size:12px;color:#6b7280;">
+                            No balance data.
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+
+                <!-- TOP ACTIVITY -->
+
+                <div class="pr-top-card">
+
+                    <div class="pr-top-card-header">
+
+                        <div class="pr-top-card-title">
+                            Most Active
+                        </div>
+
+                        <div class="pr-top-card-badge">
+                            <i data-feather="activity"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="pr-top-list">
+
+                        {% for person in top_transaction_persons|default([]) %}
+
+                        <div class="pr-top-item">
+
+                            <div class="pr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pr-person-name-small">
+                                    {{ person['person_name']|default('Unknown') }}
+                                </div>
+
+                                <div class="pr-person-sub-small">
+                                    {{ person['income_count']|default(0) }}
+                                    income /
+                                    {{ person['expense_count']|default(0) }}
+                                    expense
+                                </div>
+
+                            </div>
+
+                            <div class="pr-top-amount">
+                                {{ person['total_transactions']|default(0) }}
+                            </div>
+
+                        </div>
+
+                        {% else %}
+
+                        <div style="font-size:12px;color:#6b7280;">
+                            No activity data.
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         HIGHLIGHTS
+         ======================================================== -->
+
+    <div class="pr-section">
+
+        <div class="pr-section-header">
+
+            <div>
+
+                <h2 class="pr-section-title">
+                    Financial Highlights
+                </h2>
+
+                <p class="pr-section-description">
+                    Important person-level financial records.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="pr-section-body">
+
+            <div class="pr-highlight-grid">
+
+                <!-- Highest Income -->
+
+                <div class="pr-highlight income">
+
+                    <div class="pr-highlight-label">
+                        Highest Income
+                    </div>
+
+                    {% if highest_income_person %}
+
+                        <div class="pr-highlight-name">
+                            {{ highest_income_person['person_name']|default('Unknown') }}
+                        </div>
+
+                        <div class="pr-highlight-amount">
+                            ${{ "%.2f"|format(highest_income_person['total_income']|default(0)|float) }}
+                        </div>
+
+                        <div class="pr-highlight-meta">
+                            {{ highest_income_person['income_count']|default(0) }}
+                            income transactions
+                        </div>
+
+                    {% else %}
+
+                        <div class="pr-highlight-name">
+                            No data
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- Highest Expense -->
+
+                <div class="pr-highlight expense">
+
+                    <div class="pr-highlight-label">
+                        Highest Expense
+                    </div>
+
+                    {% if highest_expense_person %}
+
+                        <div class="pr-highlight-name">
+                            {{ highest_expense_person['person_name']|default('Unknown') }}
+                        </div>
+
+                        <div class="pr-highlight-amount">
+                            ${{ "%.2f"|format(highest_expense_person['total_expense']|default(0)|float) }}
+                        </div>
+
+                        <div class="pr-highlight-meta">
+                            {{ highest_expense_person['expense_count']|default(0) }}
+                            expense transactions
+                        </div>
+
+                    {% else %}
+
+                        <div class="pr-highlight-name">
+                            No data
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- Highest Balance -->
+
+                <div class="pr-highlight balance">
+
+                    <div class="pr-highlight-label">
+                        Highest Balance
+                    </div>
+
+                    {% if highest_balance_person %}
+
+                        <div class="pr-highlight-name">
+                            {{ highest_balance_person['person_name']|default('Unknown') }}
+                        </div>
+
+                        <div class="pr-highlight-amount">
+                            ${{ "%.2f"|format(highest_balance_person['balance']|default(0)|float) }}
+                        </div>
+
+                        <div class="pr-highlight-meta">
+                            Income minus expense
+                        </div>
+
+                    {% else %}
+
+                        <div class="pr-highlight-name">
+                            No data
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <!-- Lowest Balance -->
+
+                <div class="pr-highlight low">
+
+                    <div class="pr-highlight-label">
+                        Lowest Balance
+                    </div>
+
+                    {% if lowest_balance_person %}
+
+                        <div class="pr-highlight-name">
+                            {{ lowest_balance_person['person_name']|default('Unknown') }}
+                        </div>
+
+                        <div class="pr-highlight-amount">
+                            ${{ "%.2f"|format(lowest_balance_person['balance']|default(0)|float) }}
+                        </div>
+
+                        <div class="pr-highlight-meta">
+                            {% if lowest_balance_person['balance']|default(0)|float < 0 %}
+                                Negative balance
+                            {% else %}
+                                Lowest net balance
+                            {% endif %}
+                        </div>
+
+                    {% else %}
+
+                        <div class="pr-highlight-name">
+                            No data
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PERSON TABLE
+         ======================================================== -->
+
+    <div class="pr-section" id="personsTableSection">
+
+        <div class="pr-section-header">
+
+            <div>
+
+                <h2 class="pr-section-title">
+                    All Persons
+                </h2>
+
+                <p class="pr-section-description">
+                    Complete person-by-person financial summary.
+                </p>
+
+            </div>
+
+            <div
+                id="visiblePersonCount"
+                style="font-size:12px;font-weight:900;color:#2563eb;"
+            >
+                {{ persons|default([])|length }} persons
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+             ==================================================== -->
+
+        <div class="pr-filters">
+
+            <div class="pr-input-wrap">
+
+                <i
+                    data-feather="search"
+                    class="pr-input-icon"
+                    width="16"
+                    height="16"
+                ></i>
+
+                <input
+                    type="text"
+                    id="personSearch"
+                    class="pr-input"
+                    placeholder="Search person, category, item..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <select
+                id="personCategory"
+                class="pr-select"
+            >
+
+                <option value="">
+                    All Categories
+                </option>
+
+                {% for category in report_categories|default([]) %}
+
+                    <option value="{{ category|default('')|e }}">
+                        {{ category|default('Uncategorized') }}
+                    </option>
+
+                {% endfor %}
+
+            </select>
+
+
+            <select
+                id="personBalance"
+                class="pr-select"
+            >
+
+                <option value="">
+                    All Balances
+                </option>
+
+                <option value="positive">
+                    Positive Balance
+                </option>
+
+                <option value="negative">
+                    Negative Balance
+                </option>
+
+                <option value="zero">
+                    Zero Balance
+                </option>
+
+            </select>
+
+
+            <div class="pr-filter-actions">
+
+                <button
+                    type="button"
+                    class="pr-btn"
+                    onclick="resetPersonFilters()"
+                >
+                    <i data-feather="rotate-ccw"></i>
+                    Reset
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             TABLE
+             ==================================================== -->
+
+        {% if persons|default([])|length > 0 %}
+
+        <div class="pr-table-wrap">
+
+            <table
+                class="pr-table"
+                id="personsTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Person</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Balance</th>
+
+                        <th>Transactions</th>
+
+                        <!-- <th>Categories</th> -->
+
+                        <th>First Transaction</th>
+
+                        <th>Last Transaction</th>
+
+                        <th>Invoice</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for person in persons|default([]) %}
+
+                    {% set balance_value = person['balance']|default(0)|float %}
+
+                    <tr
+                        class="person-row"
+                        data-person="{{ person['person_name']|default('')|lower|e }}"
+                        data-balance="{{ person['balance_status']|default('zero')|e }}"
+                        data-categories="{{ person['categories']|default([])|join(' ')|lower|e }}"
+                        data-items="{{ person['items']|default([])|join(' ')|lower|e }}"
+                        data-sources="{{ person['sources']|default([])|join(' ')|lower|e }}"
+                    >
+
+                        <!-- Rank -->
+
+                        <td>
+
+                            <span class="pr-count-badge">
+                                {{ person['rank']|default(loop.index) }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- Person -->
+
+                        <td>
+
+                            <div class="pr-person-cell">
+
+                                <div class="pr-avatar">
+
+                                    {% set person_name_for_avatar = person['person_name']|default('P') %}
+
+                                    {{ person_name_for_avatar[:1]|upper }}
+
+                                </div>
+
+                                <div class="pr-person-main">
+
+                                    <div class="pr-person-name">
+                                        {{ person['person_name']|default('Unknown Person') }}
+                                    </div>
+
+                                    <div class="pr-person-rank">
+
+                                        {{ person['income_count']|default(0) }}
+                                        income
+
+                                        ·
+
+                                        {{ person['expense_count']|default(0) }}
+                                        expense
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Income -->
+
+                        <td>
+
+                            <span class="pr-money pr-income">
+
+                                ${{ "%.2f"|format(
+                                    person['total_income']|default(0)|float
+                                ) }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- Expense -->
+
+                        <td>
+
+                            <span class="pr-money pr-expense">
+
+                                ${{ "%.2f"|format(
+                                    person['total_expense']|default(0)|float
+                                ) }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- Balance -->
+
+                        <td>
+
+                            {% if balance_value > 0 %}
+
+                                <span class="pr-money pr-positive">
+                                    +${{ "%.2f"|format(balance_value) }}
+                                </span>
+
+                            {% elif balance_value < 0 %}
+
+                                <span class="pr-money pr-negative">
+                                    -${{ "%.2f"|format(balance_value|abs) }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="pr-money pr-zero">
+                                    $0.00
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Transactions -->
+
+                        <td>
+
+                            <span class="pr-count-badge">
+                                {{ person['total_transactions']|default(0) }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- Categories -->
+
+                        <!-- <td>
+
+                            <div class="pr-category-list">
+
+                                {% set person_categories = person['categories']|default([]) %}
+
+                                {% for category in person_categories[:4] %}
+
+                                    <span
+                                        class="pr-tag"
+                                        title="{{ category|default('') }}"
+                                    >
+                                        {{ category|default('Uncategorized') }}
+                                    </span>
+
+                                {% endfor %}
+
+                                {% if person_categories|length > 4 %}
+
+                                    <span class="pr-more">
+                                        +{{ person_categories|length - 4 }}
+                                    </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </td> -->
+
+
+                        <!-- First Date -->
+
+                        <td>
+
+                            <span class="pr-date">
+                                {{ person['first_transaction_display']|default('—') }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- Last Date -->
+
+                        <td>
+
+                            <span class="pr-date">
+                                {{ person['last_transaction_display']|default('—') }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- Invoice -->
+
+                        <td>
+
+                            <a
+                                class="pr-invoice-btn"
+                                href="{{ url_for(
+                                    'main.person_invoice',
+                                    person_name=person['person_name']|default('')
+                                ) }}"
+                            >
+
+                                <i
+                                    data-feather="file-text"
+                                    width="14"
+                                    height="14"
+                                ></i>
+
+                                Invoice
+
+                            </a>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- No search results -->
+
+        <div
+            id="noSearchResults"
+            class="pr-empty"
+            style="display:none;"
+        >
+
+            <div class="pr-empty-icon">
+
+                <i data-feather="search"></i>
+
+            </div>
+
+            <div class="pr-empty-title">
+                No matching persons
+            </div>
+
+            <div class="pr-empty-text">
+                Try another search or reset the filters.
+            </div>
+
+        </div>
+
+        {% else %}
+
+        <!-- No persons -->
+
+        <div class="pr-empty">
+
+            <div class="pr-empty-icon">
+
+                <i data-feather="users"></i>
+
+            </div>
+
+            <div class="pr-empty-title">
+                No person records found
+            </div>
+
+            <div class="pr-empty-text">
+                There are no normal or manual person transactions
+                available for this account.
+            </div>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="pr-footer">
+
+        <div>
+            Persons Financial Report
+            ·
+            {{ total_persons|default(0) }} persons
+            ·
+            {{ total_transactions|default(0) }} transactions
+        </div>
+
+        <div>
+            Income:
+            <strong class="pr-income">
+                ${{ "%.2f"|format(total_income|default(0)|float) }}
+            </strong>
+
+            &nbsp; · &nbsp;
+
+            Expense:
+            <strong class="pr-expense">
+                ${{ "%.2f"|format(total_expense|default(0)|float) }}
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   PERSONS REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ==========================================================
+       SAFE FEATHER ICONS
+       ========================================================== */
+
+    function refreshIcons() {
+
+        try {
+
+            if (
+                typeof feather !== "undefined" &&
+                feather.replace
+            ) {
+
+                feather.replace();
+
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Feather icon refresh failed:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* ==========================================================
+       BACK BUTTON
+       ========================================================== */
+
+    window.goBack = function () {
+
+        if (window.history.length > 1) {
+
+            window.history.back();
+
+        } else {
+
+            window.location.href = "{{ url_for('main.report_persons') }}";
+
+        }
+
+    };
+
+
+    /* ==========================================================
+       DOM ELEMENTS
+       ========================================================== */
+
+    const searchInput =
+        document.getElementById("personSearch");
+
+    const categorySelect =
+        document.getElementById("personCategory");
+
+    const balanceSelect =
+        document.getElementById("personBalance");
+
+    const table =
+        document.getElementById("personsTable");
+
+    const countElement =
+        document.getElementById("visiblePersonCount");
+
+    const noResults =
+        document.getElementById("noSearchResults");
+
+
+    /* ==========================================================
+       ESCAPE TEXT
+       ========================================================== */
+
+    function normalizeText(value) {
+
+        return String(value || "")
+            .toLowerCase()
+            .trim();
+
+    }
+
+
+    /* ==========================================================
+       FILTER PERSONS
+       ========================================================== */
+
+    function filterPersons() {
+
+        if (!table) {
+            return;
+        }
+
+        const rows =
+            table.querySelectorAll(
+                "tbody .person-row"
+            );
+
+        const search =
+            normalizeText(
+                searchInput
+                    ? searchInput.value
+                    : ""
+            );
+
+        const category =
+            normalizeText(
+                categorySelect
+                    ? categorySelect.value
+                    : ""
+            );
+
+        const balance =
+            normalizeText(
+                balanceSelect
+                    ? balanceSelect.value
+                    : ""
+            );
+
+        let visibleCount = 0;
+
+
+        rows.forEach(function (row) {
+
+            const person =
+                normalizeText(
+                    row.getAttribute(
+                        "data-person"
+                    )
+                );
+
+            const categories =
+                normalizeText(
+                    row.getAttribute(
+                        "data-categories"
+                    )
+                );
+
+            const items =
+                normalizeText(
+                    row.getAttribute(
+                        "data-items"
+                    )
+                );
+
+            const sources =
+                normalizeText(
+                    row.getAttribute(
+                        "data-sources"
+                    )
+                );
+
+            const rowBalance =
+                normalizeText(
+                    row.getAttribute(
+                        "data-balance"
+                    )
+                );
+
+
+            const searchMatch =
+                !search ||
+                person.includes(search) ||
+                categories.includes(search) ||
+                items.includes(search) ||
+                sources.includes(search);
+
+
+            const categoryMatch =
+                !category ||
+                categories.includes(category);
+
+
+            const balanceMatch =
+                !balance ||
+                rowBalance === balance;
+
+
+            const visible =
+                searchMatch &&
+                categoryMatch &&
+                balanceMatch;
+
+
+            if (visible) {
+
+                row.classList.remove(
+                    "hidden-row"
+                );
+
+                visibleCount++;
+
+            } else {
+
+                row.classList.add(
+                    "hidden-row"
+                );
+
+            }
+
+        });
+
+
+        if (countElement) {
+
+            countElement.textContent =
+                visibleCount +
+                (
+                    visibleCount === 1
+                        ? " person"
+                        : " persons"
+                );
+
+        }
+
+
+        if (noResults) {
+
+            noResults.style.display =
+                visibleCount === 0
+                    ? "block"
+                    : "none";
+
+        }
+
+    }
+
+
+    /* ==========================================================
+       RESET FILTERS
+       ========================================================== */
+
+    window.resetPersonFilters = function () {
+
+        if (searchInput) {
+
+            searchInput.value = "";
+
+        }
+
+        if (categorySelect) {
+
+            categorySelect.value = "";
+
+        }
+
+        if (balanceSelect) {
+
+            balanceSelect.value = "";
+
+        }
+
+        filterPersons();
+
+    };
+
+
+    /* ==========================================================
+       CSV ESCAPE
+       ========================================================== */
+
+    function csvEscape(value) {
+
+        const text =
+            String(
+                value === null ||
+                value === undefined
+                    ? ""
+                    : value
+            );
+
+        return '"' +
+            text
+                .replace(/"/g, '""') +
+            '"';
+
+    }
+
+
+    /* ==========================================================
+       EXPORT CSV
+       ========================================================== */
+
+    window.exportPersonsCSV = function () {
+
+        const table =
+            document.getElementById(
+                "personsTable"
+            );
+
+        if (!table) {
+
+            alert(
+                "No person data available to export."
+            );
+
+            return;
+
+        }
+
+
+        const rows =
+            table.querySelectorAll(
+                "thead tr, tbody tr.person-row"
+            );
+
+
+        if (!rows.length) {
+
+            alert(
+                "No person data available to export."
+            );
+
+            return;
+
+        }
+
+
+        const csvRows = [];
+
+
+        /* ------------------------------------------------------
+           HEADER
+           ------------------------------------------------------ */
+
+        csvRows.push([
+
+            "Rank",
+            "Person",
+            "Total Income",
+            "Total Expense",
+            "Balance",
+            "Transactions",
+            "Categories",
+            "First Transaction",
+            "Last Transaction"
+
+        ].map(csvEscape).join(","));
+
+
+        /* ------------------------------------------------------
+           BODY
+           ------------------------------------------------------ */
+
+        const bodyRows =
+            table.querySelectorAll(
+                "tbody tr.person-row"
+            );
+
+
+        bodyRows.forEach(function (row) {
+
+            if (
+                row.classList.contains(
+                    "hidden-row"
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            const cells =
+                row.querySelectorAll("td");
+
+
+            if (cells.length < 9) {
+
+                return;
+
+            }
+
+
+            const rank =
+                cells[0]
+                    ? cells[0].innerText.trim()
+                    : "";
+
+
+            const person =
+                cells[1]
+                    ? cells[1].innerText.trim()
+                    : "";
+
+
+            const income =
+                cells[2]
+                    ? cells[2].innerText.trim()
+                    : "";
+
+
+            const expense =
+                cells[3]
+                    ? cells[3].innerText.trim()
+                    : "";
+
+
+            const balance =
+                cells[4]
+                    ? cells[4].innerText.trim()
+                    : "";
+
+
+            const transactions =
+                cells[5]
+                    ? cells[5].innerText.trim()
+                    : "";
+
+
+            const categories =
+                cells[6]
+                    ? cells[6].innerText.trim()
+                    : "";
+
+
+            const firstDate =
+                cells[7]
+                    ? cells[7].innerText.trim()
+                    : "";
+
+
+            const lastDate =
+                cells[8]
+                    ? cells[8].innerText.trim()
+                    : "";
+
+
+            csvRows.push([
+
+                rank,
+                person,
+                income,
+                expense,
+                balance,
+                transactions,
+                categories,
+                firstDate,
+                lastDate
+
+            ].map(csvEscape).join(","));
+
+        });
+
+
+        if (csvRows.length <= 1) {
+
+            alert(
+                "No visible person records to export."
+            );
+
+            return;
+
+        }
+
+
+        const csvContent =
+            "\uFEFF" +
+            csvRows.join("\n");
+
+
+        const blob =
+            new Blob(
+                [csvContent],
+                {
+                    type:
+                        "text/csv;charset=utf-8;"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+
+        const link =
+            document.createElement("a");
+
+
+        const now =
+            new Date();
+
+
+        const datePart =
+            now
+                .toISOString()
+                .slice(0, 10);
+
+
+        link.href = url;
+
+        link.download =
+            "persons_financial_report_" +
+            datePart +
+            ".csv";
+
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+    };
+
+
+    /* ==========================================================
+       EVENTS
+       ========================================================== */
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            filterPersons
+        );
+
+    }
+
+
+    if (categorySelect) {
+
+        categorySelect.addEventListener(
+            "change",
+            filterPersons
+        );
+
+    }
+
+
+    if (balanceSelect) {
+
+        balanceSelect.addEventListener(
+            "change",
+            filterPersons
+        );
+
+    }
+
+
+    /* ==========================================================
+       KEYBOARD SHORTCUT
+       ========================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            /*
+             * Ctrl + P
+             * Browser print
+             */
+
+            if (
+                event.ctrlKey &&
+                event.key.toLowerCase() === "p"
+            ) {
+
+                event.preventDefault();
+
+                window.print();
+
+            }
+
+
+            /*
+             * Escape
+             * Reset filters
+             */
+
+            if (
+                event.key === "Escape"
+            ) {
+
+                resetPersonFilters();
+
+            }
+
+        }
+    );
+
+
+    /* ==========================================================
+       INITIALIZE
+       ========================================================== */
+
+    refreshIcons();
+
+    filterPersons();
+
+
+})();
+</script>
+
+{% endblock %}
+

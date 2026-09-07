@@ -1,0 +1,4219 @@
+{% extends "backend/home/base.html" %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPENSE RATE REPORT
+   ============================================================ */
+
+:root {
+    --er-bg: #f5f7fb;
+    --er-card: #ffffff;
+    --er-text: #172033;
+    --er-muted: #6b7280;
+    --er-border: #e5e7eb;
+    --er-primary: #4f46e5;
+    --er-primary-soft: #eef2ff;
+    --er-danger: #dc2626;
+    --er-danger-soft: #fef2f2;
+    --er-success: #16a34a;
+    --er-success-soft: #f0fdf4;
+    --er-warning: #d97706;
+    --er-warning-soft: #fffbeb;
+    --er-info: #0284c7;
+    --er-info-soft: #f0f9ff;
+    --er-purple: #7c3aed;
+    --er-radius: 18px;
+    --er-shadow: 0 8px 30px rgba(15, 23, 42, .07);
+}
+
+.expense-report-page {
+    background: var(--er-bg);
+    min-height: 100vh;
+    padding: 22px;
+    color: var(--er-text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.er-header {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.er-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.er-title-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.er-title-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--er-danger-soft);
+    color: var(--er-danger);
+    font-size: 26px;
+}
+
+.er-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+}
+
+.er-subtitle {
+    margin: 5px 0 0;
+    color: var(--er-muted);
+    font-size: 14px;
+}
+
+.er-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.er-btn {
+    border: 1px solid var(--er-border);
+    background: var(--er-card);
+    color: var(--er-text);
+    padding: 10px 14px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: .2s ease;
+    text-decoration: none;
+}
+
+.er-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+}
+
+.er-btn-primary {
+    background: var(--er-primary);
+    color: #fff;
+    border-color: var(--er-primary);
+}
+
+.er-btn-danger {
+    background: var(--er-danger);
+    color: #fff;
+    border-color: var(--er-danger);
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.er-filter-card {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.er-filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.er-section-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.er-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(160px, 1fr));
+    gap: 14px;
+}
+
+.er-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    margin-bottom: 7px;
+    color: var(--er-muted);
+}
+
+.er-field input,
+.er-field select {
+    width: 100%;
+    height: 43px;
+    border: 1px solid var(--er-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--er-card);
+    color: var(--er-text);
+    outline: none;
+}
+
+.er-field input:focus,
+.er-field select:focus {
+    border-color: var(--er-primary);
+    box-shadow: 0 0 0 3px var(--er-primary-soft);
+}
+
+.er-filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: end;
+}
+
+.er-quick-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 14px;
+}
+
+.er-quick {
+    border: 1px solid var(--er-border);
+    background: var(--er-bg);
+    padding: 8px 11px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.er-quick:hover {
+    background: var(--er-primary-soft);
+    color: var(--er-primary);
+}
+
+/* ============================================================
+   PERIOD BADGE
+   ============================================================ */
+
+.er-period {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.er-period-badge {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: 10px;
+    padding: 9px 13px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.er-period-badge span {
+    color: var(--er-muted);
+    font-weight: 500;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.er-kpi-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.er-kpi {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 18px;
+    min-width: 0;
+}
+
+.er-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.er-kpi-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.er-kpi-label {
+    color: var(--er-muted);
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 12px;
+}
+
+.er-kpi-value {
+    font-size: 23px;
+    font-weight: 850;
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.er-kpi-change {
+    font-size: 11px;
+    margin-top: 7px;
+    font-weight: 700;
+}
+
+.er-kpi-change.up {
+    color: var(--er-danger);
+}
+
+.er-kpi-change.down {
+    color: var(--er-success);
+}
+
+.er-kpi-change.neutral {
+    color: var(--er-muted);
+}
+
+.icon-danger {
+    background: var(--er-danger-soft);
+    color: var(--er-danger);
+}
+
+.icon-success {
+    background: var(--er-success-soft);
+    color: var(--er-success);
+}
+
+.icon-primary {
+    background: var(--er-primary-soft);
+    color: var(--er-primary);
+}
+
+.icon-warning {
+    background: var(--er-warning-soft);
+    color: var(--er-warning);
+}
+
+.icon-info {
+    background: var(--er-info-soft);
+    color: var(--er-info);
+}
+
+.icon-purple {
+    background: #f5f3ff;
+    color: var(--er-purple);
+}
+
+/* ============================================================
+   HEALTH / PROGRESS
+   ============================================================ */
+
+.er-health-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.er-health-card {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 20px;
+}
+
+.er-health-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.er-health-title {
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.er-health-value {
+    font-weight: 850;
+    font-size: 22px;
+}
+
+.er-progress {
+    width: 100%;
+    height: 12px;
+    border-radius: 20px;
+    background: #edf0f5;
+    overflow: hidden;
+    margin-top: 14px;
+}
+
+.er-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    transition: width .6s ease;
+}
+
+.er-progress-danger {
+    background: linear-gradient(
+        90deg,
+        #ef4444,
+        #dc2626
+    );
+}
+
+.er-progress-success {
+    background: linear-gradient(
+        90deg,
+        #22c55e,
+        #16a34a
+    );
+}
+
+.er-progress-info {
+    background: linear-gradient(
+        90deg,
+        #38bdf8,
+        #0284c7
+    );
+}
+
+.er-progress-description {
+    margin-top: 9px;
+    color: var(--er-muted);
+    font-size: 12px;
+}
+
+/* ============================================================
+   HEALTH STATUS
+   ============================================================ */
+
+.er-health-status {
+    margin-bottom: 20px;
+    padding: 18px 20px;
+    border-radius: var(--er-radius);
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    box-shadow: var(--er-shadow);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.er-status-dot {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--er-danger);
+    flex: 0 0 auto;
+}
+
+.er-status-title {
+    font-weight: 850;
+    font-size: 15px;
+}
+
+.er-status-text {
+    color: var(--er-muted);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.er-chart-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.er-chart-card {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    padding: 18px;
+    min-width: 0;
+}
+
+.er-chart-card.full {
+    grid-column: 1 / -1;
+}
+
+.er-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.er-chart-title {
+    font-size: 15px;
+    font-weight: 850;
+    margin: 0;
+}
+
+.er-chart-description {
+    color: var(--er-muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.er-chart-container {
+    position: relative;
+    height: 330px;
+}
+
+.er-chart-container.small {
+    height: 280px;
+}
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.er-insights-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.er-insight {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    padding: 18px;
+    box-shadow: var(--er-shadow);
+}
+
+.er-insight-label {
+    font-size: 11px;
+    color: var(--er-muted);
+    font-weight: 800;
+}
+
+.er-insight-value {
+    font-size: 20px;
+    font-weight: 850;
+    margin-top: 7px;
+}
+
+.er-insight-sub {
+    font-size: 11px;
+    color: var(--er-muted);
+    margin-top: 5px;
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.er-table-card {
+    background: var(--er-card);
+    border: 1px solid var(--er-border);
+    border-radius: var(--er-radius);
+    box-shadow: var(--er-shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.er-table-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--er-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.er-table-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.er-table-subtitle {
+    color: var(--er-muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.er-table-wrap {
+    padding: 15px;
+    overflow-x: auto;
+}
+
+.er-table-wrap table {
+    width: 100% !important;
+}
+
+table.dataTable {
+    border-collapse: collapse !important;
+}
+
+table.dataTable thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 850;
+    border-bottom: 1px solid var(--er-border) !important;
+    padding: 12px 10px !important;
+    white-space: nowrap;
+}
+
+table.dataTable tbody td {
+    padding: 11px 10px !important;
+    font-size: 12px;
+    border-bottom: 1px solid #f0f2f5;
+    white-space: nowrap;
+}
+
+table.dataTable tbody tr:hover {
+    background: #fafbff;
+}
+
+.dataTables_wrapper {
+    font-size: 12px;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--er-border);
+    border-radius: 8px;
+    padding: 6px 9px;
+    outline: none;
+    background: var(--er-card);
+    color: var(--er-text);
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--er-primary);
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    margin-top: 10px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 7px !important;
+    padding: 5px 9px !important;
+    margin: 1px !important;
+}
+
+.dataTables_wrapper
+.dataTables_paginate
+.paginate_button.current {
+    background: var(--er-primary) !important;
+    color: #fff !important;
+    border-color: var(--er-primary) !important;
+}
+
+.dt-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.dt-button {
+    border: 1px solid var(--er-border) !important;
+    background: var(--er-card) !important;
+    color: var(--er-text) !important;
+    border-radius: 7px !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+}
+
+.dt-button:hover {
+    background: var(--er-primary-soft) !important;
+    color: var(--er-primary) !important;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.er-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.er-badge-income {
+    background: var(--er-success-soft);
+    color: var(--er-success);
+}
+
+.er-badge-expense {
+    background: var(--er-danger-soft);
+    color: var(--er-danger);
+}
+
+.er-badge-positive {
+    background: var(--er-success-soft);
+    color: var(--er-success);
+}
+
+.er-badge-negative {
+    background: var(--er-danger-soft);
+    color: var(--er-danger);
+}
+
+.er-badge-neutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* ============================================================
+   MONEY
+   ============================================================ */
+
+.money-income {
+    color: var(--er-success);
+    font-weight: 800;
+}
+
+.money-expense {
+    color: var(--er-danger);
+    font-weight: 800;
+}
+
+.money-saving {
+    color: var(--er-primary);
+    font-weight: 800;
+}
+
+.money-negative {
+    color: var(--er-danger);
+    font-weight: 800;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.er-empty {
+    text-align: center;
+    padding: 35px;
+    color: var(--er-muted);
+}
+
+.er-empty-icon {
+    font-size: 34px;
+    margin-bottom: 8px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.er-footer {
+    text-align: center;
+    color: var(--er-muted);
+    font-size: 11px;
+    padding: 15px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+
+    .er-kpi-grid {
+        grid-template-columns:
+            repeat(3, minmax(150px, 1fr));
+    }
+
+    .er-insights-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1000px) {
+
+    .er-filter-grid {
+        grid-template-columns:
+            repeat(2, minmax(160px, 1fr));
+    }
+
+    .er-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .er-chart-card.full {
+        grid-column: auto;
+    }
+
+    .er-health-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .expense-report-page {
+        padding: 12px;
+    }
+
+    .er-header-inner {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .er-actions {
+        width: 100%;
+    }
+
+    .er-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .er-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .er-filter-actions {
+        width: 100%;
+    }
+
+    .er-filter-actions .er-btn {
+        flex: 1;
+    }
+
+    .er-kpi-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .er-insights-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .er-title {
+        font-size: 21px;
+    }
+
+    .er-title-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 21px;
+    }
+
+    .er-chart-container {
+        height: 270px;
+    }
+}
+
+@media (max-width: 450px) {
+
+    .er-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    .expense-report-page {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .no-print,
+    .er-actions,
+    .er-filter-card,
+    .dt-buttons,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .er-header,
+    .er-kpi,
+    .er-health-card,
+    .er-health-status,
+    .er-chart-card,
+    .er-insight,
+    .er-table-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .er-header {
+        border: 1px solid #ddd;
+    }
+
+    .er-chart-grid,
+    .er-health-grid,
+    .er-insights-grid,
+    .er-kpi-grid {
+        break-inside: avoid;
+    }
+
+    .er-table-card {
+        overflow: visible !important;
+    }
+
+    .er-table-wrap {
+        overflow: visible !important;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+    }
+
+    .er-chart-container {
+        height: 260px;
+    }
+
+    a {
+        text-decoration: none !important;
+    }
+}
+</style>
+
+
+<div class="expense-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="er-header">
+
+        <div class="er-header-inner">
+
+            <div class="er-title-area">
+
+                <div class="er-title-icon">
+                    <i class="bi bi-graph-down-arrow"></i>
+                </div>
+
+                <div>
+                    <h1 class="er-title">
+                        Expense Rate Report
+                    </h1>
+
+                    <p class="er-subtitle">
+                        Analyze spending efficiency,
+                        expense rate, savings and financial performance.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="er-actions">
+
+                <button
+                    type="button"
+                    class="er-btn"
+                    onclick="window.print()"
+                >
+                    <i class="bi bi-printer"></i>
+                    Print
+                </button>
+
+                <button
+                    type="button"
+                    class="er-btn er-btn-danger"
+                    onclick="printReportPDF()"
+                >
+                    <i class="bi bi-file-earmark-pdf"></i>
+                    PDF
+                </button>
+
+                <a
+                    href="{{ url_for('main.report_expense_rate') }}"
+                    class="er-btn"
+                >
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Reset
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="er-filter-card no-print">
+
+        <div class="er-filter-header">
+
+            <div>
+                <h2 class="er-section-title">
+                    <i class="bi bi-funnel"></i>
+                    Report Filters
+                </h2>
+            </div>
+
+            <div class="er-period-badge">
+                {{ custom_range_label|default("Current Period", true) }}
+            </div>
+
+        </div>
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_expense_rate') }}"
+        >
+
+            <div class="er-filter-grid">
+
+                <div class="er-field">
+
+                    <label for="start_date">
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        value="{{ start_date_value|default('', true) }}"
+                    >
+
+                </div>
+
+
+                <div class="er-field">
+
+                    <label for="end_date">
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        value="{{ end_date_value|default('', true) }}"
+                    >
+
+                </div>
+
+
+                <div class="er-field">
+
+                    <label for="account">
+                        Account
+                    </label>
+
+                    <select
+                        id="account"
+                        name="account"
+                    >
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account in account_options|default([], true) %}
+
+                            <option
+                                value="{{ account['id'] }}"
+                                {% if account['id']|string == account_filter|string %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ account['name'] }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="er-field">
+
+                    <label for="transaction_type">
+                        Transaction Type
+                    </label>
+
+                    <select
+                        id="transaction_type"
+                        name="transaction_type"
+                    >
+
+                        <option value="">
+                            Income + Expense
+                        </option>
+
+                        <option
+                            value="income"
+                            {% if transaction_type == 'income' %}
+                                selected
+                            {% endif %}
+                        >
+                            Income
+                        </option>
+
+                        <option
+                            value="expense"
+                            {% if transaction_type == 'expense' %}
+                                selected
+                            {% endif %}
+                        >
+                            Expense
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="er-filter-actions" style="margin-top:14px;">
+
+                <button
+                    type="submit"
+                    class="er-btn er-btn-primary"
+                >
+                    <i class="bi bi-search"></i>
+                    Apply Filters
+                </button>
+
+                <a
+                    href="{{ url_for('main.report_expense_rate') }}"
+                    class="er-btn"
+                >
+                    <i class="bi bi-x-circle"></i>
+                    Clear
+                </a>
+
+            </div>
+
+        </form>
+
+
+        <div class="er-quick-filters">
+
+            <button
+                type="button"
+                class="er-quick"
+                onclick="quickRange('today')"
+            >
+                Today
+            </button>
+
+            <button
+                type="button"
+                class="er-quick"
+                onclick="quickRange('7')"
+            >
+                Last 7 Days
+            </button>
+
+            <button
+                type="button"
+                class="er-quick"
+                onclick="quickRange('30')"
+            >
+                Last 30 Days
+            </button>
+
+            <button
+                type="button"
+                class="er-quick"
+                onclick="quickRange('month')"
+            >
+                This Month
+            </button>
+
+            <button
+                type="button"
+                class="er-quick"
+                onclick="quickRange('year')"
+            >
+                This Year
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         PERIOD
+         ======================================================== -->
+
+    <div class="er-period">
+
+        <div class="er-period-badge">
+            <i class="bi bi-calendar3"></i>
+            Period:
+            <span>
+                {{ custom_range_label|default("Current Period", true) }}
+            </span>
+        </div>
+
+        <div class="er-period-badge">
+            <i class="bi bi-calendar-range"></i>
+            Days:
+            <span>
+                {{ period_days|default(0, true) }}
+            </span>
+        </div>
+
+        <div class="er-period-badge">
+            <i class="bi bi-receipt"></i>
+            Transactions:
+            <span>
+                {{ total_transactions|default(0, true) }}
+            </span>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="er-kpi-grid">
+
+        <!-- Income -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Total Income
+                    </div>
+
+                    <div class="er-kpi-value">
+                        ${{ "{:,.2f}".format(total_income|default(0, true)|float) }}
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-success">
+                    <i class="bi bi-arrow-down-left"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="er-kpi-change
+                {% if income_change|default(0, true)|float > 0 %}
+                    up
+                {% elif income_change|default(0, true)|float < 0 %}
+                    down
+                {% else %}
+                    neutral
+                {% endif %}"
+            >
+                Previous:
+                {{ "{:+.2f}".format(income_change|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Total Expense
+                    </div>
+
+                    <div class="er-kpi-value"
+                         style="color:var(--er-danger);">
+                        ${{ "{:,.2f}".format(total_expense|default(0, true)|float) }}
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-danger">
+                    <i class="bi bi-arrow-up-right"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="er-kpi-change
+                {% if expense_change|default(0, true)|float > 0 %}
+                    up
+                {% elif expense_change|default(0, true)|float < 0 %}
+                    down
+                {% else %}
+                    neutral
+                {% endif %}"
+            >
+                Previous:
+                {{ "{:+.2f}".format(expense_change|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <!-- Expense Rate -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Expense Rate
+                    </div>
+
+                    <div class="er-kpi-value"
+                         style="color:var(--er-danger);">
+                        {{ "{:.2f}".format(expense_rate|default(0, true)|float) }}%
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-danger">
+                    <i class="bi bi-percent"></i>
+                </div>
+
+            </div>
+
+            <div class="er-kpi-change neutral">
+                Previous:
+                {{ "{:.2f}".format(previous_expense_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <!-- Savings -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Net Savings
+                    </div>
+
+                    <div
+                        class="er-kpi-value"
+                        style="
+                            color:
+                            {% if total_savings|default(0, true)|float >= 0 %}
+                                var(--er-success)
+                            {% else %}
+                                var(--er-danger)
+                            {% endif %}
+                        "
+                    >
+                        ${{ "{:,.2f}".format(total_savings|default(0, true)|float) }}
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-success">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+
+            </div>
+
+            <div class="er-kpi-change neutral">
+                Saving Rate:
+                {{ "{:.2f}".format(saving_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <!-- Saving Rate -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Saving Rate
+                    </div>
+
+                    <div class="er-kpi-value"
+                         style="color:var(--er-success);">
+                        {{ "{:.2f}".format(saving_rate|default(0, true)|float) }}%
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-primary">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+
+            </div>
+
+            <div class="er-kpi-change neutral">
+                Previous:
+                {{ "{:.2f}".format(previous_saving_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+
+        <div class="er-kpi">
+
+            <div class="er-kpi-top">
+
+                <div>
+                    <div class="er-kpi-label">
+                        Transactions
+                    </div>
+
+                    <div class="er-kpi-value">
+                        {{ "{:,}".format(total_transactions|default(0, true)|int) }}
+                    </div>
+                </div>
+
+                <div class="er-kpi-icon icon-info">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+
+            </div>
+
+            <div class="er-kpi-change neutral">
+                Previous:
+                {{ "{:,}".format(previous_transactions|default(0, true)|int) }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HEALTH
+         ======================================================== -->
+
+    <section class="er-health-status">
+
+        <div class="er-status-dot"></div>
+
+        <div>
+
+            <div class="er-status-title">
+                Expense Health:
+                {{ expense_health|default("No Data", true) }}
+            </div>
+
+            <div class="er-status-text">
+
+                {% if expense_rate|default(0, true)|float <= 50 %}
+
+                    Your expenses are well controlled relative
+                    to your income.
+
+                {% elif expense_rate|default(0, true)|float <= 70 %}
+
+                    Your spending level is moderate.
+                    Continue monitoring your expenses.
+
+                {% elif expense_rate|default(0, true)|float <= 100 %}
+
+                    A large portion of income is being consumed
+                    by expenses.
+
+                {% else %}
+
+                    Expenses are greater than income.
+                    Immediate spending control is recommended.
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         PROGRESS
+         ======================================================== -->
+
+    <section class="er-health-grid">
+
+        <div class="er-health-card">
+
+            <div class="er-health-header">
+
+                <div class="er-health-title">
+                    Expense Rate
+                </div>
+
+                <div
+                    class="er-health-value"
+                    style="color:var(--er-danger);"
+                >
+                    {{ "{:.2f}".format(expense_rate|default(0, true)|float) }}%
+                </div>
+
+            </div>
+
+            <div class="er-progress">
+
+                <div
+                    class="er-progress-bar er-progress-danger"
+                    style="width:{{ expense_progress|default(0, true)|float }}%;"
+                ></div>
+
+            </div>
+
+            <div class="er-progress-description">
+                Percentage of income consumed by expenses.
+            </div>
+
+        </div>
+
+
+        <div class="er-health-card">
+
+            <div class="er-health-header">
+
+                <div class="er-health-title">
+                    Saving Rate
+                </div>
+
+                <div
+                    class="er-health-value"
+                    style="color:var(--er-success);"
+                >
+                    {{ "{:.2f}".format(saving_rate|default(0, true)|float) }}%
+                </div>
+
+            </div>
+
+            <div class="er-progress">
+
+                <div
+                    class="er-progress-bar er-progress-success"
+                    style="width:{{ saving_progress|default(0, true)|float }}%;"
+                ></div>
+
+            </div>
+
+            <div class="er-progress-description">
+                Percentage of income remaining after expenses.
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <section class="er-insights-grid">
+
+        <div class="er-insight">
+
+            <div class="er-insight-label">
+                HIGHEST EXPENSE DAY
+            </div>
+
+            <div class="er-insight-value">
+                {{ highest_expense_day.get('label', 'No Data') }}
+            </div>
+
+            <div class="er-insight-sub">
+                ${{ "{:,.2f}".format(
+                    highest_expense_day.get('expense', 0)|float
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="er-insight">
+
+            <div class="er-insight-label">
+                LOWEST EXPENSE DAY
+            </div>
+
+            <div class="er-insight-value">
+                {{ lowest_expense_day.get('label', 'No Data') }}
+            </div>
+
+            <div class="er-insight-sub">
+                ${{ "{:,.2f}".format(
+                    lowest_expense_day.get('expense', 0)|float
+                ) }}
+            </div>
+
+        </div>
+
+
+        <div class="er-insight">
+
+            <div class="er-insight-label">
+                AVG DAILY EXPENSE
+            </div>
+
+            <div class="er-insight-value"
+                 style="color:var(--er-danger);">
+                ${{ "{:,.2f}".format(
+                    average_daily_expense|default(0, true)|float
+                ) }}
+            </div>
+
+            <div class="er-insight-sub">
+                Average per day
+            </div>
+
+        </div>
+
+
+        <div class="er-insight">
+
+            <div class="er-insight-label">
+                AVG DAILY SAVING
+            </div>
+
+            <div class="er-insight-value"
+                 style="color:var(--er-success);">
+                ${{ "{:,.2f}".format(
+                    average_daily_saving|default(0, true)|float
+                ) }}
+            </div>
+
+            <div class="er-insight-sub">
+                Average remaining amount
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+
+    <section class="er-chart-grid">
+
+        <!-- Daily Income vs Expense -->
+
+        <div class="er-chart-card full">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Daily Income vs Expense
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Daily movement during the selected period.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="dailyIncomeExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Daily Expense Rate -->
+
+        <div class="er-chart-card">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Daily Expense Rate
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Expense as a percentage of daily income.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="dailyExpenseRateChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Cumulative Expense -->
+
+        <div class="er-chart-card">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Cumulative Expense
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Accumulated expenses throughout the period.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="cumulativeExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Monthly -->
+
+        <div class="er-chart-card full">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Monthly Financial Performance
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Monthly income, expense and savings comparison.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="monthlyChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Category -->
+
+        <div class="er-chart-card">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Expense by Category
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Categories consuming the most income.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="categoryChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Account -->
+
+        <div class="er-chart-card">
+
+            <div class="er-chart-header">
+
+                <div>
+                    <h3 class="er-chart-title">
+                        Expense by Account
+                    </h3>
+
+                    <div class="er-chart-description">
+                        Expense distribution across accounts.
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="er-chart-container">
+                <canvas id="accountChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         DAILY TABLE
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-calendar-day"></i>
+                    Daily Expense Performance
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Daily income, expenses, expense rate and savings.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="dailyTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Date</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Cumulative Expense</th>
+                        <th>Transactions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in daily_data|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.get('label', row.get('date', '—')) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-expense">
+                                {{ "{:.2f}".format(
+                                    row.get('expense_rate', 0)|float
+                                ) }}%
+                            </span>
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('cumulative_expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         MONTHLY TABLE
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-calendar3"></i>
+                    Monthly Performance
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Monthly expense rate analysis.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="monthlyTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Month</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in monthly_data|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.get('label', row.get('month', '—')) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-expense">
+                                {{ "{:.2f}".format(
+                                    row.get('expense_rate', 0)|float
+                                ) }}%
+                            </span>
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CATEGORY TABLE
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-tags"></i>
+                    Category Expense Analysis
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Expense distribution by category.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="categoryTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Category</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                        <th>Total Movement</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in category_summary|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.get('name', 'Uncategorized') }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-expense">
+                                {{ "{:.2f}".format(
+                                    row.get('expense_rate', 0)|float
+                                ) }}%
+                            </span>
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('total', 0)|float
+                            ) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ACCOUNT TABLE
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-wallet2"></i>
+                    Account Expense Analysis
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Compare expenses across accounts.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="accountTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Balance</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                        <th>Currency</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in account_summary|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row.get('name', 'Unknown Account') }}
+                            </strong>
+                        </td>
+
+                        <td>
+                            {{ row.get('type', 'Account') }}
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('balance', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-expense">
+                                {{ "{:.2f}".format(
+                                    row.get('expense_rate', 0)|float
+                                ) }}%
+                            </span>
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                        <td>
+                            {{ row.get('currency', 'USD') }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-neutral">
+                                {{ row.get('status', 'active') }}
+                            </span>
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ITEM TABLE
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-list-check"></i>
+                    Item Expense Analysis
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Detailed expense movement by item.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="itemTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Item</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                        <th>Total</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in item_summary|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.get('name', 'Unspecified') }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-expense">
+                                {{ "{:.2f}".format(
+                                    row.get('expense_rate', 0)|float
+                                ) }}%
+                            </span>
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('total', 0)|float
+                            ) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP EXPENSE CATEGORIES
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-bar-chart-fill"></i>
+                    Top Expense Categories
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Highest spending categories.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="topExpenseTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Expense</th>
+                        <th>Income</th>
+                        <th>Expense Rate</th>
+                        <th>Transactions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in top_expense_categories|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                {{ row.get('name', 'Uncategorized') }}
+                            </strong>
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('expense_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP SAVING CATEGORIES
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-piggy-bank"></i>
+                    Top Saving Categories
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Categories producing the strongest positive net movement.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="topSavingTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in top_saving_categories|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td>
+                            <strong>
+                                {{ row.get('name', 'Uncategorized') }}
+                            </strong>
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-saving">
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('saving_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP EXPENSE DAYS
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+                <h3 class="er-table-title">
+                    <i class="bi bi-calendar-x"></i>
+                    Top Expense Days
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Days with the highest expense amounts.
+                </div>
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="topExpenseDaysTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Expense Rate</th>
+                        <th>Net Saving</th>
+                        <th>Transactions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in top_expense_periods|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td>
+                            {{ row.get('label', row.get('date', '—')) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ "{:.2f}".format(
+                                row.get('expense_rate', 0)|float
+                            ) }}%
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            {{ row.get('transactions', 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ALL TRANSACTIONS
+         ======================================================== -->
+
+    <section class="er-table-card">
+
+        <div class="er-table-header">
+
+            <div>
+
+                <h3 class="er-table-title">
+                    <i class="bi bi-receipt"></i>
+                    All Financial Transactions
+                </h3>
+
+                <div class="er-table-subtitle">
+                    Complete transaction history for the selected report period.
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="er-table-wrap">
+
+            <table
+                id="transactionsTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Category</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in financial_transactions|default([], true) %}
+
+                    <tr>
+
+                        <td>
+                            {{ row.get('date', '—') }}
+                        </td>
+
+                        <td>
+                            {{ row.get('account', 'Unknown Account') }}
+                        </td>
+
+                        <td>
+                            {{ row.get('category', 'Uncategorized') }}
+                        </td>
+
+                        <td>
+                            {{ row.get('item', '—') }}
+                        </td>
+
+                        <td>
+
+                            {% if row.get('transaction_type') == 'expense' %}
+
+                                <span class="er-badge er-badge-expense">
+                                    Expense
+                                </span>
+
+                            {% else %}
+
+                                <span class="er-badge er-badge-income">
+                                    Income
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            ${{ "{:,.2f}".format(
+                                row.get('amount', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-income">
+                            ${{ "{:,.2f}".format(
+                                row.get('income', 0)|float
+                            ) }}
+                        </td>
+
+                        <td class="money-expense">
+                            ${{ "{:,.2f}".format(
+                                row.get('expense', 0)|float
+                            ) }}
+                        </td>
+
+                        <td
+                            class="
+                            {% if row.get('net_saving', 0)|float >= 0 %}
+                                money-saving
+                            {% else %}
+                                money-negative
+                            {% endif %}
+                            "
+                        >
+                            ${{ "{:,.2f}".format(
+                                row.get('net_saving', 0)|float
+                            ) }}
+                        </td>
+
+                        <td>
+                            <span class="er-badge er-badge-neutral">
+                                {{ row.get('status', 'Completed') }}
+                            </span>
+                        </td>
+
+                        <td>
+                            {{ row.get('reference', '—') }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="er-footer">
+
+        Expense Rate Report •
+        {{ custom_range_label|default("Current Period", true) }}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"
+>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<script>
+/* ============================================================
+   EXPENSE RATE REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       SAFE DATA FROM FLASK
+       ======================================================== */
+
+    const dailyData =
+        {{ daily_data|default([], true)|tojson|safe }};
+
+    const monthlyData =
+        {{ monthly_data|default([], true)|tojson|safe }};
+
+    const categorySummary =
+        {{ category_summary|default([], true)|tojson|safe }};
+
+    const accountSummary =
+        {{ account_summary|default([], true)|tojson|safe }};
+
+    const itemSummary =
+        {{ item_summary|default([], true)|tojson|safe }};
+
+    const financialTransactions =
+        {{ financial_transactions|default([], true)|tojson|safe }};
+
+
+    /* ========================================================
+       NUMBER FORMAT
+       ======================================================== */
+
+    function money(value) {
+
+        const number = Number(value || 0);
+
+        return "$" + number.toLocaleString(
+            "en-US",
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+    }
+
+
+    function number(value) {
+
+        return Number(value || 0).toLocaleString(
+            "en-US",
+            {
+                maximumFractionDigits: 2
+            }
+        );
+    }
+
+
+    /* ========================================================
+       DATE QUICK FILTERS
+       ======================================================== */
+
+    window.quickRange = function (range) {
+
+        const start =
+            document.getElementById(
+                "start_date"
+            );
+
+        const end =
+            document.getElementById(
+                "end_date"
+            );
+
+        const now = new Date();
+
+        let startDate =
+            new Date(now);
+
+        let endDate =
+            new Date(now);
+
+
+        if (range === "today") {
+
+            startDate =
+                new Date(now);
+
+        }
+
+        else if (range === "7") {
+
+            startDate =
+                new Date(now);
+
+            startDate.setDate(
+                now.getDate() - 6
+            );
+
+        }
+
+        else if (range === "30") {
+
+            startDate =
+                new Date(now);
+
+            startDate.setDate(
+                now.getDate() - 29
+            );
+
+        }
+
+        else if (range === "month") {
+
+            startDate =
+                new Date(
+                    now.getFullYear(),
+                    now.getMonth(),
+                    1
+                );
+
+        }
+
+        else if (range === "year") {
+
+            startDate =
+                new Date(
+                    now.getFullYear(),
+                    0,
+                    1
+                );
+
+        }
+
+
+        function formatDate(date) {
+
+            const year =
+                date.getFullYear();
+
+            const month =
+                String(
+                    date.getMonth() + 1
+                ).padStart(2, "0");
+
+            const day =
+                String(
+                    date.getDate()
+                ).padStart(2, "0");
+
+            return (
+                year +
+                "-" +
+                month +
+                "-" +
+                day
+            );
+        }
+
+
+        start.value =
+            formatDate(startDate);
+
+        end.value =
+            formatDate(endDate);
+
+    };
+
+
+    /* ========================================================
+       DATATABLE CONFIG
+       ======================================================== */
+
+    function initializeTable(
+        selector,
+        options = {}
+    ) {
+
+        const table =
+            document.querySelector(
+                selector
+            );
+
+        if (!table) {
+            return;
+        }
+
+        $(selector).DataTable({
+
+            responsive: true,
+
+            pageLength:
+                options.pageLength || 10,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order:
+                options.order || [],
+
+            dom:
+                '<"dt-top"Bfl>' +
+                'rt' +
+                '<"dt-bottom"ip>',
+
+            buttons: [
+
+                {
+                    extend: "copyHtml5",
+                    text:
+                        '<i class="bi bi-copy"></i> Copy',
+                    title:
+                        "Expense Rate Report",
+                    exportOptions: {
+                        columns: ":visible"
+                    }
+                },
+
+                {
+                    extend: "csvHtml5",
+                    text:
+                        '<i class="bi bi-filetype-csv"></i> CSV',
+                    title:
+                        "expense_rate_report",
+                    exportOptions: {
+                        columns: ":visible"
+                    }
+                },
+
+                {
+                    extend: "excelHtml5",
+                    text:
+                        '<i class="bi bi-file-earmark-excel"></i> Excel',
+                    title:
+                        "Expense Rate Report",
+                    exportOptions: {
+                        columns: ":visible"
+                    }
+                },
+
+                {
+                    extend: "pdfHtml5",
+                    text:
+                        '<i class="bi bi-file-earmark-pdf"></i> PDF',
+                    title:
+                        "Expense Rate Report",
+                    orientation:
+                        "landscape",
+                    pageSize:
+                        "A4",
+                    exportOptions: {
+                        columns: ":visible"
+                    }
+                },
+
+                {
+                    extend: "print",
+                    text:
+                        '<i class="bi bi-printer"></i> Print',
+                    title:
+                        "Expense Rate Report",
+                    exportOptions: {
+                        columns: ":visible"
+                    }
+                }
+
+            ],
+
+            language: {
+
+                search:
+                    "Search:",
+
+                lengthMenu:
+                    "Show _MENU_",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_",
+
+                infoEmpty:
+                    "No records available",
+
+                zeroRecords:
+                    "No matching records found",
+
+                paginate: {
+
+                    first:
+                        "First",
+
+                    last:
+                        "Last",
+
+                    next:
+                        "Next",
+
+                    previous:
+                        "Previous"
+                }
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       INITIALIZE ALL TABLES
+       ======================================================== */
+
+    $(document).ready(function () {
+
+        initializeTable(
+            "#dailyTable",
+            {
+                pageLength: 10,
+                order: [[0, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#monthlyTable",
+            {
+                pageLength: 12,
+                order: [[0, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#categoryTable",
+            {
+                pageLength: 10,
+                order: [[2, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#accountTable",
+            {
+                pageLength: 10,
+                order: [[4, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#itemTable",
+            {
+                pageLength: 10,
+                order: [[2, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#topExpenseTable",
+            {
+                pageLength: 10,
+                order: [[2, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#topSavingTable",
+            {
+                pageLength: 10,
+                order: [[4, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#topExpenseDaysTable",
+            {
+                pageLength: 10,
+                order: [[3, "desc"]]
+            }
+        );
+
+
+        initializeTable(
+            "#transactionsTable",
+            {
+                pageLength: 25,
+                order: [[0, "desc"]]
+            }
+        );
+
+    });
+
+
+    /* ========================================================
+       CHART DEFAULTS
+       ======================================================== */
+
+    Chart.defaults.font.family =
+        "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+
+    Chart.defaults.font.size = 11;
+
+    Chart.defaults.animation.duration = 700;
+
+
+    /* ========================================================
+       DAILY INCOME VS EXPENSE
+       ======================================================== */
+
+    const dailyIncomeExpenseCanvas =
+        document.getElementById(
+            "dailyIncomeExpenseChart"
+        );
+
+    if (
+        dailyIncomeExpenseCanvas &&
+        dailyData.length
+    ) {
+
+        new Chart(
+            dailyIncomeExpenseCanvas,
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        dailyData.map(
+                            row =>
+                                row.label ||
+                                row.date
+                        ),
+
+                    datasets: [
+
+                        {
+                            label:
+                                "Income",
+
+                            data:
+                                dailyData.map(
+                                    row =>
+                                        Number(
+                                            row.income || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(22, 163, 74, .70)",
+
+                            borderColor:
+                                "#16a34a",
+
+                            borderWidth: 1,
+
+                            borderRadius: 5
+                        },
+
+                        {
+                            label:
+                                "Expense",
+
+                            data:
+                                dailyData.map(
+                                    row =>
+                                        Number(
+                                            row.expense || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(220, 38, 38, .70)",
+
+                            borderColor:
+                                "#dc2626",
+
+                            borderWidth: 1,
+
+                            borderRadius: 5
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    interaction: {
+                        mode: "index",
+                        intersect: false
+                    },
+
+                    plugins: {
+
+                        legend: {
+                            position: "top"
+                        },
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            context.dataset.label
+                                            + ": "
+                                            + money(
+                                                context.parsed.y
+                                            )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+                                        return money(value);
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       DAILY EXPENSE RATE
+       ======================================================== */
+
+    const dailyExpenseRateCanvas =
+        document.getElementById(
+            "dailyExpenseRateChart"
+        );
+
+    if (
+        dailyExpenseRateCanvas &&
+        dailyData.length
+    ) {
+
+        new Chart(
+            dailyExpenseRateCanvas,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels:
+                        dailyData.map(
+                            row =>
+                                row.label ||
+                                row.date
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Expense Rate",
+
+                            data:
+                                dailyData.map(
+                                    row =>
+                                        Number(
+                                            row.expense_rate || 0
+                                        )
+                                ),
+
+                            borderColor:
+                                "#dc2626",
+
+                            backgroundColor:
+                                "rgba(220, 38, 38, .12)",
+
+                            fill: true,
+
+                            tension: .35,
+
+                            pointRadius: 3,
+
+                            pointHoverRadius: 6
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        legend: {
+                            display: true
+                        },
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            "Expense Rate: "
+                                            +
+                                            Number(
+                                                context.parsed.y
+                                            ).toFixed(2)
+                                            +
+                                            "%"
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+
+                                        return (
+                                            value +
+                                            "%"
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CUMULATIVE EXPENSE
+       ======================================================== */
+
+    const cumulativeExpenseCanvas =
+        document.getElementById(
+            "cumulativeExpenseChart"
+        );
+
+    if (
+        cumulativeExpenseCanvas &&
+        dailyData.length
+    ) {
+
+        new Chart(
+            cumulativeExpenseCanvas,
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels:
+                        dailyData.map(
+                            row =>
+                                row.label ||
+                                row.date
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Cumulative Expense",
+
+                            data:
+                                dailyData.map(
+                                    row =>
+                                        Number(
+                                            row.cumulative_expense || 0
+                                        )
+                                ),
+
+                            borderColor:
+                                "#7c3aed",
+
+                            backgroundColor:
+                                "rgba(124, 58, 237, .12)",
+
+                            fill: true,
+
+                            tension: .35,
+
+                            pointRadius: 2,
+
+                            pointHoverRadius: 5
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            "Cumulative: "
+                                            +
+                                            money(
+                                                context.parsed.y
+                                            )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+                                        return money(value);
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       MONTHLY CHART
+       ======================================================== */
+
+    const monthlyCanvas =
+        document.getElementById(
+            "monthlyChart"
+        );
+
+    if (
+        monthlyCanvas &&
+        monthlyData.length
+    ) {
+
+        new Chart(
+            monthlyCanvas,
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        monthlyData.map(
+                            row =>
+                                row.label ||
+                                row.month
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Income",
+
+                            data:
+                                monthlyData.map(
+                                    row =>
+                                        Number(
+                                            row.income || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(22, 163, 74, .72)",
+
+                            borderColor:
+                                "#16a34a",
+
+                            borderWidth: 1,
+
+                            borderRadius: 5
+
+                        },
+
+                        {
+
+                            label:
+                                "Expense",
+
+                            data:
+                                monthlyData.map(
+                                    row =>
+                                        Number(
+                                            row.expense || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(220, 38, 38, .72)",
+
+                            borderColor:
+                                "#dc2626",
+
+                            borderWidth: 1,
+
+                            borderRadius: 5
+
+                        },
+
+                        {
+
+                            label:
+                                "Net Saving",
+
+                            data:
+                                monthlyData.map(
+                                    row =>
+                                        Number(
+                                            row.net_saving || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(79, 70, 229, .72)",
+
+                            borderColor:
+                                "#4f46e5",
+
+                            borderWidth: 1,
+
+                            borderRadius: 5
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            context.dataset.label
+                                            +
+                                            ": "
+                                            +
+                                            money(
+                                                context.parsed.y
+                                            )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+                                        return money(value);
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CATEGORY CHART
+       ======================================================== */
+
+    const categoryCanvas =
+        document.getElementById(
+            "categoryChart"
+        );
+
+    if (
+        categoryCanvas &&
+        categorySummary.length
+    ) {
+
+        const categoryRows =
+            categorySummary
+                .filter(
+                    row =>
+                        Number(
+                            row.expense || 0
+                        ) > 0
+                )
+                .slice(0, 10);
+
+
+        new Chart(
+            categoryCanvas,
+            {
+
+                type: "doughnut",
+
+                data: {
+
+                    labels:
+                        categoryRows.map(
+                            row =>
+                                row.name ||
+                                "Uncategorized"
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Expense",
+
+                            data:
+                                categoryRows.map(
+                                    row =>
+                                        Number(
+                                            row.expense || 0
+                                        )
+                                ),
+
+                            backgroundColor: [
+
+                                "#ef4444",
+                                "#f97316",
+                                "#f59e0b",
+                                "#eab308",
+                                "#84cc16",
+                                "#22c55e",
+                                "#14b8a6",
+                                "#06b6d4",
+                                "#3b82f6",
+                                "#8b5cf6"
+
+                            ],
+
+                            borderWidth: 2,
+
+                            borderColor:
+                                "#ffffff"
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        legend: {
+
+                            position:
+                                "bottom"
+
+                        },
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            context.label
+                                            +
+                                            ": "
+                                            +
+                                            money(
+                                                context.raw
+                                            )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       ACCOUNT CHART
+       ======================================================== */
+
+    const accountCanvas =
+        document.getElementById(
+            "accountChart"
+        );
+
+    if (
+        accountCanvas &&
+        accountSummary.length
+    ) {
+
+        const accountRows =
+            accountSummary
+                .filter(
+                    row =>
+                        Number(
+                            row.expense || 0
+                        ) > 0
+                )
+                .slice(0, 10);
+
+
+        new Chart(
+            accountCanvas,
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        accountRows.map(
+                            row =>
+                                row.name ||
+                                "Unknown"
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label:
+                                "Expense",
+
+                            data:
+                                accountRows.map(
+                                    row =>
+                                        Number(
+                                            row.expense || 0
+                                        )
+                                ),
+
+                            backgroundColor:
+                                "rgba(220, 38, 38, .75)",
+
+                            borderColor:
+                                "#dc2626",
+
+                            borderWidth: 1,
+
+                            borderRadius: 6
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    indexAxis: "y",
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        tooltip: {
+
+                            callbacks: {
+
+                                label:
+                                    function (context) {
+
+                                        return (
+                                            "Expense: "
+                                            +
+                                            money(
+                                                context.raw
+                                            )
+                                        );
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        x: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback:
+                                    function (value) {
+                                        return money(value);
+                                    }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT PDF
+       ======================================================== */
+
+    window.printReportPDF = function () {
+
+        /*
+         * Browser print dialog allows:
+         * Destination → Save as PDF
+         */
+
+        window.print();
+
+    };
+
+
+    /* ========================================================
+       PRINT CHARTS PROPERLY
+       ======================================================== */
+
+    window.addEventListener(
+        "beforeprint",
+        function () {
+
+            if (
+                typeof Chart !==
+                "undefined"
+            ) {
+
+                Chart.instances.forEach(
+                    function (chart) {
+
+                        try {
+                            chart.resize();
+                        }
+                        catch (e) {}
+
+                    }
+                );
+
+            }
+
+        }
+    );
+
+
+    window.addEventListener(
+        "afterprint",
+        function () {
+
+            if (
+                typeof Chart !==
+                "undefined"
+            ) {
+
+                Chart.instances.forEach(
+                    function (chart) {
+
+                        try {
+                            chart.resize();
+                        }
+                        catch (e) {}
+
+                    }
+                );
+
+            }
+
+        }
+    );
+
+
+})();
+</script>
+
+{% endblock %}

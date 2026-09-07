@@ -1,0 +1,2560 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transaction Report{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================
+     TRANSACTION REPORT
+     ============================================================ -->
+
+
+<!-- ============================================================
+     PAGE HEADER
+     ============================================================ -->
+
+<div class="page-header">
+
+    <div class="page-header-left d-flex align-items-center">
+
+        <div class="page-header-title">
+
+            <h5 class="m-b-10">
+                Transaction Report
+            </h5>
+
+        </div>
+
+        <ul class="breadcrumb">
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.dashboard') }}">
+                    Home
+                </a>
+            </li>
+
+            <li class="breadcrumb-item">
+                Transaction Report
+            </li>
+
+        </ul>
+
+    </div>
+
+
+    <!-- ========================================================
+         HEADER RIGHT
+         ======================================================== -->
+
+    <div class="page-header-right ms-auto">
+
+        <div class="page-header-right-items">
+
+            <div class="d-flex d-md-none">
+
+                <a
+                    href="javascript:void(0)"
+                    class="page-header-right-close-toggle"
+                >
+
+                    <i class="feather-arrow-left me-2"></i>
+
+                    <span>
+                        Back
+                    </span>
+
+                </a>
+
+            </div>
+
+
+            <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+
+                <!-- PRINT -->
+
+                <button
+                    type="button"
+                    class="btn btn-light-brand"
+                    onclick="printReport()"
+                >
+
+                    <i class="feather-printer me-2"></i>
+
+                    Print
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="d-md-none d-flex align-items-center">
+
+            <a
+                href="javascript:void(0)"
+                class="page-header-right-open-toggle"
+            >
+
+                <i class="feather-align-right fs-20"></i>
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     MAIN CONTENT
+     ============================================================ -->
+
+<div class="main-content">
+
+    <!-- ========================================================
+         SUMMARY CARDS
+         ======================================================== -->
+
+    <div class="row">
+
+        <!-- TOTAL TRANSACTIONS -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card stretch stretch-full">
+
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted mb-2">
+                                Total Transactions
+                            </h6>
+
+                            <h3 class="fw-bold mb-0">
+                                {{ transaction_count }}
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="avatar-text avatar-lg bg-soft-primary text-primary"
+                        >
+
+                            <i data-feather="repeat"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card stretch stretch-full">
+
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted mb-2">
+                                Total Income
+                            </h6>
+
+                            <h3 class="fw-bold text-success mb-0">
+
+                                ${{ "%.2f"|format(total_income) }}
+
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="avatar-text avatar-lg bg-soft-success text-success"
+                        >
+
+                            <i data-feather="trending-up"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card stretch stretch-full">
+
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted mb-2">
+                                Total Expense
+                            </h6>
+
+                            <h3 class="fw-bold text-danger mb-0">
+
+                                ${{ "%.2f"|format(total_expense) }}
+
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="avatar-text avatar-lg bg-soft-danger text-danger"
+                        >
+
+                            <i data-feather="trending-down"></i>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- NET PROFIT -->
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card stretch stretch-full">
+
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center justify-content-between">
+
+                        <div>
+
+                            <h6 class="text-muted mb-2">
+                                Net Profit / Loss
+                            </h6>
+
+                            <h3
+                                class="fw-bold mb-0
+                                {% if net_profit >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}"
+                            >
+
+                                ${{ "%.2f"|format(net_profit) }}
+
+                            </h3>
+
+                        </div>
+
+                        <div
+                            class="avatar-text avatar-lg
+                            {% if net_profit >= 0 %}
+                                bg-soft-success text-success
+                            {% else %}
+                                bg-soft-danger text-danger
+                            {% endif %}"
+                        >
+
+                            {% if net_profit >= 0 %}
+
+                                <i data-feather="bar-chart-2"></i>
+
+                            {% else %}
+
+                                <i data-feather="alert-triangle"></i>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTER CARD
+         ======================================================== -->
+
+    <div class="row">
+
+        <div class="col-12">
+
+            <div class="card stretch stretch-full">
+
+                <div class="card-header">
+
+                    <h5 class="mb-0">
+
+                        <i class="feather-filter me-2"></i>
+
+                        Report Filters
+
+                    </h5>
+
+                </div>
+
+
+                <div class="card-body">
+
+                    <form
+                        method="GET"
+                        action="{{ url_for('main.report_transactions') }}"
+                    >
+
+                        <div class="row g-3">
+
+
+                            <!-- TYPE -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Transaction Type
+                                </label>
+
+                                <select
+                                    name="type"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        All Types
+                                    </option>
+
+                                    <option
+                                        value="income"
+                                        {% if selected_type == 'income' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Income
+                                    </option>
+
+                                    <option
+                                        value="expense"
+                                        {% if selected_type == 'expense' %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        Expense
+                                    </option>
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- CATEGORY -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Category
+                                </label>
+
+                                <select
+                                    name="category"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        All Categories
+                                    </option>
+
+                                    {% for category in categories %}
+
+                                        <option
+                                            value="{{ category.name }}"
+                                            {% if selected_category == category.name %}
+                                                selected
+                                            {% endif %}
+                                        >
+
+                                            {{ category.name }}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- ACCOUNT -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Account
+                                </label>
+
+                                <select
+                                    name="account_id"
+                                    class="form-select"
+                                >
+
+                                    <option value="">
+                                        All Accounts
+                                    </option>
+
+                                    {% for account in accounts %}
+
+                                        <option
+                                            value="{{ account._id }}"
+                                            {% if selected_account == account._id %}
+                                                selected
+                                            {% endif %}
+                                        >
+
+                                            {{ account.name }}
+
+                                        </option>
+
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+
+
+                            <!-- DATE FROM -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Date From
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="date_from"
+                                    class="form-control"
+                                    value="{{ date_from }}"
+                                >
+
+                            </div>
+
+
+                            <!-- DATE TO -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Date To
+                                </label>
+
+                                <input
+                                    type="date"
+                                    name="date_to"
+                                    class="form-control"
+                                    value="{{ date_to }}"
+                                >
+
+                            </div>
+
+
+                            <!-- SEARCH -->
+
+                            <div class="col-xl-2 col-lg-4 col-md-6">
+
+                                <label class="form-label">
+                                    Search
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="search"
+                                    class="form-control"
+                                    placeholder="Search..."
+                                    value="{{ search }}"
+                                >
+
+                            </div>
+
+
+                            <!-- BUTTONS -->
+
+                            <div class="col-12">
+
+                                <div class="d-flex gap-2 flex-wrap">
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                    >
+
+                                        <i class="feather-search me-2"></i>
+
+                                        Apply Filters
+
+                                    </button>
+
+
+                                    <a
+                                        href="{{ url_for('main.report_transactions') }}"
+                                        class="btn btn-light"
+                                    >
+
+                                        <i class="feather-refresh-cw me-2"></i>
+
+                                        Reset
+
+                                    </a>
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTION TABLE
+         ======================================================== -->
+
+    <div class="row">
+
+        <div class="col-12">
+
+            <div class="card stretch stretch-full">
+
+                <!-- ====================================================
+                     CARD HEADER
+                     ==================================================== -->
+
+                <div class="card-header">
+
+                    <div>
+
+                        <h5 class="mb-1">
+                            Transaction Report
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Complete financial transaction report
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ====================================================
+                     TABLE
+                     ==================================================== -->
+
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table
+                            id="transactionReportTable"
+                            class="table table-hover align-middle mb-0"
+                            style="width:100%;"
+                        >
+
+                            <thead class="table-light">
+
+                                <tr>
+
+                                    <th>#</th>
+
+                                    <th>Date</th>
+
+                                    <th>Type</th>
+
+                                    <th>Category</th>
+
+                                    <th>Item</th>
+
+                                    <th>Account</th>
+
+                                    <th>Description</th>
+
+                                    <th>Reference</th>
+
+                                    <th class="text-end">
+                                        Amount
+                                    </th>
+
+                                    <th class="text-end">
+                                        Action
+                                    </th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody>
+
+                                {% for transaction in transactions %}
+
+                                <tr>
+
+                                    <!-- INDEX -->
+
+                                    <td>
+                                        {{ loop.index }}
+                                    </td>
+
+
+                                    <!-- DATE -->
+
+                                    <td>
+
+                                        {% if transaction.date %}
+
+                                            <span
+                                                data-order="{{ transaction.date.strftime('%Y-%m-%d %H:%M:%S') }}"
+                                            >
+
+                                                {{ transaction.date.strftime('%Y-%m-%d') }}
+
+                                                <small class="d-block text-muted">
+
+                                                    {{ transaction.date.strftime('%H:%M') }}
+
+                                                </small>
+
+                                            </span>
+
+                                        {% else %}
+
+                                            -
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- TYPE -->
+
+                                    <td>
+
+                                        {% if transaction.transaction_type == 'income' %}
+
+                                            <span class="badge bg-success">
+
+                                                <i class="feather-arrow-down-circle me-1"></i>
+
+                                                Income
+
+                                            </span>
+
+                                        {% elif transaction.transaction_type == 'expense' %}
+
+                                            <span class="badge bg-danger">
+
+                                                <i class="feather-arrow-up-circle me-1"></i>
+
+                                                Expense
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="badge bg-secondary">
+
+                                                {{ transaction.transaction_type|title }}
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- CATEGORY -->
+
+                                    <td>
+
+                                        <span class="fw-semibold">
+
+                                            {{ transaction.category or '-' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ITEM -->
+
+                                    <td>
+
+                                        {{ transaction.item or '-' }}
+
+                                    </td>
+
+
+                                    <!-- ACCOUNT -->
+
+                                    <td>
+
+                                        <span class="badge bg-soft-primary text-primary">
+
+                                            {{ transaction.account_name or 'Unknown Account' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- DESCRIPTION -->
+
+                                    <td>
+
+                                        {% if transaction.description %}
+
+                                            <span
+                                                title="{{ transaction.description }}"
+                                            >
+
+                                                {{ transaction.description[:40] }}
+
+                                                {% if transaction.description|length > 40 %}
+                                                    ...
+                                                {% endif %}
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- REFERENCE -->
+
+                                    <td>
+
+                                        {% if transaction.reference_no %}
+
+                                            <code>
+                                                {{ transaction.reference_no }}
+                                            </code>
+
+                                        {% else %}
+
+                                            <span class="text-muted">
+                                                -
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- AMOUNT -->
+
+                                    <td class="text-end">
+
+                                        {% if transaction.transaction_type == 'income' %}
+
+                                            <span class="fw-bold text-success">
+
+                                                +${{ "%.2f"|format(transaction.amount) }}
+
+                                            </span>
+
+                                        {% elif transaction.transaction_type == 'expense' %}
+
+                                            <span class="fw-bold text-danger">
+
+                                                -${{ "%.2f"|format(transaction.amount) }}
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="fw-bold">
+
+                                                ${{ "%.2f"|format(transaction.amount) }}
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- ACTION -->
+
+                                    <td class="text-end">
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-light-primary"
+                                            onclick="openTransactionInvoice(this)"
+                                            data-id="{{ transaction._id }}"
+                                            data-date="{{ transaction.date.strftime('%Y-%m-%d %H:%M') if transaction.date else '-' }}"
+                                            data-type="{{ transaction.transaction_type|title }}"
+                                            data-category="{{ transaction.category or '-' }}"
+                                            data-item="{{ transaction.item or '-' }}"
+                                            data-account="{{ transaction.account_name or 'Unknown Account' }}"
+                                            data-description="{{ transaction.description or '-' }}"
+                                            data-note="{{ transaction.note or '-' }}"
+                                            data-reference="{{ transaction.reference_no or '-' }}"
+                                            data-amount="{{ '%.2f'|format(transaction.amount) }}"
+                                        >
+
+                                            <i class="feather-eye"></i>
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+
+                            <!-- ====================================================
+                                 FOOTER
+                                 ==================================================== -->
+
+                            <tfoot class="table-light">
+
+                                <tr>
+
+                                    <th colspan="8" class="text-end">
+
+                                        Income:
+
+                                    </th>
+
+                                    <th class="text-end text-success">
+
+                                        +${{ "%.2f"|format(total_income) }}
+
+                                    </th>
+
+                                    <th></th>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <th colspan="8" class="text-end">
+
+                                        Expense:
+
+                                    </th>
+
+                                    <th class="text-end text-danger">
+
+                                        -${{ "%.2f"|format(total_expense) }}
+
+                                    </th>
+
+                                    <th></th>
+
+                                </tr>
+
+
+                                <tr>
+
+                                    <th colspan="8" class="text-end">
+
+                                        Net Profit / Loss:
+
+                                    </th>
+
+                                    <th
+                                        class="text-end
+                                        {% if net_profit >= 0 %}
+                                            text-success
+                                        {% else %}
+                                            text-danger
+                                        {% endif %}"
+                                    >
+
+                                        ${{ "%.2f"|format(net_profit) }}
+
+                                    </th>
+
+                                    <th></th>
+
+                                </tr>
+
+                            </tfoot>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TRANSACTION INVOICE MODAL
+     ============================================================ -->
+
+<div
+    class="modal fade"
+    id="transactionInvoiceModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <!-- ====================================================
+                 MODAL HEADER
+                 ==================================================== -->
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h5 class="modal-title">
+
+                        Transaction Details
+
+                    </h5>
+
+                    <small class="text-muted">
+
+                        Financial Transaction Invoice
+
+                    </small>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+
+            <!-- ====================================================
+                 INVOICE BODY
+                 ==================================================== -->
+
+            <div
+                class="modal-body"
+                id="transactionInvoice"
+            >
+
+                <!-- ==================================================
+                     COMPANY / SYSTEM HEADER
+                     ================================================== -->
+
+                <div class="text-center mb-4">
+
+                    <h3 class="fw-bold mb-1">
+                        Financial Transaction
+                    </h3>
+
+                    <p class="text-muted mb-0">
+                        Transaction Report
+                    </p>
+
+                </div>
+
+
+                <div class="row mb-4">
+
+                    <div class="col-md-6">
+
+                        <h6 class="text-muted mb-2">
+                            Transaction ID
+                        </h6>
+
+                        <div
+                            id="invoiceTransactionId"
+                            class="fw-semibold"
+                        >
+                            -
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6 text-md-end">
+
+                        <h6 class="text-muted mb-2">
+                            Date
+                        </h6>
+
+                        <div
+                            id="invoiceDate"
+                            class="fw-semibold"
+                        >
+                            -
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==================================================
+                     TYPE
+                     ================================================== -->
+
+                <div class="row mb-4">
+
+                    <div class="col-md-6">
+
+                        <div class="border rounded p-3">
+
+                            <small class="text-muted d-block mb-1">
+                                Transaction Type
+                            </small>
+
+                            <span
+                                id="invoiceType"
+                                class="badge"
+                            >
+                                -
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <div class="border rounded p-3">
+
+                            <small class="text-muted d-block mb-1">
+                                Account
+                            </small>
+
+                            <strong id="invoiceAccount">
+                                -
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==================================================
+                     DETAILS
+                     ================================================== -->
+
+                <div class="table-responsive">
+
+                    <table class="table table-bordered">
+
+                        <tbody>
+
+                            <tr>
+
+                                <th style="width:35%;">
+                                    Category
+                                </th>
+
+                                <td id="invoiceCategory">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Item
+                                </th>
+
+                                <td id="invoiceItem">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Description
+                                </th>
+
+                                <td id="invoiceDescription">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Note
+                                </th>
+
+                                <td id="invoiceNote">
+                                    -
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Reference Number
+                                </th>
+
+                                <td>
+
+                                    <code id="invoiceReference">
+                                        -
+                                    </code>
+
+                                </td>
+
+                            </tr>
+
+
+                            <tr>
+
+                                <th>
+                                    Amount
+                                </th>
+
+                                <td
+                                    id="invoiceAmount"
+                                    class="fw-bold fs-5"
+                                >
+                                    -
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- ==================================================
+                     FOOTER
+                     ================================================== -->
+
+                <div class="text-center mt-4 pt-3 border-top">
+
+                    <small class="text-muted">
+
+                        This document is generated automatically by the
+                        Financial Management System.
+
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <!-- ====================================================
+                 MODAL FOOTER
+                 ==================================================== -->
+
+            <div class="modal-footer">
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    data-bs-dismiss="modal"
+                >
+
+                    Close
+
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn btn-primary"
+                    onclick="printTransactionInvoice()"
+                >
+
+                    <i class="feather-printer me-2"></i>
+
+                    Print Invoice
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     DATATABLES CSS
+     ============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css"
+>
+
+
+<!-- ============================================================
+     CUSTOM REPORT CSS
+     ============================================================ -->
+
+<style>
+
+    .bg-soft-primary {
+        background-color: rgba(52, 152, 219, 0.10) !important;
+    }
+
+    .bg-soft-success {
+        background-color: rgba(25, 135, 84, 0.10) !important;
+    }
+
+    .bg-soft-danger {
+        background-color: rgba(220, 53, 69, 0.10) !important;
+    }
+
+    .bg-soft-warning {
+        background-color: rgba(255, 193, 7, 0.10) !important;
+    }
+
+    .avatar-text {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .avatar-lg {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    #transactionReportTable th,
+    #transactionReportTable td {
+        vertical-align: middle;
+    }
+
+    #transactionReportTable thead th {
+        white-space: nowrap;
+    }
+
+    #transactionReportTable tfoot th {
+        font-weight: 700;
+    }
+
+    .dataTables_wrapper {
+        padding: 20px;
+    }
+
+    .dataTables_length select {
+        min-width: 70px;
+    }
+
+    .dataTables_filter input {
+        min-width: 250px;
+    }
+
+    .dt-buttons .btn {
+        margin-right: 4px;
+        margin-bottom: 4px;
+    }
+
+    .transaction-print-header {
+        display: none;
+    }
+
+
+    /* =========================================================
+       PRINT
+       ========================================================= */
+
+    @media print {
+
+        body * {
+            visibility: hidden !important;
+        }
+
+        #transactionInvoice,
+        #transactionInvoice * {
+            visibility: visible !important;
+        }
+
+        #transactionInvoice {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            padding: 25px;
+        }
+
+    }
+
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 767px) {
+
+        .dataTables_wrapper {
+            padding: 10px;
+        }
+
+        .dataTables_filter input {
+            min-width: 100%;
+        }
+
+        .page-header-title h5 {
+            font-size: 16px;
+        }
+
+    }
+
+</style>
+
+
+<!-- ============================================================
+     JQUERY
+     ============================================================ -->
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+
+<!-- ============================================================
+     DATATABLES JS
+     ============================================================ -->
+
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+
+<!-- ============================================================
+     DATATABLES BUTTONS
+     ============================================================ -->
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+
+<!-- ============================================================
+     DATATABLE INITIALIZATION
+     ============================================================ -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /*
+    |--------------------------------------------------------------------------
+    | DATATABLE
+    |--------------------------------------------------------------------------
+    */
+
+    if (typeof jQuery !== "undefined" &&
+        typeof jQuery.fn.DataTable !== "undefined") {
+
+        $('#transactionReportTable').DataTable({
+
+            responsive: true,
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, 'desc']
+            ],
+
+            columnDefs: [
+
+                {
+                    targets: [0, 9],
+                    orderable: false
+                },
+
+                {
+                    targets: [8],
+                    type: 'num'
+                }
+
+            ],
+
+            dom:
+                "<'row mb-3'" +
+                    "<'col-md-6'l>" +
+                    "<'col-md-6'f>" +
+                ">" +
+
+                "<'row mb-3'" +
+                    "<'col-12'B>" +
+                ">" +
+
+                "<'row'" +
+                    "<'col-12'tr>" +
+                ">" +
+
+                "<'row mt-3'" +
+                    "<'col-md-5'i>" +
+                    "<'col-md-7'p>" +
+                ">",
+
+            buttons: [
+
+                {
+                    extend: 'copy',
+
+                    text:
+                        '<i class="feather-copy me-1"></i> Copy',
+
+                    className: 'btn btn-sm btn-secondary',
+
+                    exportOptions: {
+                        columns: [0,1,2,3,4,5,6,7,8]
+                    }
+
+                },
+
+                {
+                    extend: 'csv',
+
+                    text:
+                        '<i class="feather-file-text me-1"></i> CSV',
+
+                    className: 'btn btn-sm btn-success',
+
+                    title: 'Transaction Report',
+
+                    exportOptions: {
+                        columns: [0,1,2,3,4,5,6,7,8]
+                    }
+
+                },
+
+                {
+                    extend: 'excel',
+
+                    text:
+                        '<i class="feather-file me-1"></i> Excel',
+
+                    className: 'btn btn-sm btn-success',
+
+                    title: 'Transaction Report',
+
+                    exportOptions: {
+                        columns: [0,1,2,3,4,5,6,7,8]
+                    }
+
+                },
+
+                {
+                    extend: 'pdf',
+
+                    text:
+                        '<i class="feather-file-text me-1"></i> PDF',
+
+                    className: 'btn btn-sm btn-danger',
+
+                    title: 'Transaction Report',
+
+                    orientation: 'landscape',
+
+                    pageSize: 'A4',
+
+                    exportOptions: {
+                        columns: [0,1,2,3,4,5,6,7,8]
+                    }
+
+                },
+
+                {
+                    extend: 'print',
+
+                    text:
+                        '<i class="feather-printer me-1"></i> Print',
+
+                    className: 'btn btn-sm btn-primary',
+
+                    title: 'Transaction Report',
+
+                    exportOptions: {
+                        columns: [0,1,2,3,4,5,6,7,8]
+                    }
+
+                }
+
+            ],
+
+            language: {
+
+                search: "Search transactions:",
+
+                lengthMenu:
+                    "Show _MENU_ transactions",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty:
+                    "No transactions available",
+
+                zeroRecords:
+                    "No matching transactions found",
+
+                paginate: {
+
+                    first: "First",
+
+                    last: "Last",
+
+                    next: "Next",
+
+                    previous: "Previous"
+
+                }
+
+            }
+
+        });
+
+    }
+
+});
+
+</script>
+
+
+<!-- ============================================================
+     TRANSACTION INVOICE JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+let currentTransactionInvoice = null;
+
+
+/*
+|--------------------------------------------------------------------------
+| OPEN TRANSACTION INVOICE
+|--------------------------------------------------------------------------
+*/
+
+function openTransactionInvoice(button) {
+
+    currentTransactionInvoice = {
+
+        id:
+            button.dataset.id || "-",
+
+        date:
+            button.dataset.date || "-",
+
+        type:
+            button.dataset.type || "-",
+
+        category:
+            button.dataset.category || "-",
+
+        item:
+            button.dataset.item || "-",
+
+        account:
+            button.dataset.account || "-",
+
+        description:
+            button.dataset.description || "-",
+
+        note:
+            button.dataset.note || "-",
+
+        reference:
+            button.dataset.reference || "-",
+
+        amount:
+            button.dataset.amount || "0.00"
+
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | SET VALUES
+    |--------------------------------------------------------------------------
+    */
+
+    document.getElementById(
+        "invoiceTransactionId"
+    ).textContent =
+        currentTransactionInvoice.id;
+
+
+    document.getElementById(
+        "invoiceDate"
+    ).textContent =
+        currentTransactionInvoice.date;
+
+
+    document.getElementById(
+        "invoiceCategory"
+    ).textContent =
+        currentTransactionInvoice.category;
+
+
+    document.getElementById(
+        "invoiceItem"
+    ).textContent =
+        currentTransactionInvoice.item;
+
+
+    document.getElementById(
+        "invoiceAccount"
+    ).textContent =
+        currentTransactionInvoice.account;
+
+
+    document.getElementById(
+        "invoiceDescription"
+    ).textContent =
+        currentTransactionInvoice.description;
+
+
+    document.getElementById(
+        "invoiceNote"
+    ).textContent =
+        currentTransactionInvoice.note;
+
+
+    document.getElementById(
+        "invoiceReference"
+    ).textContent =
+        currentTransactionInvoice.reference;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TYPE
+    |--------------------------------------------------------------------------
+    */
+
+    const typeElement =
+        document.getElementById("invoiceType");
+
+    typeElement.textContent =
+        currentTransactionInvoice.type;
+
+    typeElement.className =
+        "badge " +
+        (
+            currentTransactionInvoice.type.toLowerCase() === "income"
+                ? "bg-success"
+                : currentTransactionInvoice.type.toLowerCase() === "expense"
+                    ? "bg-danger"
+                    : "bg-secondary"
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AMOUNT
+    |--------------------------------------------------------------------------
+    */
+
+    const amountElement =
+        document.getElementById("invoiceAmount");
+
+    const amount =
+        parseFloat(
+            currentTransactionInvoice.amount
+        ) || 0;
+
+
+    if (
+        currentTransactionInvoice.type.toLowerCase()
+        === "income"
+    ) {
+
+        amountElement.textContent =
+            "+$" + amount.toFixed(2);
+
+        amountElement.className =
+            "fw-bold fs-5 text-success";
+
+    }
+
+    else if (
+        currentTransactionInvoice.type.toLowerCase()
+        === "expense"
+    ) {
+
+        amountElement.textContent =
+            "-$" + amount.toFixed(2);
+
+        amountElement.className =
+            "fw-bold fs-5 text-danger";
+
+    }
+
+    else {
+
+        amountElement.textContent =
+            "$" + amount.toFixed(2);
+
+        amountElement.className =
+            "fw-bold fs-5";
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | OPEN BOOTSTRAP MODAL
+    |--------------------------------------------------------------------------
+    */
+
+    const modalElement =
+        document.getElementById(
+            "transactionInvoiceModal"
+        );
+
+
+    if (
+        typeof bootstrap !== "undefined"
+    ) {
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PRINT FULL REPORT
+|--------------------------------------------------------------------------
+*/
+
+function printReport() {
+
+    const table =
+        document.getElementById(
+            "transactionReportTable"
+        );
+
+    if (!table) {
+        return;
+    }
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1200,height=800"
+        );
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Transaction Report
+            </title>
+
+            <meta charset="UTF-8">
+
+            <style>
+
+                body {
+
+                    font-family:
+                        Arial,
+                        Helvetica,
+                        sans-serif;
+
+                    padding: 30px;
+
+                    color: #222;
+
+                }
+
+                h1 {
+
+                    text-align: center;
+
+                    margin-bottom: 5px;
+
+                }
+
+                .subtitle {
+
+                    text-align: center;
+
+                    color: #777;
+
+                    margin-bottom: 30px;
+
+                }
+
+                .summary {
+
+                    display: flex;
+
+                    justify-content: space-between;
+
+                    margin-bottom: 25px;
+
+                    gap: 15px;
+
+                }
+
+                .summary-box {
+
+                    border: 1px solid #ddd;
+
+                    padding: 15px;
+
+                    flex: 1;
+
+                    border-radius: 6px;
+
+                }
+
+                .summary-title {
+
+                    color: #777;
+
+                    font-size: 12px;
+
+                }
+
+                .summary-value {
+
+                    font-size: 20px;
+
+                    font-weight: bold;
+
+                    margin-top: 5px;
+
+                }
+
+                table {
+
+                    width: 100%;
+
+                    border-collapse: collapse;
+
+                    font-size: 11px;
+
+                }
+
+                th,
+                td {
+
+                    border: 1px solid #ddd;
+
+                    padding: 7px;
+
+                    text-align: left;
+
+                }
+
+                th {
+
+                    background: #f5f5f5;
+
+                }
+
+                .income {
+
+                    color: #198754;
+
+                    font-weight: bold;
+
+                }
+
+                .expense {
+
+                    color: #dc3545;
+
+                    font-weight: bold;
+
+                }
+
+                .footer {
+
+                    margin-top: 30px;
+
+                    text-align: center;
+
+                    font-size: 11px;
+
+                    color: #777;
+
+                }
+
+            </style>
+
+        </head>
+
+
+        <body>
+
+
+            <h1>
+                Transaction Report
+            </h1>
+
+
+            <div class="subtitle">
+
+                Financial Transaction Statement
+
+            </div>
+
+
+            <div class="summary">
+
+                <div class="summary-box">
+
+                    <div class="summary-title">
+                        Total Transactions
+                    </div>
+
+                    <div class="summary-value">
+                        {{ transaction_count }}
+                    </div>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <div class="summary-title">
+                        Total Income
+                    </div>
+
+                    <div class="summary-value income">
+                        ${{ "%.2f"|format(total_income) }}
+                    </div>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <div class="summary-title">
+                        Total Expense
+                    </div>
+
+                    <div class="summary-value expense">
+                        ${{ "%.2f"|format(total_expense) }}
+                    </div>
+
+                </div>
+
+
+                <div class="summary-box">
+
+                    <div class="summary-title">
+                        Net Profit / Loss
+                    </div>
+
+                    <div class="summary-value">
+                        ${{ "%.2f"|format(net_profit) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            ${table.outerHTML}
+
+
+            <div class="footer">
+
+                Generated by Financial Management System
+
+            </div>
+
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+
+    printWindow.focus();
+
+
+    setTimeout(function () {
+
+        printWindow.print();
+
+        printWindow.close();
+
+    }, 500);
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PRINT SINGLE TRANSACTION INVOICE
+|--------------------------------------------------------------------------
+*/
+
+function printTransactionInvoice() {
+
+    if (!currentTransactionInvoice) {
+        return;
+    }
+
+
+    const transaction =
+        currentTransactionInvoice;
+
+
+    const amount =
+        parseFloat(
+            transaction.amount
+        ) || 0;
+
+
+    const type =
+        transaction.type.toLowerCase();
+
+
+    const amountDisplay =
+        type === "income"
+
+            ? "+$" + amount.toFixed(2)
+
+            : type === "expense"
+
+                ? "-$" + amount.toFixed(2)
+
+                : "$" + amount.toFixed(2);
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=900,height=800"
+        );
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Transaction Invoice
+            </title>
+
+            <meta charset="UTF-8">
+
+
+            <style>
+
+                body {
+
+                    font-family:
+                        Arial,
+                        Helvetica,
+                        sans-serif;
+
+                    background: #fff;
+
+                    padding: 40px;
+
+                    color: #222;
+
+                }
+
+                .invoice {
+
+                    max-width: 800px;
+
+                    margin: auto;
+
+                    border: 1px solid #ddd;
+
+                    padding: 35px;
+
+                }
+
+                .header {
+
+                    text-align: center;
+
+                    border-bottom: 2px solid #222;
+
+                    padding-bottom: 20px;
+
+                    margin-bottom: 25px;
+
+                }
+
+                .header h1 {
+
+                    margin: 0;
+
+                }
+
+                .header p {
+
+                    margin: 5px 0 0;
+
+                    color: #777;
+
+                }
+
+                .row {
+
+                    display: flex;
+
+                    justify-content:
+                        space-between;
+
+                    gap: 30px;
+
+                    margin-bottom: 20px;
+
+                }
+
+                .box {
+
+                    flex: 1;
+
+                    border: 1px solid #ddd;
+
+                    padding: 15px;
+
+                }
+
+                .label {
+
+                    color: #777;
+
+                    font-size: 12px;
+
+                    margin-bottom: 5px;
+
+                }
+
+                .value {
+
+                    font-weight: bold;
+
+                }
+
+                table {
+
+                    width: 100%;
+
+                    border-collapse: collapse;
+
+                    margin-top: 20px;
+
+                }
+
+                th,
+                td {
+
+                    border: 1px solid #ddd;
+
+                    padding: 12px;
+
+                    text-align: left;
+
+                }
+
+                th {
+
+                    width: 35%;
+
+                    background: #f7f7f7;
+
+                }
+
+                .amount {
+
+                    font-size: 22px;
+
+                    font-weight: bold;
+
+                }
+
+                .income {
+
+                    color: #198754;
+
+                }
+
+                .expense {
+
+                    color: #dc3545;
+
+                }
+
+                .footer {
+
+                    text-align: center;
+
+                    color: #777;
+
+                    font-size: 11px;
+
+                    margin-top: 30px;
+
+                    padding-top: 15px;
+
+                    border-top: 1px solid #ddd;
+
+                }
+
+            </style>
+
+        </head>
+
+
+        <body>
+
+
+            <div class="invoice">
+
+
+                <div class="header">
+
+                    <h1>
+                        Transaction Invoice
+                    </h1>
+
+                    <p>
+                        Financial Management System
+                    </p>
+
+                </div>
+
+
+                <div class="row">
+
+                    <div class="box">
+
+                        <div class="label">
+                            Transaction ID
+                        </div>
+
+                        <div class="value">
+                            ${transaction.id}
+                        </div>
+
+                    </div>
+
+
+                    <div class="box">
+
+                        <div class="label">
+                            Date
+                        </div>
+
+                        <div class="value">
+                            ${transaction.date}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="row">
+
+                    <div class="box">
+
+                        <div class="label">
+                            Transaction Type
+                        </div>
+
+                        <div class="value">
+                            ${transaction.type}
+                        </div>
+
+                    </div>
+
+
+                    <div class="box">
+
+                        <div class="label">
+                            Account
+                        </div>
+
+                        <div class="value">
+                            ${transaction.account}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <table>
+
+                    <tr>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <td>
+                            ${transaction.category}
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <th>
+                            Item
+                        </th>
+
+                        <td>
+                            ${transaction.item}
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <th>
+                            Description
+                        </th>
+
+                        <td>
+                            ${transaction.description}
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <th>
+                            Note
+                        </th>
+
+                        <td>
+                            ${transaction.note}
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <th>
+                            Reference Number
+                        </th>
+
+                        <td>
+                            ${transaction.reference}
+                        </td>
+
+                    </tr>
+
+
+                    <tr>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <td
+                            class="amount ${
+                                type === "income"
+                                    ? "income"
+                                    : type === "expense"
+                                        ? "expense"
+                                        : ""
+                            }"
+                        >
+
+                            ${amountDisplay}
+
+                        </td>
+
+                    </tr>
+
+                </table>
+
+
+                <div class="footer">
+
+                    This transaction invoice was generated
+                    automatically.
+
+                </div>
+
+
+            </div>
+
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+
+    printWindow.focus();
+
+
+    setTimeout(function () {
+
+        printWindow.print();
+
+    }, 500);
+
+}
+
+</script>
+
+
+<!-- ============================================================
+     FEATHER ICONS REFRESH
+     ============================================================ -->
+
+<script>
+
+if (
+    typeof feather !== "undefined"
+) {
+
+    feather.replace();
+
+}
+
+</script>
+
+
+
+{% endblock %}

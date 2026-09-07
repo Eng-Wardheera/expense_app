@@ -1,0 +1,3898 @@
+{% extends "backend/home/base.html" %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   YEARLY COMPARISON REPORT
+   Advanced Light UI
+   No Dark Mode
+   No Bootstrap Dependency
+   ============================================================ */
+
+:root {
+    --yr-primary: #2563eb;
+    --yr-primary-dark: #1d4ed8;
+    --yr-secondary: #64748b;
+    --yr-success: #16a34a;
+    --yr-success-light: #ecfdf3;
+    --yr-danger: #dc2626;
+    --yr-danger-light: #fef2f2;
+    --yr-warning: #d97706;
+    --yr-warning-light: #fffbeb;
+    --yr-info: #0891b2;
+    --yr-info-light: #ecfeff;
+    --yr-purple: #7c3aed;
+    --yr-purple-light: #f5f3ff;
+
+    --yr-bg: #f5f7fb;
+    --yr-card: #ffffff;
+    --yr-border: #e5e7eb;
+    --yr-text: #111827;
+    --yr-muted: #6b7280;
+
+    --yr-radius: 18px;
+    --yr-shadow: 0 8px 28px rgba(15, 23, 42, 0.07);
+    --yr-shadow-hover: 0 14px 36px rgba(15, 23, 42, 0.12);
+}
+
+.yearly-report {
+    background: var(--yr-bg);
+    min-height: 100vh;
+    padding: 24px;
+    color: var(--yr-text);
+}
+
+.yearly-container {
+    max-width: 1700px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid var(--yr-border);
+    border-radius: 24px;
+    padding: 26px;
+    margin-bottom: 20px;
+    box-shadow: var(--yr-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.report-header::after {
+    content: "";
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    right: -90px;
+    top: -110px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.07);
+}
+
+.header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: #fff;
+    font-size: 25px;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+}
+
+.header-title h1 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.header-title p {
+    margin: 5px 0 0;
+    color: var(--yr-muted);
+    font-size: 14px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.report-btn {
+    border: 1px solid var(--yr-border);
+    background: #fff;
+    color: #334155;
+    padding: 10px 15px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: .2s ease;
+}
+
+.report-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--yr-shadow);
+    border-color: #cbd5e1;
+}
+
+.report-btn.primary {
+    background: var(--yr-primary);
+    color: #fff;
+    border-color: var(--yr-primary);
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.filter-card {
+    background: var(--yr-card);
+    border: 1px solid var(--yr-border);
+    border-radius: var(--yr-radius);
+    padding: 20px;
+    box-shadow: var(--yr-shadow);
+    margin-bottom: 20px;
+}
+
+.filter-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.filter-title h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 14px;
+    align-items: end;
+}
+
+.filter-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: #475569;
+    margin-bottom: 7px;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    height: 43px;
+    border: 1px solid #dbe1ea;
+    background: #fff;
+    border-radius: 10px;
+    padding: 0 12px;
+    color: #1e293b;
+    outline: none;
+    font-size: 13px;
+    transition: .2s ease;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    border-color: var(--yr-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.apply-btn,
+.reset-btn {
+    height: 43px;
+    border-radius: 10px;
+    padding: 0 17px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+}
+
+.apply-btn {
+    background: var(--yr-primary);
+    color: #fff;
+}
+
+.reset-btn {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.quick-periods {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.quick-label {
+    color: var(--yr-muted);
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 3px;
+}
+
+.quick-btn {
+    border: 1px solid #dbe1ea;
+    background: #fff;
+    color: #475569;
+    border-radius: 9px;
+    padding: 8px 13px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.quick-btn:hover,
+.quick-btn.active {
+    color: var(--yr-primary);
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: var(--yr-radius);
+    padding: 18px;
+    box-shadow: var(--yr-shadow);
+    transition: .25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--yr-shadow-hover);
+}
+
+.kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kpi-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--yr-muted);
+}
+
+.kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+}
+
+.kpi-value {
+    font-size: 23px;
+    font-weight: 900;
+    margin-top: 13px;
+    letter-spacing: -0.4px;
+}
+
+.kpi-sub {
+    margin-top: 6px;
+    color: var(--yr-muted);
+    font-size: 11px;
+}
+
+.icon-blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.icon-green {
+    background: #ecfdf5;
+    color: #16a34a;
+}
+
+.icon-red {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.icon-purple {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+.icon-orange {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.icon-cyan {
+    background: #ecfeff;
+    color: #0891b2;
+}
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+
+.section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 25px 0 13px;
+}
+
+.section-title h2 {
+    font-size: 17px;
+    margin: 0;
+    font-weight: 900;
+}
+
+.section-title span {
+    font-size: 12px;
+    color: var(--yr-muted);
+}
+
+.compare-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.compare-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 16px;
+    padding: 17px;
+    box-shadow: var(--yr-shadow);
+}
+
+.compare-name {
+    font-size: 11px;
+    color: var(--yr-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.compare-years {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 13px;
+}
+
+.compare-year {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 9px;
+}
+
+.compare-year small {
+    display: block;
+    color: #64748b;
+    font-size: 10px;
+}
+
+.compare-year strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 15px;
+}
+
+.change-value {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.change-positive {
+    color: var(--yr-success);
+}
+
+.change-negative {
+    color: var(--yr-danger);
+}
+
+.change-neutral {
+    color: var(--yr-muted);
+}
+
+/* ============================================================
+   HEALTH
+   ============================================================ */
+
+.health-grid {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.health-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: var(--yr-shadow);
+}
+
+.health-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.health-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.health-badge {
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: var(--yr-primary);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.health-number {
+    font-size: 31px;
+    font-weight: 900;
+    margin: 15px 0 7px;
+}
+
+.progress-track {
+    height: 10px;
+    background: #eef2f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    width: 0;
+    transition: width 1s ease;
+    background: linear-gradient(90deg, #2563eb, #7c3aed);
+}
+
+.progress-bar.green {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+}
+
+.progress-bar.orange {
+    background: linear-gradient(90deg, #f59e0b, #ea580c);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 7px;
+    color: var(--yr-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.insight-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 17px;
+    padding: 18px;
+    box-shadow: var(--yr-shadow);
+}
+
+.insight-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--yr-muted);
+}
+
+.insight-value {
+    font-size: 19px;
+    font-weight: 900;
+    margin-top: 8px;
+}
+
+.insight-meta {
+    color: var(--yr-muted);
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.chart-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 18px;
+    padding: 19px;
+    box-shadow: var(--yr-shadow);
+    min-height: 350px;
+}
+
+.chart-card.full {
+    grid-column: 1 / -1;
+}
+
+.chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.chart-description {
+    font-size: 11px;
+    color: var(--yr-muted);
+    margin-top: 3px;
+}
+
+.chart-wrap {
+    position: relative;
+    height: 280px;
+}
+
+.chart-wrap.small {
+    height: 250px;
+}
+
+/* ============================================================
+   TOP LISTS
+   ============================================================ */
+
+.top-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.top-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: var(--yr-shadow);
+}
+
+.top-card h3 {
+    margin: 0 0 13px;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.top-row {
+    display: grid;
+    grid-template-columns: 27px 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 9px;
+    background: #f8fafc;
+    border-radius: 10px;
+}
+
+.rank {
+    width: 25px;
+    height: 25px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.top-name {
+    min-width: 0;
+}
+
+.top-name strong {
+    display: block;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.top-name small {
+    color: var(--yr-muted);
+    font-size: 9px;
+}
+
+.top-amount {
+    font-size: 11px;
+    font-weight: 900;
+}
+
+/* ============================================================
+   TABLE CARDS
+   ============================================================ */
+
+.table-card {
+    background: #fff;
+    border: 1px solid var(--yr-border);
+    border-radius: 18px;
+    padding: 19px;
+    box-shadow: var(--yr-shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.table-card-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.table-card-header span {
+    color: var(--yr-muted);
+    font-size: 11px;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table.dataTable {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0;
+}
+
+table.dataTable thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 900;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 12px 10px !important;
+    white-space: nowrap;
+}
+
+table.dataTable tbody td {
+    font-size: 11px;
+    color: #334155;
+    padding: 11px 10px !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    white-space: nowrap;
+}
+
+table.dataTable tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.dt-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.dt-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+
+.dataTables_filter input,
+.dataTables_length select {
+    border: 1px solid #dbe1ea !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    padding: 6px 9px !important;
+    outline: none !important;
+}
+
+.dataTables_filter label,
+.dataTables_length label {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.dt-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.dt-button {
+    border: 1px solid #dbe1ea !important;
+    background: #fff !important;
+    color: #334155 !important;
+    border-radius: 7px !important;
+    padding: 6px 9px !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+}
+
+.dt-button:hover {
+    background: #eff6ff !important;
+    border-color: #93c5fd !important;
+    color: #2563eb !important;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.badge-income {
+    background: #ecfdf5;
+    color: #15803d;
+}
+
+.badge-expense {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.badge-positive {
+    background: #ecfdf5;
+    color: #15803d;
+}
+
+.badge-negative {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.badge-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.money-positive {
+    color: #15803d;
+    font-weight: 900;
+}
+
+.money-negative {
+    color: #b91c1c;
+    font-weight: 900;
+}
+
+.money-neutral {
+    color: #334155;
+    font-weight: 800;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 28px 15px;
+    color: var(--yr-muted);
+}
+
+.empty-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+    opacity: .5;
+}
+
+.empty-state strong {
+    display: block;
+    color: #475569;
+    font-size: 13px;
+}
+
+.empty-state span {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+
+.fade-up {
+    animation: fadeUp .55s ease both;
+}
+
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+.print-header {
+    display: none;
+}
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .yearly-report {
+        background: #fff !important;
+        padding: 0 !important;
+    }
+
+    .filter-card,
+    .header-actions,
+    .quick-periods,
+    .dt-top,
+    .dt-bottom,
+    .dataTables_length,
+    .dataTables_filter,
+    .dt-buttons,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .report-header {
+        box-shadow: none !important;
+        border: 0 !important;
+        padding: 10px 0 20px !important;
+    }
+
+    .print-header {
+        display: block;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    .print-header h1 {
+        margin: 0;
+        font-size: 23px;
+    }
+
+    .print-header p {
+        margin: 4px 0;
+        color: #666;
+        font-size: 11px;
+    }
+
+    .kpi-card,
+    .compare-card,
+    .health-card,
+    .insight-card,
+    .chart-card,
+    .top-card,
+    .table-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+        border: 1px solid #ddd !important;
+    }
+
+    .chart-grid,
+    .top-grid,
+    .health-grid {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    .table-card {
+        overflow: visible !important;
+    }
+
+    table {
+        width: 100% !important;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+    .kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .compare-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .top-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1050px) {
+    .filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-actions {
+        grid-column: 1 / -1;
+    }
+
+    .health-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .insight-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chart-card.full {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 700px) {
+    .yearly-report {
+        padding: 12px;
+    }
+
+    .header-main {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .header-title h1 {
+        font-size: 21px;
+    }
+
+    .kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .compare-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .top-grid,
+    .insight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        grid-column: auto;
+        width: 100%;
+    }
+
+    .apply-btn,
+    .reset-btn {
+        flex: 1;
+    }
+
+    .chart-card {
+        min-height: 320px;
+        padding: 13px;
+    }
+
+    .chart-wrap {
+        height: 240px;
+    }
+
+    .table-card {
+        padding: 12px;
+    }
+
+    .kpi-value {
+        font-size: 19px;
+    }
+}
+
+@media (max-width: 430px) {
+    .kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-icon {
+        width: 48px;
+        height: 48px;
+    }
+}
+</style>
+
+
+<div class="yearly-report">
+<div class="yearly-container">
+
+    <!-- ========================================================
+         PRINT HEADER
+         ======================================================== -->
+    <div class="print-header">
+        <h1>Yearly Financial Comparison Report</h1>
+        <p>
+            {{ custom_range_label|default('Yearly Financial Report', true) }}
+        </p>
+        <p>
+            {{ start_date_value|default('', true) }}
+            -
+            {{ end_date_value|default('', true) }}
+        </p>
+    </div>
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+    <section class="report-header fade-up">
+        <div class="header-main">
+
+            <div class="header-title">
+                <div class="header-icon">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                </div>
+
+                <div>
+                    <h1>Yearly Comparison</h1>
+                    <p>
+                        Compare yearly income, expenses, savings and financial performance.
+                    </p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="report-btn" type="button" onclick="window.print()">
+                    <i class="bi bi-printer"></i>
+                    Print Report
+                </button>
+
+                <button class="report-btn primary" type="button" onclick="scrollToTables()">
+                    <i class="bi bi-table"></i>
+                    View Tables
+                </button>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+    <section class="filter-card fade-up">
+
+        <div class="filter-title">
+            <h3>
+                <i class="bi bi-funnel"></i>
+                Report Filters
+            </h3>
+
+            <span>
+                {{ custom_range_label|default('Selected Years', true) }}
+            </span>
+        </div>
+
+        <form method="GET"
+              action="{{ url_for('main.report_yearly_comparison') }}">
+
+            <div class="filter-grid">
+
+                <div class="filter-group">
+                    <label for="years">Number of Years</label>
+
+                    <select name="years" id="years">
+                        <option value="2"
+                            {% if years|default(5, true)|int == 2 %}selected{% endif %}>
+                            2 Years
+                        </option>
+
+                        <option value="3"
+                            {% if years|default(5, true)|int == 3 %}selected{% endif %}>
+                            3 Years
+                        </option>
+
+                        <option value="5"
+                            {% if years|default(5, true)|int == 5 %}selected{% endif %}>
+                            5 Years
+                        </option>
+
+                        <option value="10"
+                            {% if years|default(5, true)|int == 10 %}selected{% endif %}>
+                            10 Years
+                        </option>
+                    </select>
+                </div>
+
+
+                <div class="filter-group">
+                    <label for="account">Account</label>
+
+                    <select name="account" id="account">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% set account_list = account_options|default([], true) %}
+
+                        {% for account in account_list %}
+                            <option
+                                value="{{ account.get('id', '') }}"
+                                {% if account_filter|default('', true) == account.get('id', '') %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ account.get('name', 'Unknown Account') }}
+                            </option>
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+
+                <div class="filter-group">
+                    <label for="transaction_type">Transaction Type</label>
+
+                    <select name="transaction_type" id="transaction_type">
+
+                        <option value=""
+                            {% if transaction_type|default('', true) == '' %}
+                                selected
+                            {% endif %}>
+                            All Transactions
+                        </option>
+
+                        <option value="income"
+                            {% if transaction_type|default('', true) == 'income' %}
+                                selected
+                            {% endif %}>
+                            Income Only
+                        </option>
+
+                        <option value="expense"
+                            {% if transaction_type|default('', true) == 'expense' %}
+                                selected
+                            {% endif %}>
+                            Expense Only
+                        </option>
+
+                    </select>
+                </div>
+
+
+                <div class="filter-actions">
+                    <button class="apply-btn" type="submit">
+                        <i class="bi bi-search"></i>
+                        Apply
+                    </button>
+
+                    <button class="reset-btn"
+                            type="button"
+                            onclick="window.location.href='{{ url_for('main.report_yearly_comparison') }}'">
+                        Reset
+                    </button>
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- QUICK YEARS -->
+        <div class="quick-periods">
+
+            <span class="quick-label">
+                Quick:
+            </span>
+
+            <button class="quick-btn"
+                    type="button"
+                    onclick="setYears(2)">
+                2 Years
+            </button>
+
+            <button class="quick-btn"
+                    type="button"
+                    onclick="setYears(3)">
+                3 Years
+            </button>
+
+            <button class="quick-btn"
+                    type="button"
+                    onclick="setYears(5)">
+                5 Years
+            </button>
+
+            <button class="quick-btn"
+                    type="button"
+                    onclick="setYears(10)">
+                10 Years
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+    <section class="kpi-grid">
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL INCOME</span>
+                <span class="kpi-icon icon-blue">
+                    <i class="bi bi-arrow-down-left"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                ${{ "{:,.2f}".format(total_income|default(0, true)|float) }}
+            </div>
+
+            <div class="kpi-sub">
+                All selected years
+            </div>
+        </div>
+
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">TOTAL EXPENSE</span>
+                <span class="kpi-icon icon-red">
+                    <i class="bi bi-arrow-up-right"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                ${{ "{:,.2f}".format(total_expense|default(0, true)|float) }}
+            </div>
+
+            <div class="kpi-sub">
+                Total spending
+            </div>
+        </div>
+
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">NET SAVINGS</span>
+                <span class="kpi-icon icon-green">
+                    <i class="bi bi-piggy-bank-fill"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                ${{ "{:,.2f}".format(total_savings|default(0, true)|float) }}
+            </div>
+
+            <div class="kpi-sub">
+                Income minus expenses
+            </div>
+        </div>
+
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">SAVING RATE</span>
+                <span class="kpi-icon icon-purple">
+                    <i class="bi bi-percent"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                {{ "{:.1f}".format(saving_rate|default(0, true)|float) }}%
+            </div>
+
+            <div class="kpi-sub">
+                Net savings / income
+            </div>
+        </div>
+
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">EXPENSE RATE</span>
+                <span class="kpi-icon icon-orange">
+                    <i class="bi bi-graph-down-arrow"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                {{ "{:.1f}".format(expense_rate|default(0, true)|float) }}%
+            </div>
+
+            <div class="kpi-sub">
+                Expense / income
+            </div>
+        </div>
+
+
+        <div class="kpi-card fade-up">
+            <div class="kpi-top">
+                <span class="kpi-label">TRANSACTIONS</span>
+                <span class="kpi-icon icon-cyan">
+                    <i class="bi bi-receipt"></i>
+                </span>
+            </div>
+
+            <div class="kpi-value">
+                {{ "{:,}".format(total_transactions|default(0, true)|int) }}
+            </div>
+
+            <div class="kpi-sub">
+                Financial movements
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         YEAR OVER YEAR COMPARISON
+         ======================================================== -->
+    <div class="section-title">
+        <h2>
+            <i class="bi bi-arrow-left-right"></i>
+            Current Year vs Previous Year
+        </h2>
+
+        <span>
+            Year-over-year comparison
+        </span>
+    </div>
+
+
+    <section class="compare-grid">
+
+        <!-- Income -->
+        <div class="compare-card">
+
+            <div class="compare-name">
+                Income
+            </div>
+
+            <div class="compare-years">
+
+                <div class="compare-year">
+                    <small>
+                        {{ current_year_label|default('Current Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(current_year_income|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+                <div class="compare-year">
+                    <small>
+                        {{ previous_year_label|default('Previous Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(previous_year_income|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="change-value
+                {% if income_change|default(0, true)|float > 0 %}
+                    change-positive
+                {% elif income_change|default(0, true)|float < 0 %}
+                    change-negative
+                {% else %}
+                    change-neutral
+                {% endif %}">
+
+                {% if income_change|default(0, true)|float > 0 %}▲{% elif income_change|default(0, true)|float < 0 %}▼{% else %}—{% endif %}
+                {{ "{:.1f}".format(income_change|default(0, true)|float|abs) }}%
+
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+        <div class="compare-card">
+
+            <div class="compare-name">
+                Expense
+            </div>
+
+            <div class="compare-years">
+
+                <div class="compare-year">
+                    <small>
+                        {{ current_year_label|default('Current Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(current_year_expense|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+                <div class="compare-year">
+                    <small>
+                        {{ previous_year_label|default('Previous Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(previous_year_expense|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="change-value
+                {% if expense_change|default(0, true)|float > 0 %}
+                    change-negative
+                {% elif expense_change|default(0, true)|float < 0 %}
+                    change-positive
+                {% else %}
+                    change-neutral
+                {% endif %}">
+
+                {% if expense_change|default(0, true)|float > 0 %}▲{% elif expense_change|default(0, true)|float < 0 %}▼{% else %}—{% endif %}
+                {{ "{:.1f}".format(expense_change|default(0, true)|float|abs) }}%
+
+            </div>
+
+        </div>
+
+
+        <!-- Savings -->
+        <div class="compare-card">
+
+            <div class="compare-name">
+                Savings
+            </div>
+
+            <div class="compare-years">
+
+                <div class="compare-year">
+                    <small>
+                        {{ current_year_label|default('Current Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(current_year_savings|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+                <div class="compare-year">
+                    <small>
+                        {{ previous_year_label|default('Previous Year', true) }}
+                    </small>
+
+                    <strong>
+                        ${{ "{:,.2f}".format(previous_year_savings|default(0, true)|float) }}
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="change-value
+                {% if savings_change|default(0, true)|float > 0 %}
+                    change-positive
+                {% elif savings_change|default(0, true)|float < 0 %}
+                    change-negative
+                {% else %}
+                    change-neutral
+                {% endif %}">
+
+                {% if savings_change|default(0, true)|float > 0 %}▲{% elif savings_change|default(0, true)|float < 0 %}▼{% else %}—{% endif %}
+                {{ "{:.1f}".format(savings_change|default(0, true)|float|abs) }}%
+
+            </div>
+
+        </div>
+
+
+        <!-- Saving Rate -->
+        <div class="compare-card">
+
+            <div class="compare-name">
+                Saving Rate
+            </div>
+
+            <div class="compare-years">
+
+                <div class="compare-year">
+                    <small>
+                        {{ current_year_label|default('Current Year', true) }}
+                    </small>
+
+                    <strong>
+                        {{ "{:.1f}".format(current_year_saving_rate|default(0, true)|float) }}%
+                    </strong>
+                </div>
+
+                <div class="compare-year">
+                    <small>
+                        {{ previous_year_label|default('Previous Year', true) }}
+                    </small>
+
+                    <strong>
+                        {{ "{:.1f}".format(previous_year_saving_rate|default(0, true)|float) }}%
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="change-value
+                {% if saving_rate_change|default(0, true)|float > 0 %}
+                    change-positive
+                {% elif saving_rate_change|default(0, true)|float < 0 %}
+                    change-negative
+                {% else %}
+                    change-neutral
+                {% endif %}">
+
+                {% if saving_rate_change|default(0, true)|float > 0 %}▲{% elif saving_rate_change|default(0, true)|float < 0 %}▼{% else %}—{% endif %}
+                {{ "{:.1f}".format(saving_rate_change|default(0, true)|float|abs) }}%
+
+            </div>
+
+        </div>
+
+
+        <!-- Expense Rate -->
+        <div class="compare-card">
+
+            <div class="compare-name">
+                Expense Rate
+            </div>
+
+            <div class="compare-years">
+
+                <div class="compare-year">
+                    <small>
+                        {{ current_year_label|default('Current Year', true) }}
+                    </small>
+
+                    <strong>
+                        {{ "{:.1f}".format(current_year_expense_rate|default(0, true)|float) }}%
+                    </strong>
+                </div>
+
+                <div class="compare-year">
+                    <small>
+                        {{ previous_year_label|default('Previous Year', true) }}
+                    </small>
+
+                    <strong>
+                        {{ "{:.1f}".format(previous_year_expense_rate|default(0, true)|float) }}%
+                    </strong>
+                </div>
+
+            </div>
+
+            <div class="change-value
+                {% if expense_rate_change|default(0, true)|float > 0 %}
+                    change-negative
+                {% elif expense_rate_change|default(0, true)|float < 0 %}
+                    change-positive
+                {% else %}
+                    change-neutral
+                {% endif %}">
+
+                {% if expense_rate_change|default(0, true)|float > 0 %}▲{% elif expense_rate_change|default(0, true)|float < 0 %}▼{% else %}—{% endif %}
+                {{ "{:.1f}".format(expense_rate_change|default(0, true)|float|abs) }}%
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HEALTH
+         ======================================================== -->
+    <div class="section-title">
+        <h2>
+            <i class="bi bi-heart-pulse"></i>
+            Financial Health
+        </h2>
+
+        <span>
+            Based on selected years
+        </span>
+    </div>
+
+
+    <section class="health-grid">
+
+        <div class="health-card">
+
+            <div class="health-head">
+                <h3>Saving Health</h3>
+
+                <span class="health-badge">
+                    {{ saving_health|default('No Data', true) }}
+                </span>
+            </div>
+
+            <div class="health-number">
+                {{ "{:.1f}".format(saving_rate|default(0, true)|float) }}%
+            </div>
+
+            <div class="progress-track">
+                <div class="progress-bar green"
+                     style="width: {{ saving_progress|default(0, true)|float }}%;">
+                </div>
+            </div>
+
+            <div class="progress-info">
+                <span>Saving progress</span>
+                <strong>{{ "{:.1f}".format(saving_progress|default(0, true)|float) }}%</strong>
+            </div>
+
+        </div>
+
+
+        <div class="health-card">
+
+            <div class="health-head">
+                <h3>Expense Pressure</h3>
+
+                <span class="health-badge">
+                    {{ "{:.1f}".format(expense_rate|default(0, true)|float) }}%
+                </span>
+            </div>
+
+            <div class="health-number">
+                ${{ "{:,.2f}".format(total_expense|default(0, true)|float) }}
+            </div>
+
+            <div class="progress-track">
+                <div class="progress-bar orange"
+                     style="width: {{ expense_progress|default(0, true)|float }}%;">
+                </div>
+            </div>
+
+            <div class="progress-info">
+                <span>Expense rate</span>
+                <strong>{{ "{:.1f}".format(expense_rate|default(0, true)|float) }}%</strong>
+            </div>
+
+        </div>
+
+
+        <div class="health-card">
+
+            <div class="health-head">
+                <h3>Average Yearly Saving</h3>
+
+                <span class="health-badge">
+                    {{ period_years|default(0, true) }} years
+                </span>
+            </div>
+
+            <div class="health-number">
+                ${{ "{:,.2f}".format(average_yearly_saving|default(0, true)|float) }}
+            </div>
+
+            <div class="progress-track">
+                <div class="progress-bar"
+                     style="width: {{ saving_progress|default(0, true)|float }}%;">
+                </div>
+            </div>
+
+            <div class="progress-info">
+                <span>Average yearly performance</span>
+                <strong>
+                    {{ "{:.1f}".format(saving_rate|default(0, true)|float) }}%
+                </strong>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+    <section class="insight-grid">
+
+        <div class="insight-card">
+            <div class="insight-label">HIGHEST SAVING YEAR</div>
+
+            {% set highest_save = highest_saving_year|default({}, true) %}
+
+            <div class="insight-value">
+                {{ highest_save.get('label', highest_save.get('year', '—')) }}
+            </div>
+
+            <div class="insight-meta">
+                ${{ "{:,.2f}".format(highest_save.get('net_saving', 0)|float) }}
+                saved
+            </div>
+        </div>
+
+
+        <div class="insight-card">
+            <div class="insight-label">LOWEST SAVING YEAR</div>
+
+            {% set lowest_save = lowest_saving_year|default({}, true) %}
+
+            <div class="insight-value">
+                {{ lowest_save.get('label', lowest_save.get('year', '—')) }}
+            </div>
+
+            <div class="insight-meta">
+                ${{ "{:,.2f}".format(lowest_save.get('net_saving', 0)|float) }}
+                saved
+            </div>
+        </div>
+
+
+        <div class="insight-card">
+            <div class="insight-label">HIGHEST INCOME YEAR</div>
+
+            {% set highest_inc = highest_income_year|default({}, true) %}
+
+            <div class="insight-value">
+                {{ highest_inc.get('label', highest_inc.get('year', '—')) }}
+            </div>
+
+            <div class="insight-meta">
+                ${{ "{:,.2f}".format(highest_inc.get('income', 0)|float) }}
+                income
+            </div>
+        </div>
+
+
+        <div class="insight-card">
+            <div class="insight-label">HIGHEST EXPENSE YEAR</div>
+
+            {% set highest_exp = highest_expense_year|default({}, true) %}
+
+            <div class="insight-value">
+                {{ highest_exp.get('label', highest_exp.get('year', '—')) }}
+            </div>
+
+            <div class="insight-meta">
+                ${{ "{:,.2f}".format(highest_exp.get('expense', 0)|float) }}
+                expense
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+    <div class="section-title">
+        <h2>
+            <i class="bi bi-graph-up-arrow"></i>
+            Yearly Analytics
+        </h2>
+
+        <span>
+            Interactive charts
+        </span>
+    </div>
+
+
+    <section class="chart-grid">
+
+        <!-- YEARLY INCOME EXPENSE SAVING -->
+        <div class="chart-card full">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Income vs Expense vs Savings
+                    </div>
+
+                    <div class="chart-description">
+                        Year-by-year financial performance
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="yearlyPerformanceChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- SAVING RATE -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Saving Rate by Year
+                    </div>
+
+                    <div class="chart-description">
+                        Percentage of income retained
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="savingRateChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE RATE -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Expense Rate by Year
+                    </div>
+
+                    <div class="chart-description">
+                        Percentage of income spent
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="expenseRateChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- CUMULATIVE -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Cumulative Savings
+                    </div>
+
+                    <div class="chart-description">
+                        Accumulated savings across selected years
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="cumulativeSavingsChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- MONTHLY -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Monthly Analysis
+                    </div>
+
+                    <div class="chart-description">
+                        Monthly income, expense and savings
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="monthlyAnalysisChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORY -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Savings by Category
+                    </div>
+
+                    <div class="chart-description">
+                        Category contribution to net savings
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="categorySavingsChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNT -->
+        <div class="chart-card">
+
+            <div class="chart-head">
+                <div>
+                    <div class="chart-title">
+                        Savings by Account
+                    </div>
+
+                    <div class="chart-description">
+                        Account-level financial performance
+                    </div>
+                </div>
+            </div>
+
+            <div class="chart-wrap">
+                <canvas id="accountSavingsChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP LISTS
+         ======================================================== -->
+    <div class="section-title">
+        <h2>
+            <i class="bi bi-trophy"></i>
+            Top Performance
+        </h2>
+    </div>
+
+
+    <section class="top-grid">
+
+        <!-- Saving Categories -->
+        <div class="top-card">
+            <h3>
+                <i class="bi bi-piggy-bank"></i>
+                Top Saving Categories
+            </h3>
+
+            <div class="top-list">
+
+                {% set saving_categories = top_saving_categories|default([], true) %}
+
+                {% for row in saving_categories[:10] %}
+
+                    <div class="top-row">
+
+                        <div class="rank">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="top-name">
+                            <strong>
+                                {{ row.get('name', 'Unknown') }}
+                            </strong>
+
+                            <small>
+                                {{ row.get('transactions', 0) }} transactions
+                            </small>
+                        </div>
+
+                        <div class="top-amount money-positive">
+                            ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">—</div>
+                        <strong>No saving categories</strong>
+                        <span>No data available.</span>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+
+        <!-- Income Categories -->
+        <div class="top-card">
+            <h3>
+                <i class="bi bi-cash-stack"></i>
+                Top Income Categories
+            </h3>
+
+            <div class="top-list">
+
+                {% set income_categories = top_income_categories|default([], true) %}
+
+                {% for row in income_categories[:10] %}
+
+                    <div class="top-row">
+
+                        <div class="rank">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="top-name">
+                            <strong>
+                                {{ row.get('name', 'Unknown') }}
+                            </strong>
+
+                            <small>
+                                {{ row.get('transactions', 0) }} transactions
+                            </small>
+                        </div>
+
+                        <div class="top-amount money-positive">
+                            ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">—</div>
+                        <strong>No income categories</strong>
+                        <span>No data available.</span>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+
+        <!-- Expense Categories -->
+        <div class="top-card">
+            <h3>
+                <i class="bi bi-cart-dash"></i>
+                Top Expense Categories
+            </h3>
+
+            <div class="top-list">
+
+                {% set expense_categories = top_expense_categories|default([], true) %}
+
+                {% for row in expense_categories[:10] %}
+
+                    <div class="top-row">
+
+                        <div class="rank">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="top-name">
+                            <strong>
+                                {{ row.get('name', 'Unknown') }}
+                            </strong>
+
+                            <small>
+                                {{ row.get('transactions', 0) }} transactions
+                            </small>
+                        </div>
+
+                        <div class="top-amount money-negative">
+                            ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">—</div>
+                        <strong>No expense categories</strong>
+                        <span>No data available.</span>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+
+        <!-- Saving Items -->
+        <div class="top-card">
+            <h3>
+                <i class="bi bi-box-seam"></i>
+                Top Saving Items
+            </h3>
+
+            <div class="top-list">
+
+                {% set saving_items = top_saving_items|default([], true) %}
+
+                {% for row in saving_items[:10] %}
+
+                    <div class="top-row">
+
+                        <div class="rank">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="top-name">
+                            <strong>
+                                {{ row.get('name', 'Unknown') }}
+                            </strong>
+
+                            <small>
+                                {{ row.get('transactions', 0) }} transactions
+                            </small>
+                        </div>
+
+                        <div class="top-amount money-positive">
+                            ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-state">
+                        <div class="empty-icon">—</div>
+                        <strong>No saving items</strong>
+                        <span>No data available.</span>
+                    </div>
+
+                {% endfor %}
+
+            </div>
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         YEARLY TABLE
+         ======================================================== -->
+    <div id="reportTables">
+
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-calendar3"></i>
+                        Yearly Financial Summary
+                    </h3>
+
+                    <span>
+                        Complete year-by-year comparison
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="yearlyTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Year</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                            <th>Transactions</th>
+                            <th>Income Tx</th>
+                            <th>Expense Tx</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set yearly_rows = yearly_data|default([], true) %}
+
+                        {% for row in yearly_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('label', row.get('year', '—')) }}
+                                    </strong>
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    <span class="badge badge-positive">
+                                        {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="badge badge-neutral">
+                                        {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('income_transactions', 0)|int) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('expense_transactions', 0)|int) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             MONTHLY TABLE
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-calendar-month"></i>
+                        Monthly Analysis
+                    </h3>
+
+                    <span>
+                        Monthly breakdown across selected years
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="monthlyTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Month</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set monthly_rows = monthly_data|default([], true) %}
+
+                        {% for row in monthly_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('label', row.get('month_key', '—')) }}
+                                    </strong>
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             DAILY TABLE
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-calendar-day"></i>
+                        Daily Financial Activity
+                    </h3>
+
+                    <span>
+                        Daily activity within the selected report period
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="dailyTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                            <th>Cumulative Income</th>
+                            <th>Cumulative Expense</th>
+                            <th>Cumulative Savings</th>
+                            <th>Transactions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set daily_rows = daily_data|default([], true) %}
+
+                        {% for row in daily_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    {{ row.get('label', row.get('date', '—')) }}
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    ${{ "{:,.2f}".format(row.get('cumulative_income', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "{:,.2f}".format(row.get('cumulative_expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "{:,.2f}".format(row.get('cumulative_savings', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             CATEGORY TABLE
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-tags"></i>
+                        Category Analysis
+                    </h3>
+
+                    <span>
+                        Income, expenses and savings by category
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="categoryTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set category_rows = category_summary|default([], true) %}
+
+                        {% for row in category_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Unknown') }}
+                                    </strong>
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             ACCOUNT TABLE
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-wallet2"></i>
+                        Account Analysis
+                    </h3>
+
+                    <span>
+                        Financial performance by account
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="accountTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Balance</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                            <th>Currency</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set account_rows = account_summary|default([], true) %}
+
+                        {% for row in account_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Unknown Account') }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ row.get('type', '—') }}
+                                </td>
+
+                                <td>
+                                    ${{ "{:,.2f}".format(row.get('balance', 0)|float) }}
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ row.get('currency', 'USD') }}
+                                </td>
+
+                                <td>
+                                    {% if row.get('status') %}
+                                        <span class="badge badge-positive">
+                                            Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-neutral">
+                                            Inactive
+                                        </span>
+                                    {% endif %}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             ITEM TABLE
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+                <div>
+                    <h3>
+                        <i class="bi bi-box-seam"></i>
+                        Item Analysis
+                    </h3>
+
+                    <span>
+                        Detailed item-level financial activity
+                    </span>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="itemTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Saving Rate</th>
+                            <th>Expense Rate</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set item_rows = item_summary|default([], true) %}
+
+                        {% for row in item_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Unknown') }}
+                                    </strong>
+                                </td>
+
+                                <td class="money-positive">
+                                    ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td class="money-negative">
+                                    ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td class="{% if row.get('net_saving', 0)|float >= 0 %}money-positive{% else %}money-negative{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,}".format(row.get('transactions', 0)|int) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             FINANCIAL TRANSACTIONS
+             ==================================================== -->
+        <section class="table-card">
+
+            <div class="table-card-header">
+
+                <div>
+                    <h3>
+                        <i class="bi bi-receipt"></i>
+                        Financial Transactions
+                    </h3>
+
+                    <span>
+                        Complete transaction history for selected period
+                    </span>
+                </div>
+
+            </div>
+
+            <div class="table-responsive">
+
+                <table id="transactionsTable" class="display nowrap">
+
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                            <th>Description</th>
+                            <th>Note</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% set transaction_rows = financial_transactions|default([], true) %}
+
+                        {% for row in transaction_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    {{ row.get('date', '—') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('account', 'Unknown Account') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('category', '—') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('item', '—') }}
+                                </td>
+
+                                <td>
+
+                                    {% set tx_type = row.get('transaction_type', '')|lower %}
+
+                                    {% if tx_type == 'income' %}
+
+                                        <span class="badge badge-income">
+                                            Income
+                                        </span>
+
+                                    {% elif tx_type == 'expense' %}
+
+                                        <span class="badge badge-expense">
+                                            Expense
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge badge-neutral">
+                                            {{ row.get('transaction_type', 'Unknown') }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td class="{% if tx_type == 'income' %}money-positive{% elif tx_type == 'expense' %}money-negative{% else %}money-neutral{% endif %}">
+                                    ${{ "{:,.2f}".format(row.get('amount', 0)|float) }}
+                                </td>
+
+                                <td>
+
+                                    {% if row.get('status') %}
+                                        <span class="badge badge-positive">
+                                            Active
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-neutral">
+                                            Inactive
+                                        </span>
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ row.get('reference', '—') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('description', '—') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('note', '—') }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+</div>
+
+
+<!-- ============================================================
+     DATA TABLES + CHARTS
+     ============================================================ -->
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<script>
+/* ============================================================
+   SAFE SERVER DATA
+   ============================================================ */
+
+const yearlyData = {{ yearly_data|default([], true)|tojson|safe }};
+const monthlyData = {{ monthly_data|default([], true)|tojson|safe }};
+const dailyData = {{ daily_data|default([], true)|tojson|safe }};
+const categorySummary = {{ category_summary|default([], true)|tojson|safe }};
+const accountSummary = {{ account_summary|default([], true)|tojson|safe }};
+const itemSummary = {{ item_summary|default([], true)|tojson|safe }};
+const financialTransactions = {{ financial_transactions|default([], true)|tojson|safe }};
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function money(value) {
+    const number = Number(value || 0);
+
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        maximumFractionDigits: 2
+    }).format(number);
+}
+
+
+function number(value) {
+    return Number(value || 0);
+}
+
+
+function setYears(value) {
+    const select = document.getElementById('years');
+
+    if (select) {
+        select.value = String(value);
+    }
+
+    const form = select ? select.closest('form') : null;
+
+    if (form) {
+        form.submit();
+    }
+}
+
+
+function scrollToTables() {
+    const target = document.getElementById('reportTables');
+
+    if (target) {
+        target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
+
+
+/* ============================================================
+   JSON EXPORT
+   ============================================================ */
+
+function jsonButton(filename) {
+
+    return {
+        text: 'JSON',
+
+        action: function (e, dt) {
+
+            const data = dt.rows({
+                search: 'applied'
+            }).data().toArray();
+
+            const blob = new Blob(
+                [JSON.stringify(data, null, 2)],
+                {
+                    type: 'application/json;charset=utf-8'
+                }
+            );
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = filename;
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+        }
+    };
+}
+
+
+/* ============================================================
+   DATATABLE FACTORY
+   ============================================================ */
+
+function initializeTable(selector, filename) {
+
+    if (!document.querySelector(selector)) {
+        return;
+    }
+
+    $(selector).DataTable({
+
+        responsive: true,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 15, 25, 50, 100, -1],
+            [10, 15, 25, 50, 100, "All"]
+        ],
+
+        autoWidth: false,
+
+        order: [],
+
+        dom:
+            '<"dt-top"lfB>' +
+            'rt' +
+            '<"dt-bottom"ip>',
+
+        buttons: [
+
+            {
+                extend: 'copyHtml5',
+                text: 'Copy'
+            },
+
+            {
+                extend: 'csvHtml5',
+                text: 'CSV',
+                filename: filename
+            },
+
+            {
+                extend: 'excelHtml5',
+                text: 'Excel',
+                filename: filename
+            },
+
+            {
+                extend: 'pdfHtml5',
+                text: 'PDF',
+                filename: filename,
+                orientation: 'landscape',
+                pageSize: 'A4'
+            },
+
+            {
+                extend: 'print',
+                text: 'Print'
+            },
+
+            jsonButton(filename + '.json')
+        ],
+
+        language: {
+            search: "Search:",
+            lengthMenu: "Show _MENU_",
+            info: "Showing _START_ to _END_ of _TOTAL_",
+            infoEmpty: "No records",
+            zeroRecords: "No matching records found",
+            paginate: {
+                first: "First",
+                last: "Last",
+                next: "Next",
+                previous: "Previous"
+            }
+        }
+
+    });
+}
+
+
+/* ============================================================
+   INITIALIZE ALL TABLES
+   ============================================================ */
+
+$(document).ready(function () {
+
+    initializeTable(
+        '#yearlyTable',
+        'yearly-financial-summary'
+    );
+
+    initializeTable(
+        '#monthlyTable',
+        'monthly-financial-analysis'
+    );
+
+    initializeTable(
+        '#dailyTable',
+        'daily-financial-activity'
+    );
+
+    initializeTable(
+        '#categoryTable',
+        'category-analysis'
+    );
+
+    initializeTable(
+        '#accountTable',
+        'account-analysis'
+    );
+
+    initializeTable(
+        '#itemTable',
+        'item-analysis'
+    );
+
+    initializeTable(
+        '#transactionsTable',
+        'financial-transactions'
+    );
+
+});
+
+
+/* ============================================================
+   CHART DEFAULTS
+   ============================================================ */
+
+Chart.defaults.font.family =
+    "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+
+Chart.defaults.font.size = 11;
+
+Chart.defaults.color = '#64748b';
+
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+
+/* ============================================================
+   YEARLY DATA
+   ============================================================ */
+
+const yearlyLabels = yearlyData.map(row =>
+    row.label || row.year || ''
+);
+
+const yearlyIncome = yearlyData.map(row =>
+    number(row.income)
+);
+
+const yearlyExpense = yearlyData.map(row =>
+    number(row.expense)
+);
+
+const yearlySavings = yearlyData.map(row =>
+    number(row.net_saving)
+);
+
+const yearlySavingRate = yearlyData.map(row =>
+    number(row.saving_rate)
+);
+
+const yearlyExpenseRate = yearlyData.map(row =>
+    number(row.expense_rate)
+);
+
+
+/* ============================================================
+   CHART 1
+   YEARLY PERFORMANCE
+   ============================================================ */
+
+const yearlyPerformanceCanvas =
+    document.getElementById('yearlyPerformanceChart');
+
+if (yearlyPerformanceCanvas) {
+
+    new Chart(
+        yearlyPerformanceCanvas,
+        {
+            type: 'bar',
+
+            data: {
+                labels: yearlyLabels,
+
+                datasets: [
+
+                    {
+                        label: 'Income',
+                        data: yearlyIncome,
+                        borderRadius: 7
+                    },
+
+                    {
+                        label: 'Expense',
+                        data: yearlyExpense,
+                        borderRadius: 7
+                    },
+
+                    {
+                        label: 'Net Saving',
+                        data: yearlySavings,
+                        borderRadius: 7
+                    }
+
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label +
+                                    ': ' +
+                                    money(context.raw);
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+
+                        ticks: {
+                            callback: function (value) {
+                                return money(value);
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   CHART 2
+   SAVING RATE
+   ============================================================ */
+
+const savingRateCanvas =
+    document.getElementById('savingRateChart');
+
+if (savingRateCanvas) {
+
+    new Chart(
+        savingRateCanvas,
+        {
+            type: 'line',
+
+            data: {
+
+                labels: yearlyLabels,
+
+                datasets: [
+                    {
+                        label: 'Saving Rate',
+
+                        data: yearlySavingRate,
+
+                        tension: .35,
+
+                        fill: true,
+
+                        pointRadius: 4,
+
+                        borderWidth: 2
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Saving Rate: ' +
+                                    number(context.raw).toFixed(1) +
+                                    '%';
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   CHART 3
+   EXPENSE RATE
+   ============================================================ */
+
+const expenseRateCanvas =
+    document.getElementById('expenseRateChart');
+
+if (expenseRateCanvas) {
+
+    new Chart(
+        expenseRateCanvas,
+        {
+            type: 'line',
+
+            data: {
+
+                labels: yearlyLabels,
+
+                datasets: [
+                    {
+                        label: 'Expense Rate',
+
+                        data: yearlyExpenseRate,
+
+                        tension: .35,
+
+                        fill: true,
+
+                        pointRadius: 4,
+
+                        borderWidth: 2
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Expense Rate: ' +
+                                    number(context.raw).toFixed(1) +
+                                    '%';
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true,
+
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   CHART 4
+   CUMULATIVE SAVINGS
+   ============================================================ */
+
+let cumulative = 0;
+
+const cumulativeSavings = yearlySavings.map(value => {
+
+    cumulative += number(value);
+
+    return cumulative;
+});
+
+
+const cumulativeCanvas =
+    document.getElementById('cumulativeSavingsChart');
+
+if (cumulativeCanvas) {
+
+    new Chart(
+        cumulativeCanvas,
+        {
+            type: 'line',
+
+            data: {
+
+                labels: yearlyLabels,
+
+                datasets: [
+                    {
+                        label: 'Cumulative Savings',
+
+                        data: cumulativeSavings,
+
+                        tension: .35,
+
+                        fill: true,
+
+                        pointRadius: 4,
+
+                        borderWidth: 2
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Cumulative: ' +
+                                    money(context.raw);
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        ticks: {
+                            callback: function (value) {
+                                return money(value);
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   MONTHLY DATA
+   ============================================================ */
+
+const monthlyLabels = monthlyData.map(row =>
+    row.label || row.month_key || ''
+);
+
+const monthlyIncome = monthlyData.map(row =>
+    number(row.income)
+);
+
+const monthlyExpense = monthlyData.map(row =>
+    number(row.expense)
+);
+
+const monthlySavings = monthlyData.map(row =>
+    number(row.net_saving)
+);
+
+
+/* ============================================================
+   CHART 5
+   MONTHLY ANALYSIS
+   ============================================================ */
+
+const monthlyCanvas =
+    document.getElementById('monthlyAnalysisChart');
+
+if (monthlyCanvas) {
+
+    new Chart(
+        monthlyCanvas,
+        {
+            type: 'line',
+
+            data: {
+
+                labels: monthlyLabels,
+
+                datasets: [
+
+                    {
+                        label: 'Income',
+                        data: monthlyIncome,
+                        tension: .3,
+                        pointRadius: 2
+                    },
+
+                    {
+                        label: 'Expense',
+                        data: monthlyExpense,
+                        tension: .3,
+                        pointRadius: 2
+                    },
+
+                    {
+                        label: 'Saving',
+                        data: monthlySavings,
+                        tension: .3,
+                        pointRadius: 2
+                    }
+
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label +
+                                    ': ' +
+                                    money(context.raw);
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        ticks: {
+                            callback: function (value) {
+                                return money(value);
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   CATEGORY SAVINGS
+   ============================================================ */
+
+const categoryLabels =
+    categorySummary
+        .filter(row => number(row.net_saving) !== 0)
+        .slice(0, 12)
+        .map(row => row.name || 'Unknown');
+
+const categoryValues =
+    categorySummary
+        .filter(row => number(row.net_saving) !== 0)
+        .slice(0, 12)
+        .map(row => number(row.net_saving));
+
+
+const categoryCanvas =
+    document.getElementById('categorySavingsChart');
+
+if (categoryCanvas) {
+
+    new Chart(
+        categoryCanvas,
+        {
+            type: 'doughnut',
+
+            data: {
+
+                labels: categoryLabels,
+
+                datasets: [
+                    {
+                        label: 'Net Saving',
+                        data: categoryValues,
+
+                        borderWidth: 2
+                    }
+                ]
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: '62%',
+
+                plugins: {
+
+                    legend: {
+                        position: 'bottom'
+                    },
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+
+                                return context.label +
+                                    ': ' +
+                                    money(context.raw);
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   ACCOUNT SAVINGS
+   ============================================================ */
+
+const accountLabels =
+    accountSummary
+        .filter(row => number(row.net_saving) !== 0)
+        .slice(0, 12)
+        .map(row => row.name || 'Unknown Account');
+
+const accountValues =
+    accountSummary
+        .filter(row => number(row.net_saving) !== 0)
+        .slice(0, 12)
+        .map(row => number(row.net_saving));
+
+
+const accountCanvas =
+    document.getElementById('accountSavingsChart');
+
+if (accountCanvas) {
+
+    new Chart(
+        accountCanvas,
+        {
+            type: 'bar',
+
+            data: {
+
+                labels: accountLabels,
+
+                datasets: [
+                    {
+                        label: 'Net Saving',
+
+                        data: accountValues,
+
+                        borderRadius: 7
+                    }
+                ]
+            },
+
+            options: {
+
+                indexAxis: 'y',
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return 'Saving: ' +
+                                    money(context.raw);
+                            }
+                        }
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+                        ticks: {
+                            callback: function (value) {
+                                return money(value);
+                            }
+                        }
+                    }
+
+                }
+
+            }
+        }
+    );
+}
+
+
+/* ============================================================
+   PROGRESS ANIMATION
+   ============================================================ */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+        document
+            .querySelectorAll('.progress-bar')
+            .forEach(function (bar) {
+
+                const target =
+                    bar.style.width || '0%';
+
+                bar.style.width = '0%';
+
+                setTimeout(function () {
+                    bar.style.width = target;
+                }, 250);
+
+            });
+
+    }
+);
+</script>
+
+{% endblock %}

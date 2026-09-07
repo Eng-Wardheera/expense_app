@@ -1,0 +1,2668 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Saving Deposits Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   SAVING DEPOSITS REPORT
+   ============================================================ */
+
+.sdr-page {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+                 "Segoe UI", sans-serif;
+    color: #172033;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.sdr-header {
+    background: linear-gradient(135deg, #06245f 0%, #0b3c91 55%, #1769c2 100%);
+    color: #fff;
+    border-radius: 18px;
+    padding: 26px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(6, 36, 95, .16);
+}
+
+.sdr-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.sdr-title-wrap {
+    min-width: 0;
+}
+
+.sdr-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    opacity: .82;
+    margin-bottom: 9px;
+}
+
+.sdr-breadcrumb a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.sdr-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.sdr-breadcrumb span {
+    opacity: .55;
+}
+
+.sdr-title {
+    margin: 0;
+    font-size: 29px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.sdr-subtitle {
+    margin: 7px 0 0;
+    font-size: 14px;
+    line-height: 1.6;
+    opacity: .88;
+}
+
+.sdr-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.sdr-btn {
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.12);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.sdr-btn:hover {
+    background: rgba(255,255,255,.22);
+    transform: translateY(-1px);
+}
+
+.sdr-btn-light {
+    background: #fff;
+    color: #06245f;
+    border-color: #fff;
+}
+
+.sdr-report-meta {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,.16);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    font-size: 12px;
+}
+
+.sdr-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    opacity: .9;
+}
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.sdr-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sdr-kpi {
+    background: #fff;
+    border: 1px solid #e7ebf2;
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 5px 18px rgba(23,32,51,.06);
+    position: relative;
+    overflow: hidden;
+}
+
+.sdr-kpi::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    bottom: -35px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(6,36,95,.035);
+}
+
+.sdr-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.sdr-kpi-label {
+    color: #68748a;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.sdr-kpi-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    background: #eef4ff;
+    color: #0b4ba8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sdr-kpi-value {
+    margin-top: 13px;
+    font-size: 25px;
+    font-weight: 850;
+    color: #172033;
+    line-height: 1.1;
+}
+
+.sdr-kpi-note {
+    margin-top: 7px;
+    color: #8993a5;
+    font-size: 11px;
+}
+
+/* ============================================================
+   COMMON CARD
+   ============================================================ */
+
+.sdr-card {
+    background: #fff;
+    border: 1px solid #e7ebf2;
+    border-radius: 16px;
+    box-shadow: 0 5px 18px rgba(23,32,51,.05);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.sdr-card-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid #edf0f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.sdr-card-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #172033;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sdr-card-subtitle {
+    margin: 4px 0 0;
+    color: #7b8799;
+    font-size: 12px;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.sdr-filter-body {
+    padding: 18px;
+}
+
+.sdr-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.sdr-field {
+    min-width: 0;
+}
+
+.sdr-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.sdr-input,
+.sdr-select {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #dfe4ec;
+    background: #fff;
+    color: #1d2939;
+    border-radius: 9px;
+    padding: 10px 11px;
+    outline: none;
+    font-size: 13px;
+    transition: .2s ease;
+}
+
+.sdr-input:focus,
+.sdr-select:focus {
+    border-color: #3d75c8;
+    box-shadow: 0 0 0 3px rgba(61,117,200,.10);
+}
+
+.sdr-filter-actions {
+    margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.sdr-filter-btn {
+    border: 0;
+    border-radius: 9px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.sdr-filter-primary {
+    background: #06245f;
+    color: #fff;
+}
+
+.sdr-filter-secondary {
+    background: #edf2f8;
+    color: #344054;
+}
+
+.sdr-filter-success {
+    background: #eaf8ef;
+    color: #18743b;
+}
+
+/* ============================================================
+   HIGHLIGHTS
+   ============================================================ */
+
+.sdr-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sdr-highlight {
+    border-radius: 15px;
+    padding: 18px;
+    background: linear-gradient(135deg, #f8fbff, #fff);
+    border: 1px solid #e3eaf5;
+}
+
+.sdr-highlight-label {
+    font-size: 11px;
+    color: #7b8799;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.sdr-highlight-name {
+    margin-top: 7px;
+    font-size: 16px;
+    font-weight: 850;
+    color: #172033;
+}
+
+.sdr-highlight-value {
+    margin-top: 4px;
+    font-size: 21px;
+    font-weight: 850;
+    color: #0b4ba8;
+}
+
+.sdr-highlight-note {
+    margin-top: 5px;
+    color: #98a2b3;
+    font-size: 11px;
+}
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+
+.sdr-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sdr-summary-box {
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #e7ebf2;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(23,32,51,.05);
+}
+
+.sdr-summary-heading {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.sdr-summary-description {
+    color: #7b8799;
+    font-size: 11px;
+    margin-bottom: 15px;
+}
+
+.sdr-summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.sdr-summary-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    align-items: center;
+}
+
+.sdr-summary-name {
+    min-width: 0;
+}
+
+.sdr-summary-name strong {
+    display: block;
+    font-size: 12px;
+    color: #344054;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sdr-summary-name small {
+    display: block;
+    color: #98a2b3;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.sdr-summary-amount {
+    text-align: right;
+    font-size: 12px;
+    font-weight: 800;
+    color: #172033;
+    white-space: nowrap;
+}
+
+.sdr-progress {
+    height: 5px;
+    background: #edf1f6;
+    border-radius: 20px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.sdr-progress > span {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: #1769c2;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.sdr-table-wrap {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.sdr-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1050px;
+}
+
+.sdr-table thead th {
+    background: #f7f9fc;
+    color: #667085;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    font-weight: 850;
+    padding: 12px 13px;
+    border-bottom: 1px solid #e7ebf2;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.sdr-table tbody td {
+    padding: 13px;
+    border-bottom: 1px solid #eef1f5;
+    font-size: 12px;
+    color: #344054;
+    vertical-align: middle;
+}
+
+.sdr-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.sdr-saving-name {
+    font-weight: 800;
+    color: #172033;
+}
+
+.sdr-saving-id {
+    color: #98a2b3;
+    font-size: 9px;
+    margin-top: 3px;
+}
+
+.sdr-amount {
+    font-weight: 850;
+    color: #0b4ba8;
+    white-space: nowrap;
+}
+
+.sdr-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.sdr-badge-deposit {
+    background: #eaf8ef;
+    color: #18743b;
+}
+
+.sdr-date {
+    white-space: nowrap;
+    color: #667085;
+}
+
+.sdr-description {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.sdr-empty {
+    padding: 55px 20px;
+    text-align: center;
+    color: #7b8799;
+}
+
+.sdr-empty-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: #f1f4f8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7b8799;
+}
+
+.sdr-empty-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: #475467;
+}
+
+.sdr-empty-text {
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+/* ============================================================
+   TABLE FOOTER
+   ============================================================ */
+
+.sdr-table-footer {
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-top: 1px solid #edf0f5;
+}
+
+.sdr-table-count {
+    color: #7b8799;
+    font-size: 11px;
+}
+
+.sdr-total {
+    color: #172033;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.sdr-total span {
+    color: #0b4ba8;
+}
+
+/* ============================================================
+   PERIOD
+   ============================================================ */
+
+.sdr-period-grid {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.sdr-period-box {
+    background: #f8fafc;
+    border: 1px solid #edf0f5;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.sdr-period-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #98a2b3;
+}
+
+.sdr-period-value {
+    margin-top: 7px;
+    font-size: 16px;
+    font-weight: 850;
+    color: #172033;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.sdr-footer {
+    margin-top: 20px;
+    padding: 15px 5px;
+    color: #98a2b3;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .sdr-page {
+        padding: 0;
+    }
+
+    .sdr-header {
+        color: #000;
+        background: #fff !important;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+
+    .sdr-header-actions,
+    .sdr-filter-card,
+    .sdr-footer {
+        display: none !important;
+    }
+
+    .sdr-card,
+    .sdr-kpi,
+    .sdr-summary-box,
+    .sdr-highlight {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .sdr-kpis {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+
+    .sdr-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sdr-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sdr-summary-grid,
+    .sdr-highlights {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .sdr-page {
+        padding: 12px;
+    }
+
+    .sdr-header {
+        padding: 18px;
+        border-radius: 14px;
+    }
+
+    .sdr-header-top {
+        flex-direction: column;
+    }
+
+    .sdr-title {
+        font-size: 23px;
+    }
+
+    .sdr-kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .sdr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sdr-period-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sdr-header-actions {
+        width: 100%;
+    }
+
+    .sdr-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+</style>
+
+
+<div class="sdr-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="sdr-header">
+
+        <div class="sdr-header-top">
+
+            <div class="sdr-title-wrap">
+
+                <!-- FIXED: NO current_app -->
+                <div class="sdr-breadcrumb">
+
+                    <a href="{{ url_for('main.dashboard') }}">
+                        Dashboard
+                    </a>
+
+                    <span>/</span>
+
+                    <span>Reports</span>
+
+                    <span>/</span>
+
+                    <strong>Saving Deposits</strong>
+
+                </div>
+
+
+                <h1 class="sdr-title">
+                    <i data-feather="trending-up"></i>
+                    Saving Deposits Report
+                </h1>
+
+
+                <p class="sdr-subtitle">
+                    Detailed report of all money deposited into savings,
+                    grouped by saving, account, category and currency.
+                </p>
+
+            </div>
+
+
+            <div class="sdr-header-actions">
+
+                <button type="button"
+                        class="sdr-btn"
+                        onclick="window.print()">
+
+                    <i data-feather="printer"></i>
+
+                    Print
+
+                </button>
+
+
+                <button type="button"
+                        class="sdr-btn sdr-btn-light"
+                        onclick="exportSavingDepositsCSV()">
+
+                    <i data-feather="download"></i>
+
+                    Export CSV
+
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="sdr-report-meta">
+
+            <div class="sdr-meta-item">
+
+                <i data-feather="calendar"></i>
+
+                Generated:
+                {{ generated_at|default('—') }}
+
+            </div>
+
+
+            <div class="sdr-meta-item">
+
+                <i data-feather="database"></i>
+
+                Deposit Transactions:
+                {{ total_deposit_transactions|default(0) }}
+
+            </div>
+
+
+            <div class="sdr-meta-item">
+
+                <i data-feather="layers"></i>
+
+                Savings:
+                {{ total_savings_with_deposits|default(0) }}
+
+            </div>
+
+
+            <div class="sdr-meta-item">
+
+                <i data-feather="credit-card"></i>
+
+                Accounts:
+                {{ unique_accounts_with_deposits|default(0) }}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="sdr-kpis">
+
+        <div class="sdr-kpi">
+
+            <div class="sdr-kpi-top">
+
+                <div class="sdr-kpi-label">
+                    Total Deposits
+                </div>
+
+                <div class="sdr-kpi-icon">
+                    <i data-feather="arrow-down-left"></i>
+                </div>
+
+            </div>
+
+
+            <div class="sdr-kpi-value">
+
+                {{ "{:,.2f}".format(
+                    total_deposit_amount|default(0)|float
+                ) }}
+
+                {{ primary_currency|default(currency|default('USD')) }}
+
+            </div>
+
+
+            <div class="sdr-kpi-note">
+                Total money deposited into savings
+            </div>
+
+        </div>
+
+
+        <div class="sdr-kpi">
+
+            <div class="sdr-kpi-top">
+
+                <div class="sdr-kpi-label">
+                    Transactions
+                </div>
+
+                <div class="sdr-kpi-icon">
+                    <i data-feather="repeat"></i>
+                </div>
+
+            </div>
+
+
+            <div class="sdr-kpi-value">
+                {{ total_deposit_transactions|default(0) }}
+            </div>
+
+
+            <div class="sdr-kpi-note">
+                Deposit transactions recorded
+            </div>
+
+        </div>
+
+
+        <div class="sdr-kpi">
+
+            <div class="sdr-kpi-top">
+
+                <div class="sdr-kpi-label">
+                    Savings
+                </div>
+
+                <div class="sdr-kpi-icon">
+                    <i data-feather="target"></i>
+                </div>
+
+            </div>
+
+
+            <div class="sdr-kpi-value">
+                {{ total_savings_with_deposits|default(0) }}
+            </div>
+
+
+            <div class="sdr-kpi-note">
+                Savings receiving deposits
+            </div>
+
+        </div>
+
+
+        <div class="sdr-kpi">
+
+            <div class="sdr-kpi-top">
+
+                <div class="sdr-kpi-label">
+                    Accounts
+                </div>
+
+                <div class="sdr-kpi-icon">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+            </div>
+
+
+            <div class="sdr-kpi-value">
+                {{ unique_accounts_with_deposits|default(0) }}
+            </div>
+
+
+            <div class="sdr-kpi-note">
+                Accounts used for saving deposits
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="sdr-card sdr-filter-card">
+
+        <div class="sdr-card-header">
+
+            <div>
+
+                <h2 class="sdr-card-title">
+
+                    <i data-feather="filter"></i>
+
+                    Filter Deposits
+
+                </h2>
+
+
+                <p class="sdr-card-subtitle">
+
+                    Narrow the report by saving, account, category,
+                    currency, transaction type or date.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="sdr-filter-body">
+
+            <div class="sdr-filter-grid">
+
+                <!-- SEARCH -->
+
+                <div class="sdr-field">
+
+                    <label for="depositSearch">
+                        Search
+                    </label>
+
+                    <input type="text"
+                           id="depositSearch"
+                           class="sdr-input"
+                           placeholder="Saving, account, category...">
+
+                </div>
+
+
+                <!-- SAVING -->
+
+                <div class="sdr-field">
+
+                    <label for="savingFilter">
+                        Saving
+                    </label>
+
+                    <select id="savingFilter"
+                            class="sdr-select">
+
+                        <option value="">
+                            All Savings
+                        </option>
+
+                        {% for saving_name in report_saving_names|default([]) %}
+
+                            <option value="{{ saving_name }}">
+                                {{ saving_name }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- ACCOUNT -->
+
+                <div class="sdr-field">
+
+                    <label for="accountFilter">
+                        Account
+                    </label>
+
+                    <select id="accountFilter"
+                            class="sdr-select">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account in report_accounts|default([]) %}
+
+                            <option value="{{ account }}">
+                                {{ account }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- CATEGORY -->
+
+                <div class="sdr-field">
+
+                    <label for="categoryFilter">
+                        Category
+                    </label>
+
+                    <select id="categoryFilter"
+                            class="sdr-select">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in report_categories|default([]) %}
+
+                            <option value="{{ category }}">
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- CURRENCY -->
+
+                <div class="sdr-field">
+
+                    <label for="currencyFilter">
+                        Currency
+                    </label>
+
+                    <select id="currencyFilter"
+                            class="sdr-select">
+
+                        <option value="">
+                            All Currencies
+                        </option>
+
+                        {% for currency_item in report_currencies|default([]) %}
+
+                            <option value="{{ currency_item }}">
+                                {{ currency_item }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- TYPE -->
+
+                <div class="sdr-field">
+
+                    <label for="typeFilter">
+                        Transaction Type
+                    </label>
+
+                    <select id="typeFilter"
+                            class="sdr-select">
+
+                        <option value="">
+                            All Types
+                        </option>
+
+                        {% for transaction_type_item in report_transaction_types|default([]) %}
+
+                            <option value="{{ transaction_type_item }}">
+                                {{ transaction_type_item|title }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- FROM -->
+
+                <div class="sdr-field">
+
+                    <label for="dateFrom">
+                        Date From
+                    </label>
+
+                    <input type="date"
+                           id="dateFrom"
+                           class="sdr-input">
+
+                </div>
+
+
+                <!-- TO -->
+
+                <div class="sdr-field">
+
+                    <label for="dateTo">
+                        Date To
+                    </label>
+
+                    <input type="date"
+                           id="dateTo"
+                           class="sdr-input">
+
+                </div>
+
+            </div>
+
+
+            <div class="sdr-filter-actions">
+
+                <button type="button"
+                        class="sdr-filter-btn sdr-filter-primary"
+                        onclick="applyDepositFilters()">
+
+                    <i data-feather="search"></i>
+
+                    Apply Filters
+
+                </button>
+
+
+                <button type="button"
+                        class="sdr-filter-btn sdr-filter-secondary"
+                        onclick="resetDepositFilters()">
+
+                    <i data-feather="rotate-ccw"></i>
+
+                    Reset
+
+                </button>
+
+
+                <button type="button"
+                        class="sdr-filter-btn sdr-filter-success"
+                        onclick="exportSavingDepositsCSV()">
+
+                    <i data-feather="file-text"></i>
+
+                    Export Visible
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HIGHLIGHTS
+         ======================================================== -->
+
+    <section class="sdr-highlights">
+
+        <!-- TOP SAVING -->
+
+        <div class="sdr-highlight">
+
+            <div class="sdr-highlight-label">
+                Top Saving
+            </div>
+
+
+            <div class="sdr-highlight-name">
+                {{ top_saving.name|default('—') }}
+            </div>
+
+
+            <div class="sdr-highlight-value">
+
+                {{ "{:,.2f}".format(
+                    top_saving.amount|default(0)|float
+                ) }}
+
+                {{ top_saving.currency|default(
+                    primary_currency|default('USD')
+                ) }}
+
+            </div>
+
+
+            <div class="sdr-highlight-note">
+                Saving with the highest total deposits
+            </div>
+
+        </div>
+
+
+        <!-- TOP ACCOUNT -->
+
+        <div class="sdr-highlight">
+
+            <div class="sdr-highlight-label">
+                Top Account
+            </div>
+
+
+            <div class="sdr-highlight-name">
+                {{ top_account.name|default('—') }}
+            </div>
+
+
+            <div class="sdr-highlight-value">
+
+                {{ "{:,.2f}".format(
+                    top_account.amount|default(0)|float
+                ) }}
+
+                {{ top_account.currency|default(
+                    primary_currency|default('USD')
+                ) }}
+
+            </div>
+
+
+            <div class="sdr-highlight-note">
+                Account contributing the most to savings
+            </div>
+
+        </div>
+
+
+        <!-- TOP CATEGORY -->
+
+        <div class="sdr-highlight">
+
+            <div class="sdr-highlight-label">
+                Top Category
+            </div>
+
+
+            <div class="sdr-highlight-name">
+                {{ top_category.name|default('—') }}
+            </div>
+
+
+            <div class="sdr-highlight-value">
+
+                {{ "{:,.2f}".format(
+                    top_category.amount|default(0)|float
+                ) }}
+
+                {{ top_category.currency|default(
+                    primary_currency|default('USD')
+                ) }}
+
+            </div>
+
+
+            <div class="sdr-highlight-note">
+                Category with the highest deposit amount
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <section class="sdr-summary-grid">
+
+        <!-- ====================================================
+             BY SAVING
+             ==================================================== -->
+
+        <div class="sdr-summary-box">
+
+            <div class="sdr-summary-heading">
+                Deposits by Saving
+            </div>
+
+
+            <div class="sdr-summary-description">
+                Top savings receiving deposits
+            </div>
+
+
+            <div class="sdr-summary-list">
+
+                {% for item in top_5_saving_deposits|default([]) %}
+
+                    {% set amount_value =
+                        item.amount|default(0)|float
+                    %}
+
+                    {% set max_value =
+                        top_5_saving_deposits[0].amount|default(1)|float
+                        if top_5_saving_deposits else 1
+                    %}
+
+                    {% set percentage =
+                        (amount_value / max_value * 100)
+                        if max_value > 0 else 0
+                    %}
+
+
+                    <div class="sdr-summary-row">
+
+                        <div class="sdr-summary-name">
+
+                            <strong title="{{ item.name|default('Unknown Saving') }}">
+                                {{ item.name|default('Unknown Saving') }}
+                            </strong>
+
+
+                            <small>
+                                {{ item.count|default(0) }}
+                                transaction(s)
+                            </small>
+
+
+                            <div class="sdr-progress">
+
+                                <span style="width: {{ [percentage, 100]|min }}%;"></span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="sdr-summary-amount">
+
+                            {{ "{:,.2f}".format(amount_value) }}
+
+                            {{ item.currency|default(
+                                primary_currency|default('USD')
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sdr-empty"
+                         style="padding:20px;">
+
+                        No saving data available.
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             BY ACCOUNT
+             ==================================================== -->
+
+        <div class="sdr-summary-box">
+
+            <div class="sdr-summary-heading">
+                Deposits by Account
+            </div>
+
+
+            <div class="sdr-summary-description">
+                Accounts contributing to savings
+            </div>
+
+
+            <div class="sdr-summary-list">
+
+                {% for item in top_5_accounts|default([]) %}
+
+                    {% set amount_value =
+                        item.amount|default(0)|float
+                    %}
+
+                    {% set max_value =
+                        top_5_accounts[0].amount|default(1)|float
+                        if top_5_accounts else 1
+                    %}
+
+                    {% set percentage =
+                        (amount_value / max_value * 100)
+                        if max_value > 0 else 0
+                    %}
+
+
+                    <div class="sdr-summary-row">
+
+                        <div class="sdr-summary-name">
+
+                            <strong title="{{ item.name|default('Unknown Account') }}">
+                                {{ item.name|default('Unknown Account') }}
+                            </strong>
+
+
+                            <small>
+                                {{ item.count|default(0) }}
+                                transaction(s)
+                            </small>
+
+
+                            <div class="sdr-progress">
+
+                                <span style="width: {{ [percentage, 100]|min }}%;"></span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="sdr-summary-amount">
+
+                            {{ "{:,.2f}".format(amount_value) }}
+
+                            {{ item.currency|default(
+                                primary_currency|default('USD')
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sdr-empty"
+                         style="padding:20px;">
+
+                        No account data available.
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             BY CATEGORY
+             ==================================================== -->
+
+        <div class="sdr-summary-box">
+
+            <div class="sdr-summary-heading">
+                Deposits by Category
+            </div>
+
+
+            <div class="sdr-summary-description">
+                Deposit distribution by category
+            </div>
+
+
+            <div class="sdr-summary-list">
+
+                {% for item in top_5_categories|default([]) %}
+
+                    {% set amount_value =
+                        item.amount|default(0)|float
+                    %}
+
+                    {% set max_value =
+                        top_5_categories[0].amount|default(1)|float
+                        if top_5_categories else 1
+                    %}
+
+                    {% set percentage =
+                        (amount_value / max_value * 100)
+                        if max_value > 0 else 0
+                    %}
+
+
+                    <div class="sdr-summary-row">
+
+                        <div class="sdr-summary-name">
+
+                            <strong title="{{ item.name|default('Uncategorized') }}">
+                                {{ item.name|default('Uncategorized') }}
+                            </strong>
+
+
+                            <small>
+                                {{ item.count|default(0) }}
+                                transaction(s)
+                            </small>
+
+
+                            <div class="sdr-progress">
+
+                                <span style="width: {{ [percentage, 100]|min }}%;"></span>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="sdr-summary-amount">
+
+                            {{ "{:,.2f}".format(amount_value) }}
+
+                            {{ item.currency|default(
+                                primary_currency|default('USD')
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sdr-empty"
+                         style="padding:20px;">
+
+                        No category data available.
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         MAIN TABLE
+         ======================================================== -->
+
+    <section class="sdr-card">
+
+        <div class="sdr-card-header">
+
+            <div>
+
+                <h2 class="sdr-card-title">
+
+                    <i data-feather="list"></i>
+
+                    Saving Deposit Transactions
+
+                </h2>
+
+
+                <p class="sdr-card-subtitle">
+
+                    Complete list of money deposited into savings.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="sdr-table-wrap">
+
+            <table class="sdr-table"
+                   id="savingDepositsTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Saving</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Amount</th>
+
+                        <th>Currency</th>
+
+                        <th>Type</th>
+
+                        <th>Date</th>
+
+                        <th>Description</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for transaction in deposit_transactions|default([]) %}
+
+                        <tr
+                            data-saving="{{ transaction.saving_name|default('Unknown Saving')|lower|e }}"
+                            data-account="{{ transaction.account_name|default('Unknown Account')|lower|e }}"
+                            data-category="{{ transaction.category|default('Uncategorized')|lower|e }}"
+                            data-currency="{{ transaction.currency|default(primary_currency|default('USD'))|lower|e }}"
+                            data-type="{{ transaction.transaction_type|default('deposit')|lower|e }}"
+                            data-date="{{ transaction.date|default('')|e }}"
+                        >
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+
+                            <td>
+
+                                <div class="sdr-saving-name">
+
+                                    {{ transaction.saving_name|default(
+                                        'Unknown Saving'
+                                    ) }}
+
+                                </div>
+
+
+                                {% if transaction.saving_id %}
+
+                                    <div class="sdr-saving-id">
+
+                                        ID:
+                                        {{ transaction.saving_id }}
+
+                                    </div>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+                                {{ transaction.account_name|default(
+                                    'Unknown Account'
+                                ) }}
+                            </td>
+
+
+                            <td>
+                                {{ transaction.category|default(
+                                    'Uncategorized'
+                                ) }}
+                            </td>
+
+
+                            <td class="sdr-amount">
+
+                                +{{ "{:,.2f}".format(
+                                    transaction.amount|default(0)|float
+                                ) }}
+
+                            </td>
+
+
+                            <td>
+
+                                {{ transaction.currency|default(
+                                    primary_currency|default('USD')
+                                ) }}
+
+                            </td>
+
+
+                            <td>
+
+                                <span class="sdr-badge sdr-badge-deposit">
+
+                                    <i data-feather="plus-circle"></i>
+
+                                    {{ transaction.transaction_type|default(
+                                        'deposit'
+                                    )|title }}
+
+                                </span>
+
+                            </td>
+
+
+                            <td class="sdr-date">
+
+                                {{ transaction.date_display|default(
+                                    transaction.date|default('—')
+                                ) }}
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="sdr-description"
+                                     title="{{ transaction.description|default('') }}">
+
+                                    {{ transaction.description|default('—') }}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr id="emptyDepositRow">
+
+                            <td colspan="9">
+
+                                <div class="sdr-empty">
+
+                                    <div class="sdr-empty-icon">
+
+                                        <i data-feather="inbox"></i>
+
+                                    </div>
+
+
+                                    <div class="sdr-empty-title">
+
+                                        No Saving Deposits Found
+
+                                    </div>
+
+
+                                    <div class="sdr-empty-text">
+
+                                        There are no saving deposit transactions
+                                        available for this report.
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- ====================================================
+             TABLE FOOTER
+             ==================================================== -->
+
+        <div class="sdr-table-footer">
+
+            <div class="sdr-table-count">
+
+                Showing
+
+                <strong id="visibleDepositCount">
+
+                    {{ deposit_transactions|default([])|length }}
+
+                </strong>
+
+                of
+
+                <strong>
+
+                    {{ deposit_transactions|default([])|length }}
+
+                </strong>
+
+                deposit transactions
+
+            </div>
+
+
+            <div class="sdr-total">
+
+                Total:
+
+                <span id="visibleDepositTotal">
+
+                    {{ "{:,.2f}".format(
+                        total_deposit_amount|default(0)|float
+                    ) }}
+
+                    {{ primary_currency|default(
+                        currency|default('USD')
+                    ) }}
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         PERIOD
+         ======================================================== -->
+
+    <section class="sdr-card">
+
+        <div class="sdr-card-header">
+
+            <div>
+
+                <h2 class="sdr-card-title">
+
+                    <i data-feather="calendar"></i>
+
+                    Deposit Period
+
+                </h2>
+
+
+                <p class="sdr-card-subtitle">
+
+                    First and latest recorded saving deposit.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="sdr-period-grid">
+
+            <div class="sdr-period-box">
+
+                <div class="sdr-period-label">
+                    First Deposit
+                </div>
+
+
+                <div class="sdr-period-value">
+
+                    {{ first_deposit_date_display|default(
+                        first_deposit_date|default('—')
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+            <div class="sdr-period-box">
+
+                <div class="sdr-period-label">
+                    Last Deposit
+                </div>
+
+
+                <div class="sdr-period-value">
+
+                    {{ last_deposit_date_display|default(
+                        last_deposit_date|default('—')
+                    ) }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="sdr-footer">
+
+        <div>
+            Saving Deposits Report
+        </div>
+
+
+        <div>
+
+            Total Deposits:
+
+            <strong>
+
+                {{ "{:,.2f}".format(
+                    total_deposit_amount|default(0)|float
+                ) }}
+
+                {{ primary_currency|default(
+                    currency|default('USD')
+                ) }}
+
+            </strong>
+
+        </div>
+
+
+        <div>
+            Generated {{ generated_at|default('—') }}
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    const searchInput =
+        document.getElementById("depositSearch");
+
+
+    const savingFilter =
+        document.getElementById("savingFilter");
+
+
+    const accountFilter =
+        document.getElementById("accountFilter");
+
+
+    const categoryFilter =
+        document.getElementById("categoryFilter");
+
+
+    const currencyFilter =
+        document.getElementById("currencyFilter");
+
+
+    const typeFilter =
+        document.getElementById("typeFilter");
+
+
+    const dateFrom =
+        document.getElementById("dateFrom");
+
+
+    const dateTo =
+        document.getElementById("dateTo");
+
+
+    const table =
+        document.getElementById("savingDepositsTable");
+
+
+    const tbody =
+        table
+            ? table.querySelector("tbody")
+            : null;
+
+
+    const visibleCount =
+        document.getElementById("visibleDepositCount");
+
+
+    const visibleTotal =
+        document.getElementById("visibleDepositTotal");
+
+
+    const primaryCurrency =
+        {{ primary_currency|default(
+            currency|default('USD')
+        )|tojson }};
+
+
+    /* ========================================================
+       GET DATA ROWS
+       ======================================================== */
+
+    function getRows() {
+
+        if (!tbody) {
+            return [];
+        }
+
+        return Array.from(
+            tbody.querySelectorAll("tr[data-saving]")
+        );
+
+    }
+
+
+    /* ========================================================
+       NORMALIZE
+       ======================================================== */
+
+    function normalize(value) {
+
+        return String(value || "")
+            .toLowerCase()
+            .trim();
+
+    }
+
+
+    /* ========================================================
+       AMOUNT
+       ======================================================== */
+
+    function parseAmount(row) {
+
+        const amountCell =
+            row.children[4];
+
+
+        if (!amountCell) {
+            return 0;
+        }
+
+
+        let text =
+            amountCell.textContent
+                .replace(/[^\d.-]/g, "");
+
+
+        let amount =
+            parseFloat(text);
+
+
+        return Number.isFinite(amount)
+            ? amount
+            : 0;
+
+    }
+
+
+    /* ========================================================
+       APPLY FILTERS
+       ======================================================== */
+
+    function applyDepositFilters() {
+
+        const search =
+            normalize(
+                searchInput
+                    ? searchInput.value
+                    : ""
+            );
+
+
+        const saving =
+            normalize(
+                savingFilter
+                    ? savingFilter.value
+                    : ""
+            );
+
+
+        const account =
+            normalize(
+                accountFilter
+                    ? accountFilter.value
+                    : ""
+            );
+
+
+        const category =
+            normalize(
+                categoryFilter
+                    ? categoryFilter.value
+                    : ""
+            );
+
+
+        const currency =
+            normalize(
+                currencyFilter
+                    ? currencyFilter.value
+                    : ""
+            );
+
+
+        const type =
+            normalize(
+                typeFilter
+                    ? typeFilter.value
+                    : ""
+            );
+
+
+        const from =
+            dateFrom
+                ? dateFrom.value
+                : "";
+
+
+        const to =
+            dateTo
+                ? dateTo.value
+                : "";
+
+
+        let count = 0;
+
+        let total = 0;
+
+
+        getRows().forEach(function (row) {
+
+            const rowSaving =
+                normalize(
+                    row.dataset.saving
+                );
+
+
+            const rowAccount =
+                normalize(
+                    row.dataset.account
+                );
+
+
+            const rowCategory =
+                normalize(
+                    row.dataset.category
+                );
+
+
+            const rowCurrency =
+                normalize(
+                    row.dataset.currency
+                );
+
+
+            const rowType =
+                normalize(
+                    row.dataset.type
+                );
+
+
+            const rowDate =
+                row.dataset.date || "";
+
+
+            const rowText =
+                normalize(
+                    row.textContent
+                );
+
+
+            let visible = true;
+
+
+            if (
+                search &&
+                !rowText.includes(search)
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                saving &&
+                rowSaving !== saving
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                account &&
+                rowAccount !== account
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                category &&
+                rowCategory !== category
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                currency &&
+                rowCurrency !== currency
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                type &&
+                rowType !== type
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                from &&
+                rowDate &&
+                rowDate < from
+            ) {
+
+                visible = false;
+
+            }
+
+
+            if (
+                to &&
+                rowDate &&
+                rowDate > to
+            ) {
+
+                visible = false;
+
+            }
+
+
+            row.style.display =
+                visible
+                    ? ""
+                    : "none";
+
+
+            if (visible) {
+
+                count++;
+
+                total +=
+                    parseAmount(row);
+
+            }
+
+        });
+
+
+        if (visibleCount) {
+
+            visibleCount.textContent =
+                count;
+
+        }
+
+
+        if (visibleTotal) {
+
+            visibleTotal.textContent =
+
+                total.toLocaleString(
+                    undefined,
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                ) +
+
+                " " +
+
+                primaryCurrency;
+
+        }
+
+    }
+
+
+    window.applyDepositFilters =
+        applyDepositFilters;
+
+
+    /* ========================================================
+       RESET
+       ======================================================== */
+
+    window.resetDepositFilters =
+        function () {
+
+            if (searchInput) {
+                searchInput.value = "";
+            }
+
+
+            if (savingFilter) {
+                savingFilter.value = "";
+            }
+
+
+            if (accountFilter) {
+                accountFilter.value = "";
+            }
+
+
+            if (categoryFilter) {
+                categoryFilter.value = "";
+            }
+
+
+            if (currencyFilter) {
+                currencyFilter.value = "";
+            }
+
+
+            if (typeFilter) {
+                typeFilter.value = "";
+            }
+
+
+            if (dateFrom) {
+                dateFrom.value = "";
+            }
+
+
+            if (dateTo) {
+                dateTo.value = "";
+            }
+
+
+            applyDepositFilters();
+
+        };
+
+
+    /* ========================================================
+       SEARCH
+       ======================================================== */
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            applyDepositFilters
+        );
+
+    }
+
+
+    /* ========================================================
+       SELECT / DATE FILTERS
+       ======================================================== */
+
+    [
+        savingFilter,
+        accountFilter,
+        categoryFilter,
+        currencyFilter,
+        typeFilter,
+        dateFrom,
+        dateTo
+    ].forEach(function (element) {
+
+        if (element) {
+
+            element.addEventListener(
+                "change",
+                applyDepositFilters
+            );
+
+        }
+
+    });
+
+
+    /* ========================================================
+       CSV EXPORT
+       ======================================================== */
+
+    window.exportSavingDepositsCSV =
+        function () {
+
+            const rows =
+                getRows().filter(
+                    function (row) {
+
+                        return row.style.display !== "none";
+
+                    }
+                );
+
+
+            if (!rows.length) {
+
+                alert(
+                    "No visible deposit transactions to export."
+                );
+
+                return;
+
+            }
+
+
+            const csv = [];
+
+
+            csv.push([
+                "#",
+                "Saving",
+                "Account",
+                "Category",
+                "Amount",
+                "Currency",
+                "Transaction Type",
+                "Date",
+                "Description"
+            ]);
+
+
+            rows.forEach(
+                function (row, index) {
+
+                    const cells =
+                        Array.from(
+                            row.children
+                        );
+
+
+                    csv.push([
+
+                        index + 1,
+
+                        cells[1]
+                            ? cells[1].innerText.trim()
+                            : "",
+
+                        cells[2]
+                            ? cells[2].innerText.trim()
+                            : "",
+
+                        cells[3]
+                            ? cells[3].innerText.trim()
+                            : "",
+
+                        cells[4]
+                            ? cells[4].innerText.trim()
+                            : "",
+
+                        cells[5]
+                            ? cells[5].innerText.trim()
+                            : "",
+
+                        cells[6]
+                            ? cells[6].innerText.trim()
+                            : "",
+
+                        cells[7]
+                            ? cells[7].innerText.trim()
+                            : "",
+
+                        cells[8]
+                            ? cells[8].innerText.trim()
+                            : ""
+
+                    ]);
+
+                }
+            );
+
+
+            const csvContent =
+                csv.map(
+                    function (row) {
+
+                        return row.map(
+                            function (value) {
+
+                                return '"' +
+                                    String(value)
+                                        .replace(
+                                            /"/g,
+                                            '""'
+                                        ) +
+                                    '"';
+
+                            }
+                        ).join(",");
+
+                    }
+                ).join("\n");
+
+
+            const blob =
+                new Blob(
+                    [csvContent],
+                    {
+                        type:
+                            "text/csv;charset=utf-8;"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+
+            link.href = url;
+
+
+            link.download =
+                "saving_deposits_report.csv";
+
+
+            document.body.appendChild(link);
+
+
+            link.click();
+
+
+            document.body.removeChild(link);
+
+
+            URL.revokeObjectURL(url);
+
+        };
+
+
+    /* ========================================================
+       FEATHER
+       ======================================================== */
+
+    if (
+        typeof feather !== "undefined"
+    ) {
+
+        feather.replace();
+
+    }
+
+
+    /* ========================================================
+       INITIAL FILTER
+       ======================================================== */
+
+    applyDepositFilters();
+
+
+})();
+
+</script>
+
+{% endblock %}
+

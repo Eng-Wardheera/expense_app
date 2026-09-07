@@ -1,0 +1,3144 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Export Savings Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPORT SAVINGS REPORT
+   LIGHT ONLY
+   ============================================================ */
+
+:root {
+    --es-primary: #2563eb;
+    --es-primary-dark: #1d4ed8;
+    --es-success: #16a34a;
+    --es-danger: #dc2626;
+    --es-warning: #d97706;
+    --es-info: #0891b2;
+
+    --es-text: #172033;
+    --es-muted: #64748b;
+    --es-border: #e2e8f0;
+    --es-bg: #f5f7fb;
+    --es-card: #ffffff;
+    --es-soft: #f8fafc;
+    --es-radius: 16px;
+    --es-shadow: 0 8px 28px rgba(15, 23, 42, 0.07);
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.export-savings-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--es-bg);
+    color: var(--es-text);
+    padding: 24px;
+}
+
+.export-savings-container {
+    width: 100%;
+    max-width: 1700px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.es-header {
+    background: var(--es-card);
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 24px;
+    margin-bottom: 20px;
+}
+
+.es-header-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.es-title-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.es-title-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 15px;
+    background: #eff6ff;
+    color: var(--es-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+    flex-shrink: 0;
+}
+
+.es-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--es-text);
+}
+
+.es-subtitle {
+    margin: 5px 0 0;
+    color: var(--es-muted);
+    font-size: 14px;
+}
+
+.es-header-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.es-btn {
+    border: 1px solid var(--es-border);
+    background: #fff;
+    color: var(--es-text);
+    border-radius: 10px;
+    padding: 10px 14px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.es-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+    color: var(--es-text);
+}
+
+.es-btn-primary {
+    background: var(--es-primary);
+    border-color: var(--es-primary);
+    color: #fff;
+}
+
+.es-btn-primary:hover {
+    background: var(--es-primary-dark);
+    border-color: var(--es-primary-dark);
+    color: #fff;
+}
+
+.es-btn-success {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #fff;
+}
+
+.es-btn-danger {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #fff;
+}
+
+.es-btn-warning {
+    background: #d97706;
+    border-color: #d97706;
+    color: #fff;
+}
+
+/* ============================================================
+   FILTER CARD
+   ============================================================ */
+
+.es-filter-card {
+    background: var(--es-card);
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.es-section-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 17px;
+}
+
+.es-section-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.es-section-title i {
+    color: var(--es-primary);
+    margin-right: 7px;
+}
+
+.es-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(6, minmax(140px, 1fr));
+    gap: 13px;
+}
+
+.es-field {
+    min-width: 0;
+}
+
+.es-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.es-field input,
+.es-field select {
+    width: 100%;
+    height: 43px;
+    border: 1px solid var(--es-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: #fff;
+    color: var(--es-text);
+    outline: none;
+    font-size: 13px;
+    transition: .2s ease;
+}
+
+.es-field input:focus,
+.es-field select:focus {
+    border-color: var(--es-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.es-filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+/* ============================================================
+   QUICK RANGE
+   ============================================================ */
+
+.es-quick-range {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #edf1f5;
+}
+
+.es-quick-label {
+    display: inline-flex;
+    align-items: center;
+    color: var(--es-muted);
+    font-size: 12px;
+    font-weight: 800;
+    margin-right: 3px;
+}
+
+.es-range-btn {
+    border: 1px solid var(--es-border);
+    background: #fff;
+    color: #475569;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.es-range-btn:hover,
+.es-range-btn.active {
+    background: #eff6ff;
+    color: var(--es-primary);
+    border-color: #bfdbfe;
+}
+
+/* ============================================================
+   RANGE INFO
+   ============================================================ */
+
+.es-range-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+    color: #1e40af;
+    padding: 12px 15px;
+    border-radius: 11px;
+    margin-top: 15px;
+    font-size: 13px;
+}
+
+.es-range-info strong {
+    font-weight: 800;
+}
+
+.es-range-days {
+    background: #fff;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    padding: 5px 9px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.es-kpi-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.es-kpi {
+    background: var(--es-card);
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.es-kpi::after {
+    content: "";
+    position: absolute;
+    right: -28px;
+    top: -28px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .05);
+}
+
+.es-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.es-kpi-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+}
+
+.es-kpi.blue .es-kpi-icon {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.es-kpi.green .es-kpi-icon {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.es-kpi.red .es-kpi-icon {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.es-kpi.orange .es-kpi-icon {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.es-kpi.cyan .es-kpi-icon {
+    background: #ecfeff;
+    color: #0891b2;
+}
+
+.es-kpi.purple .es-kpi-icon {
+    background: #faf5ff;
+    color: #9333ea;
+}
+
+.es-kpi-label {
+    margin-top: 14px;
+    color: var(--es-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.es-kpi-value {
+    margin-top: 5px;
+    font-size: 23px;
+    font-weight: 850;
+    letter-spacing: -.4px;
+    color: var(--es-text);
+}
+
+.es-kpi-small {
+    margin-top: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+/* ============================================================
+   EXPORT PANEL
+   ============================================================ */
+
+.es-export-panel {
+    background: var(--es-card);
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.es-export-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.es-export-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.es-export-description {
+    color: var(--es-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.es-export-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ============================================================
+   SUMMARY GRID
+   ============================================================ */
+
+.es-summary-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.es-summary-card {
+    background: #fff;
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 18px;
+}
+
+.es-summary-card h3 {
+    margin: 0 0 15px;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.es-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.es-summary-table th,
+.es-summary-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 12px;
+    text-align: left;
+}
+
+.es-summary-table th {
+    color: var(--es-muted);
+    font-weight: 800;
+    background: #fafcff;
+}
+
+.es-summary-table td:last-child,
+.es-summary-table th:last-child {
+    text-align: right;
+}
+
+/* ============================================================
+   HIGHLIGHT CARDS
+   ============================================================ */
+
+.es-highlight-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.es-highlight {
+    background: #fff;
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 17px;
+}
+
+.es-highlight-title {
+    color: var(--es-muted);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.es-highlight-name {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.es-highlight-value {
+    margin-top: 4px;
+    font-size: 20px;
+    font-weight: 850;
+}
+
+.es-highlight-meta {
+    margin-top: 4px;
+    color: var(--es-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.es-table-card {
+    background: var(--es-card);
+    border: 1px solid var(--es-border);
+    border-radius: var(--es-radius);
+    box-shadow: var(--es-shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.es-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.es-table-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.es-table-title i {
+    color: var(--es-primary);
+    margin-right: 7px;
+}
+
+.es-count-badge {
+    background: #eff6ff;
+    color: var(--es-primary);
+    border: 1px solid #dbeafe;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.es-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table.dataTable {
+    width: 100% !important;
+}
+
+table.dataTable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--es-border) !important;
+}
+
+table.dataTable tbody td {
+    font-size: 12px;
+    color: #334155;
+    vertical-align: middle;
+}
+
+table.dataTable tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.es-saving-name {
+    font-weight: 800;
+    color: #172033;
+}
+
+.es-account-name {
+    font-weight: 700;
+}
+
+.es-money {
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.es-positive {
+    color: var(--es-success);
+}
+
+.es-negative {
+    color: var(--es-danger);
+}
+
+.es-neutral {
+    color: var(--es-text);
+}
+
+.es-muted {
+    color: var(--es-muted);
+}
+
+.es-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.es-status-active {
+    color: #166534;
+    background: #dcfce7;
+    border: 1px solid #bbf7d0;
+}
+
+.es-status-inactive {
+    color: #991b1b;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+}
+
+.es-type {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.es-type-deposit {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.es-type-withdrawal {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.es-progress {
+    min-width: 100px;
+}
+
+.es-progress-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    margin-bottom: 4px;
+    color: #64748b;
+}
+
+.es-progress-bar {
+    height: 6px;
+    width: 100%;
+    background: #e2e8f0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.es-progress-fill {
+    height: 100%;
+    background: #2563eb;
+    border-radius: inherit;
+}
+
+/* ============================================================
+   FOOTER NOTE
+   ============================================================ */
+
+.es-note {
+    background: #fff;
+    border: 1px solid var(--es-border);
+    border-radius: 12px;
+    padding: 13px 15px;
+    color: var(--es-muted);
+    font-size: 11px;
+    line-height: 1.6;
+    margin-bottom: 25px;
+}
+
+.es-note i {
+    color: var(--es-primary);
+    margin-right: 5px;
+}
+
+/* ============================================================
+   DATATABLE CUSTOM
+   ============================================================ */
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--es-border);
+    border-radius: 8px;
+    padding: 6px 9px;
+    background: #fff;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--es-primary);
+}
+
+.dt-buttons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.dt-button {
+    border: 1px solid var(--es-border) !important;
+    background: #fff !important;
+    color: #334155 !important;
+    border-radius: 7px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    padding: 6px 9px !important;
+}
+
+.dt-button:hover {
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+    color: var(--es-primary) !important;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .es-filter-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .es-kpi-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .export-savings-page {
+        padding: 15px;
+    }
+
+    .es-header-inner {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .es-kpi-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .es-summary-grid,
+    .es-highlight-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+    .export-savings-page {
+        padding: 10px;
+    }
+
+    .es-header,
+    .es-filter-card,
+    .es-export-panel,
+    .es-summary-card,
+    .es-highlight,
+    .es-table-card {
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .es-title {
+        font-size: 21px;
+    }
+
+    .es-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .es-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .es-header-actions,
+    .es-export-buttons {
+        width: 100%;
+    }
+
+    .es-header-actions .es-btn,
+    .es-export-buttons .es-btn {
+        flex: 1;
+    }
+
+    .es-range-info {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    .export-savings-page {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .es-filter-card,
+    .es-export-panel,
+    .es-header-actions,
+    .es-quick-range,
+    .dt-buttons,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate,
+    .es-note {
+        display: none !important;
+    }
+
+    .es-header,
+    .es-kpi,
+    .es-summary-card,
+    .es-highlight,
+    .es-table-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .es-header,
+    .es-table-card,
+    .es-summary-card {
+        page-break-inside: avoid;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+    }
+
+    table.dataTable thead th,
+    table.dataTable tbody td {
+        font-size: 9px !important;
+    }
+}
+</style>
+
+
+<div class="export-savings-page">
+
+    <div class="export-savings-container">
+
+        <!-- ====================================================
+             HEADER
+        ===================================================== -->
+
+        <div class="es-header">
+
+            <div class="es-header-inner">
+
+                <div class="es-title-area">
+
+                    <div class="es-title-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+
+                    <div>
+                        <h1 class="es-title">
+                            Export Savings Report
+                        </h1>
+
+                        <p class="es-subtitle">
+                            Savings accounts, balances and saving transactions
+                        </p>
+                    </div>
+
+                </div>
+
+                <div class="es-header-actions">
+
+                    <a
+                        href="{{ url_for('main.report_export_savings') }}"
+                        class="es-btn"
+                    >
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </a>
+
+                    <button
+                        type="button"
+                        class="es-btn es-btn-primary"
+                        onclick="window.print()"
+                    >
+                        <i class="fas fa-print"></i>
+                        Print Report
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+        ===================================================== -->
+
+        <div class="es-filter-card">
+
+            <div class="es-section-heading">
+
+                <h2 class="es-section-title">
+                    <i class="fas fa-filter"></i>
+                    Report Filters
+                </h2>
+
+            </div>
+
+
+            <form
+                method="GET"
+                action="{{ url_for('main.report_export_savings') }}"
+                id="savingsFilterForm"
+            >
+
+                <div class="es-filter-grid">
+
+                    <!-- START DATE -->
+
+                    <div class="es-field">
+
+                        <label for="start_date">
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            value="{{ start_date_value|default('', true) }}"
+                        >
+
+                    </div>
+
+
+                    <!-- END DATE -->
+
+                    <div class="es-field">
+
+                        <label for="end_date">
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            value="{{ end_date_value|default('', true) }}"
+                        >
+
+                    </div>
+
+
+                    <!-- SAVING -->
+
+                    <div class="es-field">
+
+                        <label for="saving">
+                            Saving
+                        </label>
+
+                        <select
+                            id="saving"
+                            name="saving"
+                        >
+
+                            <option value="">
+                                All Savings
+                            </option>
+
+                            {% for saving in saving_options|default([], true) %}
+
+                                <option
+                                    value="{{ saving.id }}"
+                                    {% if saving_filter|default('', true) == saving.id|string %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ saving.name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- ACCOUNT -->
+
+                    <div class="es-field">
+
+                        <label for="account">
+                            Account
+                        </label>
+
+                        <select
+                            id="account"
+                            name="account"
+                        >
+
+                            <option value="">
+                                All Accounts
+                            </option>
+
+                            {% for account in account_options|default([], true) %}
+
+                                <option
+                                    value="{{ account.id }}"
+                                    {% if account_filter|default('', true) == account.id|string %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ account.name }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- TRANSACTION TYPE -->
+
+                    <div class="es-field">
+
+                        <label for="transaction_type">
+                            Transaction Type
+                        </label>
+
+                        <select
+                            id="transaction_type"
+                            name="transaction_type"
+                        >
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            {% for item in transaction_type_options|default([], true) %}
+
+                                <option
+                                    value="{{ item.value }}"
+                                    {% if transaction_type_filter|default('', true) == item.value %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ item.label }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+
+                    <div class="es-field">
+
+                        <label for="status">
+                            Status
+                        </label>
+
+                        <select
+                            id="status"
+                            name="status"
+                        >
+
+                            <option value="">
+                                All Status
+                            </option>
+
+                            {% for item in status_options|default([], true) %}
+
+                                <option
+                                    value="{{ item.value }}"
+                                    {% if status_filter|default('', true) == item.value %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ item.label }}
+                                </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SEARCH + ACTIONS -->
+
+                <div
+                    style="
+                        display:grid;
+                        grid-template-columns:minmax(0,1fr) auto;
+                        gap:12px;
+                        margin-top:13px;
+                    "
+                    class="search-action-grid"
+                >
+
+                    <div class="es-field">
+
+                        <label for="search">
+                            Search
+                        </label>
+
+                        <input
+                            type="text"
+                            id="search"
+                            name="search"
+                            value="{{ search_filter|default('', true) }}"
+                            placeholder="Saving, account, description, reference..."
+                        >
+
+                    </div>
+
+
+                    <div class="es-filter-actions">
+
+                        <button
+                            type="submit"
+                            class="es-btn es-btn-primary"
+                        >
+                            <i class="fas fa-search"></i>
+                            Apply Filters
+                        </button>
+
+                        <a
+                            href="{{ url_for('main.report_export_savings') }}"
+                            class="es-btn"
+                        >
+                            <i class="fas fa-times"></i>
+                            Reset
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+
+            <!-- QUICK RANGES -->
+
+            <div class="es-quick-range">
+
+                <span class="es-quick-label">
+                    <i class="fas fa-bolt"></i>
+                    Quick Range:
+                </span>
+
+                <button
+                    type="button"
+                    class="es-range-btn"
+                    data-days="7"
+                >
+                    7 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="es-range-btn"
+                    data-days="30"
+                >
+                    30 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="es-range-btn"
+                    data-days="90"
+                >
+                    90 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="es-range-btn"
+                    data-month="current"
+                >
+                    Current Month
+                </button>
+
+                <button
+                    type="button"
+                    class="es-range-btn"
+                    data-all="true"
+                >
+                    All Dates
+                </button>
+
+            </div>
+
+
+            <!-- RANGE INFO -->
+
+            <div class="es-range-info">
+
+                <div>
+                    <i class="fas fa-calendar-alt"></i>
+
+                    <strong>
+                        Report Period:
+                    </strong>
+
+                    {{ custom_range_label|default('Current Period', true) }}
+                </div>
+
+                <div class="es-range-days">
+
+                    {{ period_days|default(0, true) }}
+                    day{% if period_days|default(0, true) != 1 %}s{% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             KPI CARDS
+        ===================================================== -->
+
+        <div class="es-kpi-grid">
+
+            <!-- TOTAL SAVINGS -->
+
+            <div class="es-kpi blue">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-piggy-bank"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Total Savings
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ total_savings|default(0, true) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Saving accounts
+                </div>
+
+            </div>
+
+
+            <!-- CURRENT BALANCE -->
+
+            <div class="es-kpi green">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Current Saving Balance
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(total_current_balance|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Current balances
+                </div>
+
+            </div>
+
+
+            <!-- TARGET -->
+
+            <div class="es-kpi cyan">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Total Target
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(total_target|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Combined saving targets
+                </div>
+
+            </div>
+
+
+            <!-- REMAINING -->
+
+            <div class="es-kpi orange">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Remaining
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(total_remaining|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Amount remaining to target
+                </div>
+
+            </div>
+
+
+            <!-- ACTIVE -->
+
+            <div class="es-kpi green">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Active Savings
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ active_savings|default(0, true) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Currently active
+                </div>
+
+            </div>
+
+
+            <!-- INACTIVE -->
+
+            <div class="es-kpi red">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-pause-circle"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Inactive Savings
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ inactive_savings|default(0, true) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Inactive or completed
+                </div>
+
+            </div>
+
+
+            <!-- TRANSACTIONS -->
+
+            <div class="es-kpi purple">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Saving Transactions
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ total_transactions|default(0, true) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Within selected period
+                </div>
+
+            </div>
+
+
+            <!-- PROGRESS -->
+
+            <div class="es-kpi blue">
+
+                <div class="es-kpi-top">
+
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+
+                </div>
+
+                <div class="es-kpi-label">
+                    Overall Progress
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(overall_progress|default(0, true)|float) }}%
+                </div>
+
+                <div class="es-kpi-small">
+                    Current balance vs target
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             TRANSACTION KPI
+        ===================================================== -->
+
+        <div class="es-kpi-grid">
+
+            <div class="es-kpi green">
+
+                <div class="es-kpi-top">
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                </div>
+
+                <div class="es-kpi-label">
+                    Total Deposits
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(total_deposits|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    {{ deposit_transactions|default(0, true) }} deposit transactions
+                </div>
+
+            </div>
+
+
+            <div class="es-kpi red">
+
+                <div class="es-kpi-top">
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-arrow-up"></i>
+                    </div>
+                </div>
+
+                <div class="es-kpi-label">
+                    Total Withdrawals
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(total_withdrawals|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    {{ withdrawal_transactions|default(0, true) }} withdrawal transactions
+                </div>
+
+            </div>
+
+
+            <div class="es-kpi blue">
+
+                <div class="es-kpi-top">
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-balance-scale"></i>
+                    </div>
+                </div>
+
+                <div class="es-kpi-label">
+                    Net Saving Movement
+                </div>
+
+                <div class="es-kpi-value
+                    {% if net_saving_movement|default(0, true)|float >= 0 %}
+                        es-positive
+                    {% else %}
+                        es-negative
+                    {% endif %}
+                ">
+                    {{ "{:,.2f}".format(net_saving_movement|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Deposits minus withdrawals
+                </div>
+
+            </div>
+
+
+            <div class="es-kpi orange">
+
+                <div class="es-kpi-top">
+                    <div class="es-kpi-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                </div>
+
+                <div class="es-kpi-label">
+                    Average Saving Balance
+                </div>
+
+                <div class="es-kpi-value">
+                    {{ "{:,.2f}".format(average_saving_balance|default(0, true)|float) }}
+                </div>
+
+                <div class="es-kpi-small">
+                    Average per saving
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             EXPORT PANEL
+        ===================================================== -->
+
+        <div class="es-export-panel">
+
+            <div class="es-export-content">
+
+                <div>
+
+                    <h3 class="es-export-title">
+                        <i class="fas fa-file-export"></i>
+                        Export Report
+                    </h3>
+
+                    <div class="es-export-description">
+                        Export the currently filtered savings report.
+                    </div>
+
+                </div>
+
+                <div class="es-export-buttons">
+
+                    <a
+                        href="#"
+                        id="exportCsv"
+                        class="es-btn es-btn-success"
+                    >
+                        <i class="fas fa-file-csv"></i>
+                        CSV
+                    </a>
+
+                    <a
+                        href="#"
+                        id="exportXlsx"
+                        class="es-btn es-btn-primary"
+                    >
+                        <i class="fas fa-file-excel"></i>
+                        Excel
+                    </a>
+
+                    <a
+                        href="#"
+                        id="exportJson"
+                        class="es-btn"
+                    >
+                        <i class="fas fa-file-code"></i>
+                        JSON
+                    </a>
+
+                    <button
+                        type="button"
+                        class="es-btn es-btn-warning"
+                        onclick="window.print()"
+                    >
+                        <i class="fas fa-print"></i>
+                        Print
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             HIGHLIGHTS
+        ===================================================== -->
+
+        {% if highest_saving or lowest_saving %}
+
+        <div class="es-highlight-grid">
+
+            {% if highest_saving %}
+
+            <div class="es-highlight">
+
+                <div class="es-highlight-title">
+                    Highest Saving Balance
+                </div>
+
+                <div class="es-highlight-name">
+                    {{ highest_saving.name }}
+                </div>
+
+                <div class="es-highlight-value es-positive">
+                    {{ "{:,.2f}".format(highest_saving.current_balance|default(0, true)|float) }}
+                    {{ highest_saving.currency|default('USD', true) }}
+                </div>
+
+                <div class="es-highlight-meta">
+
+                    Account:
+                    {{ highest_saving.account|default('Unknown Account', true) }}
+
+                    ·
+
+                    Target:
+                    {{ "{:,.2f}".format(highest_saving.target_amount|default(0, true)|float) }}
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+
+            {% if lowest_saving %}
+
+            <div class="es-highlight">
+
+                <div class="es-highlight-title">
+                    Lowest Saving Balance
+                </div>
+
+                <div class="es-highlight-name">
+                    {{ lowest_saving.name }}
+                </div>
+
+                <div class="es-highlight-value es-neutral">
+                    {{ "{:,.2f}".format(lowest_saving.current_balance|default(0, true)|float) }}
+                    {{ lowest_saving.currency|default('USD', true) }}
+                </div>
+
+                <div class="es-highlight-meta">
+
+                    Account:
+                    {{ lowest_saving.account|default('Unknown Account', true) }}
+
+                    ·
+
+                    Remaining:
+                    {{ "{:,.2f}".format(lowest_saving.remaining_amount|default(0, true)|float) }}
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- ====================================================
+             SUMMARY TABLES
+        ===================================================== -->
+
+        <div class="es-summary-grid">
+
+            <!-- TRANSACTION TYPE SUMMARY -->
+
+            <div class="es-summary-card">
+
+                <h3>
+                    <i class="fas fa-chart-pie"></i>
+                    Transaction Type Summary
+                </h3>
+
+                <div class="es-table-wrapper">
+
+                    <table class="es-summary-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Type</th>
+                                <th>Transactions</th>
+                                <th>Amount</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for row in type_summary|default([], true) %}
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        {{ row.transaction_type }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ row.count|default(0, true) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,.2f}".format(row.amount|default(0, true)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+                                <td
+                                    colspan="3"
+                                    style="text-align:center;color:#94a3b8;"
+                                >
+                                    No transaction data
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+
+            <!-- CURRENCY SUMMARY -->
+
+            <div class="es-summary-card">
+
+                <h3>
+                    <i class="fas fa-coins"></i>
+                    Currency Summary
+                </h3>
+
+                <div class="es-table-wrapper">
+
+                    <table class="es-summary-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Currency</th>
+                                <th>Transactions</th>
+                                <th>Amount</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for row in currency_summary|default([], true) %}
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        {{ row.currency }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ row.count|default(0, true) }}
+                                </td>
+
+                                <td>
+                                    {{ "{:,.2f}".format(row.amount|default(0, true)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+                                <td
+                                    colspan="3"
+                                    style="text-align:center;color:#94a3b8;"
+                                >
+                                    No currency data
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             SAVINGS TABLE
+        ===================================================== -->
+
+        {% set saving_rows = financial_savings|default(savings, true)|default([], true) %}
+
+        <div class="es-table-card">
+
+            <div class="es-table-header">
+
+                <h2 class="es-table-title">
+                    <i class="fas fa-piggy-bank"></i>
+                    Savings Accounts
+                </h2>
+
+                <span class="es-count-badge">
+                    {{ saving_rows|length }} records
+                </span>
+
+            </div>
+
+            <div class="es-table-wrapper">
+
+                <table
+                    id="savingsTable"
+                    class="display nowrap"
+                    style="width:100%;"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Saving</th>
+                            <th>Account</th>
+                            <th>Target</th>
+                            <th>Current Balance</th>
+                            <th>Remaining</th>
+                            <th>Progress</th>
+                            <th>Currency</th>
+                            <th>Status</th>
+                            <th>Start Date</th>
+                            <th>Maturity Date</th>
+                            <th>Days Remaining</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in saving_rows %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+
+                                <div class="es-saving-name">
+                                    {{ row.name|default('Unnamed Saving', true) }}
+                                </div>
+
+                                <div class="es-muted">
+                                    ID:
+                                    {{ row.id|default('', true) }}
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <div class="es-account-name">
+                                    {{ row.account|default('Unknown Account', true) }}
+                                </div>
+
+                            </td>
+
+                            <td class="es-money">
+
+                                {{ "{:,.2f}".format(row.target_amount|default(0, true)|float) }}
+
+                            </td>
+
+                            <td class="es-money es-positive">
+
+                                {{ "{:,.2f}".format(row.current_balance|default(0, true)|float) }}
+
+                            </td>
+
+                            <td class="es-money">
+
+                                {{ "{:,.2f}".format(row.remaining_amount|default(0, true)|float) }}
+
+                            </td>
+
+                            <td>
+
+                                {% set progress = row.progress|default(0, true)|float %}
+
+                                {% if progress < 0 %}
+                                    {% set progress = 0 %}
+                                {% endif %}
+
+                                {% if progress > 100 %}
+                                    {% set progress = 100 %}
+                                {% endif %}
+
+                                <div class="es-progress">
+
+                                    <div class="es-progress-top">
+
+                                        <span>
+                                            Progress
+                                        </span>
+
+                                        <strong>
+                                            {{ "{:,.1f}".format(progress) }}%
+                                        </strong>
+
+                                    </div>
+
+                                    <div class="es-progress-bar">
+
+                                        <div
+                                            class="es-progress-fill"
+                                            style="width:{{ progress }}%;"
+                                        ></div>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+                                {{ row.currency|default('USD', true) }}
+                            </td>
+
+                            <td>
+
+                                {% if row.status|default('Unknown', true)|lower == 'active' %}
+
+                                    <span class="es-status es-status-active">
+                                        Active
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="es-status es-status-inactive">
+                                        {{ row.status|default('Unknown', true) }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ row.start_date|default('-', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.maturity_date|default('-', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.days_remaining|default(0, true) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             SAVING TRANSACTIONS TABLE
+        ===================================================== -->
+
+        {% set transaction_rows = financial_saving_transactions|default(saving_transactions, true)|default([], true) %}
+
+        <div class="es-table-card">
+
+            <div class="es-table-header">
+
+                <h2 class="es-table-title">
+                    <i class="fas fa-exchange-alt"></i>
+                    Saving Transactions
+                </h2>
+
+                <span class="es-count-badge">
+                    {{ transaction_rows|length }} records
+                </span>
+
+            </div>
+
+            <div class="es-table-wrapper">
+
+                <table
+                    id="savingTransactionsTable"
+                    class="display nowrap"
+                    style="width:100%;"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Saving</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Currency</th>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Note</th>
+                            <th>Reference</th>
+                            <th>Status</th>
+                            <th>Current Balance</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in transaction_rows %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+
+                                <div class="es-saving-name">
+                                    {{ row.saving_name|default('Unknown Saving', true) }}
+                                </div>
+
+                                <div class="es-muted">
+                                    {{ row.saving_id|default('', true) }}
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <div class="es-account-name">
+                                    {{ row.account|default('Unknown Account', true) }}
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                {% set tx_type = row.transaction_type|default('Unknown', true)|lower %}
+
+                                {% if tx_type == 'deposit' %}
+
+                                    <span class="es-type es-type-deposit">
+                                        <i
+                                            class="fas fa-arrow-down"
+                                            style="margin-right:4px;"
+                                        ></i>
+                                        Deposit
+                                    </span>
+
+                                {% elif tx_type == 'withdrawal' %}
+
+                                    <span class="es-type es-type-withdrawal">
+                                        <i
+                                            class="fas fa-arrow-up"
+                                            style="margin-right:4px;"
+                                        ></i>
+                                        Withdrawal
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="es-type">
+                                        {{ row.transaction_type|default('Unknown', true) }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td
+                                class="
+                                    es-money
+                                    {% if tx_type == 'deposit' %}
+                                        es-positive
+                                    {% elif tx_type == 'withdrawal' %}
+                                        es-negative
+                                    {% endif %}
+                                "
+                            >
+
+                                {% if tx_type == 'withdrawal' %}
+                                    -
+                                {% endif %}
+
+                                {{ "{:,.2f}".format(row.amount|default(0, true)|float) }}
+
+                            </td>
+
+                            <td>
+                                {{ row.currency|default('USD', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.date|default('-', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.description|default('-', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.note|default('-', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.reference|default('-', true) }}
+                            </td>
+
+                            <td>
+
+                                {% if row.status|default('Unknown', true)|lower == 'active' %}
+
+                                    <span class="es-status es-status-active">
+                                        Active
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="es-status es-status-inactive">
+                                        {{ row.status|default('Unknown', true) }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="es-money">
+
+                                {{ "{:,.2f}".format(row.current_balance|default(0, true)|float) }}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             SAVING TRANSACTION SUMMARY
+        ===================================================== -->
+
+        {% set saving_summary_rows = saving_transaction_summary|default([], true) %}
+
+        {% if saving_summary_rows %}
+
+        <div class="es-table-card">
+
+            <div class="es-table-header">
+
+                <h2 class="es-table-title">
+                    <i class="fas fa-layer-group"></i>
+                    Saving Movement Summary
+                </h2>
+
+                <span class="es-count-badge">
+                    {{ saving_summary_rows|length }} savings
+                </span>
+
+            </div>
+
+            <div class="es-table-wrapper">
+
+                <table
+                    id="savingSummaryTable"
+                    class="display nowrap"
+                    style="width:100%;"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Saving</th>
+                            <th>Account</th>
+                            <th>Transactions</th>
+                            <th>Deposits</th>
+                            <th>Withdrawals</th>
+                            <th>Net Movement</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in saving_summary_rows %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ row.saving_name|default('Unknown Saving', true) }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ row.account|default('Unknown Account', true) }}
+                            </td>
+
+                            <td>
+                                {{ row.transactions|default(0, true) }}
+                            </td>
+
+                            <td class="es-money es-positive">
+
+                                {{ "{:,.2f}".format(row.deposits|default(0, true)|float) }}
+
+                            </td>
+
+                            <td class="es-money es-negative">
+
+                                {{ "{:,.2f}".format(row.withdrawals|default(0, true)|float) }}
+
+                            </td>
+
+                            <td
+                                class="
+                                    es-money
+                                    {% if row.net_movement|default(0, true)|float >= 0 %}
+                                        es-positive
+                                    {% else %}
+                                        es-negative
+                                    {% endif %}
+                                "
+                            >
+
+                                {{ "{:,.2f}".format(row.net_movement|default(0, true)|float) }}
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+        {% endif %}
+
+
+        <!-- ====================================================
+             NOTE
+        ===================================================== -->
+
+        <div class="es-note">
+
+            <i class="fas fa-info-circle"></i>
+
+            This report uses the selected date range for
+            <strong>saving transactions</strong>.
+            Savings account balances and targets represent the
+            current values stored in the savings collection.
+            Export buttons preserve the active report filters.
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     DATATABLES CSS
+============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"
+>
+
+
+<!-- ============================================================
+     JAVASCRIPT LIBRARIES
+============================================================ -->
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+
+<script>
+/* ============================================================
+   EXPORT SAVINGS REPORT JS
+   ============================================================ */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ========================================================
+       ELEMENTS
+    ======================================================== */
+
+    const form = document.getElementById(
+        "savingsFilterForm"
+    );
+
+    const startInput = document.getElementById(
+        "start_date"
+    );
+
+    const endInput = document.getElementById(
+        "end_date"
+    );
+
+    const exportCsv = document.getElementById(
+        "exportCsv"
+    );
+
+    const exportXlsx = document.getElementById(
+        "exportXlsx"
+    );
+
+    const exportJson = document.getElementById(
+        "exportJson"
+    );
+
+
+    /* ========================================================
+       BUILD EXPORT URL
+    ======================================================== */
+
+    function buildExportUrl(format) {
+
+        const params = new URLSearchParams();
+
+        if (startInput && startInput.value) {
+            params.set(
+                "start_date",
+                startInput.value
+            );
+        }
+
+        if (endInput && endInput.value) {
+            params.set(
+                "end_date",
+                endInput.value
+            );
+        }
+
+
+        const saving = document.getElementById(
+            "saving"
+        );
+
+        if (saving && saving.value) {
+            params.set(
+                "saving",
+                saving.value
+            );
+        }
+
+
+        const account = document.getElementById(
+            "account"
+        );
+
+        if (account && account.value) {
+            params.set(
+                "account",
+                account.value
+            );
+        }
+
+
+        const transactionType =
+            document.getElementById(
+                "transaction_type"
+            );
+
+        if (
+            transactionType &&
+            transactionType.value
+        ) {
+            params.set(
+                "transaction_type",
+                transactionType.value
+            );
+        }
+
+
+        const status =
+            document.getElementById(
+                "status"
+            );
+
+        if (
+            status &&
+            status.value
+        ) {
+            params.set(
+                "status",
+                status.value
+            );
+        }
+
+
+        const search =
+            document.getElementById(
+                "search"
+            );
+
+        if (
+            search &&
+            search.value.trim()
+        ) {
+            params.set(
+                "search",
+                search.value.trim()
+            );
+        }
+
+
+        params.set(
+            "format",
+            format
+        );
+
+
+        return (
+            "{{ url_for('main.report_export_savings') }}"
+            + "?"
+            + params.toString()
+        );
+    }
+
+
+    /* ========================================================
+       UPDATE EXPORT BUTTONS
+    ======================================================== */
+
+    function updateExportLinks() {
+
+        if (exportCsv) {
+            exportCsv.href =
+                buildExportUrl("csv");
+        }
+
+        if (exportXlsx) {
+            exportXlsx.href =
+                buildExportUrl("xlsx");
+        }
+
+        if (exportJson) {
+            exportJson.href =
+                buildExportUrl("json");
+        }
+    }
+
+
+    updateExportLinks();
+
+
+    /* ========================================================
+       UPDATE EXPORT URL ON FILTER CHANGE
+    ======================================================== */
+
+    [
+        "start_date",
+        "end_date",
+        "saving",
+        "account",
+        "transaction_type",
+        "status",
+        "search"
+    ].forEach(function (id) {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+
+            element.addEventListener(
+                "change",
+                updateExportLinks
+            );
+
+            element.addEventListener(
+                "input",
+                updateExportLinks
+            );
+        }
+
+    });
+
+
+    /* ========================================================
+       DATE VALIDATION
+    ======================================================== */
+
+    if (form) {
+
+        form.addEventListener(
+            "submit",
+            function (event) {
+
+                const start =
+                    startInput
+                    ? startInput.value
+                    : "";
+
+                const end =
+                    endInput
+                    ? endInput.value
+                    : "";
+
+                if (
+                    start &&
+                    end &&
+                    start > end
+                ) {
+
+                    event.preventDefault();
+
+                    alert(
+                        "Start date cannot be after end date."
+                    );
+
+                    return false;
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       QUICK DATE RANGE
+    ======================================================== */
+
+    document
+        .querySelectorAll(".es-range-btn")
+        .forEach(function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    const now = new Date();
+
+                    /* ------------------------------------------------
+                       LAST N DAYS
+                    ------------------------------------------------ */
+
+                    if (
+                        button.dataset.days
+                    ) {
+
+                        const days =
+                            parseInt(
+                                button.dataset.days,
+                                10
+                            );
+
+                        const start =
+                            new Date(now);
+
+                        start.setDate(
+                            now.getDate()
+                            - days
+                            + 1
+                        );
+
+                        startInput.value =
+                            formatDateInput(
+                                start
+                            );
+
+                        endInput.value =
+                            formatDateInput(
+                                now
+                            );
+                    }
+
+
+                    /* ------------------------------------------------
+                       CURRENT MONTH
+                    ------------------------------------------------ */
+
+                    if (
+                        button.dataset.month ===
+                        "current"
+                    ) {
+
+                        const start =
+                            new Date(
+                                now.getFullYear(),
+                                now.getMonth(),
+                                1
+                            );
+
+                        startInput.value =
+                            formatDateInput(
+                                start
+                            );
+
+                        endInput.value =
+                            formatDateInput(
+                                now
+                            );
+                    }
+
+
+                    /* ------------------------------------------------
+                       ALL DATES
+                    ------------------------------------------------ */
+
+                    if (
+                        button.dataset.all ===
+                        "true"
+                    ) {
+
+                        startInput.value = "";
+                        endInput.value = "";
+                    }
+
+
+                    updateExportLinks();
+
+                }
+            );
+
+        });
+
+
+    /* ========================================================
+       FORMAT DATE
+    ======================================================== */
+
+    function formatDateInput(date) {
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(2, "0");
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(2, "0");
+
+        return (
+            year +
+            "-" +
+            month +
+            "-" +
+            day
+        );
+    }
+
+
+    /* ========================================================
+       DATATABLE COMMON OPTIONS
+    ======================================================== */
+
+    function commonDataTableOptions(
+        fileName,
+        title
+    ) {
+
+        return {
+
+            responsive: true,
+
+            autoWidth: false,
+
+            pageLength: 10,
+
+            lengthMenu: [
+                [
+                    10,
+                    15,
+                    25,
+                    50,
+                    100,
+                    -1
+                ],
+                [
+                    "10",
+                    "15",
+                    "25",
+                    "50",
+                    "100",
+                    "All"
+                ]
+            ],
+
+            dom:
+                '<"dt-top"lfB>' +
+                'rt' +
+                '<"dt-bottom"ip>',
+
+            buttons: [
+
+                {
+                    extend: "copyHtml5",
+                    text:
+                        '<i class="fas fa-copy"></i> Copy',
+                    title: title
+                },
+
+                {
+                    extend: "csvHtml5",
+                    text:
+                        '<i class="fas fa-file-csv"></i> CSV',
+                    title: title,
+                    filename: fileName
+                },
+
+                {
+                    extend: "excelHtml5",
+                    text:
+                        '<i class="fas fa-file-excel"></i> Excel',
+                    title: title,
+                    filename: fileName
+                },
+
+                {
+                    extend: "pdfHtml5",
+                    text:
+                        '<i class="fas fa-file-pdf"></i> PDF',
+                    title: title,
+                    filename: fileName,
+                    orientation: "landscape",
+                    pageSize: "A4"
+                },
+
+                {
+                    extend: "print",
+                    text:
+                        '<i class="fas fa-print"></i> Print',
+                    title: title
+                },
+
+                {
+                    text:
+                        '<i class="fas fa-file-code"></i> JSON',
+
+                    action:
+                        function (
+                            e,
+                            dt
+                        ) {
+
+                            const data =
+                                dt.rows({
+                                    search:
+                                        "applied"
+                                })
+                                .data()
+                                .toArray();
+
+                            const blob =
+                                new Blob(
+                                    [
+                                        JSON.stringify(
+                                            data,
+                                            null,
+                                            2
+                                        )
+                                    ],
+                                    {
+                                        type:
+                                            "application/json;charset=utf-8"
+                                    }
+                                );
+
+                            const url =
+                                URL.createObjectURL(
+                                    blob
+                                );
+
+                            const a =
+                                document.createElement(
+                                    "a"
+                                );
+
+                            a.href = url;
+
+                            a.download =
+                                fileName +
+                                ".json";
+
+                            document
+                                .body
+                                .appendChild(a);
+
+                            a.click();
+
+                            document
+                                .body
+                                .removeChild(a);
+
+                            URL.revokeObjectURL(
+                                url
+                            );
+                        }
+                }
+
+            ],
+
+            language: {
+
+                search:
+                    "Search:",
+
+                lengthMenu:
+                    "Show _MENU_",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_",
+
+                infoEmpty:
+                    "No records",
+
+                zeroRecords:
+                    "No matching records found",
+
+                paginate: {
+
+                    first:
+                        "First",
+
+                    last:
+                        "Last",
+
+                    next:
+                        "›",
+
+                    previous:
+                        "‹"
+                }
+            }
+        };
+    }
+
+
+    /* ========================================================
+       SAVINGS DATATABLE
+    ======================================================== */
+
+    if (
+        document.getElementById(
+            "savingsTable"
+        )
+    ) {
+
+        $("#savingsTable").DataTable(
+
+            commonDataTableOptions(
+                "savings_accounts",
+                "Savings Accounts Report"
+            )
+
+        );
+
+    }
+
+
+    /* ========================================================
+       SAVING TRANSACTIONS DATATABLE
+    ======================================================== */
+
+    if (
+        document.getElementById(
+            "savingTransactionsTable"
+        )
+    ) {
+
+        $("#savingTransactionsTable").DataTable(
+
+            commonDataTableOptions(
+                "saving_transactions",
+                "Saving Transactions Report"
+            )
+
+        );
+
+    }
+
+
+    /* ========================================================
+       SAVING SUMMARY DATATABLE
+    ======================================================== */
+
+    if (
+        document.getElementById(
+            "savingSummaryTable"
+        )
+    ) {
+
+        $("#savingSummaryTable").DataTable(
+
+            commonDataTableOptions(
+                "saving_movement_summary",
+                "Saving Movement Summary"
+            )
+
+        );
+
+    }
+
+});
+</script>
+
+
+<!-- ============================================================
+     RESPONSIVE FILTER GRID FOR SMALL SCREENS
+============================================================ -->
+
+<style>
+@media (max-width: 650px) {
+
+    .search-action-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .es-filter-actions {
+        align-items: stretch;
+    }
+
+    .es-filter-actions .es-btn {
+        flex: 1;
+    }
+
+    .dataTables_wrapper .dataTables_filter,
+    .dataTables_wrapper .dataTables_length {
+        width: 100%;
+        text-align: left !important;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100%;
+        margin-left: 0 !important;
+        margin-top: 5px;
+    }
+
+}
+</style>
+
+{% endblock %}

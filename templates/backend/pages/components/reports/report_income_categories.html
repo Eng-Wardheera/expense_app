@@ -1,0 +1,4178 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Income Categories Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   INCOME CATEGORIES REPORT
+   No Bootstrap
+   ============================================================ */
+
+:root {
+    --ic-primary: #0b3b82;
+    --ic-primary-dark: #082d63;
+    --ic-primary-light: #eaf2ff;
+    --ic-income: #16803c;
+    --ic-income-light: #eaf8ef;
+    --ic-danger: #c0392b;
+    --ic-warning: #a96b00;
+    --ic-warning-light: #fff6df;
+    --ic-text: #172033;
+    --ic-muted: #687386;
+    --ic-border: #e1e6ee;
+    --ic-bg: #f5f7fb;
+    --ic-white: #ffffff;
+    --ic-shadow: 0 10px 30px rgba(24, 39, 75, 0.08);
+    --ic-radius: 16px;
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.income-category-report {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--ic-bg);
+    padding: 24px;
+    color: var(--ic-text);
+    box-sizing: border-box;
+}
+
+.ic-container {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.ic-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.ic-header-left {
+    min-width: 0;
+}
+
+.ic-title {
+    margin: 0;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--ic-text);
+    letter-spacing: -0.5px;
+}
+
+.ic-subtitle {
+    margin: 8px 0 0;
+    color: var(--ic-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ic-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 9px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.ic-btn {
+    border: 1px solid var(--ic-border);
+    background: var(--ic-white);
+    color: var(--ic-text);
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.ic-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(20, 30, 50, 0.08);
+}
+
+.ic-btn-primary {
+    background: var(--ic-primary);
+    border-color: var(--ic-primary);
+    color: #fff;
+}
+
+.ic-btn-primary:hover {
+    background: var(--ic-primary-dark);
+    border-color: var(--ic-primary-dark);
+}
+
+.ic-btn-income {
+    background: var(--ic-income);
+    border-color: var(--ic-income);
+    color: #fff;
+}
+
+.ic-btn-danger {
+    background: var(--ic-danger);
+    border-color: var(--ic-danger);
+    color: #fff;
+}
+
+.ic-btn-light {
+    background: #f7f9fc;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.ic-filter-panel {
+    background: var(--ic-white);
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.ic-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(170px, 1fr)
+        minmax(170px, 1fr)
+        minmax(220px, 1.3fr)
+        minmax(240px, 1.5fr)
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.ic-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.ic-field label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ic-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.ic-input,
+.ic-select {
+    width: 100%;
+    height: 43px;
+    border: 1px solid var(--ic-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ic-text);
+    padding: 0 12px;
+    outline: none;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.ic-input:focus,
+.ic-select:focus {
+    border-color: var(--ic-primary);
+    box-shadow: 0 0 0 3px rgba(11, 59, 130, 0.09);
+}
+
+.ic-search-wrap {
+    position: relative;
+}
+
+.ic-search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--ic-muted);
+    font-size: 14px;
+    pointer-events: none;
+}
+
+.ic-search-input {
+    padding-left: 36px;
+}
+
+.ic-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.ic-summary-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.ic-summary-card {
+    background: var(--ic-white);
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ic-summary-card::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    bottom: -35px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(11, 59, 130, 0.05);
+}
+
+.ic-summary-label {
+    color: var(--ic-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ic-summary-value {
+    margin-top: 7px;
+    font-size: 25px;
+    font-weight: 850;
+    line-height: 1.15;
+}
+
+.ic-summary-value.income {
+    color: var(--ic-income);
+}
+
+.ic-summary-value.primary {
+    color: var(--ic-primary);
+}
+
+.ic-summary-meta {
+    margin-top: 8px;
+    color: var(--ic-muted);
+    font-size: 12px;
+}
+
+/* ============================================================
+   REPORT PANEL
+   ============================================================ */
+
+.ic-panel {
+    background: var(--ic-white);
+    border: 1px solid var(--ic-border);
+    border-radius: var(--ic-radius);
+    box-shadow: var(--ic-shadow);
+    overflow: hidden;
+}
+
+.ic-panel-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid var(--ic-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.ic-panel-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.ic-panel-subtitle {
+    margin: 4px 0 0;
+    color: var(--ic-muted);
+    font-size: 12px;
+}
+
+.ic-panel-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.ic-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.ic-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.ic-table thead th {
+    background: #f8fafd;
+    color: #5e697a;
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--ic-border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.ic-table tbody td {
+    padding: 14px 15px;
+    border-bottom: 1px solid #edf0f5;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.ic-table tbody tr {
+    transition: background 0.15s ease;
+    cursor: pointer;
+}
+
+.ic-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.ic-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ic-category-name {
+    font-weight: 800;
+    color: var(--ic-primary);
+}
+
+.ic-category-hint {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--ic-muted);
+}
+
+.ic-money {
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.ic-money-income {
+    color: var(--ic-income);
+}
+
+.ic-net-positive {
+    color: var(--ic-income);
+}
+
+.ic-count {
+    display: inline-flex;
+    min-width: 31px;
+    height: 28px;
+    padding: 0 8px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--ic-primary-light);
+    color: var(--ic-primary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.ic-open-hint {
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.ic-empty {
+    padding: 55px 20px;
+    text-align: center;
+}
+
+.ic-empty-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 13px;
+    border-radius: 15px;
+    background: var(--ic-primary-light);
+    color: var(--ic-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.ic-empty-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.ic-empty-text {
+    margin: 7px auto 0;
+    max-width: 450px;
+    color: var(--ic-muted);
+    font-size: 13px;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.ic-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(10, 18, 35, 0.62);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    backdrop-filter: blur(4px);
+}
+
+.ic-modal-backdrop.active {
+    display: flex;
+}
+
+.ic-modal {
+    width: min(1180px, 100%);
+    max-height: calc(100vh - 40px);
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.24);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: icModalIn 0.18s ease-out;
+}
+
+@keyframes icModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.ic-modal-header {
+    min-height: 72px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--ic-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    box-sizing: border-box;
+}
+
+.ic-modal-title-wrap {
+    min-width: 0;
+}
+
+.ic-modal-title {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 850;
+    color: var(--ic-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ic-modal-subtitle {
+    margin: 4px 0 0;
+    color: var(--ic-muted);
+    font-size: 12px;
+}
+
+.ic-modal-close {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border: 1px solid var(--ic-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ic-text);
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ic-modal-close:hover {
+    background: #f5f7fb;
+}
+
+.ic-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 20px;
+}
+
+.ic-modal-footer {
+    min-height: 64px;
+    padding: 11px 18px;
+    border-top: 1px solid var(--ic-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    background: #fbfcfe;
+}
+
+.ic-footer-left,
+.ic-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ============================================================
+   MODAL SUMMARY
+   ============================================================ */
+
+.ic-detail-summary {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.ic-detail-card {
+    border: 1px solid var(--ic-border);
+    background: #fff;
+    border-radius: 13px;
+    padding: 14px;
+}
+
+.ic-detail-label {
+    color: var(--ic-muted);
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ic-detail-value {
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 850;
+}
+
+/* ============================================================
+   ITEM GRID
+   ============================================================ */
+
+.ic-items-title {
+    margin: 5px 0 11px;
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.ic-items-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ic-item-card {
+    border: 1px solid var(--ic-border);
+    border-radius: 14px;
+    background: #fff;
+    padding: 15px;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.ic-item-card:hover {
+    transform: translateY(-2px);
+    border-color: #c5d5ec;
+    box-shadow: 0 9px 24px rgba(24, 39, 75, 0.09);
+}
+
+.ic-item-name {
+    font-size: 14px;
+    font-weight: 850;
+    color: var(--ic-primary);
+}
+
+.ic-item-meta {
+    margin-top: 4px;
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+.ic-item-income {
+    margin-top: 12px;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--ic-income);
+}
+
+.ic-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #edf0f5;
+}
+
+.ic-item-small {
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+.ic-item-small strong {
+    display: block;
+    margin-top: 2px;
+    color: var(--ic-text);
+    font-size: 12px;
+}
+
+/* ============================================================
+   ITEM DETAIL
+   ============================================================ */
+
+.ic-item-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.ic-item-top-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.ic-back-button {
+    flex: 0 0 auto;
+}
+
+.ic-item-heading {
+    min-width: 0;
+}
+
+.ic-item-heading-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 850;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ic-item-heading-sub {
+    margin-top: 4px;
+    color: var(--ic-muted);
+    font-size: 12px;
+}
+
+.ic-transaction-tools {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0 12px;
+}
+
+.ic-transaction-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.ic-transaction-search {
+    width: min(350px, 100%);
+}
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.ic-transaction-table {
+    min-width: 700px;
+}
+
+.ic-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 8px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 850;
+    background: var(--ic-income-light);
+    color: var(--ic-income);
+}
+
+.ic-type-income {
+    display: inline-flex;
+    align-items: center;
+    min-height: 25px;
+    padding: 0 8px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 850;
+    background: var(--ic-income-light);
+    color: var(--ic-income);
+}
+
+/* ============================================================
+   MODAL FOOTER NOTE
+   ============================================================ */
+
+.ic-double-click-note {
+    color: var(--ic-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.ic-toast {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 11000;
+    background: #172033;
+    color: #fff;
+    border-radius: 11px;
+    padding: 12px 15px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    display: none;
+    max-width: 340px;
+}
+
+.ic-toast.show {
+    display: block;
+    animation: icToastIn 0.2s ease-out;
+}
+
+@keyframes icToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .ic-filter-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .ic-filter-actions {
+        grid-column: span 3;
+    }
+
+    .ic-summary-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ic-items-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+
+    .income-category-report {
+        padding: 14px;
+    }
+
+    .ic-header {
+        flex-direction: column;
+    }
+
+    .ic-header-actions {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .ic-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ic-filter-actions {
+        grid-column: span 2;
+    }
+
+    .ic-detail-summary {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .ic-modal-backdrop {
+        padding: 8px;
+    }
+
+    .ic-modal {
+        max-height: calc(100vh - 16px);
+        border-radius: 15px;
+    }
+
+    .ic-modal-body {
+        padding: 14px;
+    }
+
+    .ic-transaction-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ic-transaction-search {
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+
+    .ic-title {
+        font-size: 23px;
+    }
+
+    .ic-header-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+    }
+
+    .ic-header-actions .ic-btn {
+        width: 100%;
+    }
+
+    .ic-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ic-filter-actions {
+        grid-column: auto;
+        flex-direction: column;
+    }
+
+    .ic-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ic-detail-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ic-items-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ic-modal-header {
+        min-height: 64px;
+        padding: 10px 12px;
+    }
+
+    .ic-modal-title {
+        font-size: 16px;
+    }
+
+    .ic-modal-footer {
+        padding: 10px 12px;
+    }
+
+    .ic-double-click-note {
+        display: none;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .income-category-report {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .ic-header-actions,
+    .ic-filter-panel,
+    .ic-panel-actions,
+    .ic-modal-backdrop,
+    .ic-toast {
+        display: none !important;
+    }
+
+    .ic-panel,
+    .ic-summary-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .ic-summary-grid {
+        grid-template-columns:
+            repeat(4, 1fr);
+    }
+
+    .ic-table {
+        min-width: 0;
+    }
+
+    .ic-table tbody tr {
+        cursor: default;
+    }
+}
+</style>
+
+
+<div class="income-category-report">
+    <div class="ic-container">
+
+        <!-- ====================================================
+             HEADER
+             ==================================================== -->
+
+        <div class="ic-header">
+
+            <div class="ic-header-left">
+
+                <h1 class="ic-title">
+                    Income Categories Report
+                </h1>
+
+                <p class="ic-subtitle">
+                    Income transactions grouped by category and item.
+                    Double-click a category to view its items.
+                </p>
+
+            </div>
+
+            <div class="ic-header-actions">
+
+                <button
+                    type="button"
+                    class="ic-btn ic-btn-primary"
+                    id="icPrintFull">
+                    🖨 Print
+                </button>
+
+                <button
+                    type="button"
+                    class="ic-btn ic-btn-income"
+                    id="icExportJson">
+                    ⇩ Export JSON
+                </button>
+
+                <button
+                    type="button"
+                    class="ic-btn ic-btn-light"
+                    id="icRefresh">
+                    ↻ Refresh
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+             ==================================================== -->
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_income_categories') }}"
+            class="ic-filter-panel"
+            id="icFilterForm">
+
+            <div class="ic-filter-grid">
+
+                <!-- Start Date -->
+                <div class="ic-field">
+
+                    <label for="icStartDate">
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="icStartDate"
+                        name="start_date"
+                        class="ic-input"
+                        value="{{ start_date or '' }}">
+
+                </div>
+
+
+                <!-- End Date -->
+                <div class="ic-field">
+
+                    <label for="icEndDate">
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="icEndDate"
+                        name="end_date"
+                        class="ic-input"
+                        value="{{ end_date or '' }}">
+
+                </div>
+
+
+                <!-- Category -->
+                <div class="ic-field">
+
+                    <label for="icCategory">
+                        Category
+                    </label>
+
+                    <select
+                        id="icCategory"
+                        name="category"
+                        class="ic-select">
+
+                        <option value="">
+                            All Income Categories
+                        </option>
+
+                        {% for category in categories %}
+
+                            <option
+                                value="{{ category['name'] }}"
+                                {% if category_filter == category['name'] %}
+                                    selected
+                                {% endif %}>
+
+                                {{ category['name'] }}
+
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- Search -->
+                <div class="ic-field">
+
+                    <label for="icCategorySearch">
+                        Search Categories
+                    </label>
+
+                    <div class="ic-search-wrap">
+
+                        <span class="ic-search-icon">
+                            🔎
+                        </span>
+
+                        <input
+                            type="text"
+                            id="icCategorySearch"
+                            class="ic-input ic-search-input"
+                            placeholder="Search category...">
+
+                    </div>
+
+                </div>
+
+
+                <!-- Actions -->
+                <div class="ic-filter-actions">
+
+                    <button
+                        type="submit"
+                        class="ic-btn ic-btn-primary">
+                        Apply
+                    </button>
+
+                    <button
+                        type="button"
+                        class="ic-btn"
+                        id="icClearFilters">
+                        Clear
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- ====================================================
+             SUMMARY
+             ==================================================== -->
+
+        <div class="ic-summary-grid">
+
+            <!-- Total Categories -->
+            <div class="ic-summary-card">
+
+                <div class="ic-summary-label">
+                    Total Categories
+                </div>
+
+                <div class="ic-summary-value primary">
+                    {{ total_categories|default(0) }}
+                </div>
+
+                <div class="ic-summary-meta">
+                    Income categories
+                </div>
+
+            </div>
+
+
+            <!-- Total Transactions -->
+            <div class="ic-summary-card">
+
+                <div class="ic-summary-label">
+                    Transactions
+                </div>
+
+                <div class="ic-summary-value primary">
+                    {{ total_transactions|default(0) }}
+                </div>
+
+                <div class="ic-summary-meta">
+                    Income transactions
+                </div>
+
+            </div>
+
+
+            <!-- Total Income -->
+            <div class="ic-summary-card">
+
+                <div class="ic-summary-label">
+                    Total Income
+                </div>
+
+                <div class="ic-summary-value income">
+                    ${{ "%.2f"|format(total_income|default(0)|float) }}
+                </div>
+
+                <div class="ic-summary-meta">
+                    Total income received
+                </div>
+
+            </div>
+
+
+            <!-- Net -->
+            <div class="ic-summary-card">
+
+                <div class="ic-summary-label">
+                    Net Income
+                </div>
+
+                <div class="ic-summary-value income">
+                    ${{ "%.2f"|format(net_total|default(0)|float) }}
+                </div>
+
+                <div class="ic-summary-meta">
+                    Income minus expenses
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             MAIN REPORT
+             ==================================================== -->
+
+        <div class="ic-panel">
+
+            <div class="ic-panel-header">
+
+                <div>
+
+                    <h2 class="ic-panel-title">
+                        Income Categories
+                    </h2>
+
+                    <p class="ic-panel-subtitle">
+                        Double-click any category row to view detailed items.
+                    </p>
+
+                </div>
+
+                <div class="ic-panel-actions">
+
+                    <button
+                        type="button"
+                        class="ic-btn ic-btn-light"
+                        id="icExpandInfo">
+                        ℹ Double-click to open
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            {% if categories %}
+
+                <div class="ic-table-wrap">
+
+                    <table
+                        class="ic-table"
+                        id="icCategoryTable">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Items
+                                </th>
+
+                                <th>
+                                    Transactions
+                                </th>
+
+                                <th>
+                                    Income
+                                </th>
+
+                                <th>
+                                    Net
+                                </th>
+
+                                <th>
+                                    Open
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="icCategoryTableBody">
+
+                            {% for category in categories %}
+
+                                <tr
+                                    class="ic-category-row"
+                                    data-category-name="{{ category['name']|lower }}"
+                                    data-category-index="{{ loop.index0 }}">
+
+                                    <td>
+
+                                        <div class="ic-category-name">
+                                            {{ category['name'] }}
+                                        </div>
+
+                                        <span class="ic-category-hint">
+                                            Income category
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ic-count">
+                                            {{ category['items']|length }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ic-count">
+                                            {{ category['transaction_count']|default(0) }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ic-money ic-money-income">
+                                            ${{ "%.2f"|format(category['income']|default(0)|float) }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ic-money ic-net-positive">
+                                            ${{ "%.2f"|format(category['net']|default(0)|float) }}
+                                        </span>
+
+                                    </td>
+
+
+                                    <td>
+
+                                        <span class="ic-open-hint">
+                                            Double-click
+                                        </span>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="ic-empty">
+
+                    <div class="ic-empty-icon">
+                        ↑
+                    </div>
+
+                    <h3 class="ic-empty-title">
+                        No income categories found
+                    </h3>
+
+                    <p class="ic-empty-text">
+                        There are no income transactions matching the
+                        selected filters.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ============================================================
+     CATEGORY / ITEM MODAL
+     ============================================================ -->
+
+<div
+    class="ic-modal-backdrop"
+    id="icModalBackdrop"
+    aria-hidden="true">
+
+    <div
+        class="ic-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="icModalTitle">
+
+        <!-- Modal Header -->
+        <div class="ic-modal-header">
+
+            <div class="ic-modal-title-wrap">
+
+                <h2
+                    class="ic-modal-title"
+                    id="icModalTitle">
+                    Category Details
+                </h2>
+
+                <p
+                    class="ic-modal-subtitle"
+                    id="icModalSubtitle">
+                    Income category
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="ic-modal-close"
+                id="icModalClose"
+                aria-label="Close">
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- Modal Body -->
+        <div
+            class="ic-modal-body"
+            id="icModalBody">
+        </div>
+
+
+        <!-- Modal Footer -->
+        <div class="ic-modal-footer">
+
+            <div class="ic-footer-left">
+
+                <button
+                    type="button"
+                    class="ic-btn ic-btn-light"
+                    id="icBackButton"
+                    style="display:none;">
+                    ← Back
+                </button>
+
+                <span
+                    class="ic-double-click-note">
+                    Double-click an item to view transactions
+                </span>
+
+            </div>
+
+
+            <div class="ic-footer-right">
+
+                <button
+                    type="button"
+                    class="ic-btn"
+                    id="icFooterClose">
+                    Close
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+
+<div
+    class="ic-toast"
+    id="icToast">
+</div>
+
+
+<script>
+/* ============================================================
+   INCOME CATEGORIES REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       DATA FROM FLASK
+       ======================================================== */
+
+    const categoryData = {{ categories|tojson|safe }};
+
+
+    /* ========================================================
+       STATE
+       ======================================================== */
+
+    let currentCategory = null;
+    let currentItem = null;
+    let currentView = "category";
+
+
+    /* ========================================================
+       DOM
+       ======================================================== */
+
+    const modalBackdrop =
+        document.getElementById("icModalBackdrop");
+
+    const modalBody =
+        document.getElementById("icModalBody");
+
+    const modalTitle =
+        document.getElementById("icModalTitle");
+
+    const modalSubtitle =
+        document.getElementById("icModalSubtitle");
+
+    const backButton =
+        document.getElementById("icBackButton");
+
+    const closeButton =
+        document.getElementById("icModalClose");
+
+    const footerClose =
+        document.getElementById("icFooterClose");
+
+    const categorySearch =
+        document.getElementById("icCategorySearch");
+
+    const categoryTableBody =
+        document.getElementById("icCategoryTableBody");
+
+
+    /* ========================================================
+       MONEY
+       ======================================================== */
+
+    function money(value) {
+
+        const number = Number(value || 0);
+
+        return "$" + number.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+    }
+
+
+    /* ========================================================
+       ESCAPE HTML
+       ======================================================== */
+
+    function escapeHTML(value) {
+
+        if (value === null || value === undefined) {
+            return "";
+        }
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    /* ========================================================
+       TYPE LABEL
+       ======================================================== */
+
+    function typeLabel(value) {
+
+        const type = String(
+            value || "income"
+        ).toLowerCase();
+
+        if (type === "income") {
+            return "Income";
+        }
+
+        return type.charAt(0).toUpperCase()
+            + type.slice(1);
+    }
+
+
+    /* ========================================================
+       SHOW TOAST
+       ======================================================== */
+
+    let toastTimer = null;
+
+    function showToast(message) {
+
+        const toast =
+            document.getElementById("icToast");
+
+        if (!toast) {
+            return;
+        }
+
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        clearTimeout(toastTimer);
+
+        toastTimer = setTimeout(function () {
+            toast.classList.remove("show");
+        }, 2200);
+    }
+
+
+    /* ========================================================
+       OPEN MODAL
+       ======================================================== */
+
+    function openModal() {
+
+        modalBackdrop.classList.add("active");
+
+        modalBackdrop.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        document.body.style.overflow = "hidden";
+    }
+
+
+    /* ========================================================
+       CLOSE MODAL
+       ======================================================== */
+
+    function closeModal() {
+
+        modalBackdrop.classList.remove("active");
+
+        modalBackdrop.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        document.body.style.overflow = "";
+
+        currentCategory = null;
+        currentItem = null;
+        currentView = "category";
+    }
+
+
+    /* ========================================================
+       OPEN CATEGORY
+       ======================================================== */
+
+    function openCategory(index) {
+
+        const category =
+            categoryData[index];
+
+        if (!category) {
+            return;
+        }
+
+        currentCategory = category;
+        currentItem = null;
+        currentView = "category";
+
+        renderCategory();
+
+        openModal();
+    }
+
+
+    /* ========================================================
+       RENDER CATEGORY
+       ======================================================== */
+
+    function renderCategory() {
+
+        if (!currentCategory) {
+            return;
+        }
+
+        const category =
+            currentCategory;
+
+        modalTitle.textContent =
+            category["name"] || "Category Details";
+
+        modalSubtitle.textContent =
+            "Income category • "
+            + (category["transaction_count"] || 0)
+            + " transactions";
+
+        backButton.style.display = "none";
+
+
+        const items =
+            Array.isArray(category["items"])
+                ? category["items"]
+                : [];
+
+
+        let itemHTML = "";
+
+
+        if (items.length > 0) {
+
+            items.forEach(function (item, index) {
+
+                itemHTML += `
+                    <div
+                        class="ic-item-card"
+                        data-item-index="${index}">
+
+                        <div class="ic-item-name">
+                            ${escapeHTML(
+                                item["name"] ||
+                                item["item"] ||
+                                "General"
+                            )}
+                        </div>
+
+                        <div class="ic-item-meta">
+                            ${item["transaction_count"] || 0}
+                            transaction(s)
+                        </div>
+
+                        <div class="ic-item-income">
+                            ${money(item["income"] || 0)}
+                        </div>
+
+                        <div class="ic-item-bottom">
+
+                            <div class="ic-item-small">
+                                Average
+                                <strong>
+                                    ${money(item["average"] || 0)}
+                                </strong>
+                            </div>
+
+                            <div class="ic-item-small">
+                                Highest
+                                <strong>
+                                    ${money(item["highest"] || 0)}
+                                </strong>
+                            </div>
+
+                            <div class="ic-item-small">
+                                Lowest
+                                <strong>
+                                    ${money(item["lowest"] || 0)}
+                                </strong>
+                            </div>
+
+                        </div>
+
+                    </div>
+                `;
+
+            });
+
+        } else {
+
+            itemHTML = `
+                <div class="ic-empty">
+
+                    <div class="ic-empty-icon">
+                        ↑
+                    </div>
+
+                    <h3 class="ic-empty-title">
+                        No items found
+                    </h3>
+
+                    <p class="ic-empty-text">
+                        This category does not contain
+                        any income items.
+                    </p>
+
+                </div>
+            `;
+
+        }
+
+
+        modalBody.innerHTML = `
+
+            <div class="ic-detail-summary">
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Income
+                    </div>
+
+                    <div class="ic-detail-value ic-net-positive">
+                        ${money(category["income"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Expense
+                    </div>
+
+                    <div class="ic-detail-value">
+                        ${money(category["expense"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Net
+                    </div>
+
+                    <div class="ic-detail-value ic-net-positive">
+                        ${money(category["net"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Transactions
+                    </div>
+
+                    <div class="ic-detail-value">
+                        ${category["transaction_count"] || 0}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="ic-items-title">
+                Income Items
+            </div>
+
+            <div class="ic-items-grid">
+                ${itemHTML}
+            </div>
+        `;
+
+
+        /* ----------------------------------------------------
+           ITEM DOUBLE CLICK
+           ---------------------------------------------------- */
+
+        const itemCards =
+            modalBody.querySelectorAll(
+                ".ic-item-card"
+            );
+
+
+        itemCards.forEach(function (card) {
+
+            card.addEventListener(
+                "dblclick",
+                function () {
+
+                    const index =
+                        Number(
+                            card.dataset.itemIndex
+                        );
+
+                    openItem(index);
+
+                }
+            );
+
+        });
+
+
+        /* ----------------------------------------------------
+           SINGLE CLICK INFORMATION
+           ---------------------------------------------------- */
+
+        itemCards.forEach(function (card) {
+
+            card.addEventListener(
+                "click",
+                function () {
+
+                    itemCards.forEach(function (other) {
+                        other.style.borderColor =
+                            "";
+                    });
+
+                    card.style.borderColor =
+                        "#0b3b82";
+
+                }
+            );
+
+        });
+
+    }
+
+
+    /* ========================================================
+       OPEN ITEM
+       ======================================================== */
+
+    function openItem(index) {
+
+        if (!currentCategory) {
+            return;
+        }
+
+        const items =
+            Array.isArray(
+                currentCategory["items"]
+            )
+                ? currentCategory["items"]
+                : [];
+
+        const item =
+            items[index];
+
+        if (!item) {
+            return;
+        }
+
+        currentItem = item;
+        currentView = "item";
+
+        renderItem();
+    }
+
+
+    /* ========================================================
+       RENDER ITEM
+       ======================================================== */
+
+    function renderItem() {
+
+        if (!currentCategory || !currentItem) {
+            return;
+        }
+
+        const category =
+            currentCategory;
+
+        const item =
+            currentItem;
+
+        modalTitle.textContent =
+            item["name"]
+            || item["item"]
+            || "Item Details";
+
+        modalSubtitle.textContent =
+            (category["name"] || "Income")
+            + " • Income Item";
+
+        backButton.style.display =
+            "inline-flex";
+
+
+        const transactions =
+            Array.isArray(item["transactions"])
+                ? item["transactions"]
+                : [];
+
+
+        let transactionRows = "";
+
+
+        if (transactions.length > 0) {
+
+            transactions.forEach(function (tx, index) {
+
+                const date =
+                    tx["date"] || "-";
+
+                const account =
+                    tx["account_name"]
+                    || tx["account"]
+                    || "Unknown Account";
+
+                const type =
+                    typeLabel(
+                        tx["transaction_type"]
+                        || tx["type"]
+                        || "income"
+                    );
+
+                const amount =
+                    Number(
+                        tx["amount"] || 0
+                    );
+
+                const status =
+                    tx["status"]
+                    || "Completed";
+
+
+                transactionRows += `
+
+                    <tr
+                        class="ic-item-transaction-row"
+                        data-search="
+                            ${escapeHTML(
+                                String(date)
+                            ).toLowerCase()}
+                            ${escapeHTML(
+                                String(account)
+                            ).toLowerCase()}
+                            ${escapeHTML(
+                                String(type)
+                            ).toLowerCase()}
+                            ${escapeHTML(
+                                String(amount)
+                            ).toLowerCase()}
+                            ${escapeHTML(
+                                String(status)
+                            ).toLowerCase()}
+                        ">
+
+                        <td>
+                            ${escapeHTML(date)}
+                        </td>
+
+                        <td>
+                            <strong>
+                                ${escapeHTML(account)}
+                            </strong>
+                        </td>
+
+                        <td>
+
+                            <span class="ic-type-income">
+                                ${escapeHTML(type)}
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <span class="ic-money ic-money-income">
+                                ${money(amount)}
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <span class="ic-status">
+                                ${escapeHTML(status)}
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            });
+
+        } else {
+
+            transactionRows = `
+
+                <tr>
+
+                    <td
+                        colspan="5"
+                        style="
+                            text-align:center;
+                            padding:35px;
+                            color:#687386;
+                        ">
+
+                        No transactions found.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+
+
+        modalBody.innerHTML = `
+
+            <div class="ic-item-topbar">
+
+                <div class="ic-item-top-left">
+
+                    <div class="ic-item-heading">
+
+                        <h3 class="ic-item-heading-title">
+                            ${escapeHTML(
+                                item["name"]
+                                || item["item"]
+                                || "Item"
+                            )}
+                        </h3>
+
+                        <div class="ic-item-heading-sub">
+                            Category:
+                            ${escapeHTML(
+                                category["name"]
+                                || ""
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="ic-detail-summary">
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Income
+                    </div>
+
+                    <div class="ic-detail-value ic-net-positive">
+                        ${money(item["income"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Net
+                    </div>
+
+                    <div class="ic-detail-value ic-net-positive">
+                        ${money(item["net"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Average
+                    </div>
+
+                    <div class="ic-detail-value">
+                        ${money(item["average"] || 0)}
+                    </div>
+
+                </div>
+
+
+                <div class="ic-detail-card">
+
+                    <div class="ic-detail-label">
+                        Highest
+                    </div>
+
+                    <div class="ic-detail-value">
+                        ${money(item["highest"] || 0)}
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="ic-transaction-tools">
+
+                <h3 class="ic-transaction-title">
+                    All Transactions
+                </h3>
+
+                <div class="ic-search-wrap ic-transaction-search">
+
+                    <span class="ic-search-icon">
+                        🔎
+                    </span>
+
+                    <input
+                        type="text"
+                        class="ic-input ic-search-input"
+                        id="icTransactionSearch"
+                        placeholder="Search account, date, type, amount...">
+
+                </div>
+
+            </div>
+
+
+            <div class="ic-table-wrap">
+
+                <table
+                    class="ic-table ic-transaction-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Account
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="icTransactionBody">
+
+                        ${transactionRows}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        `;
+
+
+        /* ----------------------------------------------------
+           TRANSACTION SEARCH
+           ---------------------------------------------------- */
+
+        const transactionSearch =
+            document.getElementById(
+                "icTransactionSearch"
+            );
+
+        if (transactionSearch) {
+
+            transactionSearch.addEventListener(
+                "input",
+                function () {
+
+                    const query =
+                        this.value
+                            .toLowerCase()
+                            .trim();
+
+                    const rows =
+                        document.querySelectorAll(
+                            "#icTransactionBody .ic-item-transaction-row"
+                        );
+
+
+                    rows.forEach(function (row) {
+
+                        const data =
+                            (
+                                row.dataset.search
+                                || ""
+                            ).toLowerCase();
+
+                        row.style.display =
+                            !query
+                            || data.includes(query)
+                                ? ""
+                                : "none";
+
+                    });
+
+                }
+            );
+
+        }
+
+    }
+
+
+    /* ========================================================
+       BACK BUTTON
+       ======================================================== */
+
+    backButton.addEventListener(
+        "click",
+        function () {
+
+            if (
+                currentView === "item"
+            ) {
+
+                currentItem = null;
+                currentView = "category";
+
+                renderCategory();
+
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       CLOSE BUTTONS
+       ======================================================== */
+
+    closeButton.addEventListener(
+        "click",
+        closeModal
+    );
+
+    footerClose.addEventListener(
+        "click",
+        closeModal
+    );
+
+
+    /* ========================================================
+       OUTSIDE CLICK
+       ======================================================== */
+
+    modalBackdrop.addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                event.target ===
+                modalBackdrop
+            ) {
+                closeModal();
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       ESCAPE
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+                &&
+                modalBackdrop.classList.contains(
+                    "active"
+                )
+            ) {
+                closeModal();
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       CATEGORY DOUBLE CLICK
+       ======================================================== */
+
+    if (categoryTableBody) {
+
+        categoryTableBody.addEventListener(
+            "dblclick",
+            function (event) {
+
+                const row =
+                    event.target.closest(
+                        ".ic-category-row"
+                    );
+
+                if (!row) {
+                    return;
+                }
+
+                const index =
+                    Number(
+                        row.dataset.categoryIndex
+                    );
+
+                openCategory(index);
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CATEGORY SEARCH
+       ======================================================== */
+
+    if (categorySearch) {
+
+        categorySearch.addEventListener(
+            "input",
+            function () {
+
+                const query =
+                    this.value
+                        .toLowerCase()
+                        .trim();
+
+                const rows =
+                    document.querySelectorAll(
+                        ".ic-category-row"
+                    );
+
+
+                rows.forEach(function (row) {
+
+                    const name =
+                        (
+                            row.dataset.categoryName
+                            || ""
+                        ).toLowerCase();
+
+                    row.style.display =
+                        !query
+                        || name.includes(query)
+                            ? ""
+                            : "none";
+
+                });
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CLEAR FILTERS
+       ======================================================== */
+
+    const clearFilters =
+        document.getElementById(
+            "icClearFilters"
+        );
+
+    if (clearFilters) {
+
+        clearFilters.addEventListener(
+            "click",
+            function () {
+
+                const url =
+                    "{{ url_for('main.report_income_categories') }}";
+
+                window.location.href = url;
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       REFRESH
+       ======================================================== */
+
+    const refreshButton =
+        document.getElementById(
+            "icRefresh"
+        );
+
+    if (refreshButton) {
+
+        refreshButton.addEventListener(
+            "click",
+            function () {
+
+                window.location.reload();
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT FULL REPORT
+       ======================================================== */
+
+    const printFull =
+        document.getElementById(
+            "icPrintFull"
+        );
+
+    if (printFull) {
+
+        printFull.addEventListener(
+            "click",
+            function () {
+
+                printFullReport();
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT FULL REPORT FUNCTION
+       ======================================================== */
+
+    function printFullReport() {
+
+        const printWindow =
+            window.open(
+                "",
+                "_blank",
+                "width=1200,height=800"
+            );
+
+        if (!printWindow) {
+
+            showToast(
+                "Please allow popups to print the report."
+            );
+
+            return;
+        }
+
+
+        let rows = "";
+
+
+        categoryData.forEach(
+            function (category, index) {
+
+                rows += `
+
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                category["name"]
+                                || ""
+                            )}
+                        </td>
+
+                        <td>
+                            ${
+                                category["items"]
+                                    ? category["items"].length
+                                    : 0
+                            }
+                        </td>
+
+                        <td>
+                            ${
+                                category["transaction_count"]
+                                || 0
+                            }
+                        </td>
+
+                        <td>
+                            ${money(
+                                category["income"]
+                                || 0
+                            )}
+                        </td>
+
+                        <td>
+                            ${money(
+                                category["net"]
+                                || 0
+                            )}
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+
+        printWindow.document.write(`
+
+            <!DOCTYPE html>
+
+            <html>
+
+            <head>
+
+                <meta charset="UTF-8">
+
+                <title>
+                    Income Categories Report
+                </title>
+
+                <style>
+
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    body {
+                        font-family:
+                            Arial,
+                            Helvetica,
+                            sans-serif;
+
+                        margin: 30px;
+                        color: #172033;
+                    }
+
+                    h1 {
+                        margin: 0;
+                        font-size: 25px;
+                    }
+
+                    .sub {
+                        margin-top: 7px;
+                        color: #687386;
+                        font-size: 12px;
+                    }
+
+                    .summary {
+                        display: grid;
+                        grid-template-columns:
+                            repeat(4, 1fr);
+
+                        gap: 12px;
+                        margin: 25px 0;
+                    }
+
+                    .summary-box {
+                        border: 1px solid #ddd;
+                        border-radius: 9px;
+                        padding: 13px;
+                    }
+
+                    .label {
+                        font-size: 10px;
+                        color: #687386;
+                        text-transform: uppercase;
+                        font-weight: bold;
+                    }
+
+                    .value {
+                        margin-top: 6px;
+                        font-size: 18px;
+                        font-weight: bold;
+                    }
+
+                    .income {
+                        color: #16803c;
+                    }
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    th {
+                        background: #f2f4f8;
+                        font-size: 10px;
+                        text-transform: uppercase;
+                        text-align: left;
+                        padding: 10px;
+                        border: 1px solid #ddd;
+                    }
+
+                    td {
+                        padding: 10px;
+                        border: 1px solid #ddd;
+                        font-size: 11px;
+                    }
+
+                    .footer {
+                        margin-top: 25px;
+                        color: #687386;
+                        font-size: 10px;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 15px;
+                        }
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                <h1>
+                    Income Categories Report
+                </h1>
+
+                <div class="sub">
+                    Generated:
+                    ${new Date().toLocaleString()}
+                </div>
+
+                <div class="sub">
+                    Date range:
+                    ${escapeHTML(
+                        "{{ start_date or 'All dates' }}"
+                    )}
+                    -
+                    ${escapeHTML(
+                        "{{ end_date or 'All dates' }}"
+                    )}
+                </div>
+
+
+                <div class="summary">
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Categories
+                        </div>
+
+                        <div class="value">
+                            ${categoryData.length}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Transactions
+                        </div>
+
+                        <div class="value">
+                            {{ total_transactions|default(0) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Total Income
+                        </div>
+
+                        <div class="value income">
+                            ${money(
+                                {{ total_income|default(0) }}
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Net Income
+                        </div>
+
+                        <div class="value income">
+                            ${money(
+                                {{ net_total|default(0) }}
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Items</th>
+                            <th>Transactions</th>
+                            <th>Income</th>
+                            <th>Net</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${rows}
+
+                    </tbody>
+
+                </table>
+
+
+                <div class="footer">
+                    Income Categories Report
+                </div>
+
+
+                <script>
+
+                    window.onload = function () {
+
+                        window.print();
+
+                        setTimeout(
+                            function () {
+                                window.close();
+                            },
+                            700
+                        );
+
+                    };
+
+                <\/script>
+
+            </body>
+
+            </html>
+
+        `);
+
+        printWindow.document.close();
+
+    }
+
+
+    /* ========================================================
+       PRINT CATEGORY
+       ======================================================== */
+
+    window.printCurrentCategory =
+        function () {
+
+            if (!currentCategory) {
+                return;
+            }
+
+            printCategory(
+                currentCategory
+            );
+
+        };
+
+
+    function printCategory(category) {
+
+        const printWindow =
+            window.open(
+                "",
+                "_blank",
+                "width=1200,height=800"
+            );
+
+        if (!printWindow) {
+
+            showToast(
+                "Please allow popups to print the report."
+            );
+
+            return;
+        }
+
+
+        let rows = "";
+
+
+        const items =
+            Array.isArray(
+                category["items"]
+            )
+                ? category["items"]
+                : [];
+
+
+        items.forEach(
+            function (item, index) {
+
+                rows += `
+
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                item["name"]
+                                || item["item"]
+                                || ""
+                            )}
+                        </td>
+
+                        <td>
+                            ${item["transaction_count"] || 0}
+                        </td>
+
+                        <td>
+                            ${money(
+                                item["income"]
+                                || 0
+                            )}
+                        </td>
+
+                        <td>
+                            ${money(
+                                item["average"]
+                                || 0
+                            )}
+                        </td>
+
+                        <td>
+                            ${money(
+                                item["highest"]
+                                || 0
+                            )}
+                        </td>
+
+                        <td>
+                            ${money(
+                                item["lowest"]
+                                || 0
+                            )}
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+
+        printWindow.document.write(`
+
+            <!DOCTYPE html>
+
+            <html>
+
+            <head>
+
+                <meta charset="UTF-8">
+
+                <title>
+                    ${escapeHTML(
+                        category["name"]
+                    )}
+                    - Income Category
+                </title>
+
+                <style>
+
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 30px;
+                        color: #172033;
+                    }
+
+                    h1 {
+                        margin: 0;
+                        font-size: 24px;
+                    }
+
+                    .sub {
+                        color: #687386;
+                        font-size: 12px;
+                        margin-top: 6px;
+                    }
+
+                    .summary {
+                        display: grid;
+                        grid-template-columns:
+                            repeat(3, 1fr);
+
+                        gap: 10px;
+                        margin: 22px 0;
+                    }
+
+                    .box {
+                        border: 1px solid #ddd;
+                        padding: 12px;
+                        border-radius: 8px;
+                    }
+
+                    .label {
+                        font-size: 10px;
+                        color: #687386;
+                        text-transform: uppercase;
+                    }
+
+                    .value {
+                        margin-top: 5px;
+                        font-size: 17px;
+                        font-weight: bold;
+                    }
+
+                    .income {
+                        color: #16803c;
+                    }
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    th {
+                        background: #f2f4f8;
+                        padding: 9px;
+                        border: 1px solid #ddd;
+                        font-size: 10px;
+                        text-align: left;
+                    }
+
+                    td {
+                        padding: 9px;
+                        border: 1px solid #ddd;
+                        font-size: 11px;
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                <h1>
+                    ${escapeHTML(
+                        category["name"]
+                    )}
+                </h1>
+
+                <div class="sub">
+                    Income Category Report
+                </div>
+
+
+                <div class="summary">
+
+                    <div class="box">
+
+                        <div class="label">
+                            Income
+                        </div>
+
+                        <div class="value income">
+                            ${money(
+                                category["income"]
+                                || 0
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="box">
+
+                        <div class="label">
+                            Transactions
+                        </div>
+
+                        <div class="value">
+                            ${
+                                category["transaction_count"]
+                                || 0
+                            }
+                        </div>
+
+                    </div>
+
+
+                    <div class="box">
+
+                        <div class="label">
+                            Items
+                        </div>
+
+                        <div class="value">
+                            ${items.length}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Transactions</th>
+                            <th>Income</th>
+                            <th>Average</th>
+                            <th>Highest</th>
+                            <th>Lowest</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${rows}
+
+                    </tbody>
+
+                </table>
+
+
+                <script>
+
+                    window.onload = function () {
+
+                        window.print();
+
+                        setTimeout(
+                            function () {
+                                window.close();
+                            },
+                            700
+                        );
+
+                    };
+
+                <\/script>
+
+            </body>
+
+            </html>
+
+        `);
+
+        printWindow.document.close();
+
+    }
+
+
+    /* ========================================================
+       PRINT CURRENT ITEM
+       ======================================================== */
+
+    window.printCurrentItem =
+        function () {
+
+            if (!currentCategory || !currentItem) {
+                return;
+            }
+
+            printItem(
+                currentCategory,
+                currentItem
+            );
+
+        };
+
+
+    function printItem(
+        category,
+        item
+    ) {
+
+        const printWindow =
+            window.open(
+                "",
+                "_blank",
+                "width=1200,height=850"
+            );
+
+        if (!printWindow) {
+
+            showToast(
+                "Please allow popups to print the report."
+            );
+
+            return;
+        }
+
+
+        const transactions =
+            Array.isArray(
+                item["transactions"]
+            )
+                ? item["transactions"]
+                : [];
+
+
+        let transactionRows = "";
+
+
+        transactions.forEach(
+            function (tx, index) {
+
+                transactionRows += `
+
+                    <tr>
+
+                        <td>
+                            ${index + 1}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                tx["date"]
+                                || "-"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                tx["account_name"]
+                                || tx["account"]
+                                || "Unknown Account"
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                typeLabel(
+                                    tx["transaction_type"]
+                                    || tx["type"]
+                                    || "income"
+                                )
+                            )}
+                        </td>
+
+                        <td class="income">
+                            ${money(
+                                tx["amount"]
+                                || 0
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                tx["status"]
+                                || "Completed"
+                            )}
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+
+        if (!transactionRows) {
+
+            transactionRows = `
+
+                <tr>
+
+                    <td colspan="6">
+
+                        No transactions found.
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        }
+
+
+        printWindow.document.write(`
+
+            <!DOCTYPE html>
+
+            <html>
+
+            <head>
+
+                <meta charset="UTF-8">
+
+                <title>
+                    ${escapeHTML(
+                        item["name"]
+                        || item["item"]
+                        || "Income Item"
+                    )}
+                </title>
+
+                <style>
+
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    body {
+                        font-family:
+                            Arial,
+                            Helvetica,
+                            sans-serif;
+
+                        margin: 28px;
+                        color: #172033;
+                    }
+
+                    h1 {
+                        margin: 0;
+                        font-size: 24px;
+                    }
+
+                    .category {
+                        margin-top: 5px;
+                        color: #687386;
+                        font-size: 12px;
+                    }
+
+                    .summary {
+                        display: grid;
+                        grid-template-columns:
+                            repeat(5, 1fr);
+
+                        gap: 10px;
+                        margin: 22px 0;
+                    }
+
+                    .summary-box {
+                        border: 1px solid #ddd;
+                        border-radius: 8px;
+                        padding: 12px;
+                    }
+
+                    .label {
+                        color: #687386;
+                        font-size: 9px;
+                        text-transform: uppercase;
+                        font-weight: bold;
+                    }
+
+                    .value {
+                        margin-top: 5px;
+                        font-size: 16px;
+                        font-weight: bold;
+                    }
+
+                    .income {
+                        color: #16803c;
+                    }
+
+                    h2 {
+                        font-size: 15px;
+                        margin: 25px 0 10px;
+                    }
+
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    th {
+                        background: #f2f4f8;
+                        border: 1px solid #ddd;
+                        padding: 9px;
+                        text-align: left;
+                        font-size: 10px;
+                        text-transform: uppercase;
+                    }
+
+                    td {
+                        border: 1px solid #ddd;
+                        padding: 9px;
+                        font-size: 11px;
+                    }
+
+                    .footer {
+                        margin-top: 22px;
+                        color: #687386;
+                        font-size: 9px;
+                    }
+
+                    @media print {
+
+                        body {
+                            margin: 12px;
+                        }
+
+                    }
+
+                </style>
+
+            </head>
+
+            <body>
+
+                <h1>
+                    ${escapeHTML(
+                        item["name"]
+                        || item["item"]
+                        || "Income Item"
+                    )}
+                </h1>
+
+                <div class="category">
+
+                    Category:
+                    ${escapeHTML(
+                        category["name"]
+                        || ""
+                    )}
+
+                </div>
+
+
+                <div class="summary">
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Income
+                        </div>
+
+                        <div class="value income">
+                            ${money(
+                                item["income"]
+                                || 0
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Transactions
+                        </div>
+
+                        <div class="value">
+                            ${
+                                item["transaction_count"]
+                                || 0
+                            }
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Average
+                        </div>
+
+                        <div class="value">
+                            ${money(
+                                item["average"]
+                                || 0
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Highest
+                        </div>
+
+                        <div class="value">
+                            ${money(
+                                item["highest"]
+                                || 0
+                            )}
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-box">
+
+                        <div class="label">
+                            Lowest
+                        </div>
+
+                        <div class="value">
+                            ${money(
+                                item["lowest"]
+                                || 0
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <h2>
+                    All Transactions
+                </h2>
+
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${transactionRows}
+
+                    </tbody>
+
+                </table>
+
+
+                <div class="footer">
+                    Generated:
+                    ${new Date().toLocaleString()}
+                </div>
+
+
+                <script>
+
+                    window.onload = function () {
+
+                        window.print();
+
+                        setTimeout(
+                            function () {
+                                window.close();
+                            },
+                            700
+                        );
+
+                    };
+
+                <\/script>
+
+            </body>
+
+            </html>
+
+        `);
+
+        printWindow.document.close();
+
+    }
+
+
+    /* ========================================================
+       ADD PRINT BUTTONS WHEN MODAL OPENS
+       ======================================================== */
+
+    const originalRenderCategory =
+        renderCategory;
+
+
+    /* ========================================================
+       EXPORT JSON
+       ======================================================== */
+
+    const exportJson =
+        document.getElementById(
+            "icExportJson"
+        );
+
+    if (exportJson) {
+
+        exportJson.addEventListener(
+            "click",
+            function () {
+
+                if (!categoryData.length) {
+
+                    showToast(
+                        "No income category data to export."
+                    );
+
+                    return;
+                }
+
+
+                const payload = {
+
+                    report:
+                        "Income Categories Report",
+
+                    generated_at:
+                        new Date().toISOString(),
+
+                    filters: {
+
+                        start_date:
+                            "{{ start_date or '' }}",
+
+                        end_date:
+                            "{{ end_date or '' }}",
+
+                        category:
+                            "{{ category_filter or '' }}",
+
+                        type:
+                            "income"
+
+                    },
+
+                    summary: {
+
+                        total_categories:
+                            {{ total_categories|default(0) }},
+
+                        total_transactions:
+                            {{ total_transactions|default(0) }},
+
+                        total_income:
+                            {{ total_income|default(0) }},
+
+                        total_expense:
+                            0,
+
+                        net_total:
+                            {{ net_total|default(0) }}
+
+                    },
+
+                    categories:
+                        categoryData
+
+                };
+
+
+                const blob =
+                    new Blob(
+                        [
+                            JSON.stringify(
+                                payload,
+                                null,
+                                2
+                            )
+                        ],
+                        {
+                            type:
+                                "application/json;charset=utf-8"
+                        }
+                    );
+
+
+                const url =
+                    URL.createObjectURL(
+                        blob
+                    );
+
+
+                const anchor =
+                    document.createElement(
+                        "a"
+                    );
+
+                anchor.href = url;
+
+                anchor.download =
+                    "income_categories_report_"
+                    + new Date()
+                        .toISOString()
+                        .slice(0, 10)
+                    + ".json";
+
+
+                document.body.appendChild(
+                    anchor
+                );
+
+                anchor.click();
+
+                anchor.remove();
+
+                URL.revokeObjectURL(
+                    url
+                );
+
+
+                showToast(
+                    "Income categories exported successfully."
+                );
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       INFO BUTTON
+       ======================================================== */
+
+    const infoButton =
+        document.getElementById(
+            "icExpandInfo"
+        );
+
+    if (infoButton) {
+
+        infoButton.addEventListener(
+            "click",
+            function () {
+
+                showToast(
+                    "Double-click a category or item to open details."
+                );
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PREVENT ENTER FROM ACCIDENTALLY SUBMITTING
+       ======================================================== */
+
+    const filterForm =
+        document.getElementById(
+            "icFilterForm"
+        );
+
+    if (filterForm) {
+
+        filterForm.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Enter"
+                    &&
+                    event.target.tagName !== "BUTTON"
+                ) {
+
+                    event.preventDefault();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       ADD PRINT ACTIONS TO CATEGORY / ITEM VIEW
+       ======================================================== */
+
+    function addDetailPrintButton() {
+
+        const headerActions =
+            modalBody.querySelector(
+                ".ic-item-topbar"
+            );
+
+        if (
+            currentView === "item"
+            &&
+            headerActions
+            &&
+            !headerActions.querySelector(
+                ".ic-detail-print"
+            )
+        ) {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.type = "button";
+
+            button.className =
+                "ic-btn ic-btn-primary ic-detail-print";
+
+            button.textContent =
+                "🖨 Print Item";
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    printCurrentItem();
+
+                }
+            );
+
+
+            const left =
+                headerActions.querySelector(
+                    ".ic-item-top-left"
+                );
+
+            if (left) {
+
+                headerActions.appendChild(
+                    button
+                );
+
+            }
+
+        }
+
+    }
+
+
+    /* ========================================================
+       OBSERVE MODAL BODY CHANGES
+       ======================================================== */
+
+    const modalObserver =
+        new MutationObserver(
+            function () {
+
+                if (
+                    currentView === "item"
+                ) {
+
+                    addDetailPrintButton();
+
+                }
+
+            }
+        );
+
+
+    if (modalBody) {
+
+        modalObserver.observe(
+            modalBody,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CATEGORY PRINT BUTTON
+       ======================================================== */
+
+    function addCategoryPrintButton() {
+
+        if (
+            currentView !== "category"
+            ||
+            !currentCategory
+        ) {
+            return;
+        }
+
+
+        const existing =
+            modalBody.querySelector(
+                ".ic-category-print"
+            );
+
+        if (existing) {
+            return;
+        }
+
+
+        const itemsTitle =
+            modalBody.querySelector(
+                ".ic-items-title"
+            );
+
+        if (!itemsTitle) {
+            return;
+        }
+
+
+        const button =
+            document.createElement(
+                "button"
+            );
+
+        button.type = "button";
+
+        button.className =
+            "ic-btn ic-btn-light ic-category-print";
+
+        button.textContent =
+            "🖨 Print Category";
+
+        button.style.marginBottom =
+            "12px";
+
+        button.addEventListener(
+            "click",
+            function () {
+
+                printCurrentCategory();
+
+            }
+        );
+
+
+        itemsTitle.parentNode.insertBefore(
+            button,
+            itemsTitle
+        );
+
+    }
+
+
+    /* ========================================================
+       UPDATE CATEGORY PRINT AFTER RENDER
+       ======================================================== */
+
+    const modalObserver2 =
+        new MutationObserver(
+            function () {
+
+                if (
+                    currentView === "category"
+                    &&
+                    currentCategory
+                ) {
+
+                    addCategoryPrintButton();
+
+                }
+
+            }
+        );
+
+
+    if (modalBody) {
+
+        modalObserver2.observe(
+            modalBody,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       FIX CATEGORY PRINT BUTTON ON OPEN
+       ======================================================== */
+
+    const originalOpenCategory =
+        openCategory;
+
+
+    /* ========================================================
+       DATE VALIDATION
+       ======================================================== */
+
+    const startDate =
+        document.getElementById(
+            "icStartDate"
+        );
+
+    const endDate =
+        document.getElementById(
+            "icEndDate"
+        );
+
+
+    if (startDate && endDate) {
+
+        startDate.addEventListener(
+            "change",
+            function () {
+
+                if (
+                    endDate.value
+                    &&
+                    startDate.value
+                    >
+                    endDate.value
+                ) {
+
+                    endDate.value =
+                        startDate.value;
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       AUTO FOCUS SEARCH WHEN MODAL OPENS
+       ======================================================== */
+
+    const modalFocusObserver =
+        new MutationObserver(
+            function () {
+
+                if (
+                    modalBackdrop.classList.contains(
+                        "active"
+                    )
+                ) {
+
+                    const search =
+                        document.getElementById(
+                            "icTransactionSearch"
+                        );
+
+                    if (
+                        currentView === "item"
+                        &&
+                        search
+                    ) {
+
+                        // Do not force focus repeatedly.
+                        if (
+                            document.activeElement
+                            !== search
+                        ) {
+                            return;
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+
+    if (modalBackdrop) {
+
+        modalFocusObserver.observe(
+            modalBackdrop,
+            {
+                attributes: true,
+                attributeFilter: [
+                    "class"
+                ]
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       GLOBAL FUNCTIONS
+       ======================================================== */
+
+    window.openIncomeCategory =
+        openCategory;
+
+    window.closeIncomeCategoryModal =
+        closeModal;
+
+    window.printIncomeFullReport =
+        printFullReport;
+
+    window.printIncomeCategory =
+        printCurrentCategory;
+
+    window.printIncomeItem =
+        printCurrentItem;
+
+
+})();
+</script>
+
+{% endblock %}

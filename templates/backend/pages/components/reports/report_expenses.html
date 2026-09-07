@@ -1,0 +1,5124 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Expenses Report{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   EXPENSE REPORT PAGE
+   ============================================================ */
+
+.expense-report-page {
+    width: 100%;
+    padding-bottom: 40px;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    background: linear-gradient(
+        135deg,
+        #172033 0%,
+        #243b64 100%
+    );
+
+    border-radius: 18px;
+
+    padding: 28px;
+
+    margin-bottom: 24px;
+
+    color: #fff;
+
+    box-shadow:
+        0 12px 35px rgba(20,30,50,.12);
+}
+
+
+.report-header-inner {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+.report-header-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+}
+
+
+.report-header-icon {
+    width: 58px;
+    height: 58px;
+
+    border-radius: 15px;
+
+    background: rgba(255,255,255,.12);
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: 27px;
+}
+
+
+.report-header-icon svg {
+    width: 27px;
+    height: 27px;
+}
+
+
+.report-header h2 {
+    margin: 0;
+
+    font-size: 24px;
+
+    font-weight: 800;
+}
+
+
+.report-header p {
+    margin: 5px 0 0;
+
+    color: rgba(255,255,255,.72);
+
+    font-size: 14px;
+}
+
+
+.report-header-actions {
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+
+.report-header-actions .btn {
+    border-radius: 10px;
+
+    padding: 9px 15px;
+
+    font-weight: 600;
+}
+
+
+/* ============================================================
+   SUMMARY GRID
+   ============================================================ */
+
+.summary-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4,minmax(0,1fr));
+
+    gap: 18px;
+
+    margin-bottom: 24px;
+}
+
+
+.summary-card {
+    background: #fff;
+
+    border-radius: 16px;
+
+    padding: 20px;
+
+    border: 1px solid #edf0f5;
+
+    box-shadow:
+        0 7px 25px rgba(25,35,55,.07);
+
+    position: relative;
+
+    overflow: hidden;
+}
+
+
+.summary-card::after {
+    content: "";
+
+    position: absolute;
+
+    width: 85px;
+    height: 85px;
+
+    border-radius: 50%;
+
+    right: -30px;
+    bottom: -30px;
+
+    background: rgba(0,0,0,.025);
+}
+
+
+.summary-card-top {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+
+.summary-label {
+    color: #7b8495;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+
+.summary-value {
+    color: #182033;
+
+    font-size: 23px;
+
+    font-weight: 850;
+
+    margin-top: 6px;
+
+    word-break: break-word;
+}
+
+
+.summary-sub {
+    color: #9299a7;
+
+    font-size: 11px;
+
+    margin-top: 5px;
+}
+
+
+.summary-icon {
+    width: 46px;
+    height: 46px;
+
+    border-radius: 13px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 46px;
+}
+
+
+.summary-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+
+.expense-icon {
+    background: rgba(220,53,69,.10);
+
+    color: #dc3545;
+}
+
+
+.category-icon {
+    background: rgba(13,110,253,.10);
+
+    color: #0d6efd;
+}
+
+
+.item-icon {
+    background: rgba(255,193,7,.13);
+
+    color: #d69e00;
+}
+
+
+.account-icon {
+    background: rgba(25,135,84,.10);
+
+    color: #198754;
+}
+
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.insights-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3,minmax(0,1fr));
+
+    gap: 18px;
+
+    margin-bottom: 24px;
+}
+
+
+.insight-card {
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+
+    border-radius: 16px;
+
+    padding: 20px;
+
+    box-shadow:
+        0 7px 25px rgba(25,35,55,.06);
+}
+
+
+.insight-title {
+    color: #858d9d;
+
+    font-size: 11px;
+
+    font-weight: 850;
+
+    text-transform: uppercase;
+
+    letter-spacing: .45px;
+
+    margin-bottom: 9px;
+}
+
+
+.insight-name {
+    color: #1c2435;
+
+    font-size: 18px;
+
+    font-weight: 800;
+
+    word-break: break-word;
+}
+
+
+.insight-amount {
+    color: #dc3545;
+
+    font-size: 17px;
+
+    font-weight: 850;
+
+    margin-top: 5px;
+}
+
+
+/* ============================================================
+   REPORT SECTION
+   ============================================================ */
+
+.report-section {
+    background: #fff;
+
+    border: 1px solid #edf0f5;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 7px 25px rgba(25,35,55,.06);
+
+    margin-bottom: 24px;
+
+    overflow: hidden;
+}
+
+
+.section-header {
+    padding: 20px 22px;
+
+    border-bottom: 1px solid #edf0f5;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+
+.section-title-wrap {
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+}
+
+
+.section-title-icon {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 11px;
+
+    background: #f3f5f8;
+
+    color: #243b64;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.section-title-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+
+.section-title {
+    margin: 0;
+
+    color: #1c2435;
+
+    font-size: 18px;
+
+    font-weight: 800;
+}
+
+
+.section-subtitle {
+    color: #8b93a2;
+
+    font-size: 12px;
+
+    margin-top: 2px;
+}
+
+
+/* ============================================================
+   ACCOUNT BREAKDOWN
+   ============================================================ */
+
+.account-breakdown {
+    padding: 20px;
+}
+
+
+.account-box {
+    border: 1px solid #e7ebf0;
+
+    border-radius: 16px;
+
+    margin-bottom: 18px;
+
+    overflow: hidden;
+
+    background: #fff;
+}
+
+
+.account-box:last-child {
+    margin-bottom: 0;
+}
+
+
+.account-main-header {
+    padding: 18px 20px;
+
+    background: #f8f9fb;
+
+    border-bottom: 1px solid #e7ebf0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 18px;
+}
+
+
+.account-main-left {
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    min-width: 0;
+}
+
+
+.account-main-icon {
+    width: 45px;
+    height: 45px;
+
+    flex: 0 0 45px;
+
+    border-radius: 13px;
+
+    background: rgba(25,135,84,.10);
+
+    color: #198754;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.account-main-icon svg {
+    width: 21px;
+    height: 21px;
+}
+
+
+.account-main-name {
+    color: #252e40;
+
+    font-size: 17px;
+
+    font-weight: 850;
+
+    word-break: break-word;
+}
+
+
+.account-main-meta {
+    color: #8a92a2;
+
+    font-size: 12px;
+
+    margin-top: 3px;
+}
+
+
+.account-main-total {
+    text-align: right;
+
+    flex-shrink: 0;
+}
+
+
+.account-total-label {
+    color: #8c94a3;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    font-weight: 800;
+}
+
+
+.account-total-value {
+    color: #dc3545;
+
+    font-size: 19px;
+
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   ACCOUNT PROGRESS
+   ============================================================ */
+
+.account-progress-area {
+    padding: 15px 20px 0;
+}
+
+
+.account-progress-track {
+    height: 7px;
+
+    width: 100%;
+
+    background: #eef1f5;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+}
+
+
+.account-progress-bar {
+    height: 100%;
+
+    background: #dc3545;
+
+    border-radius: 20px;
+}
+
+
+/* ============================================================
+   CATEGORY AREA
+   ============================================================ */
+
+.account-category-area {
+    padding: 15px 20px 20px;
+}
+
+
+.category-title {
+    color: #6f7888;
+
+    font-size: 10px;
+
+    font-weight: 850;
+
+    text-transform: uppercase;
+
+    letter-spacing: .45px;
+
+    margin-bottom: 10px;
+}
+
+
+.category-box {
+    border: 1px solid #edf0f4;
+
+    border-radius: 12px;
+
+    margin-bottom: 10px;
+
+    overflow: hidden;
+}
+
+
+.category-box:last-child {
+    margin-bottom: 0;
+}
+
+
+.category-header {
+    padding: 13px 15px;
+
+    background: #fbfcfd;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+}
+
+
+.category-name {
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    min-width: 0;
+
+    color: #394254;
+
+    font-size: 13px;
+
+    font-weight: 750;
+}
+
+
+.category-dot {
+    width: 8px;
+    height: 8px;
+
+    flex: 0 0 8px;
+
+    border-radius: 50%;
+
+    background: #dc3545;
+}
+
+
+.category-total {
+    color: #dc3545;
+
+    font-size: 13px;
+
+    font-weight: 850;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   ITEMS
+   ============================================================ */
+
+.items-list {
+    padding: 0 15px 10px;
+}
+
+
+.item-row {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0,1fr)
+        100px
+        130px;
+
+    gap: 15px;
+
+    align-items: center;
+
+    padding: 11px 5px;
+
+    border-top: 1px solid #f0f2f5;
+}
+
+
+.item-name {
+    color: #566071;
+
+    font-size: 12px;
+
+    font-weight: 650;
+
+    word-break: break-word;
+}
+
+
+.item-count {
+    text-align: center;
+
+    color: #929aa8;
+
+    font-size: 11px;
+}
+
+
+.item-total {
+    text-align: right;
+
+    color: #dc3545;
+
+    font-size: 12px;
+
+    font-weight: 850;
+
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   OVERVIEW
+   ============================================================ */
+
+.overview-grid {
+    padding: 20px;
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(3,minmax(0,1fr));
+
+    gap: 15px;
+}
+
+
+.overview-card {
+    border: 1px solid #e8ecf1;
+
+    border-radius: 14px;
+
+    padding: 16px;
+}
+
+
+.overview-card-label {
+    color: #858e9d;
+
+    font-size: 10px;
+
+    text-transform: uppercase;
+
+    font-weight: 800;
+}
+
+
+.overview-card-value {
+    color: #252e40;
+
+    font-size: 19px;
+
+    font-weight: 850;
+
+    margin-top: 5px;
+}
+
+
+.overview-card-value.expense {
+    color: #dc3545;
+}
+
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.filter-area {
+    padding: 18px 20px;
+
+    background: #fafbfc;
+
+    border-bottom: 1px solid #edf0f5;
+}
+
+
+.filters-grid {
+    display: grid;
+
+    grid-template-columns:
+        1.5fr 1fr 1fr auto;
+
+    gap: 12px;
+
+    align-items: end;
+}
+
+
+.filter-group label {
+    display: block;
+
+    color: #717a8b;
+
+    font-size: 10px;
+
+    font-weight: 850;
+
+    text-transform: uppercase;
+
+    margin-bottom: 6px;
+}
+
+
+.filter-control {
+    width: 100%;
+
+    height: 40px;
+
+    border: 1px solid #dfe4eb;
+
+    border-radius: 9px;
+
+    background: #fff;
+
+    color: #333c4e;
+
+    padding: 0 12px;
+
+    outline: none;
+
+    font-size: 13px;
+}
+
+
+.filter-control:focus {
+    border-color: #8aa0c8;
+
+    box-shadow:
+        0 0 0 3px rgba(36,59,100,.08);
+}
+
+
+.clear-filter-btn {
+    height: 40px;
+
+    border-radius: 9px;
+
+    font-weight: 700;
+
+    padding: 0 15px;
+}
+
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.table-body {
+    padding: 20px;
+}
+
+
+.table-responsive {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.expense-table {
+    width: 100% !important;
+
+    border-collapse: collapse !important;
+}
+
+
+.expense-table thead th {
+    background: #f8f9fb !important;
+
+    color: #727b8c !important;
+
+    font-size: 10px !important;
+
+    font-weight: 850 !important;
+
+    text-transform: uppercase;
+
+    letter-spacing: .35px;
+
+    padding: 13px 10px !important;
+
+    border-bottom:
+        1px solid #e8ebf0 !important;
+
+    white-space: nowrap;
+}
+
+
+.expense-table tbody td {
+    padding: 13px 10px !important;
+
+    border-bottom:
+        1px solid #f0f2f5 !important;
+
+    color: #4c5667;
+
+    font-size: 13px;
+
+    vertical-align: middle;
+}
+
+
+.expense-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+
+.date-main {
+    color: #303849;
+
+    font-weight: 700;
+
+    white-space: nowrap;
+}
+
+
+.date-time {
+    color: #939aa8;
+
+    font-size: 11px;
+
+    margin-top: 2px;
+}
+
+
+.account-cell {
+    color: #303849;
+
+    font-weight: 700;
+}
+
+
+.category-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 5px 9px;
+
+    border-radius: 7px;
+
+    background: rgba(220,53,69,.08);
+
+    color: #b02a37;
+
+    font-size: 11px;
+
+    font-weight: 750;
+}
+
+
+.item-cell {
+    color: #4e5768;
+
+    font-weight: 650;
+}
+
+
+.description-cell {
+    max-width: 220px;
+
+    white-space: normal;
+
+    word-break: break-word;
+
+    color: #737c8c;
+}
+
+
+.amount-cell {
+    color: #dc3545;
+
+    font-weight: 900;
+
+    white-space: nowrap;
+}
+
+
+.status-badge {
+    display: inline-flex;
+
+    align-items: center;
+
+    padding: 5px 9px;
+
+    border-radius: 7px;
+
+    background: #eaf7ef;
+
+    color: #198754;
+
+    font-size: 10px;
+
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   VIEW BUTTON
+   ============================================================ */
+
+.view-btn {
+
+    width: 35px;
+    height: 35px;
+
+    padding: 0;
+
+    border: 1px solid #e1e5eb;
+
+    border-radius: 9px;
+
+    background: #fff;
+
+    color: #43516a;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        transform .2s ease,
+        box-shadow .2s ease;
+}
+
+
+.view-btn:hover {
+
+    background: #f1f4f8;
+
+    border-color: #cbd3df;
+
+    color: #172033;
+
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 4px 10px rgba(20,30,50,.08);
+}
+
+
+.view-btn svg {
+
+    width: 15px;
+    height: 15px;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+
+    padding: 60px 20px;
+
+    color: #8b93a2;
+}
+
+
+.empty-icon {
+    width: 65px;
+    height: 65px;
+
+    border-radius: 18px;
+
+    margin: 0 auto 15px;
+
+    background: #f5f6f8;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    color: #a0a7b4;
+}
+
+
+.empty-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+
+.empty-state h4 {
+    color: #4a5364;
+
+    font-size: 16px;
+
+    font-weight: 800;
+
+    margin-bottom: 5px;
+}
+
+
+.empty-state p {
+    margin: 0;
+
+    font-size: 13px;
+}
+
+
+/* ============================================================
+   CUSTOM MODAL
+   NO BOOTSTRAP
+   ============================================================ */
+
+.expense-modal-overlay {
+
+    position: fixed;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    background: rgba(10,16,28,.68);
+
+    backdrop-filter: blur(5px);
+
+    -webkit-backdrop-filter: blur(5px);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    z-index: 99999;
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transition:
+        opacity .25s ease,
+        visibility .25s ease;
+}
+
+
+.expense-modal-overlay.active {
+
+    opacity: 1;
+
+    visibility: visible;
+
+    pointer-events: auto;
+}
+
+
+.expense-modal-container {
+
+    width: 100%;
+
+    max-width: 850px;
+
+    max-height:
+        calc(100vh - 40px);
+
+    background: #fff;
+
+    border-radius: 20px;
+
+    overflow: hidden;
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.25),
+        0 8px 25px rgba(0,0,0,.12);
+
+    transform:
+        translateY(25px)
+        scale(.97);
+
+    transition:
+        transform .25s ease;
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+
+.expense-modal-overlay.active
+.expense-modal-container {
+
+    transform:
+        translateY(0)
+        scale(1);
+}
+
+
+/* ============================================================
+   MODAL HEADER
+   ============================================================ */
+
+.expense-modal-header {
+
+    min-height: 78px;
+
+    padding: 17px 22px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #172033 0%,
+            #263c67 100%
+        );
+
+    color: #fff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 15px;
+
+    flex-shrink: 0;
+}
+
+
+.expense-modal-title-wrapper {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 13px;
+
+    min-width: 0;
+}
+
+
+.expense-modal-title-icon {
+
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 43px;
+
+    border-radius: 12px;
+
+    background:
+        rgba(255,255,255,.12);
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+.expense-modal-title-icon svg {
+
+    width: 21px;
+    height: 21px;
+}
+
+
+.expense-modal-title-wrapper h3 {
+
+    margin: 0;
+
+    font-size: 17px;
+
+    line-height: 1.3;
+
+    font-weight: 800;
+}
+
+
+.expense-modal-title-wrapper p {
+
+    margin: 3px 0 0;
+
+    font-size: 11px;
+
+    color:
+        rgba(255,255,255,.65);
+}
+
+
+.expense-modal-close {
+
+    width: 38px;
+    height: 38px;
+
+    flex: 0 0 38px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background:
+        rgba(255,255,255,.10);
+
+    color: #fff;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 0;
+
+    transition:
+        background .2s ease,
+        transform .2s ease;
+}
+
+
+.expense-modal-close:hover {
+
+    background:
+        rgba(255,255,255,.18);
+
+    transform: rotate(4deg);
+}
+
+
+.expense-modal-close svg {
+
+    width: 18px;
+    height: 18px;
+}
+
+
+/* ============================================================
+   MODAL BODY
+   ============================================================ */
+
+.expense-modal-body {
+
+    padding: 22px;
+
+    overflow-y: auto;
+
+    flex: 1;
+}
+
+
+/* ============================================================
+   MODAL AMOUNT
+   ============================================================ */
+
+.expense-invoice-top {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding-bottom: 20px;
+
+    margin-bottom: 20px;
+
+    border-bottom:
+        1px solid #edf0f4;
+}
+
+
+.expense-field-label {
+
+    color: #8992a1;
+
+    font-size: 10px;
+
+    font-weight: 800;
+
+    text-transform: uppercase;
+
+    letter-spacing: .45px;
+}
+
+
+.expense-modal-amount {
+
+    margin-top: 5px;
+
+    color: #dc3545;
+
+    font-size: 29px;
+
+    line-height: 1.15;
+
+    font-weight: 900;
+}
+
+
+.expense-id-section {
+
+    max-width: 280px;
+
+    text-align: right;
+}
+
+
+.expense-modal-id {
+
+    margin-top: 5px;
+
+    color: #626c7c;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    word-break: break-all;
+}
+
+
+/* ============================================================
+   MODAL GRID
+   ============================================================ */
+
+.expense-invoice-grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2,minmax(0,1fr));
+
+    gap: 13px;
+}
+
+
+.expense-invoice-field {
+
+    min-width: 0;
+
+    min-height: 76px;
+
+    padding: 13px;
+
+    border:
+        1px solid #e8ecf1;
+
+    border-radius: 12px;
+
+    background: #fafbfc;
+
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 11px;
+}
+
+
+.expense-field-icon {
+
+    width: 34px;
+    height: 34px;
+
+    flex: 0 0 34px;
+
+    border-radius: 9px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+
+.expense-field-icon svg {
+
+    width: 16px;
+    height: 16px;
+}
+
+
+.date-icon {
+
+    background:
+        rgba(13,110,253,.09);
+
+    color: #0d6efd;
+}
+
+
+.modal-account-icon {
+
+    background:
+        rgba(25,135,84,.09);
+
+    color: #198754;
+}
+
+
+.modal-category-icon {
+
+    background:
+        rgba(111,66,193,.09);
+
+    color: #6f42c1;
+}
+
+
+.modal-item-icon {
+
+    background:
+        rgba(255,193,7,.13);
+
+    color: #b58100;
+}
+
+
+.modal-status-icon {
+
+    background:
+        rgba(25,135,84,.09);
+
+    color: #198754;
+}
+
+
+.currency-icon {
+
+    background:
+        rgba(13,202,240,.10);
+
+    color: #087990;
+}
+
+
+.reference-icon {
+
+    background:
+        rgba(108,117,125,.10);
+
+    color: #5c636a;
+}
+
+
+.description-icon {
+
+    background:
+        rgba(220,53,69,.09);
+
+    color: #dc3545;
+}
+
+
+.expense-field-content {
+
+    min-width: 0;
+
+    flex: 1;
+}
+
+
+.expense-field-value {
+
+    margin-top: 5px;
+
+    color: #303849;
+
+    font-size: 13px;
+
+    line-height: 1.45;
+
+    font-weight: 700;
+
+    word-break: break-word;
+}
+
+
+/* ============================================================
+   MODAL FOOTER
+   ============================================================ */
+
+.expense-modal-footer {
+
+    min-height: 70px;
+
+    padding: 14px 22px;
+
+    border-top:
+        1px solid #edf0f4;
+
+    background: #fff;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    flex-shrink: 0;
+}
+
+
+.expense-btn {
+
+    min-height: 40px;
+
+    padding: 0 15px;
+
+    border-radius: 9px;
+
+    font-size: 12px;
+
+    font-weight: 750;
+
+    cursor: pointer;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 7px;
+}
+
+
+.expense-btn svg {
+
+    width: 15px;
+    height: 15px;
+}
+
+
+.expense-btn-secondary {
+
+    border:
+        1px solid #e1e5e9;
+
+    background: #f1f3f5;
+
+    color: #495057;
+}
+
+
+.expense-btn-danger {
+
+    border:
+        1px solid #dc3545;
+
+    background: #dc3545;
+
+    color: #fff;
+}
+
+
+/* ============================================================
+   DATATABLE
+   ============================================================ */
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+
+    margin-bottom: 15px;
+}
+
+
+.dataTables_wrapper
+.dataTables_length select,
+.dataTables_wrapper
+.dataTables_filter input {
+
+    border:
+        1px solid #dfe4eb !important;
+
+    border-radius: 8px !important;
+
+    height: 36px;
+
+    padding: 0 10px !important;
+
+    outline: none;
+}
+
+
+.dataTables_wrapper
+.dataTables_filter input {
+
+    margin-left: 7px;
+}
+
+
+.dataTables_wrapper
+.dataTables_paginate {
+
+    margin-top: 15px !important;
+}
+
+
+.dataTables_wrapper
+.dataTables_paginate
+.paginate_button {
+
+    border-radius: 7px !important;
+}
+
+
+.dataTables_wrapper
+.dataTables_info {
+
+    color: #858e9e;
+
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width:1100px) {
+
+    .summary-grid {
+
+        grid-template-columns:
+            repeat(2,1fr);
+
+    }
+
+    .filters-grid {
+
+        grid-template-columns:
+            repeat(2,1fr);
+
+    }
+
+}
+
+
+@media (max-width:850px) {
+
+    .insights-grid {
+
+        grid-template-columns:1fr;
+
+    }
+
+    .overview-grid {
+
+        grid-template-columns:1fr;
+
+    }
+
+    .item-row {
+
+        grid-template-columns:
+            minmax(0,1fr)
+            90px
+            120px;
+
+    }
+
+}
+
+
+@media (max-width:768px) {
+
+    .report-header {
+
+        padding:20px;
+
+        border-radius:14px;
+
+    }
+
+    .report-header-inner {
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+    }
+
+    .report-header-actions {
+
+        width:100%;
+
+    }
+
+    .report-header-actions .btn {
+
+        flex:1;
+
+    }
+
+    .summary-grid {
+
+        grid-template-columns:1fr;
+
+        gap:12px;
+
+    }
+
+    .filters-grid {
+
+        grid-template-columns:1fr;
+
+    }
+
+    .account-main-header {
+
+        align-items:flex-start;
+
+    }
+
+    .account-main-total {
+
+        text-align:left;
+
+    }
+
+}
+
+
+@media (max-width:700px) {
+
+    .expense-modal-overlay {
+
+        padding:10px;
+
+    }
+
+    .expense-modal-container {
+
+        max-height:
+            calc(100vh - 20px);
+
+        border-radius:16px;
+
+    }
+
+    .expense-modal-header {
+
+        padding:15px;
+
+    }
+
+    .expense-modal-body {
+
+        padding:15px;
+
+    }
+
+    .expense-invoice-top {
+
+        flex-direction:column;
+
+        align-items:flex-start;
+
+    }
+
+    .expense-id-section {
+
+        max-width:100%;
+
+        text-align:left;
+
+    }
+
+    .expense-invoice-grid {
+
+        grid-template-columns:1fr;
+
+    }
+
+    .expense-modal-amount {
+
+        font-size:25px;
+
+    }
+
+    .expense-modal-footer {
+
+        padding:12px 15px;
+
+    }
+
+    .expense-btn {
+
+        flex:1;
+
+    }
+
+}
+
+
+@media (max-width:576px) {
+
+    .report-header-left {
+
+        align-items:flex-start;
+
+    }
+
+    .report-header-icon {
+
+        width:48px;
+
+        height:48px;
+
+        flex:0 0 48px;
+
+    }
+
+    .report-header h2 {
+
+        font-size:20px;
+
+    }
+
+    .account-main-header {
+
+        flex-direction:column;
+
+    }
+
+    .account-main-total {
+
+        width:100%;
+
+    }
+
+    .item-row {
+
+        grid-template-columns:1fr;
+
+        gap:5px;
+
+    }
+
+    .item-count,
+    .item-total {
+
+        text-align:left;
+
+        padding-left:17px;
+
+    }
+
+}
+
+
+@media (max-width:420px) {
+
+    .expense-modal-title-wrapper h3 {
+
+        font-size:15px;
+
+    }
+
+    .expense-modal-title-wrapper p {
+
+        display:none;
+
+    }
+
+}
+
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+[data-theme="dark"] .summary-card,
+[data-theme="dark"] .insight-card,
+[data-theme="dark"] .report-section,
+[data-theme="dark"] .account-box,
+[data-theme="dark"] .category-box,
+[data-theme="dark"] .overview-card,
+[data-theme="dark"] .expense-modal-container {
+
+    background:#1d2430;
+
+    border-color:#303949;
+}
+
+
+[data-theme="dark"] .summary-value,
+[data-theme="dark"] .insight-name,
+[data-theme="dark"] .section-title,
+[data-theme="dark"] .account-main-name,
+[data-theme="dark"] .category-name,
+[data-theme="dark"] .item-name,
+[data-theme="dark"] .account-cell,
+[data-theme="dark"] .date-main,
+[data-theme="dark"] .overview-card-value,
+[data-theme="dark"] .expense-field-value {
+
+    color:#f1f3f6;
+
+}
+
+
+[data-theme="dark"] .account-main-header,
+[data-theme="dark"] .category-header,
+[data-theme="dark"] .filter-area,
+[data-theme="dark"] .expense-table thead th {
+
+    background:#171d27 !important;
+
+}
+
+
+[data-theme="dark"] .filter-control,
+[data-theme="dark"] .view-btn {
+
+    background:#1d2430;
+
+    border-color:#384252;
+
+    color:#e7eaf0;
+
+}
+
+
+[data-theme="dark"] .expense-table tbody td,
+[data-theme="dark"] .item-row {
+
+    border-color:#303949 !important;
+
+}
+
+
+[data-theme="dark"] .expense-modal-footer {
+
+    background:#1d2430;
+
+    border-color:#303949;
+
+}
+
+
+[data-theme="dark"] .expense-invoice-top {
+
+    border-color:#303949;
+
+}
+
+
+[data-theme="dark"] .expense-invoice-field {
+
+    background:#171d27;
+
+    border-color:#303949;
+
+}
+
+
+[data-theme="dark"] .expense-modal-id {
+
+    color:#aeb6c3;
+
+}
+
+
+[data-theme="dark"] .expense-btn-secondary {
+
+    background:#303949;
+
+    border-color:#3b4657;
+
+    color:#e8ebef;
+
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    @page {
+
+        size:A4 landscape;
+
+        margin:12mm;
+
+    }
+
+
+    body {
+
+        background:#fff !important;
+
+    }
+
+
+    .sidebar,
+    .navbar,
+    .header,
+    .footer,
+    .report-header-actions,
+    .filter-area,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_paginate,
+    .dataTables_info,
+    .view-btn,
+    .expense-modal-overlay {
+
+        display:none !important;
+
+    }
+
+
+    .expense-report-page {
+
+        padding:0 !important;
+
+    }
+
+
+    .report-header {
+
+        background:#fff !important;
+
+        color:#111 !important;
+
+        border:1px solid #ddd;
+
+        box-shadow:none;
+
+    }
+
+
+    .report-header p {
+
+        color:#555 !important;
+
+    }
+
+
+    .summary-grid {
+
+        grid-template-columns:
+            repeat(4,1fr);
+
+        gap:8px;
+
+    }
+
+
+    .insights-grid {
+
+        grid-template-columns:
+            repeat(3,1fr);
+
+        gap:8px;
+
+    }
+
+
+    .summary-card,
+    .insight-card,
+    .report-section,
+    .account-box {
+
+        box-shadow:none !important;
+
+        break-inside:avoid;
+
+    }
+
+}
+
+</style>
+
+
+<div class="expense-report-page">
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-header-inner">
+
+            <div class="report-header-left">
+
+                <div class="report-header-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+
+                        <line
+                            x1="12"
+                            y1="5"
+                            x2="12"
+                            y2="19"
+                        />
+
+                        <polyline
+                            points="19 12 12 19 5 12"
+                        />
+
+                    </svg>
+
+                </div>
+
+
+                <div>
+
+                    <h2>
+                        Expenses Report
+                    </h2>
+
+                    <p>
+                        Detailed expense analysis by account,
+                        category and item.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="report-header-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    onclick="window.print()"
+                >
+                    Print
+                </button>
+
+
+                <button
+                    type="button"
+                    class="btn btn-outline-light"
+                    onclick="resetExpenseFilters()"
+                >
+                    Reset
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="summary-grid">
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div>
+
+                    <div class="summary-label">
+                        Total Expenses
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ currency }}
+
+                        {{ "{:,.2f}".format(
+                            total_expense|float
+                        ) }}
+
+                    </div>
+
+                    <div class="summary-sub">
+                        Expense transactions only
+                    </div>
+
+                </div>
+
+
+                <div class="summary-icon expense-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <line
+                            x1="12"
+                            y1="5"
+                            x2="12"
+                            y2="19"
+                        />
+
+                        <polyline
+                            points="19 12 12 19 5 12"
+                        />
+                    </svg>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORIES -->
+
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div>
+
+                    <div class="summary-label">
+                        Categories
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ "{:,}".format(
+                            category_count|int
+                        ) }}
+
+                    </div>
+
+                    <div class="summary-sub">
+                        Expense categories
+                    </div>
+
+                </div>
+
+
+                <div class="summary-icon category-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            d="M20 20H4V4h16v16z"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="8"
+                            x2="16"
+                            y2="8"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="12"
+                            x2="16"
+                            y2="12"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="16"
+                            x2="13"
+                            y2="16"
+                        />
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ITEMS -->
+
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div>
+
+                    <div class="summary-label">
+                        Items
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ "{:,}".format(
+                            item_count|int
+                        ) }}
+
+                    </div>
+
+                    <div class="summary-sub">
+                        Unique expense items
+                    </div>
+
+                </div>
+
+
+                <div class="summary-icon item-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+
+                        <path
+                            d="M21 16V8
+                               a2 2 0 0 0-1-1.73
+                               l-7-4
+                               a2 2 0 0 0-2 0
+                               l-7 4
+                               A2 2 0 0 0 3 8v8
+                               a2 2 0 0 0 1 1.73
+                               l7 4
+                               a2 2 0 0 0 2 0
+                               l7-4
+                               A2 2 0 0 0 21 16z"
+                        />
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNTS -->
+
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div>
+
+                    <div class="summary-label">
+                        Accounts
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ "{:,}".format(
+                            account_count|int
+                        ) }}
+
+                    </div>
+
+                    <div class="summary-sub">
+                        Accounts used for expenses
+                    </div>
+
+                </div>
+
+
+                <div class="summary-icon account-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+
+                        <rect
+                            x="2"
+                            y="5"
+                            width="20"
+                            height="14"
+                            rx="2"
+                        />
+
+                        <line
+                            x1="2"
+                            y1="10"
+                            x2="22"
+                            y2="10"
+                        />
+
+                    </svg>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <div class="insights-grid">
+
+
+        <div class="insight-card">
+
+            <div class="insight-title">
+                Highest Expense Account
+            </div>
+
+            <div class="insight-name">
+                {{ highest_expense_account|default("—") }}
+            </div>
+
+            <div class="insight-amount">
+
+                {{ currency }}
+
+                {{ "{:,.2f}".format(
+                    highest_expense_account_amount|default(0)|float
+                ) }}
+
+            </div>
+
+        </div>
+
+
+        <div class="insight-card">
+
+            <div class="insight-title">
+                Highest Expense Category
+            </div>
+
+            <div class="insight-name">
+                {{ highest_expense_category|default("—") }}
+            </div>
+
+            <div class="insight-amount">
+
+                {{ currency }}
+
+                {{ "{:,.2f}".format(
+                    highest_expense_category_amount|default(0)|float
+                ) }}
+
+            </div>
+
+        </div>
+
+
+        <div class="insight-card">
+
+            <div class="insight-title">
+                Largest Expense
+            </div>
+
+            {% if largest_expense_transaction %}
+
+                <div class="insight-name">
+
+                    {{ largest_expense_transaction["item"]|default(
+                        largest_expense_transaction["description"]|default("—")
+                    ) }}
+
+                </div>
+
+                <div class="insight-amount">
+
+                    {{ currency }}
+
+                    {{ "{:,.2f}".format(
+                        largest_expense_amount|default(0)|float
+                    ) }}
+
+                </div>
+
+            {% else %}
+
+                <div class="insight-name">
+                    —
+                </div>
+
+                <div class="insight-amount">
+                    {{ currency }} 0.00
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT BREAKDOWN
+         ======================================================== -->
+
+    <div class="report-section">
+
+        <div class="section-header">
+
+            <div class="section-title-wrap">
+
+                <div class="section-title-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect
+                            x="2"
+                            y="5"
+                            width="20"
+                            height="14"
+                            rx="2"
+                        />
+
+                        <line
+                            x1="2"
+                            y1="10"
+                            x2="22"
+                            y2="10"
+                        />
+
+                    </svg>
+
+                </div>
+
+                <div>
+
+                    <h3 class="section-title">
+                        Expense Breakdown
+                    </h3>
+
+                    <div class="section-subtitle">
+                        Account → Category → Item
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <span class="badge bg-danger">
+                {{ account_count }} Accounts
+            </span>
+
+        </div>
+
+
+        {% if expense_by_account %}
+
+            <div class="account-breakdown">
+
+                {% for account_name, account_data in expense_by_account.items() %}
+
+                    {% set account_total =
+                        account_data["total"]|float %}
+
+                    {% set account_percentage =
+                        (
+                            account_total /
+                            total_expense|float *
+                            100
+                        )
+                        if total_expense|float > 0
+                        else 0
+                    %}
+
+
+                    <div class="account-box">
+
+
+                        <!-- ACCOUNT HEADER -->
+
+                        <div class="account-main-header">
+
+                            <div class="account-main-left">
+
+                                <div class="account-main-icon">
+
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                    >
+
+                                        <rect
+                                            x="2"
+                                            y="5"
+                                            width="20"
+                                            height="14"
+                                            rx="2"
+                                        />
+
+                                        <line
+                                            x1="2"
+                                            y1="10"
+                                            x2="22"
+                                            y2="10"
+                                        />
+
+                                    </svg>
+
+                                </div>
+
+
+                                <div>
+
+                                    <div class="account-main-name">
+                                        {{ account_name }}
+                                    </div>
+
+                                    <div class="account-main-meta">
+
+                                        {{ account_data["transaction_count"] }}
+
+                                        transaction{% if account_data["transaction_count"] != 1 %}s{% endif %}
+
+                                        ·
+
+                                        {{ "%.1f"|format(
+                                            account_percentage|float
+                                        ) }}%
+
+                                        of total expenses
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="account-main-total">
+
+                                <div class="account-total-label">
+                                    Total Expense
+                                </div>
+
+                                <div class="account-total-value">
+
+                                    {{ currency }}
+
+                                    {{ "{:,.2f}".format(
+                                        account_total
+                                    ) }}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- PROGRESS -->
+
+                        <div class="account-progress-area">
+
+                            <div class="account-progress-track">
+
+                                <div
+                                    class="account-progress-bar"
+                                    style="width:{{ account_percentage }}%;"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- CATEGORIES -->
+
+                        {% set categories =
+                            account_data["categories"]|default({}) %}
+
+
+                        {% if categories %}
+
+                            <div class="account-category-area">
+
+                                <div class="category-title">
+                                    Categories
+                                </div>
+
+
+                                {% for category_name, category_data in categories.items() %}
+
+                                    <div class="category-box">
+
+
+                                        <div class="category-header">
+
+                                            <div class="category-name">
+
+                                                <span class="category-dot"></span>
+
+                                                {{ category_name }}
+
+                                            </div>
+
+
+                                            <div class="category-total">
+
+                                                {{ currency }}
+
+                                                {{ "{:,.2f}".format(
+                                                    category_data["total"]|float
+                                                ) }}
+
+                                            </div>
+
+                                        </div>
+
+
+                                        {% set items =
+                                            category_data["items"]|default({}) %}
+
+
+                                        {% if items %}
+
+                                            <div class="items-list">
+
+                                                {% for item_name, item_data in items.items() %}
+
+                                                    <div class="item-row">
+
+                                                        <div class="item-name">
+
+                                                            {{ item_name }}
+
+                                                        </div>
+
+
+                                                        <div class="item-count">
+
+                                                            {{ item_data["transaction_count"] }}
+
+                                                            transaction{% if item_data["transaction_count"] != 1 %}s{% endif %}
+
+                                                        </div>
+
+
+                                                        <div class="item-total">
+
+                                                            {{ currency }}
+
+                                                            {{ "{:,.2f}".format(
+                                                                item_data["total"]|float
+                                                            ) }}
+
+                                                        </div>
+
+                                                    </div>
+
+                                                {% endfor %}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        {% endif %}
+
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="12"
+                            x2="16"
+                            y2="12"
+                        />
+
+                    </svg>
+
+                </div>
+
+                <h4>
+                    No Expense Data
+                </h4>
+
+                <p>
+                    No expense transactions were found.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         OVERVIEW
+         ======================================================== -->
+
+    <div class="report-section">
+
+        <div class="section-header">
+
+            <div class="section-title-wrap">
+
+                <div class="section-title-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+
+                        <line
+                            x1="4"
+                            y1="19"
+                            x2="20"
+                            y2="19"
+                        />
+
+                        <rect
+                            x="6"
+                            y="10"
+                            width="3"
+                            height="7"
+                        />
+
+                        <rect
+                            x="11"
+                            y="6"
+                            width="3"
+                            height="11"
+                        />
+
+                        <rect
+                            x="16"
+                            y="3"
+                            width="3"
+                            height="14"
+                        />
+
+                    </svg>
+
+                </div>
+
+                <div>
+
+                    <h3 class="section-title">
+                        Expense Overview
+                    </h3>
+
+                    <div class="section-subtitle">
+                        Overall report statistics
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="overview-grid">
+
+
+            <div class="overview-card">
+
+                <div class="overview-card-label">
+                    Total Expense
+                </div>
+
+                <div class="overview-card-value expense">
+
+                    {{ currency }}
+
+                    {{ "{:,.2f}".format(
+                        total_expense|float
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+            <div class="overview-card">
+
+                <div class="overview-card-label">
+                    Average Expense
+                </div>
+
+                <div class="overview-card-value">
+
+                    {{ currency }}
+
+                    {{ "{:,.2f}".format(
+                        average_expense|default(0)|float
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+            <div class="overview-card">
+
+                <div class="overview-card-label">
+                    Transactions
+                </div>
+
+                <div class="overview-card-value">
+
+                    {{ "{:,}".format(
+                        expense_transactions|int
+                    ) }}
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTIONS
+         ======================================================== -->
+
+    <div class="report-section">
+
+        <div class="section-header">
+
+            <div class="section-title-wrap">
+
+                <div class="section-title-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+
+                        <line
+                            x1="8"
+                            y1="6"
+                            x2="21"
+                            y2="6"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="12"
+                            x2="21"
+                            y2="12"
+                        />
+
+                        <line
+                            x1="8"
+                            y1="18"
+                            x2="21"
+                            y2="18"
+                        />
+
+                        <line
+                            x1="3"
+                            y1="6"
+                            x2="3.01"
+                            y2="6"
+                        />
+
+                        <line
+                            x1="3"
+                            y1="12"
+                            x2="3.01"
+                            y2="12"
+                        />
+
+                        <line
+                            x1="3"
+                            y1="18"
+                            x2="3.01"
+                            y2="18"
+                        />
+
+                    </svg>
+
+                </div>
+
+                <div>
+
+                    <h3 class="section-title">
+                        Expense Transactions
+                    </h3>
+
+                    <div class="section-subtitle">
+                        All expense transactions
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <span class="badge bg-danger">
+
+                {{ expense_transactions }}
+
+                Expenses
+
+            </span>
+
+        </div>
+
+
+        <!-- FILTER -->
+
+        <div class="filter-area">
+
+            <div class="filters-grid">
+
+
+                <div class="filter-group">
+
+                    <label for="expenseSearch">
+                        Search
+                    </label>
+
+                    <input
+                        type="text"
+                        id="expenseSearch"
+                        class="filter-control"
+                        placeholder="Search transactions..."
+                    >
+
+                </div>
+
+
+                <div class="filter-group">
+
+                    <label for="accountFilter">
+                        Account
+                    </label>
+
+                    <select
+                        id="accountFilter"
+                        class="filter-control"
+                    >
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account_name, account_data in expense_by_account.items() %}
+
+                            <option value="{{ account_name }}">
+                                {{ account_name }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="filter-group">
+
+                    <label for="dateFilter">
+                        Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dateFilter"
+                        class="filter-control"
+                    >
+
+                </div>
+
+
+                <div class="filter-group">
+
+                    <label>
+                        &nbsp;
+                    </label>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-secondary clear-filter-btn"
+                        onclick="resetExpenseFilters()"
+                    >
+                        Clear
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TABLE -->
+
+        <div class="table-body">
+
+            {% if transactions %}
+
+                <div class="table-responsive">
+
+                    <table
+                        id="expenseTransactionsTable"
+                        class="table expense-table"
+                    >
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Account
+                                </th>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Item
+                                </th>
+
+                                <th>
+                                    Description
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th>
+                                    Expense
+                                </th>
+
+                                <th class="no-print">
+                                    View
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for transaction in transactions %}
+
+                                <tr>
+
+
+                                    <!-- DATE -->
+
+                                    <td
+                                        data-order="{{ transaction['date']|default('') }}"
+                                    >
+
+                                        <div class="date-main">
+
+                                            {{ transaction["date_only"]|default(
+                                                transaction["date"]|default("—")
+                                            ) }}
+
+                                        </div>
+
+
+                                        {% if transaction["date"]|default("")|length > 10 %}
+
+                                            <div class="date-time">
+
+                                                {{ transaction["date"][11:] }}
+
+                                            </div>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- ACCOUNT -->
+
+                                    <td>
+
+                                        <span class="account-cell">
+
+                                            {{ transaction["account_name"]|default(
+                                                "Unknown Account"
+                                            ) }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- CATEGORY -->
+
+                                    <td>
+
+                                        <span class="category-badge">
+
+                                            {{ transaction["category"]|default(
+                                                "Uncategorized"
+                                            ) }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ITEM -->
+
+                                    <td>
+
+                                        <span class="item-cell">
+
+                                            {{ transaction["item"]|default("—") }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- DESCRIPTION -->
+
+                                    <td>
+
+                                        <div class="description-cell">
+
+                                            {% if transaction["description"] %}
+
+                                                {{ transaction["description"] }}
+
+                                            {% elif transaction["note"] %}
+
+                                                {{ transaction["note"] }}
+
+                                            {% elif transaction["reference"] %}
+
+                                                {{ transaction["reference"] }}
+
+                                            {% else %}
+
+                                                —
+
+                                            {% endif %}
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        <span class="status-badge">
+
+                                            {{ transaction["status"]|default(
+                                                "Completed"
+                                            ) }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- AMOUNT -->
+
+                                    <td>
+
+                                        <span class="amount-cell">
+
+                                            {{ transaction["currency"]|default(
+                                                currency
+                                            ) }}
+
+                                            {{ "{:,.2f}".format(
+                                                transaction["amount"]|float
+                                            ) }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- VIEW -->
+
+                                    <td class="no-print">
+
+                                        <button
+                                            type="button"
+                                            class="view-btn"
+                                            title="View Expense"
+                                            aria-label="View Expense"
+                                            onclick='viewExpenseTransaction({{ transaction|tojson|safe }})'
+                                        >
+
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+
+                                                <path
+                                                    d="M1 12s4-8 11-8
+                                                       11 8 11 8
+                                                       -4 8-11 8
+                                                       -11-8-11-8z"
+                                                />
+
+                                                <circle
+                                                    cx="12"
+                                                    cy="12"
+                                                    r="3"
+                                                />
+
+                                            </svg>
+
+                                        </button>
+
+                                    </td>
+
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+
+                        <tfoot>
+
+                            <tr>
+
+                                <th
+                                    colspan="6"
+                                    style="text-align:right;"
+                                >
+
+                                    Total Expenses:
+
+                                </th>
+
+                                <th>
+
+                                    {{ currency }}
+
+                                    {{ "{:,.2f}".format(
+                                        total_expense|float
+                                    ) }}
+
+                                </th>
+
+                                <th class="no-print"></th>
+
+                            </tr>
+
+                        </tfoot>
+
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <circle
+                                cx="12"
+                                cy="12"
+                                r="9"
+                            />
+
+                            <line
+                                x1="8"
+                                y1="12"
+                                x2="16"
+                                y2="12"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <h4>
+                        No Expense Transactions
+                    </h4>
+
+                    <p>
+                        No expense transactions were found.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM EXPENSE MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    class="expense-modal-overlay"
+    id="expenseDetailsModal"
+    aria-hidden="true"
+    role="dialog"
+    aria-modal="true"
+>
+
+
+    <div class="expense-modal-container">
+
+
+        <!-- HEADER -->
+
+        <div class="expense-modal-header">
+
+            <div class="expense-modal-title-wrapper">
+
+                <div class="expense-modal-title-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+
+                        <path
+                            d="M14 2H6
+                               a2 2 0 0 0-2 2v16
+                               a2 2 0 0 0 2 2h12
+                               a2 2 0 0 0 2-2V8z"
+                        />
+
+                        <polyline
+                            points="14 2 14 8 20 8"
+                        />
+
+                        <line
+                            x1="16"
+                            y1="13"
+                            x2="8"
+                            y2="13"
+                        />
+
+                        <line
+                            x1="16"
+                            y1="17"
+                            x2="8"
+                            y2="17"
+                        />
+
+                    </svg>
+
+                </div>
+
+
+                <div>
+
+                    <h3>
+                        Expense Transaction Details
+                    </h3>
+
+                    <p>
+                        Transaction information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="expense-modal-close"
+                onclick="closeExpenseModal()"
+                aria-label="Close"
+            >
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <line
+                        x1="18"
+                        y1="6"
+                        x2="6"
+                        y2="18"
+                    />
+
+                    <line
+                        x1="6"
+                        y1="6"
+                        x2="18"
+                        y2="18"
+                    />
+
+                </svg>
+
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+
+        <div class="expense-modal-body">
+
+
+            <div class="expense-invoice-top">
+
+                <div>
+
+                    <div class="expense-field-label">
+                        Expense Amount
+                    </div>
+
+                    <div
+                        id="expenseModalAmount"
+                        class="expense-modal-amount"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-id-section">
+
+                    <div class="expense-field-label">
+                        Transaction ID
+                    </div>
+
+                    <div
+                        id="expenseModalId"
+                        class="expense-modal-id"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="expense-invoice-grid">
+
+
+                <!-- DATE -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon date-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <rect
+                                x="3"
+                                y="4"
+                                width="18"
+                                height="18"
+                                rx="2"
+                            />
+
+                            <line
+                                x1="16"
+                                y1="2"
+                                x2="16"
+                                y2="6"
+                            />
+
+                            <line
+                                x1="8"
+                                y1="2"
+                                x2="8"
+                                y2="6"
+                            />
+
+                            <line
+                                x1="3"
+                                y1="10"
+                                x2="21"
+                                y2="10"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Date
+                        </div>
+
+                        <div
+                            id="expenseModalDate"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ACCOUNT -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon modal-account-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <rect
+                                x="2"
+                                y="5"
+                                width="20"
+                                height="14"
+                                rx="2"
+                            />
+
+                            <line
+                                x1="2"
+                                y1="10"
+                                x2="22"
+                                y2="10"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Account
+                        </div>
+
+                        <div
+                            id="expenseModalAccount"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CATEGORY -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon modal-category-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path
+                                d="M20.59 13.41
+                                   11 3H4v7l9.59 9.59
+                                   a2 2 0 0 0 2.82 0
+                                   l4.18-4.18
+                                   a2 2 0 0 0 0-2.82z"
+                            />
+
+                            <line
+                                x1="7"
+                                y1="7"
+                                x2="7.01"
+                                y2="7"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Category
+                        </div>
+
+                        <div
+                            id="expenseModalCategory"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ITEM -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon modal-item-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path
+                                d="M21 16V8
+                                   a2 2 0 0 0-1-1.73l-7-4
+                                   a2 2 0 0 0-2 0l-7 4
+                                   A2 2 0 0 0 3 8v8
+                                   a2 2 0 0 0 1 1.73l7 4
+                                   a2 2 0 0 0 2 0l7-4
+                                   A2 2 0 0 0 21 16z"
+                            />
+
+                            <polyline
+                                points="3.27 6.96 12 12.01 20.73 6.96"
+                            />
+
+                            <line
+                                x1="12"
+                                y1="22.08"
+                                x2="12"
+                                y2="12"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Item
+                        </div>
+
+                        <div
+                            id="expenseModalItem"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon modal-status-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <polyline
+                                points="20 6 9 17 4 12"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Status
+                        </div>
+
+                        <div
+                            id="expenseModalStatus"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CURRENCY -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon currency-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <line
+                                x1="12"
+                                y1="1"
+                                x2="12"
+                                y2="23"
+                            />
+
+                            <path
+                                d="M17 5H9.5
+                                   a3.5 3.5 0 0 0 0 7h5
+                                   a3.5 3.5 0 0 1 0 7H6"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Currency
+                        </div>
+
+                        <div
+                            id="expenseModalCurrency"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- REFERENCE -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon reference-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <path
+                                d="M10 13
+                                   a5 5 0 0 0 7.54.54
+                                   l3-3
+                                   a5 5 0 0 0-7.07-7.07
+                                   l-1.72 1.71"
+                            />
+
+                            <path
+                                d="M14 11
+                                   a5 5 0 0 0-7.54-.54
+                                   l-3 3
+                                   a5 5 0 0 0 7.07 7.07
+                                   l1.71-1.71"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Reference
+                        </div>
+
+                        <div
+                            id="expenseModalReference"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <div class="expense-invoice-field">
+
+                    <div class="expense-field-icon description-icon">
+
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+
+                            <line
+                                x1="21"
+                                y1="10"
+                                x2="3"
+                                y2="10"
+                            />
+
+                            <line
+                                x1="21"
+                                y1="6"
+                                x2="3"
+                                y2="6"
+                            />
+
+                            <line
+                                x1="21"
+                                y1="14"
+                                x2="3"
+                                y2="14"
+                            />
+
+                            <line
+                                x1="21"
+                                y1="18"
+                                x2="3"
+                                y2="18"
+                            />
+
+                        </svg>
+
+                    </div>
+
+                    <div class="expense-field-content">
+
+                        <div class="expense-field-label">
+                            Description / Note
+                        </div>
+
+                        <div
+                            id="expenseModalDescription"
+                            class="expense-field-value"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+
+        <div class="expense-modal-footer">
+
+            <button
+                type="button"
+                class="expense-btn expense-btn-secondary"
+                onclick="closeExpenseModal()"
+            >
+                Close
+            </button>
+
+
+            <button
+                type="button"
+                class="expense-btn expense-btn-danger"
+                onclick="printExpenseTransaction()"
+            >
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+
+                    <polyline
+                        points="6 9 6 2 18 2 18 9"
+                    />
+
+                    <path
+                        d="M6 18H4
+                           a2 2 0 0 1-2-2v-5
+                           a2 2 0 0 1 2-2h16
+                           a2 2 0 0 1 2 2v5
+                           a2 2 0 0 1-2 2h-2"
+                    />
+
+                    <rect
+                        x="6"
+                        y="14"
+                        width="12"
+                        height="8"
+                    />
+
+                </svg>
+
+                Print
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+let currentExpenseTransaction = null;
+
+
+/* ============================================================
+   DOCUMENT READY
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* ====================================================
+           DATATABLE
+           ==================================================== */
+
+        if (
+            typeof $ !== "undefined" &&
+            $.fn.DataTable &&
+            document.getElementById(
+                "expenseTransactionsTable"
+            )
+        ) {
+
+            window.expenseDataTable =
+                $("#expenseTransactionsTable").DataTable({
+
+                    pageLength: 25,
+
+                    lengthMenu: [
+                        [10,25,50,100,-1],
+                        [10,25,50,100,"All"]
+                    ],
+
+                    order: [
+                        [0,"desc"]
+                    ],
+
+                    responsive: false,
+
+                    autoWidth: false,
+
+                    columnDefs: [
+
+                        {
+                            targets: 7,
+
+                            orderable: false,
+
+                            searchable: false
+                        }
+
+                    ],
+
+                    language: {
+
+                        search: "Search:",
+
+                        lengthMenu: "Show _MENU_",
+
+                        info:
+                            "Showing _START_ to _END_ of _TOTAL_ expenses",
+
+                        infoEmpty:
+                            "No expenses available",
+
+                        zeroRecords:
+                            "No matching expenses found",
+
+                        emptyTable:
+                            "No expense transactions available",
+
+                        paginate: {
+
+                            previous: "‹",
+
+                            next: "›"
+
+                        }
+
+                    }
+
+                });
+
+
+            /* =================================================
+               SEARCH
+               ================================================= */
+
+            const search =
+                document.getElementById(
+                    "expenseSearch"
+                );
+
+
+            if (search) {
+
+                search.addEventListener(
+                    "input",
+                    function () {
+
+                        window.expenseDataTable
+                            .search(this.value)
+                            .draw();
+
+                    }
+                );
+
+            }
+
+
+            /* =================================================
+               ACCOUNT FILTER
+               ================================================= */
+
+            const accountFilter =
+                document.getElementById(
+                    "accountFilter"
+                );
+
+
+            if (accountFilter) {
+
+                accountFilter.addEventListener(
+                    "change",
+                    function () {
+
+                        window.expenseDataTable
+                            .column(1)
+                            .search(this.value)
+                            .draw();
+
+                    }
+                );
+
+            }
+
+
+            /* =================================================
+               DATE FILTER
+               ================================================= */
+
+            const dateFilter =
+                document.getElementById(
+                    "dateFilter"
+                );
+
+
+            if (dateFilter) {
+
+                dateFilter.addEventListener(
+                    "change",
+                    function () {
+
+                        window.expenseDataTable
+                            .column(0)
+                            .search(this.value)
+                            .draw();
+
+                    }
+                );
+
+            }
+
+        }
+
+
+        /* ====================================================
+           ESCAPE
+           ==================================================== */
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Escape"
+                ) {
+
+                    closeExpenseModal();
+
+                }
+
+            }
+        );
+
+
+        /* ====================================================
+           MODAL OVERLAY CLICK
+           ==================================================== */
+
+        const modal =
+            document.getElementById(
+                "expenseDetailsModal"
+            );
+
+
+        if (modal) {
+
+            modal.addEventListener(
+                "click",
+                function (event) {
+
+                    if (
+                        event.target === modal
+                    ) {
+
+                        closeExpenseModal();
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   RESET FILTERS
+   ============================================================ */
+
+function resetExpenseFilters() {
+
+    const search =
+        document.getElementById(
+            "expenseSearch"
+        );
+
+
+    const account =
+        document.getElementById(
+            "accountFilter"
+        );
+
+
+    const date =
+        document.getElementById(
+            "dateFilter"
+        );
+
+
+    if (search) {
+
+        search.value = "";
+
+    }
+
+
+    if (account) {
+
+        account.value = "";
+
+    }
+
+
+    if (date) {
+
+        date.value = "";
+
+    }
+
+
+    if (window.expenseDataTable) {
+
+        window.expenseDataTable
+            .search("")
+            .columns()
+            .search("")
+            .draw();
+
+    }
+
+}
+
+
+/* ============================================================
+   SAFE VALUE
+   ============================================================ */
+
+function expenseSafeValue(value) {
+
+    if (
+        value === undefined ||
+        value === null ||
+        String(value).trim() === ""
+    ) {
+
+        return "—";
+
+    }
+
+
+    return String(value);
+
+}
+
+
+/* ============================================================
+   OPEN EXPENSE MODAL
+   ============================================================ */
+
+function viewExpenseTransaction(
+    transaction
+) {
+
+    if (!transaction) {
+
+        return;
+
+    }
+
+
+    currentExpenseTransaction =
+        transaction;
+
+
+    const modal =
+        document.getElementById(
+            "expenseDetailsModal"
+        );
+
+
+    if (!modal) {
+
+        return;
+
+    }
+
+
+    const currencyValue =
+        expenseSafeValue(
+            transaction.currency
+        );
+
+
+    const currency =
+        currencyValue === "—"
+            ? "USD"
+            : currencyValue;
+
+
+    const amount =
+        Number(
+            transaction.amount || 0
+        ).toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+
+    /* ========================================================
+       AMOUNT
+       ======================================================== */
+
+    const amountElement =
+        document.getElementById(
+            "expenseModalAmount"
+        );
+
+
+    if (amountElement) {
+
+        amountElement.textContent =
+            currency + " " + amount;
+
+    }
+
+
+    /* ========================================================
+       DATA
+       ======================================================== */
+
+    const fields = {
+
+        expenseModalId:
+            transaction.id,
+
+        expenseModalDate:
+            transaction.date,
+
+        expenseModalAccount:
+            transaction.account_name,
+
+        expenseModalCategory:
+            transaction.category,
+
+        expenseModalItem:
+            transaction.item,
+
+        expenseModalStatus:
+            transaction.status,
+
+        expenseModalCurrency:
+            currency,
+
+        expenseModalReference:
+            transaction.reference,
+
+        expenseModalDescription:
+            transaction.description ||
+            transaction.note
+
+    };
+
+
+    Object.keys(fields).forEach(
+        function (id) {
+
+            const element =
+                document.getElementById(id);
+
+
+            if (element) {
+
+                element.textContent =
+                    expenseSafeValue(
+                        fields[id]
+                    );
+
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       SHOW
+       ======================================================== */
+
+    modal.classList.add("active");
+
+    modal.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+
+
+    document.body.style.overflow =
+        "hidden";
+
+
+    /* Focus close */
+
+    const closeButton =
+        modal.querySelector(
+            ".expense-modal-close"
+        );
+
+
+    if (closeButton) {
+
+        setTimeout(
+            function () {
+
+                closeButton.focus();
+
+            },
+            100
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   CLOSE EXPENSE MODAL
+   ============================================================ */
+
+function closeExpenseModal() {
+
+    const modal =
+        document.getElementById(
+            "expenseDetailsModal"
+        );
+
+
+    if (!modal) {
+
+        return;
+
+    }
+
+
+    modal.classList.remove(
+        "active"
+    );
+
+
+    modal.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+
+
+    document.body.style.overflow =
+        "";
+
+
+    currentExpenseTransaction =
+        null;
+
+}
+
+
+/* ============================================================
+   PRINT EXPENSE
+   ============================================================ */
+
+function printExpenseTransaction() {
+
+    const transaction =
+        currentExpenseTransaction;
+
+
+    if (!transaction) {
+
+        return;
+
+    }
+
+
+    const safe =
+        function(value) {
+
+            if (
+                value === undefined ||
+                value === null ||
+                String(value).trim() === ""
+            ) {
+
+                return "—";
+
+            }
+
+            return String(value);
+
+        };
+
+
+    const currency =
+        safe(transaction.currency) === "—"
+            ? "USD"
+            : safe(transaction.currency);
+
+
+    const amount =
+        Number(
+            transaction.amount || 0
+        ).toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits:2,
+                maximumFractionDigits:2
+            }
+        );
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=900,height=700"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Please allow pop-ups to print this expense."
+        );
+
+        return;
+
+    }
+
+
+    const field =
+        function(
+            label,
+            value,
+            full
+        ) {
+
+            return `
+
+                <div
+                    style="
+                        border:1px solid #ddd;
+                        border-radius:8px;
+                        padding:13px;
+                        ${full ? "grid-column:1/-1;" : ""}
+                    "
+                >
+
+                    <div
+                        style="
+                            color:#777;
+                            font-size:9px;
+                            text-transform:uppercase;
+                            font-weight:bold;
+                            margin-bottom:6px;
+                        "
+                    >
+                        ${escapeExpenseHtml(label)}
+                    </div>
+
+                    <div
+                        style="
+                            color:#222;
+                            font-size:13px;
+                            font-weight:bold;
+                            word-break:break-word;
+                        "
+                    >
+                        ${escapeExpenseHtml(value)}
+                    </div>
+
+                </div>
+
+            `;
+
+        };
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                Expense Transaction
+            </title>
+
+            <meta
+                name="viewport"
+                content="width=device-width,initial-scale=1"
+            >
+
+        </head>
+
+
+        <body
+            style="
+                margin:0;
+                padding:40px;
+                font-family:Arial,Helvetica,sans-serif;
+                color:#222;
+                background:#fff;
+            "
+        >
+
+            <div
+                style="
+                    max-width:800px;
+                    margin:auto;
+                "
+            >
+
+                <div
+                    style="
+                        border-bottom:2px solid #222;
+                        padding-bottom:18px;
+                        margin-bottom:25px;
+                        display:flex;
+                        justify-content:space-between;
+                        gap:20px;
+                    "
+                >
+
+                    <div>
+
+                        <h1
+                            style="
+                                margin:0;
+                                font-size:25px;
+                            "
+                        >
+                            Expense Transaction
+                        </h1>
+
+                        <div
+                            style="
+                                color:#777;
+                                font-size:12px;
+                                margin-top:5px;
+                            "
+                        >
+                            Expense transaction details
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        style="
+                            color:#dc3545;
+                            font-size:26px;
+                            font-weight:900;
+                        "
+                    >
+                        ${escapeExpenseHtml(
+                            currency + " " + amount
+                        )}
+                    </div>
+
+                </div>
+
+
+                <div
+                    style="
+                        display:grid;
+                        grid-template-columns:1fr 1fr;
+                        gap:14px;
+                    "
+                >
+
+                    ${field(
+                        "Transaction ID",
+                        safe(transaction.id)
+                    )}
+
+                    ${field(
+                        "Date",
+                        safe(transaction.date)
+                    )}
+
+                    ${field(
+                        "Account",
+                        safe(transaction.account_name)
+                    )}
+
+                    ${field(
+                        "Category",
+                        safe(transaction.category)
+                    )}
+
+                    ${field(
+                        "Item",
+                        safe(transaction.item)
+                    )}
+
+                    ${field(
+                        "Status",
+                        safe(transaction.status)
+                    )}
+
+                    ${field(
+                        "Currency",
+                        currency
+                    )}
+
+                    ${field(
+                        "Reference",
+                        safe(transaction.reference)
+                    )}
+
+                    ${field(
+                        "Description / Note",
+                        safe(
+                            transaction.description ||
+                            transaction.note
+                        ),
+                        true
+                    )}
+
+                </div>
+
+
+                <div
+                    style="
+                        margin-top:30px;
+                        padding-top:15px;
+                        border-top:1px solid #ddd;
+                        color:#888;
+                        font-size:10px;
+                        text-align:center;
+                    "
+                >
+                    Expense Transaction Report
+                </div>
+
+            </div>
+
+
+            <script>
+
+                window.onload = function() {
+
+                    window.print();
+
+                    setTimeout(
+                        function() {
+
+                            window.close();
+
+                        },
+                        300
+                    );
+
+                };
+
+            <\/script>
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+}
+
+
+/* ============================================================
+   HTML ESCAPE
+   ============================================================ */
+
+function escapeExpenseHtml(value) {
+
+    return String(value)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+</script>
+
+{% endblock %}
+

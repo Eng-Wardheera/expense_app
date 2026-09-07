@@ -1,0 +1,3641 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Expense Categories Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPENSE CATEGORIES REPORT
+   NO BOOTSTRAP
+   ============================================================ */
+
+:root {
+    --ec-primary: #dc2626;
+    --ec-primary-dark: #b91c1c;
+    --ec-primary-soft: #fef2f2;
+
+    --ec-success: #16a34a;
+    --ec-success-soft: #f0fdf4;
+
+    --ec-warning: #d97706;
+    --ec-warning-soft: #fffbeb;
+
+    --ec-info: #2563eb;
+    --ec-info-soft: #eff6ff;
+
+    --ec-purple: #7c3aed;
+    --ec-purple-soft: #f5f3ff;
+
+    --ec-dark: #111827;
+    --ec-text: #374151;
+    --ec-muted: #6b7280;
+
+    --ec-border: #e5e7eb;
+    --ec-border-dark: #d1d5db;
+
+    --ec-bg: #f8fafc;
+    --ec-card: #ffffff;
+
+    --ec-radius: 16px;
+    --ec-shadow: 0 8px 30px rgba(15, 23, 42, .07);
+    --ec-shadow-lg: 0 20px 60px rgba(15, 23, 42, .16);
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.ec-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--ec-bg);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.ec-container {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.ec-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.ec-title-area {
+    min-width: 0;
+}
+
+.ec-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--ec-dark);
+    letter-spacing: -.5px;
+}
+
+.ec-subtitle {
+    margin: 7px 0 0;
+    color: var(--ec-muted);
+    font-size: 14px;
+}
+
+.ec-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.ec-btn {
+    border: 1px solid var(--ec-border-dark);
+    background: #fff;
+    color: var(--ec-dark);
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: .18s ease;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.ec-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+}
+
+.ec-btn-primary {
+    background: var(--ec-primary);
+    border-color: var(--ec-primary);
+    color: #fff;
+}
+
+.ec-btn-primary:hover {
+    background: var(--ec-primary-dark);
+}
+
+.ec-btn-success {
+    background: var(--ec-success);
+    border-color: var(--ec-success);
+    color: #fff;
+}
+
+.ec-btn-info {
+    background: var(--ec-info);
+    border-color: var(--ec-info);
+    color: #fff;
+}
+
+.ec-btn-danger {
+    background: var(--ec-primary);
+    border-color: var(--ec-primary);
+    color: #fff;
+}
+
+.ec-btn-light {
+    background: #fff;
+}
+
+.ec-btn-icon {
+    width: 40px;
+    padding: 0;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.ec-filter-card {
+    background: var(--ec-card);
+    border: 1px solid var(--ec-border);
+    border-radius: var(--ec-radius);
+    box-shadow: var(--ec-shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.ec-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        minmax(190px, 1.2fr)
+        minmax(200px, 1.3fr)
+        auto
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.ec-field {
+    min-width: 0;
+}
+
+.ec-field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ec-text);
+    margin-bottom: 6px;
+}
+
+.ec-input,
+.ec-select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--ec-border-dark);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ec-dark);
+    padding: 0 12px;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+    transition: .18s ease;
+}
+
+.ec-input:focus,
+.ec-select:focus {
+    border-color: var(--ec-primary);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, .10);
+}
+
+.ec-filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+
+.ec-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.ec-summary-card {
+    background: var(--ec-card);
+    border: 1px solid var(--ec-border);
+    border-radius: var(--ec-radius);
+    box-shadow: var(--ec-shadow);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ec-summary-card::after {
+    content: "";
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    right: -25px;
+    top: -25px;
+    border-radius: 50%;
+    background: var(--summary-soft);
+}
+
+.ec-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.ec-summary-label {
+    color: var(--ec-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.ec-summary-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--summary-soft);
+    color: var(--summary-color);
+    font-size: 18px;
+    position: relative;
+    z-index: 1;
+}
+
+.ec-summary-value {
+    margin-top: 11px;
+    font-size: 25px;
+    font-weight: 850;
+    color: var(--ec-dark);
+    letter-spacing: -.5px;
+}
+
+.ec-summary-danger {
+    --summary-soft: var(--ec-primary-soft);
+    --summary-color: var(--ec-primary);
+}
+
+.ec-summary-blue {
+    --summary-soft: var(--ec-info-soft);
+    --summary-color: var(--ec-info);
+}
+
+.ec-summary-orange {
+    --summary-soft: var(--ec-warning-soft);
+    --summary-color: var(--ec-warning);
+}
+
+.ec-summary-purple {
+    --summary-soft: var(--ec-purple-soft);
+    --summary-color: var(--ec-purple);
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.ec-table-card {
+    background: #fff;
+    border: 1px solid var(--ec-border);
+    border-radius: var(--ec-radius);
+    box-shadow: var(--ec-shadow);
+    overflow: hidden;
+}
+
+.ec-table-header {
+    padding: 17px 18px;
+    border-bottom: 1px solid var(--ec-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.ec-table-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--ec-dark);
+}
+
+.ec-table-hint {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ec-muted);
+}
+
+.ec-table-search {
+    width: 260px;
+    height: 40px;
+    border: 1px solid var(--ec-border-dark);
+    border-radius: 10px;
+    padding: 0 12px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.ec-table-search:focus {
+    border-color: var(--ec-primary);
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.ec-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.ec-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 820px;
+}
+
+.ec-table th {
+    background: #f9fafb;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    padding: 13px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--ec-border);
+    white-space: nowrap;
+}
+
+.ec-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    color: var(--ec-text);
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.ec-table tbody tr {
+    cursor: pointer;
+    transition: background .15s ease;
+}
+
+.ec-table tbody tr:hover {
+    background: #fff7f7;
+}
+
+.ec-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ec-category-name {
+    font-weight: 800;
+    color: var(--ec-dark);
+}
+
+.ec-category-type {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--ec-primary-soft);
+    color: var(--ec-primary-dark);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ec-number {
+    font-variant-numeric: tabular-nums;
+}
+
+.ec-amount-expense {
+    color: var(--ec-primary);
+    font-weight: 850;
+}
+
+.ec-amount-net {
+    color: var(--ec-primary-dark);
+    font-weight: 850;
+}
+
+.ec-open-cell {
+    text-align: right;
+}
+
+.ec-open-btn {
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: var(--ec-primary-dark);
+    border-radius: 9px;
+    height: 34px;
+    padding: 0 11px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.ec-empty {
+    padding: 60px 20px;
+    text-align: center;
+}
+
+.ec-empty-icon {
+    width: 62px;
+    height: 62px;
+    margin: 0 auto 14px;
+    border-radius: 18px;
+    background: var(--ec-primary-soft);
+    color: var(--ec-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 27px;
+}
+
+.ec-empty-title {
+    font-size: 16px;
+    font-weight: 850;
+    color: var(--ec-dark);
+}
+
+.ec-empty-text {
+    margin-top: 5px;
+    color: var(--ec-muted);
+    font-size: 13px;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.ec-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.ec-modal.active {
+    display: flex;
+}
+
+.ec-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .58);
+    backdrop-filter: blur(4px);
+}
+
+.ec-modal-dialog {
+    width: min(1100px, 100%);
+    max-height: calc(100vh - 40px);
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: var(--ec-shadow-lg);
+    position: relative;
+    z-index: 2;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ec-modal-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--ec-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    background: #fff;
+}
+
+.ec-modal-title-area {
+    min-width: 0;
+}
+
+.ec-modal-title {
+    margin: 0;
+    color: var(--ec-dark);
+    font-size: 19px;
+    font-weight: 850;
+}
+
+.ec-modal-subtitle {
+    margin: 5px 0 0;
+    color: var(--ec-muted);
+    font-size: 12px;
+}
+
+.ec-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.ec-close {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--ec-border-dark);
+    background: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    color: var(--ec-muted);
+}
+
+.ec-close:hover {
+    background: #f9fafb;
+    color: var(--ec-dark);
+}
+
+.ec-modal-body {
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* ============================================================
+   CATEGORY DETAILS
+   ============================================================ */
+
+.ec-detail-head {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.ec-detail-stat {
+    border: 1px solid var(--ec-border);
+    background: #fff;
+    border-radius: 13px;
+    padding: 14px;
+}
+
+.ec-detail-label {
+    font-size: 11px;
+    color: var(--ec-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ec-detail-value {
+    margin-top: 6px;
+    font-size: 19px;
+    font-weight: 850;
+    color: var(--ec-dark);
+}
+
+.ec-detail-value.expense {
+    color: var(--ec-primary);
+}
+
+.ec-detail-value.net {
+    color: var(--ec-primary-dark);
+}
+
+/* ============================================================
+   ITEM SEARCH
+   ============================================================ */
+
+.ec-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.ec-section-title {
+    margin: 0;
+    color: var(--ec-dark);
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.ec-item-search {
+    width: 260px;
+    height: 38px;
+    border: 1px solid var(--ec-border-dark);
+    border-radius: 9px;
+    padding: 0 11px;
+    outline: none;
+}
+
+.ec-item-search:focus {
+    border-color: var(--ec-primary);
+}
+
+/* ============================================================
+   ITEM GRID
+   ============================================================ */
+
+.ec-item-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.ec-item-card {
+    border: 1px solid var(--ec-border);
+    border-radius: 14px;
+    background: #fff;
+    padding: 15px;
+    cursor: pointer;
+    transition: .18s ease;
+}
+
+.ec-item-card:hover {
+    border-color: #fecaca;
+    box-shadow: 0 8px 22px rgba(220, 38, 38, .09);
+    transform: translateY(-2px);
+}
+
+.ec-item-name {
+    color: var(--ec-dark);
+    font-size: 14px;
+    font-weight: 850;
+    margin-bottom: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ec-item-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 7px;
+    font-size: 12px;
+}
+
+.ec-item-info span:first-child {
+    color: var(--ec-muted);
+}
+
+.ec-item-info span:last-child {
+    font-weight: 800;
+    color: var(--ec-dark);
+}
+
+.ec-item-expense {
+    color: var(--ec-primary) !important;
+}
+
+.ec-item-net {
+    color: var(--ec-primary-dark) !important;
+}
+
+.ec-no-items {
+    padding: 30px;
+    border: 1px dashed var(--ec-border-dark);
+    border-radius: 12px;
+    text-align: center;
+    color: var(--ec-muted);
+    font-size: 13px;
+}
+
+/* ============================================================
+   ITEM DETAIL
+   ============================================================ */
+
+.ec-back-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 17px;
+}
+
+.ec-back-btn {
+    border: 1px solid var(--ec-border-dark);
+    background: #fff;
+    color: var(--ec-dark);
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 12px;
+}
+
+.ec-item-detail-name {
+    font-size: 18px;
+    font-weight: 850;
+    color: var(--ec-dark);
+}
+
+.ec-item-detail-meta {
+    margin-top: 3px;
+    color: var(--ec-muted);
+    font-size: 12px;
+}
+
+.ec-item-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.ec-item-stat {
+    border: 1px solid var(--ec-border);
+    border-radius: 12px;
+    padding: 12px;
+    background: #fff;
+}
+
+.ec-item-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--ec-muted);
+    font-weight: 800;
+}
+
+.ec-item-stat-value {
+    margin-top: 5px;
+    font-size: 15px;
+    font-weight: 850;
+    color: var(--ec-dark);
+}
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.ec-transactions-card {
+    border: 1px solid var(--ec-border);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.ec-transactions-header {
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--ec-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.ec-transactions-title {
+    font-size: 14px;
+    font-weight: 850;
+    color: var(--ec-dark);
+}
+
+.ec-transaction-search {
+    width: 280px;
+    height: 36px;
+    border: 1px solid var(--ec-border-dark);
+    border-radius: 9px;
+    padding: 0 10px;
+    outline: none;
+}
+
+.ec-transaction-search:focus {
+    border-color: var(--ec-primary);
+}
+
+.ec-transactions-wrapper {
+    overflow-x: auto;
+}
+
+.ec-transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+.ec-transactions-table th {
+    background: #f9fafb;
+    padding: 11px 13px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: var(--ec-muted);
+    border-bottom: 1px solid var(--ec-border);
+}
+
+.ec-transactions-table td {
+    padding: 12px 13px;
+    border-bottom: 1px solid #f1f2f4;
+    font-size: 12px;
+    color: var(--ec-text);
+}
+
+.ec-transactions-table tr:last-child td {
+    border-bottom: none;
+}
+
+.ec-status {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.ec-status-completed {
+    background: var(--ec-success-soft);
+    color: #15803d;
+}
+
+.ec-status-pending {
+    background: var(--ec-warning-soft);
+    color: #b45309;
+}
+
+.ec-status-cancelled,
+.ec-status-failed {
+    background: var(--ec-primary-soft);
+    color: #b91c1c;
+}
+
+.ec-status-default {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* ============================================================
+   MODAL FOOTER
+   ============================================================ */
+
+.ec-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--ec-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: #fafafa;
+}
+
+.ec-footer-info {
+    color: var(--ec-muted);
+    font-size: 12px;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.ec-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 12000;
+    min-width: 250px;
+    max-width: 380px;
+    background: #111827;
+    color: #fff;
+    border-radius: 12px;
+    padding: 13px 15px;
+    box-shadow: 0 15px 40px rgba(0,0,0,.2);
+    transform: translateY(30px);
+    opacity: 0;
+    pointer-events: none;
+    transition: .25s ease;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.ec-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+.ec-print-area {
+    display: none;
+}
+
+@media print {
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    #expensePrintArea,
+    #expensePrintArea * {
+        visibility: visible !important;
+    }
+
+    #expensePrintArea {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        background: #fff;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .ec-print-title {
+        font-size: 22px;
+        font-weight: 850;
+        margin-bottom: 4px;
+    }
+
+    .ec-print-subtitle {
+        color: #555;
+        font-size: 12px;
+        margin-bottom: 18px;
+    }
+
+    .ec-print-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 18px;
+    }
+
+    .ec-print-stat {
+        border: 1px solid #ddd;
+        padding: 10px;
+    }
+
+    .ec-print-stat-label {
+        font-size: 10px;
+        color: #666;
+    }
+
+    .ec-print-stat-value {
+        font-size: 15px;
+        font-weight: 800;
+        margin-top: 3px;
+    }
+
+    .ec-print-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ec-print-table th,
+    .ec-print-table td {
+        border: 1px solid #ddd;
+        padding: 7px 8px;
+        font-size: 10px;
+        text-align: left;
+    }
+
+    .ec-print-table th {
+        background: #f2f2f2;
+        font-weight: 800;
+    }
+
+    .ec-print-section {
+        margin-top: 25px;
+        page-break-inside: avoid;
+    }
+
+    .ec-print-section-title {
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 8px;
+    }
+
+    .ec-print-item-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ec-print-item-table th,
+    .ec-print-item-table td {
+        border: 1px solid #ddd;
+        padding: 6px 7px;
+        font-size: 9px;
+    }
+
+    .ec-print-item-table th {
+        background: #f5f5f5;
+    }
+
+    .ec-print-item-detail {
+        page-break-before: always;
+    }
+
+    .ec-print-trans-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ec-print-trans-table th,
+    .ec-print-trans-table td {
+        border: 1px solid #ddd;
+        padding: 6px;
+        font-size: 9px;
+    }
+
+    .ec-print-trans-table th {
+        background: #f2f2f2;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .ec-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ec-filter-buttons {
+        grid-column: span 3;
+    }
+
+    .ec-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ec-item-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ec-item-stat-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+
+    .ec-page {
+        padding: 14px;
+    }
+
+    .ec-header {
+        flex-direction: column;
+    }
+
+    .ec-actions {
+        width: 100%;
+    }
+
+    .ec-actions .ec-btn {
+        flex: 1;
+    }
+
+    .ec-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ec-filter-buttons {
+        grid-column: auto;
+        width: 100%;
+    }
+
+    .ec-filter-buttons .ec-btn {
+        flex: 1;
+    }
+
+    .ec-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ec-table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ec-table-search {
+        width: 100%;
+    }
+
+    .ec-detail-head {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ec-item-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ec-section-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ec-item-search {
+        width: 100%;
+    }
+
+    .ec-item-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ec-transactions-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ec-transaction-search {
+        width: 100%;
+    }
+
+    .ec-modal {
+        padding: 8px;
+    }
+
+    .ec-modal-dialog {
+        max-height: calc(100vh - 16px);
+        border-radius: 15px;
+    }
+
+    .ec-modal-header {
+        padding: 14px;
+    }
+
+    .ec-modal-body {
+        padding: 14px;
+    }
+
+    .ec-modal-footer {
+        padding: 12px 14px;
+    }
+
+    .ec-modal-title {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 450px) {
+
+    .ec-title {
+        font-size: 23px;
+    }
+
+    .ec-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ec-detail-head {
+        grid-template-columns: 1fr;
+    }
+
+    .ec-item-stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+
+<div class="ec-page">
+    <div class="ec-container">
+
+        <!-- ====================================================
+             HEADER
+             ==================================================== -->
+
+        <div class="ec-header">
+
+            <div class="ec-title-area">
+                <h1 class="ec-title">
+                    Expense Categories Report
+                </h1>
+
+                <p class="ec-subtitle">
+                    Detailed analysis of expenses grouped by category and item.
+                </p>
+            </div>
+
+            <div class="ec-actions">
+
+                <button
+                    type="button"
+                    class="ec-btn"
+                    onclick="printFullExpenseReport()">
+                    🖨 Print
+                </button>
+
+                <button
+                    type="button"
+                    class="ec-btn ec-btn-success"
+                    onclick="exportExpenseJSON()">
+                    ↓ Export JSON
+                </button>
+
+                <button
+                    type="button"
+                    class="ec-btn"
+                    onclick="window.location.reload()">
+                    ↻ Refresh
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+             ==================================================== -->
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_expense_categories') }}"
+            class="ec-filter-card">
+
+            <div class="ec-filter-grid">
+
+                <div class="ec-field">
+
+                    <label for="start_date">
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="start_date"
+                        name="start_date"
+                        class="ec-input"
+                        value="{{ request.args.get('start_date', '') }}">
+
+                </div>
+
+
+                <div class="ec-field">
+
+                    <label for="end_date">
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        id="end_date"
+                        name="end_date"
+                        class="ec-input"
+                        value="{{ request.args.get('end_date', '') }}">
+
+                </div>
+
+
+                <div class="ec-field">
+
+                    <label for="category_filter">
+                        Category
+                    </label>
+
+                    <select
+                        id="category_filter"
+                        name="category_filter"
+                        class="ec-select">
+
+                        <option value="">
+                            All Expense Categories
+                        </option>
+
+                        {% for category in categories %}
+
+                            <option
+                                value="{{ category['name'] }}"
+                                {% if request.args.get('category_filter', '') == category['name'] %}
+                                    selected
+                                {% endif %}>
+                                {{ category['name'] }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="ec-field">
+
+                    <label for="categorySearchInput">
+                        Search Category
+                    </label>
+
+                    <input
+                        type="text"
+                        id="categorySearchInput"
+                        class="ec-input"
+                        placeholder="Search category..."
+                        autocomplete="off">
+
+                </div>
+
+
+                <div class="ec-filter-buttons">
+
+                    <button
+                        type="submit"
+                        class="ec-btn ec-btn-primary">
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('main.report_expense_categories') }}"
+                        class="ec-btn ec-btn-light">
+                        Clear
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- ====================================================
+             SUMMARY
+             ==================================================== -->
+
+        <div class="ec-summary-grid">
+
+            <div class="ec-summary-card ec-summary-danger">
+
+                <div class="ec-summary-top">
+
+                    <span class="ec-summary-label">
+                        Categories
+                    </span>
+
+                    <div class="ec-summary-icon">
+                        📁
+                    </div>
+
+                </div>
+
+                <div
+                    class="ec-summary-value"
+                    id="summaryCategories">
+                    {{ categories|length }}
+                </div>
+
+            </div>
+
+
+            <div class="ec-summary-card ec-summary-blue">
+
+                <div class="ec-summary-top">
+
+                    <span class="ec-summary-label">
+                        Transactions
+                    </span>
+
+                    <div class="ec-summary-icon">
+                        ⇄
+                    </div>
+
+                </div>
+
+                <div
+                    class="ec-summary-value"
+                    id="summaryTransactions">
+                    {{ total_transactions|default(0) }}
+                </div>
+
+            </div>
+
+
+            <div class="ec-summary-card ec-summary-orange">
+
+                <div class="ec-summary-top">
+
+                    <span class="ec-summary-label">
+                        Total Expense
+                    </span>
+
+                    <div class="ec-summary-icon">
+                        $
+                    </div>
+
+                </div>
+
+                <div
+                    class="ec-summary-value"
+                    id="summaryExpense">
+                    {{ "%.2f"|format(total_expense|default(0)) }}
+                </div>
+
+            </div>
+
+
+            <div class="ec-summary-card ec-summary-purple">
+
+                <div class="ec-summary-top">
+
+                    <span class="ec-summary-label">
+                        Net Expense
+                    </span>
+
+                    <div class="ec-summary-icon">
+                        ∑
+                    </div>
+
+                </div>
+
+                <div
+                    class="ec-summary-value"
+                    id="summaryNet">
+                    {{ "%.2f"|format(net_total|default(0)) }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             CATEGORY TABLE
+             ==================================================== -->
+
+        <div class="ec-table-card">
+
+            <div class="ec-table-header">
+
+                <div>
+
+                    <h2 class="ec-table-title">
+                        Expense Categories
+                    </h2>
+
+                    <div class="ec-table-hint">
+                        Double-click a category to view all items.
+                    </div>
+
+                </div>
+
+                <input
+                    type="text"
+                    id="categoryTableSearch"
+                    class="ec-table-search"
+                    placeholder="Search categories..."
+                    autocomplete="off">
+
+            </div>
+
+
+            <div class="ec-table-wrapper">
+
+                {% if categories %}
+
+                <table class="ec-table" id="categoryTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Items
+                            </th>
+
+                            <th>
+                                Transactions
+                            </th>
+
+                            <th>
+                                Expense
+                            </th>
+
+                            <th>
+                                Net
+                            </th>
+
+                            <th>
+                                Open
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for category in categories %}
+
+                        <tr
+                            class="category-row"
+                            data-index="{{ loop.index0 }}"
+                            data-category="{{ category['name']|lower }}"
+                            ondblclick="openCategory({{ loop.index0 }})">
+
+                            <td>
+
+                                <div class="ec-category-name">
+                                    {{ category['name'] }}
+                                </div>
+
+                            </td>
+
+
+                            <td class="ec-number">
+                                {{ category['items']|length }}
+                            </td>
+
+
+                            <td class="ec-number">
+                                {{ category['transaction_count']|default(0) }}
+                            </td>
+
+
+                            <td class="ec-amount-expense">
+                                {{ "%.2f"|format(category['expense']|default(0)) }}
+                            </td>
+
+
+                            <td class="ec-amount-net">
+                                {{ "%.2f"|format(category['net']|default(0)) }}
+                            </td>
+
+
+                            <td class="ec-open-cell">
+
+                                <button
+                                    type="button"
+                                    class="ec-open-btn"
+                                    onclick="event.stopPropagation(); openCategory({{ loop.index0 }})">
+                                    View →
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+                {% else %}
+
+                <div class="ec-empty">
+
+                    <div class="ec-empty-icon">
+                        $
+                    </div>
+
+                    <div class="ec-empty-title">
+                        No expense categories found
+                    </div>
+
+                    <div class="ec-empty-text">
+                        There are no expense transactions matching the selected filters.
+                    </div>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ============================================================
+     CATEGORY / ITEM MODAL
+     ============================================================ -->
+
+<div
+    id="expenseModal"
+    class="ec-modal"
+    aria-hidden="true">
+
+    <div
+        class="ec-modal-backdrop"
+        onclick="closeExpenseModal()">
+    </div>
+
+
+    <div
+        class="ec-modal-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="expenseModalTitle">
+
+
+        <!-- ====================================================
+             MODAL HEADER
+             ==================================================== -->
+
+        <div class="ec-modal-header">
+
+            <div class="ec-modal-title-area">
+
+                <h2
+                    id="expenseModalTitle"
+                    class="ec-modal-title">
+                    Expense Category
+                </h2>
+
+                <p
+                    id="expenseModalSubtitle"
+                    class="ec-modal-subtitle">
+                    Category details
+                </p>
+
+            </div>
+
+
+            <div class="ec-modal-actions">
+
+                <button
+                    type="button"
+                    class="ec-btn ec-btn-icon"
+                    id="modalPrintButton"
+                    onclick="printCurrentView()"
+                    title="Print">
+                    🖨
+                </button>
+
+                <button
+                    type="button"
+                    class="ec-close"
+                    onclick="closeExpenseModal()"
+                    aria-label="Close">
+                    ×
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             MODAL BODY
+             ==================================================== -->
+
+        <div
+            id="expenseModalBody"
+            class="ec-modal-body">
+        </div>
+
+
+        <!-- ====================================================
+             MODAL FOOTER
+             ==================================================== -->
+
+        <div class="ec-modal-footer">
+
+            <div
+                id="modalFooterInfo"
+                class="ec-footer-info">
+                Double-click an item to view transactions.
+            </div>
+
+            <button
+                type="button"
+                class="ec-btn"
+                onclick="closeExpenseModal()">
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     HIDDEN PRINT AREA
+     ============================================================ -->
+
+<div
+    id="expensePrintArea"
+    class="ec-print-area">
+</div>
+
+
+<!-- ============================================================
+     TOAST
+     ============================================================ -->
+
+<div
+    id="expenseToast"
+    class="ec-toast">
+</div>
+
+
+<script>
+/* ============================================================
+   EXPENSE CATEGORY DATA
+   ============================================================ */
+
+const expenseCategoryData =
+    {{ categories|tojson|safe }};
+
+
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
+
+let currentCategoryIndex = null;
+let currentItemIndex = null;
+let currentView = "category";
+
+let categorySearchValue = "";
+let itemSearchValue = "";
+let transactionSearchValue = "";
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function escapeHtml(value) {
+
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+function formatMoney(value) {
+
+    const number = Number(value || 0);
+
+    return number.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+
+function formatNumber(value) {
+
+    const number = Number(value || 0);
+
+    return number.toLocaleString();
+}
+
+
+function formatDate(value) {
+
+    if (!value) {
+        return "—";
+    }
+
+    try {
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "short",
+            day: "2-digit"
+        });
+
+    } catch (error) {
+
+        return String(value);
+    }
+}
+
+
+function normalizeText(value) {
+
+    return String(value || "")
+        .toLowerCase()
+        .trim();
+}
+
+
+function getStatusClass(status) {
+
+    const normalized =
+        normalizeText(status);
+
+    if (
+        normalized === "completed" ||
+        normalized === "complete" ||
+        normalized === "paid" ||
+        normalized === "success" ||
+        normalized === "successful"
+    ) {
+        return "ec-status-completed";
+    }
+
+    if (
+        normalized === "pending" ||
+        normalized === "processing"
+    ) {
+        return "ec-status-pending";
+    }
+
+    if (
+        normalized === "cancelled" ||
+        normalized === "canceled" ||
+        normalized === "failed"
+    ) {
+        return "ec-status-cancelled";
+    }
+
+    return "ec-status-default";
+}
+
+
+function getTransactionAccount(transaction) {
+
+    return (
+        transaction.account_name ||
+        transaction.account ||
+        transaction.account_title ||
+        "—"
+    );
+}
+
+
+function getTransactionDate(transaction) {
+
+    return (
+        transaction.date ||
+        transaction.transaction_date ||
+        transaction.created_at ||
+        ""
+    );
+}
+
+
+function getTransactionType(transaction) {
+
+    return (
+        transaction.transaction_type ||
+        transaction.type ||
+        "Expense"
+    );
+}
+
+
+function getTransactionAmount(transaction) {
+
+    return Number(
+        transaction.amount ||
+        0
+    );
+}
+
+
+function getTransactionStatus(transaction) {
+
+    return (
+        transaction.status ||
+        "Completed"
+    );
+}
+
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+let toastTimer = null;
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById("expenseToast");
+
+    if (!toast) {
+        return;
+    }
+
+    toast.textContent = message;
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2400);
+}
+
+
+/* ============================================================
+   MODAL OPEN
+   ============================================================ */
+
+function openExpenseModal() {
+
+    const modal =
+        document.getElementById("expenseModal");
+
+    modal.classList.add("active");
+    modal.setAttribute("aria-hidden", "false");
+
+    document.body.style.overflow = "hidden";
+}
+
+
+/* ============================================================
+   MODAL CLOSE
+   ============================================================ */
+
+function closeExpenseModal() {
+
+    const modal =
+        document.getElementById("expenseModal");
+
+    modal.classList.remove("active");
+    modal.setAttribute("aria-hidden", "true");
+
+    document.body.style.overflow = "";
+
+    currentCategoryIndex = null;
+    currentItemIndex = null;
+    currentView = "category";
+}
+
+
+/* ============================================================
+   OPEN CATEGORY
+   ============================================================ */
+
+function openCategory(index) {
+
+    const category =
+        expenseCategoryData[index];
+
+    if (!category) {
+        return;
+    }
+
+    currentCategoryIndex = index;
+    currentItemIndex = null;
+    currentView = "category";
+
+    itemSearchValue = "";
+
+    renderCategoryDetails();
+
+    openExpenseModal();
+}
+
+
+/* ============================================================
+   RENDER CATEGORY DETAILS
+   ============================================================ */
+
+function renderCategoryDetails() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const modalTitle =
+        document.getElementById("expenseModalTitle");
+
+    const modalSubtitle =
+        document.getElementById("expenseModalSubtitle");
+
+    const modalBody =
+        document.getElementById("expenseModalBody");
+
+    const footer =
+        document.getElementById("modalFooterInfo");
+
+    modalTitle.textContent =
+        category.name || "Expense Category";
+
+    modalSubtitle.textContent =
+        "Category expense details and items";
+
+    footer.textContent =
+        "Double-click an item to view all transactions.";
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    modalBody.innerHTML = `
+
+        <div class="ec-detail-head">
+
+            <div class="ec-detail-stat">
+
+                <div class="ec-detail-label">
+                    Expense
+                </div>
+
+                <div class="ec-detail-value expense">
+                    ${formatMoney(category.expense)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-detail-stat">
+
+                <div class="ec-detail-label">
+                    Net
+                </div>
+
+                <div class="ec-detail-value net">
+                    ${formatMoney(category.net)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-detail-stat">
+
+                <div class="ec-detail-label">
+                    Transactions
+                </div>
+
+                <div class="ec-detail-value">
+                    ${formatNumber(category.transaction_count)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-detail-stat">
+
+                <div class="ec-detail-label">
+                    Items
+                </div>
+
+                <div class="ec-detail-value">
+                    ${formatNumber(items.length)}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="ec-section-head">
+
+            <div>
+
+                <h3 class="ec-section-title">
+                    Items
+                </h3>
+
+            </div>
+
+            <input
+                type="text"
+                id="itemSearchInput"
+                class="ec-item-search"
+                placeholder="Search items..."
+                value="${escapeHtml(itemSearchValue)}"
+                autocomplete="off">
+
+        </div>
+
+
+        <div
+            id="expenseItemGrid"
+            class="ec-item-grid">
+        </div>
+    `;
+
+    renderItems();
+
+    const searchInput =
+        document.getElementById("itemSearchInput");
+
+    if (searchInput) {
+
+        searchInput.addEventListener("input", function() {
+
+            itemSearchValue =
+                this.value;
+
+            renderItems();
+        });
+    }
+}
+
+
+/* ============================================================
+   RENDER ITEMS
+   ============================================================ */
+
+function renderItems() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const grid =
+        document.getElementById("expenseItemGrid");
+
+    if (!grid) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const search =
+        normalizeText(itemSearchValue);
+
+    const filtered =
+        items
+            .map((item, index) => ({
+                item,
+                index
+            }))
+            .filter(entry => {
+
+                if (!search) {
+                    return true;
+                }
+
+                const item =
+                    entry.item;
+
+                return normalizeText(
+                    item.name ||
+                    item.item ||
+                    ""
+                ).includes(search);
+
+            });
+
+
+    if (!filtered.length) {
+
+        grid.innerHTML = `
+            <div class="ec-no-items">
+                No items found.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    grid.innerHTML =
+        filtered.map(entry => {
+
+            const item =
+                entry.item;
+
+            const originalIndex =
+                entry.index;
+
+            const name =
+                item.name ||
+                item.item ||
+                "Unnamed Item";
+
+            return `
+
+                <div
+                    class="ec-item-card"
+                    ondblclick="openItem(${originalIndex})">
+
+                    <div class="ec-item-name"
+                         title="${escapeHtml(name)}">
+                        ${escapeHtml(name)}
+                    </div>
+
+
+                    <div class="ec-item-info">
+
+                        <span>
+                            Transactions
+                        </span>
+
+                        <span>
+                            ${formatNumber(item.transaction_count)}
+                        </span>
+
+                    </div>
+
+
+                    <div class="ec-item-info">
+
+                        <span>
+                            Expense
+                        </span>
+
+                        <span class="ec-item-expense">
+                            ${formatMoney(item.expense)}
+                        </span>
+
+                    </div>
+
+
+                    <div class="ec-item-info">
+
+                        <span>
+                            Net
+                        </span>
+
+                        <span class="ec-item-net">
+                            ${formatMoney(item.net)}
+                        </span>
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+}
+
+
+/* ============================================================
+   OPEN ITEM
+   ============================================================ */
+
+function openItem(index) {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const item =
+        items[index];
+
+    if (!item) {
+        return;
+    }
+
+    currentItemIndex = index;
+    currentView = "item";
+
+    transactionSearchValue = "";
+
+    renderItemDetails();
+}
+
+
+/* ============================================================
+   RENDER ITEM DETAILS
+   ============================================================ */
+
+function renderItemDetails() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const item =
+        items[currentItemIndex];
+
+    if (!item) {
+        return;
+    }
+
+    const modalTitle =
+        document.getElementById("expenseModalTitle");
+
+    const modalSubtitle =
+        document.getElementById("expenseModalSubtitle");
+
+    const modalBody =
+        document.getElementById("expenseModalBody");
+
+    const footer =
+        document.getElementById("modalFooterInfo");
+
+    const itemName =
+        item.name ||
+        item.item ||
+        "Unnamed Item";
+
+    modalTitle.textContent =
+        itemName;
+
+    modalSubtitle.textContent =
+        `${category.name || "Category"} • Item Details`;
+
+    footer.textContent =
+        "All transactions for this item.";
+
+    const transactions =
+        Array.isArray(item.transactions)
+            ? item.transactions
+            : [];
+
+
+    modalBody.innerHTML = `
+
+        <div class="ec-back-row">
+
+            <button
+                type="button"
+                class="ec-back-btn"
+                onclick="backToCategory()">
+                ← Back
+            </button>
+
+            <div>
+
+                <div class="ec-item-detail-name">
+                    ${escapeHtml(itemName)}
+                </div>
+
+                <div class="ec-item-detail-meta">
+                    Category: ${escapeHtml(category.name || "—")}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="ec-item-stat-grid">
+
+            <div class="ec-item-stat">
+
+                <div class="ec-item-stat-label">
+                    Transactions
+                </div>
+
+                <div class="ec-item-stat-value">
+                    ${formatNumber(item.transaction_count)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-item-stat">
+
+                <div class="ec-item-stat-label">
+                    Expense
+                </div>
+
+                <div class="ec-item-stat-value"
+                     style="color:var(--ec-primary);">
+                    ${formatMoney(item.expense)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-item-stat">
+
+                <div class="ec-item-stat-label">
+                    Net
+                </div>
+
+                <div class="ec-item-stat-value"
+                     style="color:var(--ec-primary-dark);">
+                    ${formatMoney(item.net)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-item-stat">
+
+                <div class="ec-item-stat-label">
+                    Average
+                </div>
+
+                <div class="ec-item-stat-value">
+                    ${formatMoney(item.average)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-item-stat">
+
+                <div class="ec-item-stat-label">
+                    Highest
+                </div>
+
+                <div class="ec-item-stat-value">
+                    ${formatMoney(item.highest)}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="ec-transactions-card">
+
+            <div class="ec-transactions-header">
+
+                <div class="ec-transactions-title">
+                    All Transactions
+                </div>
+
+                <input
+                    type="text"
+                    id="transactionSearchInput"
+                    class="ec-transaction-search"
+                    placeholder="Search account, date, type, amount..."
+                    value="${escapeHtml(transactionSearchValue)}"
+                    autocomplete="off">
+
+            </div>
+
+
+            <div class="ec-transactions-wrapper">
+
+                <table class="ec-transactions-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Account
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="itemTransactionsBody">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    `;
+
+
+    renderTransactions();
+
+
+    const searchInput =
+        document.getElementById("transactionSearchInput");
+
+    if (searchInput) {
+
+        searchInput.addEventListener("input", function() {
+
+            transactionSearchValue =
+                this.value;
+
+            renderTransactions();
+
+        });
+    }
+}
+
+
+/* ============================================================
+   RENDER TRANSACTIONS
+   ============================================================ */
+
+function renderTransactions() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const item =
+        items[currentItemIndex];
+
+    if (!item) {
+        return;
+    }
+
+    const tbody =
+        document.getElementById("itemTransactionsBody");
+
+    if (!tbody) {
+        return;
+    }
+
+    const transactions =
+        Array.isArray(item.transactions)
+            ? item.transactions
+            : [];
+
+    const search =
+        normalizeText(transactionSearchValue);
+
+
+    const filtered =
+        transactions.filter(transaction => {
+
+            if (!search) {
+                return true;
+            }
+
+            const date =
+                getTransactionDate(transaction);
+
+            const account =
+                getTransactionAccount(transaction);
+
+            const type =
+                getTransactionType(transaction);
+
+            const amount =
+                getTransactionAmount(transaction);
+
+            const status =
+                getTransactionStatus(transaction);
+
+            const searchable =
+                [
+                    date,
+                    formatDate(date),
+                    account,
+                    type,
+                    amount,
+                    formatMoney(amount),
+                    status
+                ]
+                .join(" ")
+                .toLowerCase();
+
+            return searchable.includes(search);
+        });
+
+
+    if (!filtered.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td
+                    colspan="5"
+                    style="text-align:center;padding:35px;color:#6b7280;">
+                    No transactions found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        filtered.map(transaction => {
+
+            const date =
+                getTransactionDate(transaction);
+
+            const account =
+                getTransactionAccount(transaction);
+
+            const type =
+                getTransactionType(transaction);
+
+            const amount =
+                getTransactionAmount(transaction);
+
+            const status =
+                getTransactionStatus(transaction);
+
+            const statusClass =
+                getStatusClass(status);
+
+            return `
+
+                <tr>
+
+                    <td>
+                        ${escapeHtml(formatDate(date))}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(account)}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(type)}
+                    </td>
+
+                    <td
+                        style="font-weight:850;color:var(--ec-primary);">
+                        ${formatMoney(amount)}
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="ec-status ${statusClass}">
+                            ${escapeHtml(status)}
+                        </span>
+
+                    </td>
+
+                </tr>
+            `;
+
+        }).join("");
+}
+
+
+/* ============================================================
+   BACK TO CATEGORY
+   ============================================================ */
+
+function backToCategory() {
+
+    currentItemIndex = null;
+    currentView = "category";
+
+    renderCategoryDetails();
+}
+
+
+/* ============================================================
+   CATEGORY TABLE SEARCH
+   ============================================================ */
+
+const categoryTableSearch =
+    document.getElementById("categoryTableSearch");
+
+
+if (categoryTableSearch) {
+
+    categoryTableSearch.addEventListener("input", function() {
+
+        const search =
+            normalizeText(this.value);
+
+        document
+            .querySelectorAll(".category-row")
+            .forEach(row => {
+
+                const category =
+                    row.getAttribute("data-category") || "";
+
+                row.style.display =
+                    category.includes(search)
+                        ? ""
+                        : "none";
+
+            });
+
+    });
+}
+
+
+/* ============================================================
+   TOP CATEGORY SEARCH
+   ============================================================ */
+
+const categorySearchInput =
+    document.getElementById("categorySearchInput");
+
+
+if (categorySearchInput) {
+
+    categorySearchInput.addEventListener("input", function() {
+
+        const search =
+            normalizeText(this.value);
+
+        document
+            .querySelectorAll(".category-row")
+            .forEach(row => {
+
+                const category =
+                    row.getAttribute("data-category") || "";
+
+                row.style.display =
+                    category.includes(search)
+                        ? ""
+                        : "none";
+
+            });
+
+    });
+}
+
+
+/* ============================================================
+   ESC KEY
+   ============================================================ */
+
+document.addEventListener("keydown", function(event) {
+
+    if (event.key !== "Escape") {
+        return;
+    }
+
+    const modal =
+        document.getElementById("expenseModal");
+
+    if (
+        modal &&
+        modal.classList.contains("active")
+    ) {
+
+        closeExpenseModal();
+    }
+
+});
+
+
+/* ============================================================
+   PRINT FULL REPORT
+   ============================================================ */
+
+function printFullExpenseReport() {
+
+    const printArea =
+        document.getElementById("expensePrintArea");
+
+    if (!printArea) {
+        return;
+    }
+
+    let html = `
+
+        <div class="ec-print-title">
+            Expense Categories Report
+        </div>
+
+        <div class="ec-print-subtitle">
+            Generated from Expense Categories Report
+        </div>
+
+
+        <div class="ec-print-summary">
+
+            <div class="ec-print-stat">
+
+                <div class="ec-print-stat-label">
+                    Categories
+                </div>
+
+                <div class="ec-print-stat-value">
+                    ${formatNumber(expenseCategoryData.length)}
+                </div>
+
+            </div>
+
+
+            <div class="ec-print-stat">
+
+                <div class="ec-print-stat-label">
+                    Transactions
+                </div>
+
+                <div class="ec-print-stat-value">
+                    ${formatNumber({{ total_transactions|default(0)|tojson }})}
+                </div>
+
+            </div>
+
+
+            <div class="ec-print-stat">
+
+                <div class="ec-print-stat-label">
+                    Total Expense
+                </div>
+
+                <div class="ec-print-stat-value">
+                    ${formatMoney({{ total_expense|default(0)|tojson }})}
+                </div>
+
+            </div>
+
+
+            <div class="ec-print-stat">
+
+                <div class="ec-print-stat-label">
+                    Net Expense
+                </div>
+
+                <div class="ec-print-stat-value">
+                    ${formatMoney({{ net_total|default(0)|tojson }})}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <table class="ec-print-table">
+
+            <thead>
+
+                <tr>
+                    <th>#</th>
+                    <th>Category</th>
+                    <th>Items</th>
+                    <th>Transactions</th>
+                    <th>Expense</th>
+                    <th>Net</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                ${
+                    expenseCategoryData.map((category, index) => {
+
+                        const items =
+                            Array.isArray(category.items)
+                                ? category.items
+                                : [];
+
+                        return `
+
+                            <tr>
+
+                                <td>
+                                    ${index + 1}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(category.name)}
+                                </td>
+
+                                <td>
+                                    ${items.length}
+                                </td>
+
+                                <td>
+                                    ${formatNumber(category.transaction_count)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(category.expense)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(category.net)}
+                                </td>
+
+                            </tr>
+
+                        `;
+
+                    }).join("")
+                }
+
+            </tbody>
+
+        </table>
+    `;
+
+
+    expenseCategoryData.forEach(category => {
+
+        const items =
+            Array.isArray(category.items)
+                ? category.items
+                : [];
+
+        html += `
+
+            <div class="ec-print-section">
+
+                <div class="ec-print-section-title">
+                    ${escapeHtml(category.name)}
+                </div>
+
+                <table class="ec-print-item-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Transactions</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Average</th>
+                            <th>Highest</th>
+                            <th>Lowest</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        ${
+                            items.length
+                                ? items.map((item, index) => {
+
+                                    const name =
+                                        item.name ||
+                                        item.item ||
+                                        "Unnamed Item";
+
+                                    return `
+
+                                        <tr>
+
+                                            <td>
+                                                ${index + 1}
+                                            </td>
+
+                                            <td>
+                                                ${escapeHtml(name)}
+                                            </td>
+
+                                            <td>
+                                                ${formatNumber(item.transaction_count)}
+                                            </td>
+
+                                            <td>
+                                                ${formatMoney(item.expense)}
+                                            </td>
+
+                                            <td>
+                                                ${formatMoney(item.net)}
+                                            </td>
+
+                                            <td>
+                                                ${formatMoney(item.average)}
+                                            </td>
+
+                                            <td>
+                                                ${formatMoney(item.highest)}
+                                            </td>
+
+                                            <td>
+                                                ${formatMoney(item.lowest)}
+                                            </td>
+
+                                        </tr>
+
+                                    `;
+
+                                }).join("")
+                                :
+                                `
+                                    <tr>
+                                        <td colspan="8">
+                                            No items.
+                                        </td>
+                                    </tr>
+                                `
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+        `;
+
+    });
+
+
+    printArea.innerHTML = html;
+
+    setTimeout(() => {
+
+        window.print();
+
+    }, 150);
+
+}
+
+
+/* ============================================================
+   PRINT CURRENT VIEW
+   ============================================================ */
+
+function printCurrentView() {
+
+    if (currentView === "item") {
+
+        printCurrentItem();
+
+        return;
+    }
+
+    if (currentView === "category") {
+
+        printCurrentCategory();
+
+        return;
+    }
+
+    printFullExpenseReport();
+}
+
+
+/* ============================================================
+   PRINT CURRENT CATEGORY
+   ============================================================ */
+
+function printCurrentCategory() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const printArea =
+        document.getElementById("expensePrintArea");
+
+
+    printArea.innerHTML = `
+
+        <div class="ec-print-title">
+            Expense Category: ${escapeHtml(category.name)}
+        </div>
+
+        <div class="ec-print-subtitle">
+            Category expense details
+        </div>
+
+
+        <div class="ec-print-summary">
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Items
+                </div>
+                <div class="ec-print-stat-value">
+                    ${items.length}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Transactions
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatNumber(category.transaction_count)}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Expense
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatMoney(category.expense)}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Net
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatMoney(category.net)}
+                </div>
+            </div>
+
+        </div>
+
+
+        <table class="ec-print-item-table">
+
+            <thead>
+
+                <tr>
+                    <th>#</th>
+                    <th>Item</th>
+                    <th>Transactions</th>
+                    <th>Expense</th>
+                    <th>Net</th>
+                    <th>Average</th>
+                    <th>Highest</th>
+                    <th>Lowest</th>
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                ${
+                    items.length
+                    ?
+                    items.map((item, index) => {
+
+                        const name =
+                            item.name ||
+                            item.item ||
+                            "Unnamed Item";
+
+                        return `
+
+                            <tr>
+
+                                <td>
+                                    ${index + 1}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(name)}
+                                </td>
+
+                                <td>
+                                    ${formatNumber(item.transaction_count)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(item.expense)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(item.net)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(item.average)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(item.highest)}
+                                </td>
+
+                                <td>
+                                    ${formatMoney(item.lowest)}
+                                </td>
+
+                            </tr>
+                        `;
+
+                    }).join("")
+                    :
+                    `
+                        <tr>
+                            <td colspan="8">
+                                No items.
+                            </td>
+                        </tr>
+                    `
+                }
+
+            </tbody>
+
+        </table>
+    `;
+
+
+    setTimeout(() => {
+        window.print();
+    }, 150);
+}
+
+
+/* ============================================================
+   PRINT CURRENT ITEM
+   ============================================================ */
+
+function printCurrentItem() {
+
+    const category =
+        expenseCategoryData[currentCategoryIndex];
+
+    if (!category) {
+        return;
+    }
+
+    const items =
+        Array.isArray(category.items)
+            ? category.items
+            : [];
+
+    const item =
+        items[currentItemIndex];
+
+    if (!item) {
+        return;
+    }
+
+    const itemName =
+        item.name ||
+        item.item ||
+        "Unnamed Item";
+
+    const transactions =
+        Array.isArray(item.transactions)
+            ? item.transactions
+            : [];
+
+    const printArea =
+        document.getElementById("expensePrintArea");
+
+
+    printArea.innerHTML = `
+
+        <div class="ec-print-title">
+            Expense Item: ${escapeHtml(itemName)}
+        </div>
+
+        <div class="ec-print-subtitle">
+            Category: ${escapeHtml(category.name || "—")}
+        </div>
+
+
+        <div class="ec-print-summary">
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Transactions
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatNumber(item.transaction_count)}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Expense
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatMoney(item.expense)}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Average
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatMoney(item.average)}
+                </div>
+            </div>
+
+            <div class="ec-print-stat">
+                <div class="ec-print-stat-label">
+                    Highest
+                </div>
+                <div class="ec-print-stat-value">
+                    ${formatMoney(item.highest)}
+                </div>
+            </div>
+
+        </div>
+
+
+        <div class="ec-print-section">
+
+            <div class="ec-print-section-title">
+                All Transactions
+            </div>
+
+
+            <table class="ec-print-trans-table">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    ${
+                        transactions.length
+                        ?
+                        transactions.map((transaction, index) => {
+
+                            const date =
+                                getTransactionDate(transaction);
+
+                            const account =
+                                getTransactionAccount(transaction);
+
+                            const type =
+                                getTransactionType(transaction);
+
+                            const amount =
+                                getTransactionAmount(transaction);
+
+                            const status =
+                                getTransactionStatus(transaction);
+
+                            return `
+
+                                <tr>
+
+                                    <td>
+                                        ${index + 1}
+                                    </td>
+
+                                    <td>
+                                        ${escapeHtml(formatDate(date))}
+                                    </td>
+
+                                    <td>
+                                        ${escapeHtml(account)}
+                                    </td>
+
+                                    <td>
+                                        ${escapeHtml(type)}
+                                    </td>
+
+                                    <td>
+                                        ${formatMoney(amount)}
+                                    </td>
+
+                                    <td>
+                                        ${escapeHtml(status)}
+                                    </td>
+
+                                </tr>
+
+                            `;
+
+                        }).join("")
+                        :
+                        `
+                            <tr>
+                                <td colspan="6">
+                                    No transactions.
+                                </td>
+                            </tr>
+                        `
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    `;
+
+
+    setTimeout(() => {
+        window.print();
+    }, 150);
+}
+
+
+/* ============================================================
+   EXPORT JSON
+   ============================================================ */
+
+function exportExpenseJSON() {
+
+    const payload = {
+
+        report: "Expense Categories Report",
+
+        generated_at:
+            new Date().toISOString(),
+
+        filters: {
+
+            start_date:
+                document.getElementById("start_date")?.value || "",
+
+            end_date:
+                document.getElementById("end_date")?.value || "",
+
+            category:
+                document.getElementById("category_filter")?.value || ""
+
+        },
+
+        summary: {
+
+            total_categories:
+                expenseCategoryData.length,
+
+            total_transactions:
+                {{ total_transactions|default(0)|tojson }},
+
+            total_expense:
+                {{ total_expense|default(0)|tojson }},
+
+            net_expense:
+                {{ net_total|default(0)|tojson }}
+
+        },
+
+        categories:
+            expenseCategoryData
+
+    };
+
+
+    const blob =
+        new Blob(
+            [
+                JSON.stringify(
+                    payload,
+                    null,
+                    2
+                )
+            ],
+            {
+                type: "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+        "expense_categories_report.json";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    showToast("Expense report exported successfully.");
+}
+
+
+/* ============================================================
+   DATE VALIDATION
+   ============================================================ */
+
+const startDate =
+    document.getElementById("start_date");
+
+const endDate =
+    document.getElementById("end_date");
+
+
+if (startDate && endDate) {
+
+    startDate.addEventListener("change", function() {
+
+        if (
+            endDate.value &&
+            this.value &&
+            endDate.value < this.value
+        ) {
+
+            endDate.value =
+                this.value;
+        }
+
+    });
+
+}
+
+
+/* ============================================================
+   PREVENT ENTER ON SEARCH FROM SUBMITTING FORM
+   ============================================================ */
+
+[
+    "categorySearchInput"
+].forEach(id => {
+
+    const input =
+        document.getElementById(id);
+
+    if (!input) {
+        return;
+    }
+
+    input.addEventListener("keydown", function(event) {
+
+        if (event.key === "Enter") {
+
+            event.preventDefault();
+
+        }
+
+    });
+
+});
+
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    /*
+     * Everything is initialized after DOM load.
+     */
+
+    const modal =
+        document.getElementById("expenseModal");
+
+    if (modal) {
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+    }
+
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,3607 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Saving Transfers Report{% endblock %}
+
+{% block content %}
+
+<style>
+    /* ============================================================
+       SAVING TRANSFERS REPORT
+       ============================================================ */
+
+    .saving-report-wrapper {
+        width: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    .saving-report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+
+    .saving-report-title-box h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 800;
+        color: #172033;
+    }
+
+    .saving-report-title-box p {
+        margin: 6px 0 0;
+        color: #718096;
+        font-size: 14px;
+    }
+
+    .saving-report-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .saving-btn {
+        border: none;
+        padding: 11px 17px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        transition: .2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+    }
+
+    .saving-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .saving-btn-primary {
+        background: #2563eb;
+        color: #fff;
+    }
+
+    .saving-btn-success {
+        background: #16a34a;
+        color: #fff;
+    }
+
+    .saving-btn-secondary {
+        background: #eef2f7;
+        color: #334155;
+    }
+
+    /* ============================================================
+       STATISTICS
+       ============================================================ */
+
+    .saving-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 18px;
+    }
+
+    .saving-stat-card {
+        background: #fff;
+        border: 1px solid #e7ebf0;
+        border-radius: 15px;
+        padding: 18px;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, .05);
+        min-width: 0;
+    }
+
+    .saving-stat-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .saving-stat-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .saving-stat-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .saving-stat-value {
+        margin-top: 12px;
+        font-size: 24px;
+        font-weight: 800;
+        color: #172033;
+        word-break: break-word;
+    }
+
+    .saving-stat-sub {
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 12px;
+    }
+
+    /* ============================================================
+       TRANSFER TYPE CARDS
+       ============================================================ */
+
+    .saving-type-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .saving-type-card {
+        background: #fff;
+        border: 1px solid #e7ebf0;
+        border-radius: 15px;
+        padding: 17px;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, .04);
+    }
+
+    .saving-type-title {
+        color: #475569;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .saving-type-amount {
+        font-size: 21px;
+        font-weight: 800;
+        color: #172033;
+    }
+
+    .saving-type-count {
+        color: #94a3b8;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    /* ============================================================
+       FILTER PANEL
+       ============================================================ */
+
+    .saving-filter-card {
+        background: #fff;
+        border: 1px solid #e7ebf0;
+        border-radius: 15px;
+        padding: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, .04);
+    }
+
+    .saving-filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .saving-filter-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #172033;
+    }
+
+    .saving-filter-grid {
+        display: grid;
+        grid-template-columns:
+            minmax(190px, 2fr)
+            minmax(150px, 1fr)
+            minmax(150px, 1fr)
+            minmax(130px, 1fr)
+            minmax(130px, 1fr)
+            minmax(130px, 1fr)
+            minmax(130px, 1fr);
+        gap: 12px;
+    }
+
+    .saving-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .saving-filter-group label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+    }
+
+    .saving-filter-group input,
+    .saving-filter-group select {
+        width: 100%;
+        height: 40px;
+        border: 1px solid #dce2e9;
+        border-radius: 9px;
+        padding: 0 11px;
+        outline: none;
+        background: #fff;
+        color: #1e293b;
+        box-sizing: border-box;
+        font-size: 13px;
+    }
+
+    .saving-filter-group input:focus,
+    .saving-filter-group select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+    }
+
+    .saving-filter-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+    }
+
+    /* ============================================================
+       TABLE CARD
+       ============================================================ */
+
+    .saving-table-card {
+        background: #fff;
+        border: 1px solid #e7ebf0;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 3px 14px rgba(15, 23, 42, .05);
+    }
+
+    .saving-table-header {
+        padding: 17px 18px;
+        border-bottom: 1px solid #edf0f4;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .saving-table-header h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #172033;
+    }
+
+    .saving-result-count {
+        font-size: 12px;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 6px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+    }
+
+    .saving-table-scroll {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .saving-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1200px;
+    }
+
+    .saving-table th {
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        font-weight: 800;
+        padding: 13px 12px;
+        border-bottom: 1px solid #e8edf2;
+        white-space: nowrap;
+        text-align: left;
+    }
+
+    .saving-table td {
+        padding: 13px 12px;
+        border-bottom: 1px solid #eef1f5;
+        color: #334155;
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .saving-table tbody tr {
+        transition: background .15s ease;
+    }
+
+    .saving-table tbody tr:hover {
+        background: #f8fbff;
+    }
+
+    .saving-id {
+        font-family: monospace;
+        color: #64748b;
+        font-size: 11px;
+    }
+
+    .saving-date {
+        white-space: nowrap;
+        color: #475569;
+    }
+
+    .saving-amount {
+        font-weight: 800;
+        color: #172033;
+        white-space: nowrap;
+    }
+
+    .saving-currency {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-left: 3px;
+    }
+
+    /* ============================================================
+       DIRECTION
+       ============================================================ */
+
+    .saving-direction {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 9px;
+        border-radius: 8px;
+        font-size: 11px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .direction-account-saving {
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .direction-saving-account {
+        background: #f0fdf4;
+        color: #15803d;
+    }
+
+    .direction-saving-saving {
+        background: #faf5ff;
+        color: #7e22ce;
+    }
+
+    /* ============================================================
+       STATUS
+       ============================================================ */
+
+    .saving-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 76px;
+        padding: 5px 9px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .status-completed {
+        background: #dcfce7;
+        color: #15803d;
+    }
+
+    .status-pending {
+        background: #fef3c7;
+        color: #a16207;
+    }
+
+    .status-failed {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .status-cancelled {
+        background: #e2e8f0;
+        color: #475569;
+    }
+
+    .status-other {
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    /* ============================================================
+       FROM / TO
+       ============================================================ */
+
+    .saving-route {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 250px;
+    }
+
+    .saving-party {
+        min-width: 95px;
+    }
+
+    .saving-party-label {
+        font-size: 9px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+
+    .saving-party-name {
+        color: #334155;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .saving-arrow {
+        color: #94a3b8;
+        font-size: 15px;
+    }
+
+    /* ============================================================
+       EMPTY STATE
+       ============================================================ */
+
+    .saving-empty {
+        text-align: center;
+        padding: 55px 20px;
+        color: #94a3b8;
+    }
+
+    .saving-empty-icon {
+        font-size: 42px;
+        margin-bottom: 12px;
+    }
+
+    .saving-empty h4 {
+        margin: 0 0 6px;
+        color: #475569;
+        font-size: 17px;
+    }
+
+    .saving-empty p {
+        margin: 0;
+        font-size: 13px;
+    }
+
+    /* ============================================================
+       CUSTOM MODAL - NO BOOTSTRAP
+       ============================================================ */
+
+    .saving-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, .68);
+        z-index: 99999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+        backdrop-filter: blur(3px);
+    }
+
+    .saving-modal-overlay.active {
+        display: flex;
+    }
+
+    .saving-modal {
+        width: min(850px, 100%);
+        max-height: 90vh;
+        overflow-y: auto;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, .25);
+        animation: savingModalIn .18s ease-out;
+    }
+
+    @keyframes savingModalIn {
+        from {
+            opacity: 0;
+            transform: translateY(12px) scale(.98);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    .saving-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+        padding: 18px 20px;
+        border-bottom: 1px solid #e8edf2;
+        position: sticky;
+        top: 0;
+        background: #fff;
+        z-index: 2;
+    }
+
+    .saving-modal-header h3 {
+        margin: 0;
+        color: #172033;
+        font-size: 18px;
+    }
+
+    .saving-modal-close {
+        width: 34px;
+        height: 34px;
+        border: none;
+        border-radius: 9px;
+        background: #f1f5f9;
+        color: #475569;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+    }
+
+    .saving-modal-close:hover {
+        background: #e2e8f0;
+    }
+
+    .saving-modal-body {
+        padding: 20px;
+    }
+
+    .saving-detail-hero {
+        background: #f8fafc;
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 17px;
+        text-align: center;
+    }
+
+    .saving-detail-amount-label {
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .saving-detail-amount {
+        margin-top: 5px;
+        font-size: 32px;
+        font-weight: 900;
+        color: #172033;
+    }
+
+    .saving-detail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .saving-detail-item {
+        border: 1px solid #e8edf2;
+        border-radius: 11px;
+        padding: 12px;
+        min-width: 0;
+    }
+
+    .saving-detail-label {
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-size: 9px;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+
+    .saving-detail-value {
+        color: #334155;
+        font-size: 13px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .saving-detail-full {
+        grid-column: 1 / -1;
+    }
+
+    .saving-modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        padding: 15px 20px;
+        border-top: 1px solid #e8edf2;
+        gap: 8px;
+        position: sticky;
+        bottom: 0;
+        background: #fff;
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+
+    @media (max-width: 1250px) {
+        .saving-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .saving-filter-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 850px) {
+        .saving-report-wrapper {
+            padding: 12px;
+        }
+
+        .saving-type-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .saving-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 600px) {
+        .saving-stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .saving-filter-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .saving-detail-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .saving-detail-full {
+            grid-column: auto;
+        }
+
+        .saving-report-title-box h1 {
+            font-size: 23px;
+        }
+
+        .saving-report-actions {
+            width: 100%;
+        }
+
+        .saving-report-actions .saving-btn {
+            flex: 1;
+        }
+
+        .saving-modal-overlay {
+            padding: 10px;
+        }
+
+        .saving-modal {
+            max-height: 94vh;
+            border-radius: 14px;
+        }
+    }
+</style>
+
+
+<div class="saving-report-wrapper">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+    <div class="saving-report-header">
+
+        <div class="saving-report-title-box">
+            <h1>Saving Transfers Report</h1>
+            <p>
+                Account-to-Saving, Saving-to-Account and Saving-to-Saving transfers
+            </p>
+        </div>
+
+        <div class="saving-report-actions">
+
+            <a
+                href="{{ url_for('main.all_account_transfers') }}"
+                class="saving-btn saving-btn-secondary"
+            >
+                ← All Transfers
+            </a>
+
+            <button
+                type="button"
+                class="saving-btn saving-btn-success"
+                onclick="exportSavingTransfersCSV()"
+            >
+                ↓ Export CSV
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN STATISTICS
+         ======================================================== -->
+    <div class="saving-stats-grid">
+
+        <!-- Total Transfers -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Total Transfers
+                </div>
+
+                <div class="saving-stat-icon">
+                    ⇄
+                </div>
+            </div>
+
+            <div
+                class="saving-stat-value"
+                id="totalTransfersValue"
+            >
+                {{ total_transfers|default(0) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                Saving related transfers
+            </div>
+        </div>
+
+
+        <!-- Total Amount -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Total Amount
+                </div>
+
+                <div class="saving-stat-icon">
+                    $
+                </div>
+            </div>
+
+            <div
+                class="saving-stat-value"
+                id="totalAmountValue"
+            >
+                {{ "%.2f"|format(total_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                Total transfer value
+            </div>
+        </div>
+
+
+        <!-- Completed -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Completed
+                </div>
+
+                <div class="saving-stat-icon">
+                    ✓
+                </div>
+            </div>
+
+            <div
+                class="saving-stat-value"
+                id="completedAmountValue"
+            >
+                {{ "%.2f"|format(completed_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ completed_count|default(0) }} completed transfers
+            </div>
+        </div>
+
+
+        <!-- Pending -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Pending
+                </div>
+
+                <div class="saving-stat-icon">
+                    ◷
+                </div>
+            </div>
+
+            <div
+                class="saving-stat-value"
+                id="pendingAmountValue"
+            >
+                {{ "%.2f"|format(pending_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ pending_count|default(0) }} pending transfers
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SECONDARY STATUS STATISTICS
+         ======================================================== -->
+    <div class="saving-stats-grid">
+
+        <!-- Failed -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Failed
+                </div>
+
+                <div class="saving-stat-icon">
+                    !
+                </div>
+            </div>
+
+            <div class="saving-stat-value">
+                {{ "%.2f"|format(failed_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ failed_count|default(0) }} failed transfers
+            </div>
+        </div>
+
+
+        <!-- Cancelled -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Cancelled
+                </div>
+
+                <div class="saving-stat-icon">
+                    ×
+                </div>
+            </div>
+
+            <div class="saving-stat-value">
+                {{ "%.2f"|format(cancelled_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ cancelled_count|default(0) }} cancelled transfers
+            </div>
+        </div>
+
+
+        <!-- Saving In -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Account → Saving
+                </div>
+
+                <div class="saving-stat-icon">
+                    ↓
+                </div>
+            </div>
+
+            <div class="saving-stat-value">
+                {{ "%.2f"|format(account_to_saving_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ account_to_saving_count|default(0) }} transfers
+            </div>
+        </div>
+
+
+        <!-- Saving Out -->
+        <div class="saving-stat-card">
+            <div class="saving-stat-top">
+                <div class="saving-stat-label">
+                    Saving → Account
+                </div>
+
+                <div class="saving-stat-icon">
+                    ↑
+                </div>
+            </div>
+
+            <div class="saving-stat-value">
+                {{ "%.2f"|format(saving_to_account_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-stat-sub">
+                {{ saving_to_account_count|default(0) }} transfers
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSFER TYPE SUMMARY
+         ======================================================== -->
+    <div class="saving-type-grid">
+
+        <div class="saving-type-card">
+
+            <div class="saving-type-title">
+                Account → Saving
+            </div>
+
+            <div class="saving-type-amount">
+                {{ "%.2f"|format(account_to_saving_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-type-count">
+                {{ account_to_saving_count|default(0) }} transactions
+            </div>
+
+        </div>
+
+
+        <div class="saving-type-card">
+
+            <div class="saving-type-title">
+                Saving → Account
+            </div>
+
+            <div class="saving-type-amount">
+                {{ "%.2f"|format(saving_to_account_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-type-count">
+                {{ saving_to_account_count|default(0) }} transactions
+            </div>
+
+        </div>
+
+
+        <div class="saving-type-card">
+
+            <div class="saving-type-title">
+                Saving → Saving
+            </div>
+
+            <div class="saving-type-amount">
+                {{ "%.2f"|format(saving_to_saving_amount|default(0)|float) }}
+            </div>
+
+            <div class="saving-type-count">
+                {{ saving_to_saving_count|default(0) }} transactions
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+    <div class="saving-filter-card">
+
+        <div class="saving-filter-header">
+
+            <h3>
+                Filter Saving Transfers
+            </h3>
+
+            <span
+                class="saving-result-count"
+                id="filterResultCount"
+            >
+                {{ total_transfers|default(0) }} results
+            </span>
+
+        </div>
+
+
+        <div class="saving-filter-grid">
+
+            <!-- Search -->
+            <div class="saving-filter-group">
+
+                <label for="savingSearch">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    id="savingSearch"
+                    placeholder="Search account, saving, reference..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- Transfer Type -->
+            <div class="saving-filter-group">
+
+                <label for="savingTypeFilter">
+                    Transfer Type
+                </label>
+
+                <select id="savingTypeFilter">
+
+                    <option value="">
+                        All Types
+                    </option>
+
+                    <option value="account_to_saving">
+                        Account → Saving
+                    </option>
+
+                    <option value="saving_to_account">
+                        Saving → Account
+                    </option>
+
+                    <option value="saving_to_saving">
+                        Saving → Saving
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Status -->
+            <div class="saving-filter-group">
+
+                <label for="savingStatusFilter">
+                    Status
+                </label>
+
+                <select id="savingStatusFilter">
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="failed">
+                        Failed
+                    </option>
+
+                    <option value="cancelled">
+                        Cancelled
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Currency -->
+            <div class="saving-filter-group">
+
+                <label for="savingCurrencyFilter">
+                    Currency
+                </label>
+
+                <select id="savingCurrencyFilter">
+
+                    <option value="">
+                        All Currencies
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Date From -->
+            <div class="saving-filter-group">
+
+                <label for="savingDateFrom">
+                    Date From
+                </label>
+
+                <input
+                    type="date"
+                    id="savingDateFrom"
+                >
+
+            </div>
+
+
+            <!-- Date To -->
+            <div class="saving-filter-group">
+
+                <label for="savingDateTo">
+                    Date To
+                </label>
+
+                <input
+                    type="date"
+                    id="savingDateTo"
+                >
+
+            </div>
+
+
+            <!-- Min Amount -->
+            <div class="saving-filter-group">
+
+                <label for="savingMinAmount">
+                    Min Amount
+                </label>
+
+                <input
+                    type="number"
+                    id="savingMinAmount"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                >
+
+            </div>
+
+
+            <!-- Max Amount -->
+            <div class="saving-filter-group">
+
+                <label for="savingMaxAmount">
+                    Max Amount
+                </label>
+
+                <input
+                    type="number"
+                    id="savingMaxAmount"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="saving-filter-actions">
+
+            <button
+                type="button"
+                class="saving-btn saving-btn-secondary"
+                onclick="resetSavingFilters()"
+            >
+                Reset Filters
+            </button>
+
+            <button
+                type="button"
+                class="saving-btn saving-btn-primary"
+                onclick="applySavingFilters()"
+            >
+                Apply Filters
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TABLE
+         ======================================================== -->
+    <div class="saving-table-card">
+
+        <div class="saving-table-header">
+
+            <h3>
+                Saving Transfer Transactions
+            </h3>
+
+            <span
+                class="saving-result-count"
+                id="tableResultCount"
+            >
+                {{ total_transfers|default(0) }} transfers
+            </span>
+
+        </div>
+
+
+        <div class="saving-table-scroll">
+
+            <table
+                class="saving-table"
+                id="savingTransfersTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Transfer Type</th>
+
+                        <th>From</th>
+
+                        <th>To</th>
+
+                        <th>Amount</th>
+
+                        <th>Status</th>
+
+                        <th>Reference</th>
+
+                        <th>Description</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="savingTransfersBody">
+
+                    {% if transfers %}
+
+                        {% for transfer in transfers %}
+
+                        <tr
+                            class="saving-transfer-row"
+                            data-index="{{ loop.index0 }}"
+                        >
+
+                            <!-- Number -->
+                            <td>
+                                <strong>
+                                    {{ loop.index }}
+                                </strong>
+                            </td>
+
+
+                            <!-- Date -->
+                            <td class="saving-date">
+
+                                {{ transfer.created_at_display
+                                    |default(transfer.created_at
+                                    |default('-')) }}
+
+                            </td>
+
+
+                            <!-- Transfer Type -->
+                            <td>
+
+                                {% set transfer_type =
+                                    transfer.transfer_type
+                                    |default('')
+                                    |lower
+                                %}
+
+                                {% if transfer_type == 'account_to_saving' %}
+
+                                    <span class="saving-direction direction-account-saving">
+                                        Account → Saving
+                                    </span>
+
+                                {% elif transfer_type == 'saving_to_account' %}
+
+                                    <span class="saving-direction direction-saving-account">
+                                        Saving → Account
+                                    </span>
+
+                                {% elif transfer_type == 'saving_to_saving' %}
+
+                                    <span class="saving-direction direction-saving-saving">
+                                        Saving → Saving
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="saving-direction">
+                                        {{ transfer_type|replace('_', ' ')|title }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- From -->
+                            <td>
+
+                                <div class="saving-party">
+
+                                    <div class="saving-party-label">
+                                        From
+                                    </div>
+
+                                    <div class="saving-party-name">
+
+                                        {{ transfer.from_name
+                                            |default(
+                                                transfer.from_account_name
+                                                |default(
+                                                    transfer.from_saving_name
+                                                    |default('-')
+                                                )
+                                            )
+                                        }}
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- To -->
+                            <td>
+
+                                <div class="saving-party">
+
+                                    <div class="saving-party-label">
+                                        To
+                                    </div>
+
+                                    <div class="saving-party-name">
+
+                                        {{ transfer.to_name
+                                            |default(
+                                                transfer.to_account_name
+                                                |default(
+                                                    transfer.to_saving_name
+                                                    |default('-')
+                                                )
+                                            )
+                                        }}
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <!-- Amount -->
+                            <td>
+
+                                <span class="saving-amount">
+
+                                    {{ "%.2f"|format(
+                                        transfer.amount
+                                        |default(0)
+                                        |float
+                                    ) }}
+
+                                    <span class="saving-currency">
+                                        {{ transfer.currency|default('USD') }}
+                                    </span>
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Status -->
+                            <td>
+
+                                {% set status =
+                                    transfer.status
+                                    |default('completed')
+                                    |lower
+                                %}
+
+                                {% if status == 'completed' %}
+
+                                    <span class="saving-status status-completed">
+                                        Completed
+                                    </span>
+
+                                {% elif status == 'pending' %}
+
+                                    <span class="saving-status status-pending">
+                                        Pending
+                                    </span>
+
+                                {% elif status == 'failed' %}
+
+                                    <span class="saving-status status-failed">
+                                        Failed
+                                    </span>
+
+                                {% elif status == 'cancelled' %}
+
+                                    <span class="saving-status status-cancelled">
+                                        Cancelled
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="saving-status status-other">
+                                        {{ status|title }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Reference -->
+                            <td>
+
+                                <span class="saving-id">
+
+                                    {{ transfer.reference_no
+                                        |default(
+                                            transfer.reference
+                                            |default('-')
+                                        )
+                                    }}
+
+                                </span>
+
+                            </td>
+
+
+                            <!-- Description -->
+                            <td>
+
+                                {{ transfer.description
+                                    |default('-')
+                                }}
+
+                            </td>
+
+
+                            <!-- Action -->
+                            <td>
+
+                                <button
+                                    type="button"
+                                    class="saving-btn saving-btn-primary"
+                                    onclick="openSavingTransferModal({{ loop.index0 }})"
+                                >
+                                    View
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="10">
+
+                                <div class="saving-empty">
+
+                                    <div class="saving-empty-icon">
+                                        ⇄
+                                    </div>
+
+                                    <h4>
+                                        No Saving Transfers Found
+                                    </h4>
+
+                                    <p>
+                                        There are currently no saving-related
+                                        transfer transactions.
+                                    </p>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM DETAILS MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    class="saving-modal-overlay"
+    id="savingTransferModal"
+    onclick="handleSavingModalOverlay(event)"
+>
+
+    <div
+        class="saving-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="savingModalTitle"
+    >
+
+        <!-- Modal Header -->
+        <div class="saving-modal-header">
+
+            <h3 id="savingModalTitle">
+                Saving Transfer Details
+            </h3>
+
+            <button
+                type="button"
+                class="saving-modal-close"
+                onclick="closeSavingTransferModal()"
+                aria-label="Close"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- Modal Body -->
+        <div class="saving-modal-body">
+
+            <!-- Amount -->
+            <div class="saving-detail-hero">
+
+                <div class="saving-detail-amount-label">
+                    Transfer Amount
+                </div>
+
+                <div
+                    class="saving-detail-amount"
+                    id="modalAmount"
+                >
+                    0.00
+                </div>
+
+            </div>
+
+
+            <!-- Details -->
+            <div class="saving-detail-grid">
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Transfer Type
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalTransferType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Status
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalStatus"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFrom"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalTo"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Type
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Type
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Account ID
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromAccountId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Account ID
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToAccountId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Saving ID
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromSavingId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Saving ID
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToSavingId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Currency
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalCurrency"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Date
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalDate"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Reference
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalReference"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        Transaction Label
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalTransactionLabel"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Account Balance Before
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Account Balance After
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Account Balance Before
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Account Balance After
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Saving Balance Before
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromSavingBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        From Saving Balance After
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalFromSavingBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Saving Balance Before
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToSavingBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item">
+
+                    <div class="saving-detail-label">
+                        To Saving Balance After
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalToSavingBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item saving-detail-full">
+
+                    <div class="saving-detail-label">
+                        Description
+                    </div>
+
+                    <div
+                        class="saving-detail-value"
+                        id="modalDescription"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="saving-detail-item saving-detail-full">
+
+                    <div class="saving-detail-label">
+                        Transfer ID
+                    </div>
+
+                    <div
+                        class="saving-detail-value saving-id"
+                        id="modalTransferId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Modal Footer -->
+        <div class="saving-modal-footer">
+
+            <button
+                type="button"
+                class="saving-btn saving-btn-secondary"
+                onclick="closeSavingTransferModal()"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ================================================================
+   SAVING TRANSFERS REPORT JAVASCRIPT
+   ================================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ============================================================
+       SERVER DATA
+       ============================================================ */
+
+    const accountTransfers = {{ transfers_json|default('[]')|safe }};
+
+
+    /* ============================================================
+       STATE
+       ============================================================ */
+
+    let filteredTransfers = Array.isArray(accountTransfers)
+        ? [...accountTransfers]
+        : [];
+
+
+    /* ============================================================
+       HELPERS
+       ============================================================ */
+
+    function safeValue(value, fallback = "-") {
+
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return fallback;
+        }
+
+        return String(value);
+
+    }
+
+
+    function escapeHtml(value) {
+
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    function normalize(value) {
+
+        return safeValue(value, "")
+            .toLowerCase()
+            .trim();
+
+    }
+
+
+    function numberValue(value) {
+
+        const number = parseFloat(value);
+
+        if (Number.isNaN(number)) {
+            return 0;
+        }
+
+        return number;
+
+    }
+
+
+    function formatAmount(value) {
+
+        return numberValue(value).toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+    }
+
+
+    function getTransferType(transfer) {
+
+        return normalize(
+            transfer.transfer_type
+            || transfer.transaction_type
+            || ""
+        );
+
+    }
+
+
+    function getFromName(transfer) {
+
+        return safeValue(
+            transfer.from_name
+            || transfer.from_account_name
+            || transfer.from_saving_name
+            || transfer.source_saving_name
+        );
+
+    }
+
+
+    function getToName(transfer) {
+
+        return safeValue(
+            transfer.to_name
+            || transfer.to_account_name
+            || transfer.to_saving_name
+            || transfer.destination_saving_name
+        );
+
+    }
+
+
+    function getStatus(transfer) {
+
+        return normalize(
+            transfer.status || "completed"
+        );
+
+    }
+
+
+    function getCurrency(transfer) {
+
+        return normalize(
+            transfer.currency || "USD"
+        );
+
+    }
+
+
+    function getReference(transfer) {
+
+        return safeValue(
+            transfer.reference_no
+            || transfer.reference
+        );
+
+    }
+
+
+    function getDateText(transfer) {
+
+        return safeValue(
+            transfer.created_at_display
+            || transfer.created_at
+        );
+
+    }
+
+
+    function getDateForFilter(transfer) {
+
+        const raw =
+            transfer.created_at
+            || transfer.date
+            || transfer.createdAt
+            || "";
+
+        if (!raw) {
+            return "";
+        }
+
+        try {
+
+            const date = new Date(raw);
+
+            if (!Number.isNaN(date.getTime())) {
+
+                const year =
+                    date.getFullYear();
+
+                const month =
+                    String(date.getMonth() + 1)
+                        .padStart(2, "0");
+
+                const day =
+                    String(date.getDate())
+                        .padStart(2, "0");
+
+                return `${year}-${month}-${day}`;
+
+            }
+
+        } catch (error) {
+            console.warn(
+                "Unable to parse date:",
+                error
+            );
+        }
+
+        return String(raw).substring(0, 10);
+
+    }
+
+
+    /* ============================================================
+       BUILD CURRENCY FILTER
+       ============================================================ */
+
+    function buildCurrencyFilter() {
+
+        const select =
+            document.getElementById(
+                "savingCurrencyFilter"
+            );
+
+        if (!select) {
+            return;
+        }
+
+        const currencies = new Set();
+
+        accountTransfers.forEach(function (transfer) {
+
+            const currency =
+                safeValue(
+                    transfer.currency
+                    || "USD",
+                    "USD"
+                ).toUpperCase();
+
+            if (currency) {
+                currencies.add(currency);
+            }
+
+        });
+
+        [...currencies]
+            .sort()
+            .forEach(function (currency) {
+
+                const option =
+                    document.createElement("option");
+
+                option.value =
+                    currency.toLowerCase();
+
+                option.textContent =
+                    currency;
+
+                select.appendChild(option);
+
+            });
+
+    }
+
+
+    /* ============================================================
+       APPLY FILTERS
+       ============================================================ */
+
+    window.applySavingFilters = function () {
+
+        const search =
+            normalize(
+                document.getElementById(
+                    "savingSearch"
+                ).value
+            );
+
+        const type =
+            normalize(
+                document.getElementById(
+                    "savingTypeFilter"
+                ).value
+            );
+
+        const status =
+            normalize(
+                document.getElementById(
+                    "savingStatusFilter"
+                ).value
+            );
+
+        const currency =
+            normalize(
+                document.getElementById(
+                    "savingCurrencyFilter"
+                ).value
+            );
+
+        const dateFrom =
+            document.getElementById(
+                "savingDateFrom"
+            ).value;
+
+        const dateTo =
+            document.getElementById(
+                "savingDateTo"
+            ).value;
+
+        const minAmount =
+            document.getElementById(
+                "savingMinAmount"
+            ).value;
+
+        const maxAmount =
+            document.getElementById(
+                "savingMaxAmount"
+            ).value;
+
+
+        filteredTransfers =
+            accountTransfers.filter(
+                function (transfer) {
+
+                    /* ------------------------------------------------
+                       SEARCH
+                       ------------------------------------------------ */
+
+                    if (search) {
+
+                        const searchable = [
+
+                            transfer.id,
+                            transfer._id,
+                            transfer.user_id,
+
+                            transfer.transfer_type,
+                            transfer.transaction_type,
+                            transfer.direction,
+                            transfer.transaction_label,
+
+                            getFromName(transfer),
+                            getToName(transfer),
+
+                            transfer.from_account_id,
+                            transfer.to_account_id,
+
+                            transfer.from_saving_id,
+                            transfer.to_saving_id,
+
+                            transfer.from_saving_name,
+                            transfer.to_saving_name,
+
+                            transfer.currency,
+
+                            getReference(transfer),
+
+                            transfer.description,
+
+                            getDateText(transfer)
+
+                        ]
+                            .map(normalize)
+                            .join(" ");
+
+                        if (
+                            !searchable.includes(search)
+                        ) {
+                            return false;
+                        }
+
+                    }
+
+
+                    /* ------------------------------------------------
+                       TRANSFER TYPE
+                       ------------------------------------------------ */
+
+                    if (
+                        type &&
+                        getTransferType(transfer) !== type
+                    ) {
+                        return false;
+                    }
+
+
+                    /* ------------------------------------------------
+                       STATUS
+                       ------------------------------------------------ */
+
+                    if (
+                        status &&
+                        getStatus(transfer) !== status
+                    ) {
+                        return false;
+                    }
+
+
+                    /* ------------------------------------------------
+                       CURRENCY
+                       ------------------------------------------------ */
+
+                    if (
+                        currency &&
+                        getCurrency(transfer) !== currency
+                    ) {
+                        return false;
+                    }
+
+
+                    /* ------------------------------------------------
+                       AMOUNT
+                       ------------------------------------------------ */
+
+                    const amount =
+                        numberValue(
+                            transfer.amount
+                        );
+
+                    if (
+                        minAmount !== "" &&
+                        amount < numberValue(minAmount)
+                    ) {
+                        return false;
+                    }
+
+                    if (
+                        maxAmount !== "" &&
+                        amount > numberValue(maxAmount)
+                    ) {
+                        return false;
+                    }
+
+
+                    /* ------------------------------------------------
+                       DATE
+                       ------------------------------------------------ */
+
+                    const transferDate =
+                        getDateForFilter(
+                            transfer
+                        );
+
+                    if (
+                        dateFrom &&
+                        transferDate &&
+                        transferDate < dateFrom
+                    ) {
+                        return false;
+                    }
+
+                    if (
+                        dateTo &&
+                        transferDate &&
+                        transferDate > dateTo
+                    ) {
+                        return false;
+                    }
+
+
+                    return true;
+
+                }
+            );
+
+
+        renderFilteredRows();
+
+    };
+
+
+    /* ============================================================
+       RENDER FILTERED TABLE
+       ============================================================ */
+
+    function renderFilteredRows() {
+
+        const tbody =
+            document.getElementById(
+                "savingTransfersBody"
+            );
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.innerHTML = "";
+
+
+        if (!filteredTransfers.length) {
+
+            tbody.innerHTML = `
+
+                <tr>
+
+                    <td colspan="10">
+
+                        <div class="saving-empty">
+
+                            <div class="saving-empty-icon">
+                                🔍
+                            </div>
+
+                            <h4>
+                                No Matching Transfers
+                            </h4>
+
+                            <p>
+                                Try changing or clearing
+                                your filters.
+                            </p>
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+            updateResultCounts();
+
+            return;
+
+        }
+
+
+        filteredTransfers.forEach(
+            function (transfer, index) {
+
+                const type =
+                    getTransferType(
+                        transfer
+                    );
+
+                const status =
+                    getStatus(
+                        transfer
+                    );
+
+                let typeLabel =
+                    type
+                        .replace(/_/g, " ")
+                        .replace(/\b\w/g, function (char) {
+                            return char.toUpperCase();
+                        });
+
+
+                if (
+                    type ===
+                    "account_to_saving"
+                ) {
+                    typeLabel =
+                        "Account → Saving";
+                }
+
+                else if (
+                    type ===
+                    "saving_to_account"
+                ) {
+                    typeLabel =
+                        "Saving → Account";
+                }
+
+                else if (
+                    type ===
+                    "saving_to_saving"
+                ) {
+                    typeLabel =
+                        "Saving → Saving";
+                }
+
+
+                let directionClass =
+                    "";
+
+                if (
+                    type ===
+                    "account_to_saving"
+                ) {
+                    directionClass =
+                        "direction-account-saving";
+                }
+
+                else if (
+                    type ===
+                    "saving_to_account"
+                ) {
+                    directionClass =
+                        "direction-saving-account";
+                }
+
+                else if (
+                    type ===
+                    "saving_to_saving"
+                ) {
+                    directionClass =
+                        "direction-saving-saving";
+                }
+
+
+                let statusClass =
+                    "status-other";
+
+                if (
+                    status ===
+                    "completed"
+                ) {
+                    statusClass =
+                        "status-completed";
+                }
+
+                else if (
+                    status ===
+                    "pending"
+                ) {
+                    statusClass =
+                        "status-pending";
+                }
+
+                else if (
+                    status ===
+                    "failed"
+                ) {
+                    statusClass =
+                        "status-failed";
+                }
+
+                else if (
+                    status ===
+                    "cancelled"
+                ) {
+                    statusClass =
+                        "status-cancelled";
+                }
+
+
+                const row =
+                    document.createElement("tr");
+
+                row.className =
+                    "saving-transfer-row";
+
+
+                row.innerHTML = `
+
+                    <td>
+                        <strong>
+                            ${index + 1}
+                        </strong>
+                    </td>
+
+                    <td class="saving-date">
+                        ${escapeHtml(
+                            getDateText(transfer)
+                        )}
+                    </td>
+
+                    <td>
+                        <span
+                            class="saving-direction ${directionClass}"
+                        >
+                            ${escapeHtml(typeLabel)}
+                        </span>
+                    </td>
+
+                    <td>
+                        <div class="saving-party">
+                            <div class="saving-party-label">
+                                From
+                            </div>
+
+                            <div class="saving-party-name">
+                                ${escapeHtml(
+                                    getFromName(transfer)
+                                )}
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="saving-party">
+                            <div class="saving-party-label">
+                                To
+                            </div>
+
+                            <div class="saving-party-name">
+                                ${escapeHtml(
+                                    getToName(transfer)
+                                )}
+                            </div>
+                        </div>
+                    </td>
+
+                    <td>
+                        <span class="saving-amount">
+
+                            ${formatAmount(
+                                transfer.amount
+                            )}
+
+                            <span class="saving-currency">
+                                ${escapeHtml(
+                                    safeValue(
+                                        transfer.currency,
+                                        "USD"
+                                    ).toUpperCase()
+                                )}
+                            </span>
+
+                        </span>
+                    </td>
+
+                    <td>
+                        <span
+                            class="saving-status ${statusClass}"
+                        >
+                            ${escapeHtml(
+                                status
+                                    .replace(/\b\w/g, function (char) {
+                                        return char.toUpperCase();
+                                    })
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="saving-id">
+                            ${escapeHtml(
+                                getReference(
+                                    transfer
+                                )
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${escapeHtml(
+                            safeValue(
+                                transfer.description
+                            )
+                        )}
+                    </td>
+
+                    <td>
+                        <button
+                            type="button"
+                            class="saving-btn saving-btn-primary"
+                            onclick="openFilteredSavingTransferModal(${index})"
+                        >
+                            View
+                        </button>
+                    </td>
+
+                `;
+
+
+                tbody.appendChild(row);
+
+            }
+        );
+
+
+        updateResultCounts();
+
+    }
+
+
+    /* ============================================================
+       RESULT COUNTS
+       ============================================================ */
+
+    function updateResultCounts() {
+
+        const count =
+            filteredTransfers.length;
+
+
+        const filterCount =
+            document.getElementById(
+                "filterResultCount"
+            );
+
+        const tableCount =
+            document.getElementById(
+                "tableResultCount"
+            );
+
+
+        if (filterCount) {
+
+            filterCount.textContent =
+                `${count} result${count === 1 ? "" : "s"}`;
+
+        }
+
+
+        if (tableCount) {
+
+            tableCount.textContent =
+                `${count} transfer${count === 1 ? "" : "s"}`;
+
+        }
+
+    }
+
+
+    /* ============================================================
+       RESET FILTERS
+       ============================================================ */
+
+    window.resetSavingFilters = function () {
+
+        document.getElementById(
+            "savingSearch"
+        ).value = "";
+
+        document.getElementById(
+            "savingTypeFilter"
+        ).value = "";
+
+        document.getElementById(
+            "savingStatusFilter"
+        ).value = "";
+
+        document.getElementById(
+            "savingCurrencyFilter"
+        ).value = "";
+
+        document.getElementById(
+            "savingDateFrom"
+        ).value = "";
+
+        document.getElementById(
+            "savingDateTo"
+        ).value = "";
+
+        document.getElementById(
+            "savingMinAmount"
+        ).value = "";
+
+        document.getElementById(
+            "savingMaxAmount"
+        ).value = "";
+
+
+        filteredTransfers =
+            [...accountTransfers];
+
+
+        renderFilteredRows();
+
+    };
+
+
+    /* ============================================================
+       OPEN MODAL FROM ORIGINAL TABLE
+       ============================================================ */
+
+    window.openSavingTransferModal =
+        function (index) {
+
+            const transfer =
+                accountTransfers[index];
+
+            if (!transfer) {
+                return;
+            }
+
+            populateSavingTransferModal(
+                transfer
+            );
+
+        };
+
+
+    /* ============================================================
+       OPEN MODAL FROM FILTERED TABLE
+       ============================================================ */
+
+    window.openFilteredSavingTransferModal =
+        function (index) {
+
+            const transfer =
+                filteredTransfers[index];
+
+            if (!transfer) {
+                return;
+            }
+
+            populateSavingTransferModal(
+                transfer
+            );
+
+        };
+
+
+    /* ============================================================
+       POPULATE MODAL
+       ============================================================ */
+
+    function populateSavingTransferModal(
+        transfer
+    ) {
+
+        const type =
+            getTransferType(
+                transfer
+            );
+
+
+        let typeLabel =
+            type
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, function (char) {
+                    return char.toUpperCase();
+                });
+
+
+        if (
+            type ===
+            "account_to_saving"
+        ) {
+            typeLabel =
+                "Account → Saving";
+        }
+
+        else if (
+            type ===
+            "saving_to_account"
+        ) {
+            typeLabel =
+                "Saving → Account";
+        }
+
+        else if (
+            type ===
+            "saving_to_saving"
+        ) {
+            typeLabel =
+                "Saving → Saving";
+        }
+
+
+        const status =
+            getStatus(
+                transfer
+            );
+
+
+        setModalText(
+            "modalAmount",
+            `${formatAmount(
+                transfer.amount
+            )} ${
+                safeValue(
+                    transfer.currency,
+                    "USD"
+                ).toUpperCase()
+            }`
+        );
+
+
+        setModalText(
+            "modalTransferType",
+            typeLabel
+        );
+
+
+        setModalText(
+            "modalStatus",
+            status
+                .replace(/\b\w/g, function (char) {
+                    return char.toUpperCase();
+                })
+        );
+
+
+        setModalText(
+            "modalFrom",
+            getFromName(
+                transfer
+            )
+        );
+
+
+        setModalText(
+            "modalTo",
+            getToName(
+                transfer
+            )
+        );
+
+
+        setModalText(
+            "modalFromType",
+            transfer.from_type
+            || "-"
+        );
+
+
+        setModalText(
+            "modalToType",
+            transfer.to_type
+            || "-"
+        );
+
+
+        setModalText(
+            "modalFromAccountId",
+            transfer.from_account_id
+            || "-"
+        );
+
+
+        setModalText(
+            "modalToAccountId",
+            transfer.to_account_id
+            || "-"
+        );
+
+
+        setModalText(
+            "modalFromSavingId",
+            transfer.from_saving_id
+            || "-"
+        );
+
+
+        setModalText(
+            "modalToSavingId",
+            transfer.to_saving_id
+            || "-"
+        );
+
+
+        setModalText(
+            "modalCurrency",
+            safeValue(
+                transfer.currency,
+                "USD"
+            ).toUpperCase()
+        );
+
+
+        setModalText(
+            "modalDate",
+            getDateText(
+                transfer
+            )
+        );
+
+
+        setModalText(
+            "modalReference",
+            getReference(
+                transfer
+            )
+        );
+
+
+        setModalText(
+            "modalTransactionLabel",
+            transfer.transaction_label
+            || transfer.transaction_type
+            || "-"
+        );
+
+
+        setModalText(
+            "modalFromBalanceBefore",
+            formatOptionalAmount(
+                transfer.from_account_balance_before
+                ?? transfer.account_balance_before
+            )
+        );
+
+
+        setModalText(
+            "modalFromBalanceAfter",
+            formatOptionalAmount(
+                transfer.from_account_balance_after
+                ?? transfer.account_balance_after
+            )
+        );
+
+
+        setModalText(
+            "modalToBalanceBefore",
+            formatOptionalAmount(
+                transfer.to_account_balance_before
+            )
+        );
+
+
+        setModalText(
+            "modalToBalanceAfter",
+            formatOptionalAmount(
+                transfer.to_account_balance_after
+            )
+        );
+
+
+        setModalText(
+            "modalFromSavingBalanceBefore",
+            formatOptionalAmount(
+                transfer.from_saving_balance_before
+            )
+        );
+
+
+        setModalText(
+            "modalFromSavingBalanceAfter",
+            formatOptionalAmount(
+                transfer.from_saving_balance_after
+            )
+        );
+
+
+        setModalText(
+            "modalToSavingBalanceBefore",
+            formatOptionalAmount(
+                transfer.to_saving_balance_before
+            )
+        );
+
+
+        setModalText(
+            "modalToSavingBalanceAfter",
+            formatOptionalAmount(
+                transfer.to_saving_balance_after
+            )
+        );
+
+
+        setModalText(
+            "modalDescription",
+            transfer.description
+            || "-"
+        );
+
+
+        setModalText(
+            "modalTransferId",
+            transfer.id
+            || transfer._id
+            || "-"
+        );
+
+
+        const modal =
+            document.getElementById(
+                "savingTransferModal"
+            );
+
+        if (!modal) {
+            return;
+        }
+
+
+        modal.classList.add(
+            "active"
+        );
+
+
+        document.body.style.overflow =
+            "hidden";
+
+    }
+
+
+    /* ============================================================
+       MODAL TEXT HELPER
+       ============================================================ */
+
+    function setModalText(
+        id,
+        value
+    ) {
+
+        const element =
+            document.getElementById(
+                id
+            );
+
+        if (!element) {
+            return;
+        }
+
+        element.textContent =
+            safeValue(
+                value
+            );
+
+    }
+
+
+    /* ============================================================
+       OPTIONAL AMOUNT
+       ============================================================ */
+
+    function formatOptionalAmount(
+        value
+    ) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return "-";
+        }
+
+        const number =
+            parseFloat(
+                value
+            );
+
+        if (
+            Number.isNaN(number)
+        ) {
+            return safeValue(
+                value
+            );
+        }
+
+        return formatAmount(
+            number
+        );
+
+    }
+
+
+    /* ============================================================
+       CLOSE MODAL
+       ============================================================ */
+
+    window.closeSavingTransferModal =
+        function () {
+
+            const modal =
+                document.getElementById(
+                    "savingTransferModal"
+                );
+
+            if (!modal) {
+                return;
+            }
+
+
+            modal.classList.remove(
+                "active"
+            );
+
+
+            document.body.style.overflow =
+                "";
+
+        };
+
+
+    /* ============================================================
+       OVERLAY CLICK
+       ============================================================ */
+
+    window.handleSavingModalOverlay =
+        function (event) {
+
+            if (
+                event.target &&
+                event.target.id ===
+                "savingTransferModal"
+            ) {
+
+                closeSavingTransferModal();
+
+            }
+
+        };
+
+
+    /* ============================================================
+       ESCAPE KEY
+       ============================================================ */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+            ) {
+
+                const modal =
+                    document.getElementById(
+                        "savingTransferModal"
+                    );
+
+                if (
+                    modal &&
+                    modal.classList.contains(
+                        "active"
+                    )
+                ) {
+
+                    closeSavingTransferModal();
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /* ============================================================
+       CSV EXPORT
+       ============================================================ */
+
+    window.exportSavingTransfersCSV =
+        function () {
+
+            if (
+                !filteredTransfers.length
+            ) {
+
+                alert(
+                    "No saving transfers available to export."
+                );
+
+                return;
+
+            }
+
+
+            const headers = [
+
+                "Transfer ID",
+                "Date",
+                "Transfer Type",
+                "From",
+                "From Type",
+                "From Account ID",
+                "From Saving ID",
+                "To",
+                "To Type",
+                "To Account ID",
+                "To Saving ID",
+                "Amount",
+                "Currency",
+                "Status",
+                "Reference",
+                "Transaction Label",
+                "Description"
+
+            ];
+
+
+            const rows =
+                filteredTransfers.map(
+                    function (transfer) {
+
+                        return [
+
+                            transfer.id
+                            || transfer._id
+                            || "",
+
+                            getDateText(
+                                transfer
+                            ),
+
+                            getTransferType(
+                                transfer
+                            ),
+
+                            getFromName(
+                                transfer
+                            ),
+
+                            transfer.from_type
+                            || "",
+
+                            transfer.from_account_id
+                            || "",
+
+                            transfer.from_saving_id
+                            || "",
+
+                            getToName(
+                                transfer
+                            ),
+
+                            transfer.to_type
+                            || "",
+
+                            transfer.to_account_id
+                            || "",
+
+                            transfer.to_saving_id
+                            || "",
+
+                            transfer.amount
+                            || 0,
+
+                            transfer.currency
+                            || "USD",
+
+                            getStatus(
+                                transfer
+                            ),
+
+                            getReference(
+                                transfer
+                            ),
+
+                            transfer.transaction_label
+                            || transfer.transaction_type
+                            || "",
+
+                            transfer.description
+                            || ""
+
+                        ];
+
+                    }
+                );
+
+
+            const csvRows = [
+
+                headers,
+                ...rows
+
+            ];
+
+
+            const csvContent =
+                csvRows
+                    .map(
+                        function (row) {
+
+                            return row
+                                .map(
+                                    function (cell) {
+
+                                        const value =
+                                            String(
+                                                cell ?? ""
+                                            )
+                                                .replace(
+                                                    /"/g,
+                                                    '""'
+                                                );
+
+                                        return `"${value}"`;
+
+                                    }
+                                )
+                                .join(",");
+
+                        }
+                    )
+                    .join("\n");
+
+
+            const blob =
+                new Blob(
+                    [
+                        "\ufeff" +
+                        csvContent
+                    ],
+                    {
+                        type:
+                            "text/csv;charset=utf-8;"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+
+            link.href =
+                url;
+
+
+            const today =
+                new Date()
+                    .toISOString()
+                    .slice(0, 10);
+
+
+            link.download =
+                `saving_transfers_report_${today}.csv`;
+
+
+            document.body.appendChild(
+                link
+            );
+
+
+            link.click();
+
+
+            document.body.removeChild(
+                link
+            );
+
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        };
+
+
+    /* ============================================================
+       LIVE SEARCH
+       ============================================================ */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            buildCurrencyFilter();
+
+
+            const searchInput =
+                document.getElementById(
+                    "savingSearch"
+                );
+
+
+            if (searchInput) {
+
+                searchInput.addEventListener(
+                    "input",
+                    function () {
+
+                        applySavingFilters();
+
+                    }
+                );
+
+            }
+
+
+            [
+                "savingTypeFilter",
+                "savingStatusFilter",
+                "savingCurrencyFilter",
+                "savingDateFrom",
+                "savingDateTo",
+                "savingMinAmount",
+                "savingMaxAmount"
+
+            ].forEach(
+                function (id) {
+
+                    const element =
+                        document.getElementById(
+                            id
+                        );
+
+                    if (element) {
+
+                        element.addEventListener(
+                            "change",
+                            function () {
+
+                                applySavingFilters();
+
+                            }
+                        );
+
+                    }
+
+                }
+            );
+
+
+            updateResultCounts();
+
+        }
+    );
+
+
+})();
+</script>
+
+{% endblock %}

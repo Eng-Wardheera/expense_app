@@ -1,0 +1,3375 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transaction By Account Report{% endblock %}
+
+{% block content %}
+
+<style>
+    /* ============================================================
+       TRANSACTION BY ACCOUNT REPORT
+       ============================================================ */
+
+    .account-report-page {
+        padding-bottom: 40px;
+    }
+
+    /* ============================================================
+       HEADER
+       ============================================================ */
+
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 22px;
+    }
+
+    .report-title-wrapper {
+        min-width: 0;
+    }
+
+    .report-title {
+        margin: 0;
+        font-size: 25px;
+        font-weight: 800;
+        color: #1f2937;
+    }
+
+    .report-subtitle {
+        margin: 6px 0 0;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .report-actions {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        flex-wrap: wrap;
+    }
+
+    .report-actions .btn {
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    /* ============================================================
+       BREADCRUMB
+       ============================================================ */
+
+    .report-breadcrumb {
+        margin-bottom: 18px;
+    }
+
+    .report-breadcrumb .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    .report-breadcrumb .breadcrumb-item {
+        font-size: 12px;
+    }
+
+    /* ============================================================
+       SUMMARY
+       ============================================================ */
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .summary-card {
+        position: relative;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 13px;
+        padding: 18px;
+        min-height: 125px;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+    }
+
+    .summary-card::after {
+        content: "";
+        position: absolute;
+        width: 85px;
+        height: 85px;
+        right: -28px;
+        bottom: -35px;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, 0.025);
+    }
+
+    .summary-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+    }
+
+    .summary-icon {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .summary-icon.total {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .summary-icon.income {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .summary-icon.expense {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .summary-icon.net {
+        background: #fff7ed;
+        color: #ea580c;
+    }
+
+    .summary-label {
+        font-size: 11px;
+        color: #6b7280;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .summary-value {
+        font-size: 19px;
+        font-weight: 800;
+        color: #111827;
+        line-height: 1.25;
+    }
+
+    .summary-extra {
+        margin-top: 5px;
+        font-size: 10px;
+        color: #9ca3af;
+    }
+
+    /* ============================================================
+       REPORT CARD
+       ============================================================ */
+
+    .report-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 13px;
+        margin-bottom: 22px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+    }
+
+    .report-card-header {
+        padding: 17px 19px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .report-card-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        color: #1f2937;
+    }
+
+    .report-card-description {
+        margin: 4px 0 0;
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .report-card-body {
+        padding: 19px;
+    }
+
+    /* ============================================================
+       ACCOUNT CARDS
+       ============================================================ */
+
+    .account-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 17px;
+    }
+
+    .account-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .account-card-header {
+        padding: 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .account-header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .account-name {
+        font-size: 15px;
+        font-weight: 800;
+        color: #1f2937;
+        word-break: break-word;
+    }
+
+    .account-name-icon {
+        display: inline-flex;
+        margin-right: 5px;
+        color: #2563eb;
+    }
+
+    .account-total {
+        font-size: 16px;
+        font-weight: 800;
+        color: #374151;
+        white-space: nowrap;
+    }
+
+    .account-progress {
+        margin-top: 12px;
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 20px;
+        overflow: hidden;
+    }
+
+    .account-progress-bar {
+        height: 100%;
+        border-radius: 20px;
+    }
+
+    .account-progress-bar.income {
+        background: #10b981;
+    }
+
+    .account-progress-bar.expense {
+        background: #ef4444;
+    }
+
+    .account-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .account-stat {
+        border: 1px solid #eef2f7;
+        border-radius: 8px;
+        padding: 8px;
+        background: #fff;
+    }
+
+    .account-stat-label {
+        font-size: 9px;
+        color: #9ca3af;
+        margin-bottom: 3px;
+    }
+
+    .account-stat-value {
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .account-stat-value.income {
+        color: #059669;
+    }
+
+    .account-stat-value.expense {
+        color: #dc2626;
+    }
+
+    .account-stat-value.positive {
+        color: #059669;
+    }
+
+    .account-stat-value.negative {
+        color: #dc2626;
+    }
+
+    .account-stat-value.zero {
+        color: #6b7280;
+    }
+
+    /* ============================================================
+       CATEGORY SECTION
+       ============================================================ */
+
+    .account-categories {
+        padding: 8px 15px 15px;
+    }
+
+    .categories-title {
+        padding: 7px 0 9px;
+        font-size: 10px;
+        color: #6b7280;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+    }
+
+    .category-section {
+        border: 1px solid #eef2f7;
+        border-radius: 9px;
+        margin-bottom: 9px;
+        overflow: hidden;
+    }
+
+    .category-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .category-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 11px;
+        background: #fafafa;
+    }
+
+    .category-name {
+        font-size: 11px;
+        color: #374151;
+        font-weight: 800;
+        word-break: break-word;
+    }
+
+    .category-total {
+        font-size: 11px;
+        color: #374151;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .category-mini-stats {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 5px;
+    }
+
+    .category-mini-stat {
+        font-size: 9px;
+        font-weight: 700;
+    }
+
+    .category-mini-stat.income {
+        color: #059669;
+    }
+
+    .category-mini-stat.expense {
+        color: #dc2626;
+    }
+
+    .category-mini-stat.net-positive {
+        color: #059669;
+    }
+
+    .category-mini-stat.net-negative {
+        color: #dc2626;
+    }
+
+    .category-mini-stat.net-zero {
+        color: #6b7280;
+    }
+
+    /* ============================================================
+       ITEMS
+       ============================================================ */
+
+    .items-wrapper {
+        padding: 8px 11px 10px;
+    }
+
+    .item-heading-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(65px, 1fr));
+        gap: 8px;
+        padding-bottom: 5px;
+    }
+
+    .item-heading {
+        font-size: 8px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        font-weight: 800;
+        text-align: right;
+    }
+
+    .item-heading:first-child {
+        text-align: left;
+    }
+
+    .item-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(65px, 1fr));
+        align-items: center;
+        gap: 8px;
+        padding: 8px 0;
+        border-top: 1px dashed #e5e7eb;
+    }
+
+    .item-name {
+        font-size: 10px;
+        font-weight: 700;
+        color: #475569;
+        word-break: break-word;
+    }
+
+    .item-value {
+        text-align: right;
+        font-size: 9px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .item-value.income {
+        color: #059669;
+    }
+
+    .item-value.expense {
+        color: #dc2626;
+    }
+
+    .item-value.positive {
+        color: #059669;
+    }
+
+    .item-value.negative {
+        color: #dc2626;
+    }
+
+    .item-value.zero {
+        color: #6b7280;
+    }
+
+    /* ============================================================
+       TABLE
+       ============================================================ */
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    #transactionAccountTable {
+        width: 100% !important;
+    }
+
+    #transactionAccountTable thead th {
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+        color: #374151;
+        font-size: 11px;
+        font-weight: 800;
+        padding: 12px;
+        white-space: nowrap;
+    }
+
+    #transactionAccountTable tbody td {
+        padding: 11px 12px;
+        font-size: 11px;
+        color: #4b5563;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    #transactionAccountTable tbody tr:hover {
+        background: #fafafa;
+    }
+
+    .transaction-number {
+        font-family: monospace;
+        color: #9ca3af;
+        font-size: 10px;
+    }
+
+    .transaction-date {
+        white-space: nowrap;
+    }
+
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        font-size: 9px;
+        font-weight: 800;
+    }
+
+    .type-badge.income {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .type-badge.expense {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .account-badge {
+        display: inline-block;
+        max-width: 170px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 10px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .category-badge {
+        display: inline-block;
+        max-width: 150px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: #f8fafc;
+        color: #475569;
+        font-size: 10px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .item-badge {
+        display: inline-block;
+        max-width: 150px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: #fff7ed;
+        color: #c2410c;
+        font-size: 10px;
+        font-weight: 700;
+        word-break: break-word;
+    }
+
+    .income-amount {
+        color: #059669;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .expense-amount {
+        color: #dc2626;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 5px 8px;
+        border-radius: 7px;
+        font-size: 9px;
+        font-weight: 800;
+        text-transform: capitalize;
+    }
+
+    .status-completed,
+    .status-paid,
+    .status-success {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .status-pending {
+        background: #fffbeb;
+        color: #b45309;
+    }
+
+    .status-cancelled,
+    .status-canceled,
+    .status-failed {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .action-btn {
+        width: 31px;
+        height: 31px;
+        border: 1px solid #e5e7eb;
+        border-radius: 7px;
+        background: #fff;
+        color: #4b5563;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        background: #f8fafc;
+        color: #111827;
+    }
+
+    /* ============================================================
+       NET BADGE
+       ============================================================ */
+
+    .net-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 8px;
+        border-radius: 7px;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .net-badge.profit {
+        background: #ecfdf5;
+        color: #047857;
+    }
+
+    .net-badge.loss {
+        background: #fef2f2;
+        color: #b91c1c;
+    }
+
+    .net-badge.balanced {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+
+    /* ============================================================
+       EMPTY STATE
+       ============================================================ */
+
+    .empty-state {
+        text-align: center;
+        padding: 45px 20px;
+        color: #6b7280;
+    }
+
+    .empty-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 13px;
+        border-radius: 50%;
+        background: #f8fafc;
+        color: #94a3b8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .empty-state h5 {
+        margin: 0 0 5px;
+        font-size: 15px;
+        color: #374151;
+        font-weight: 800;
+    }
+
+    .empty-state p {
+        margin: 0;
+        font-size: 11px;
+    }
+
+    /* ============================================================
+       MODAL
+       ============================================================ */
+
+    .transaction-modal .modal-content {
+        border: none;
+        border-radius: 14px;
+        overflow: hidden;
+    }
+
+    .invoice-header {
+        padding: 20px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .invoice-brand {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+    }
+
+    .invoice-brand h4 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .invoice-brand p {
+        margin: 4px 0 0;
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .invoice-number {
+        text-align: right;
+    }
+
+    .invoice-number-label {
+        font-size: 9px;
+        color: #6b7280;
+        text-transform: uppercase;
+    }
+
+    .invoice-number-value {
+        font-size: 12px;
+        font-weight: 800;
+        color: #111827;
+    }
+
+    .invoice-body {
+        padding: 20px;
+    }
+
+    .invoice-info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 11px;
+        margin-bottom: 20px;
+    }
+
+    .invoice-info {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 10px;
+    }
+
+    .invoice-label {
+        font-size: 9px;
+        color: #9ca3af;
+        text-transform: uppercase;
+        margin-bottom: 3px;
+    }
+
+    .invoice-value {
+        font-size: 11px;
+        font-weight: 700;
+        color: #374151;
+        word-break: break-word;
+    }
+
+    .invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 18px;
+    }
+
+    .invoice-table th {
+        background: #f8fafc;
+        padding: 10px;
+        font-size: 10px;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .invoice-table td {
+        padding: 11px 10px;
+        font-size: 11px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .invoice-total-wrapper {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .invoice-total {
+        width: 280px;
+        border: 1px solid #e5e7eb;
+        border-radius: 9px;
+        overflow: hidden;
+    }
+
+    .invoice-total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 12px;
+        font-size: 11px;
+    }
+
+    .invoice-total-row.final {
+        background: #f8fafc;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .invoice-footer {
+        padding: 14px 20px;
+        background: #f8fafc;
+        border-top: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .invoice-footer-note {
+        font-size: 10px;
+        color: #6b7280;
+    }
+
+    /* ============================================================
+       DATATABLES
+       ============================================================ */
+
+    .dataTables_wrapper {
+        padding: 15px 19px 10px;
+    }
+
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        margin-bottom: 13px;
+    }
+
+    .dataTables_wrapper .dataTables_length select,
+    .dataTables_wrapper .dataTables_filter input {
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: 11px;
+        outline: none;
+    }
+
+    .dataTables_wrapper .dataTables_info {
+        font-size: 10px;
+        color: #6b7280;
+    }
+
+    .dataTables_wrapper .dataTables_paginate {
+        margin-top: 8px;
+    }
+
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        font-size: 10px !important;
+        padding: 4px 8px !important;
+        border-radius: 6px !important;
+    }
+
+    /* ============================================================
+       PRINT
+       ============================================================ */
+
+    .print-only {
+        display: none;
+    }
+
+    @media print {
+
+        body {
+            background: #fff !important;
+        }
+
+        .sidebar,
+        .main-sidebar,
+        .navbar,
+        .header,
+        .top-header,
+        .report-actions,
+        .report-breadcrumb,
+        .no-print,
+        .dataTables_length,
+        .dataTables_filter,
+        .dataTables_info,
+        .dataTables_paginate,
+        .action-column {
+            display: none !important;
+        }
+
+        .account-report-page {
+            padding: 0 !important;
+        }
+
+        .print-only {
+            display: block !important;
+        }
+
+        .summary-grid {
+            grid-template-columns: repeat(4, 1fr) !important;
+        }
+
+        .account-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+        }
+
+        .summary-card,
+        .report-card,
+        .account-card {
+            box-shadow: none !important;
+            break-inside: avoid;
+        }
+
+        #transactionAccountTable thead th,
+        #transactionAccountTable tbody td {
+            font-size: 9px !important;
+            padding: 6px !important;
+        }
+
+        .report-card {
+            margin-bottom: 15px !important;
+        }
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+
+    @media (max-width: 1100px) {
+
+        .summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .account-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 700px) {
+
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .report-title {
+            font-size: 21px;
+        }
+
+        .report-actions {
+            width: 100%;
+        }
+
+        .report-actions .btn {
+            flex: 1;
+        }
+
+        .account-stats {
+            grid-template-columns: 1fr;
+        }
+
+        .invoice-info-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .invoice-brand {
+            flex-direction: column;
+        }
+
+        .invoice-number {
+            text-align: left;
+        }
+
+        .invoice-total-wrapper {
+            justify-content: stretch;
+        }
+
+        .invoice-total {
+            width: 100%;
+        }
+
+        .item-row,
+        .item-heading-row {
+            grid-template-columns: 1fr;
+        }
+
+        .item-value,
+        .item-heading {
+            text-align: left;
+        }
+
+        .category-section-header {
+            flex-direction: column;
+        }
+    }
+</style>
+
+
+<div class="container-fluid account-report-page">
+
+
+    <!-- ========================================================
+         BREADCRUMB
+         ======================================================== -->
+
+    <div class="report-breadcrumb no-print">
+
+        <nav aria-label="breadcrumb">
+
+            <ol class="breadcrumb">
+
+                <li class="breadcrumb-item">
+
+                    <a href="{{ url_for('main.dashboard') }}">
+                        Home
+                    </a>
+
+                </li>
+
+                <li class="breadcrumb-item">
+                    Reports
+                </li>
+
+                <li class="breadcrumb-item active">
+                    Transaction By Account
+                </li>
+
+            </ol>
+
+        </nav>
+
+    </div>
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-title-wrapper">
+
+            <h1 class="report-title">
+
+                <i data-feather="credit-card"></i>
+
+                Transaction By Account
+
+            </h1>
+
+            <p class="report-subtitle">
+
+                Complete income and expense analysis by account,
+                category and item.
+
+            </p>
+
+        </div>
+
+
+        <div class="report-actions no-print">
+
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="window.location.reload();">
+
+                <i data-feather="refresh-cw"
+                   style="width:14px;"></i>
+
+                Refresh
+
+            </button>
+
+
+            <button type="button"
+                    class="btn btn-primary"
+                    onclick="printAccountReport();">
+
+                <i data-feather="printer"
+                   style="width:14px;"></i>
+
+                Print Report
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PRINT HEADER
+         ======================================================== -->
+
+    <div class="print-only">
+
+        <div style="
+            border-bottom:2px solid #111827;
+            padding-bottom:10px;
+            margin-bottom:18px;
+        ">
+
+            <h2 style="
+                margin:0;
+                font-size:23px;
+                font-weight:800;
+            ">
+
+                Transaction By Account Report
+
+            </h2>
+
+            <p style="
+                margin:5px 0 0;
+                font-size:10px;
+                color:#6b7280;
+            ">
+
+                Generated:
+                <span id="printGeneratedDate"></span>
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY CARDS
+         ======================================================== -->
+
+    <div class="summary-grid">
+
+
+        <!-- TOTAL TRANSACTIONS -->
+
+        <div class="summary-card">
+
+            <div class="summary-content">
+
+                <div class="summary-icon total">
+
+                    <i data-feather="list"></i>
+
+                </div>
+
+                <div>
+
+                    <div class="summary-label">
+                        Total Transactions
+                    </div>
+
+                    <div class="summary-value">
+                        {{ total_transactions }}
+                    </div>
+
+                    <div class="summary-extra">
+
+                        {{ account_count }} Accounts ·
+                        {{ category_count }} Categories
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="summary-card">
+
+            <div class="summary-content">
+
+                <div class="summary-icon income">
+
+                    <i data-feather="arrow-up-circle"></i>
+
+                </div>
+
+                <div>
+
+                    <div class="summary-label">
+                        Total Income
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ currency }}
+                        {{ "%.2f"|format(total_income|float) }}
+
+                    </div>
+
+                    <div class="summary-extra">
+
+                        {{ income_transactions }}
+                        income transactions
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="summary-card">
+
+            <div class="summary-content">
+
+                <div class="summary-icon expense">
+
+                    <i data-feather="arrow-down-circle"></i>
+
+                </div>
+
+                <div>
+
+                    <div class="summary-label">
+                        Total Expense
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ currency }}
+                        {{ "%.2f"|format(total_expense|float) }}
+
+                    </div>
+
+                    <div class="summary-extra">
+
+                        {{ expense_transactions }}
+                        expense transactions
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+
+        <div class="summary-card">
+
+            <div class="summary-content">
+
+                <div class="summary-icon net">
+
+                    {% if net_status == 'profit' %}
+
+                        <i data-feather="trending-up"></i>
+
+                    {% elif net_status == 'loss' %}
+
+                        <i data-feather="trending-down"></i>
+
+                    {% else %}
+
+                        <i data-feather="minus"></i>
+
+                    {% endif %}
+
+                </div>
+
+                <div>
+
+                    <div class="summary-label">
+                        Net Result
+                    </div>
+
+                    <div class="summary-value">
+
+                        {{ currency }}
+                        {{ "%.2f"|format(net_total|float) }}
+
+                    </div>
+
+                    <div class="summary-extra">
+
+                        {% if net_status == 'profit' %}
+                            Profit
+                        {% elif net_status == 'loss' %}
+                            Loss
+                        {% else %}
+                            Balanced
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INCOME / EXPENSE OVERVIEW
+         ======================================================== -->
+
+    <div class="report-card">
+
+        <div class="report-card-header">
+
+            <div>
+
+                <h3 class="report-card-title">
+
+                    <i data-feather="pie-chart"
+                       style="width:16px;"></i>
+
+                    Account Financial Overview
+
+                </h3>
+
+                <p class="report-card-description">
+
+                    Total income and expense flow across all accounts.
+
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="report-card-body">
+
+            <div class="row g-3">
+
+
+                <!-- INCOME -->
+
+                <div class="col-lg-6">
+
+                    <div style="
+                        border:1px solid #d1fae5;
+                        background:#f0fdf4;
+                        border-radius:11px;
+                        padding:15px;
+                    ">
+
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:10px;
+                        ">
+
+                            <div>
+
+                                <div style="
+                                    font-size:11px;
+                                    color:#047857;
+                                    font-weight:700;
+                                ">
+
+                                    Total Income
+
+                                </div>
+
+                                <div style="
+                                    font-size:20px;
+                                    color:#047857;
+                                    font-weight:800;
+                                ">
+
+                                    {{ currency }}
+                                    {{ "%.2f"|format(total_income|float) }}
+
+                                </div>
+
+                            </div>
+
+                            <div style="
+                                font-size:16px;
+                                color:#047857;
+                                font-weight:800;
+                            ">
+
+                                {{ "%.1f"|format(income_percentage|float) }}%
+
+                            </div>
+
+                        </div>
+
+
+                        <div style="
+                            height:6px;
+                            background:#d1fae5;
+                            border-radius:20px;
+                            margin-top:11px;
+                            overflow:hidden;
+                        ">
+
+                            <div style="
+                                width:{{ income_percentage|float }}%;
+                                height:100%;
+                                background:#10b981;
+                                border-radius:20px;
+                            "></div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- EXPENSE -->
+
+                <div class="col-lg-6">
+
+                    <div style="
+                        border:1px solid #fecaca;
+                        background:#fef2f2;
+                        border-radius:11px;
+                        padding:15px;
+                    ">
+
+                        <div style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            gap:10px;
+                        ">
+
+                            <div>
+
+                                <div style="
+                                    font-size:11px;
+                                    color:#b91c1c;
+                                    font-weight:700;
+                                ">
+
+                                    Total Expense
+
+                                </div>
+
+                                <div style="
+                                    font-size:20px;
+                                    color:#b91c1c;
+                                    font-weight:800;
+                                ">
+
+                                    {{ currency }}
+                                    {{ "%.2f"|format(total_expense|float) }}
+
+                                </div>
+
+                            </div>
+
+                            <div style="
+                                font-size:16px;
+                                color:#b91c1c;
+                                font-weight:800;
+                            ">
+
+                                {{ "%.1f"|format(expense_percentage|float) }}%
+
+                            </div>
+
+                        </div>
+
+
+                        <div style="
+                            height:6px;
+                            background:#fecaca;
+                            border-radius:20px;
+                            margin-top:11px;
+                            overflow:hidden;
+                        ">
+
+                            <div style="
+                                width:{{ expense_percentage|float }}%;
+                                height:100%;
+                                background:#ef4444;
+                                border-radius:20px;
+                            "></div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT BREAKDOWN
+         ACCOUNT → CATEGORY → ITEM
+         ======================================================== -->
+
+    <div class="report-card">
+
+        <div class="report-card-header">
+
+            <div>
+
+                <h3 class="report-card-title">
+
+                    <i data-feather="credit-card"
+                       style="width:16px;"></i>
+
+                    Account Breakdown
+
+                </h3>
+
+                <p class="report-card-description">
+
+                    Every account with category and item-level
+                    transaction analysis.
+
+                </p>
+
+            </div>
+
+
+            <span class="badge bg-light text-dark no-print">
+
+                {{ account_count }} Accounts
+
+            </span>
+
+        </div>
+
+
+        <div class="report-card-body">
+
+
+            {% if transaction_by_account %}
+
+
+                <div class="account-grid">
+
+
+                    {% for account, account_data in transaction_by_account.items() %}
+
+
+                        {% set account_total =
+                            account_data['total']|float
+                        %}
+
+                        {% set account_income =
+                            account_data['income']|float
+                        %}
+
+                        {% set account_expense =
+                            account_data['expense']|float
+                        %}
+
+                        {% set account_net =
+                            account_data['net']|float
+                        %}
+
+                        {% set account_percentage =
+                            (
+                                account_total
+                                /
+                                total_flow
+                                *
+                                100
+                            )
+                            if total_flow|float > 0
+                            else 0
+                        %}
+
+
+                        <div class="account-card">
+
+
+                            <!-- ACCOUNT HEADER -->
+
+                            <div class="account-card-header">
+
+                                <div class="account-header-top">
+
+                                    <div>
+
+                                        <div class="account-name">
+
+                                            <span class="account-name-icon">
+
+                                                <i data-feather="credit-card"
+                                                   style="width:14px;height:14px;"></i>
+
+                                            </span>
+
+                                            {{ account }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="account-total">
+
+                                        {{ currency }}
+                                        {{ "%.2f"|format(account_total) }}
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- PROGRESS -->
+
+                                <div class="account-progress">
+
+                                    <div class="
+                                        account-progress-bar
+                                        {% if account_income >= account_expense %}
+                                            income
+                                        {% else %}
+                                            expense
+                                        {% endif %}
+                                    "
+                                    style="
+                                        width:{{ account_percentage|float }}%;
+                                    ">
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- ACCOUNT STATS -->
+
+                                <div class="account-stats">
+
+
+                                    <div class="account-stat">
+
+                                        <div class="account-stat-label">
+                                            Income
+                                        </div>
+
+                                        <div class="account-stat-value income">
+
+                                            {{ currency }}
+                                            {{ "%.2f"|format(account_income) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="account-stat">
+
+                                        <div class="account-stat-label">
+                                            Expense
+                                        </div>
+
+                                        <div class="account-stat-value expense">
+
+                                            {{ currency }}
+                                            {{ "%.2f"|format(account_expense) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="account-stat">
+
+                                        <div class="account-stat-label">
+                                            Net
+                                        </div>
+
+                                        <div class="
+                                            account-stat-value
+                                            {% if account_net > 0 %}
+                                                positive
+                                            {% elif account_net < 0 %}
+                                                negative
+                                            {% else %}
+                                                zero
+                                            {% endif %}
+                                        ">
+
+                                            {{ currency }}
+                                            {{ "%.2f"|format(account_net) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- ACCOUNT CATEGORIES -->
+
+                            <div class="account-categories">
+
+
+                                <div class="categories-title">
+
+                                    Categories
+
+                                </div>
+
+
+                                {% if account_data['categories'] %}
+
+
+                                    {% for category, category_data
+                                        in account_data['categories'].items() %}
+
+
+                                        {% set category_income =
+                                            category_data['income']|float
+                                        %}
+
+                                        {% set category_expense =
+                                            category_data['expense']|float
+                                        %}
+
+                                        {% set category_net =
+                                            category_data['net']|float
+                                        %}
+
+
+                                        <div class="category-section">
+
+
+                                            <!-- CATEGORY HEADER -->
+
+                                            <div class="category-section-header">
+
+
+                                                <div>
+
+                                                    <div class="category-name">
+
+                                                        <i data-feather="folder"
+                                                           style="width:11px;height:11px;"></i>
+
+                                                        {{ category }}
+
+                                                    </div>
+
+
+                                                    <div class="category-mini-stats">
+
+                                                        <span class="category-mini-stat income">
+
+                                                            Income:
+                                                            {{ currency }}
+                                                            {{ "%.2f"|format(category_income) }}
+
+                                                        </span>
+
+
+                                                        <span class="category-mini-stat expense">
+
+                                                            Expense:
+                                                            {{ currency }}
+                                                            {{ "%.2f"|format(category_expense) }}
+
+                                                        </span>
+
+
+                                                        <span class="
+                                                            category-mini-stat
+                                                            {% if category_net > 0 %}
+                                                                net-positive
+                                                            {% elif category_net < 0 %}
+                                                                net-negative
+                                                            {% else %}
+                                                                net-zero
+                                                            {% endif %}
+                                                        ">
+
+                                                            Net:
+                                                            {{ currency }}
+                                                            {{ "%.2f"|format(category_net) }}
+
+                                                        </span>
+
+                                                    </div>
+
+                                                </div>
+
+
+                                                <div class="category-total">
+
+                                                    {{ currency }}
+                                                    {{ "%.2f"|format(category_data['total']|float) }}
+
+                                                </div>
+
+
+                                            </div>
+
+
+                                            <!-- ITEMS -->
+
+                                            <div class="items-wrapper">
+
+
+                                                {% if category_data['items'] %}
+
+
+                                                    <div class="item-heading-row">
+
+                                                        <div class="item-heading">
+                                                            Item
+                                                        </div>
+
+                                                        <div class="item-heading">
+                                                            Income
+                                                        </div>
+
+                                                        <div class="item-heading">
+                                                            Expense
+                                                        </div>
+
+                                                        <div class="item-heading">
+                                                            Net
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    {% for item, item_data
+                                                        in category_data['items'].items() %}
+
+
+                                                        {% set item_income =
+                                                            item_data['income']|float
+                                                        %}
+
+                                                        {% set item_expense =
+                                                            item_data['expense']|float
+                                                        %}
+
+                                                        {% set item_net =
+                                                            item_data['net']|float
+                                                        %}
+
+
+                                                        <div class="item-row">
+
+
+                                                            <div class="item-name">
+
+                                                                <i data-feather="corner-down-right"
+                                                                   style="width:10px;height:10px;"></i>
+
+                                                                {{ item }}
+
+                                                            </div>
+
+
+                                                            <div class="item-value income">
+
+                                                                {{ currency }}
+                                                                {{ "%.2f"|format(item_income) }}
+
+                                                            </div>
+
+
+                                                            <div class="item-value expense">
+
+                                                                {{ currency }}
+                                                                {{ "%.2f"|format(item_expense) }}
+
+                                                            </div>
+
+
+                                                            <div class="
+                                                                item-value
+                                                                {% if item_net > 0 %}
+                                                                    positive
+                                                                {% elif item_net < 0 %}
+                                                                    negative
+                                                                {% else %}
+                                                                    zero
+                                                                {% endif %}
+                                                            ">
+
+                                                                {{ currency }}
+                                                                {{ "%.2f"|format(item_net) }}
+
+                                                            </div>
+
+
+                                                        </div>
+
+
+                                                    {% endfor %}
+
+
+                                                {% else %}
+
+
+                                                    <div style="
+                                                        font-size:10px;
+                                                        color:#9ca3af;
+                                                        padding:7px 0;
+                                                    ">
+
+                                                        No items available.
+
+                                                    </div>
+
+
+                                                {% endif %}
+
+
+                                            </div>
+
+
+                                        </div>
+
+
+                                    {% endfor %}
+
+
+                                {% else %}
+
+
+                                    <div style="
+                                        font-size:10px;
+                                        color:#9ca3af;
+                                        padding:10px 0;
+                                    ">
+
+                                        No categories available.
+
+                                    </div>
+
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    {% endfor %}
+
+
+                </div>
+
+
+            {% else %}
+
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <i data-feather="credit-card"></i>
+
+                    </div>
+
+                    <h5>
+                        No Account Data
+                    </h5>
+
+                    <p>
+                        No income or expense account data is available.
+                    </p>
+
+                </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ALL TRANSACTIONS
+         ======================================================== -->
+
+    <div class="report-card">
+
+        <div class="report-card-header">
+
+            <div>
+
+                <h3 class="report-card-title">
+
+                    <i data-feather="file-text"
+                       style="width:16px;"></i>
+
+                    All Account Transactions
+
+                </h3>
+
+                <p class="report-card-description">
+
+                    Complete transaction list grouped by account.
+
+                </p>
+
+            </div>
+
+
+            <span class="badge bg-light text-dark no-print">
+
+                {{ total_transactions }} Records
+
+            </span>
+
+        </div>
+
+
+        <div class="report-card-body p-0">
+
+
+            {% if transactions %}
+
+
+                <div class="table-responsive">
+
+                    <table id="transactionAccountTable"
+                           class="table table-hover align-middle mb-0">
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    #
+                                </th>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Type
+                                </th>
+
+                                <th>
+                                    Account
+                                </th>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Item
+                                </th>
+
+                                <th>
+                                    Description
+                                </th>
+
+                                <th>
+                                    Amount
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                                <th class="action-column no-print">
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+
+                            {% for transaction in transactions %}
+
+
+                                {% set transaction_type =
+                                    transaction.transaction_type|lower
+                                %}
+
+                                {% set transaction_status =
+                                    transaction.status or 'Completed'
+                                %}
+
+                                {% set status_class =
+                                    transaction_status
+                                    |lower
+                                    |replace(' ', '-')
+                                %}
+
+
+                                <tr>
+
+
+                                    <!-- NUMBER -->
+
+                                    <td>
+
+                                        <span class="transaction-number">
+
+                                            {{ loop.index }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- DATE -->
+
+                                    <td>
+
+                                        <span class="transaction-date">
+
+                                            {% if transaction.date
+                                                  and transaction.date.strftime is defined %}
+
+                                                {{ transaction.date.strftime('%Y-%m-%d %H:%M') }}
+
+                                            {% else %}
+
+                                                {{ transaction.date or '-' }}
+
+                                            {% endif %}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- TYPE -->
+
+                                    <td>
+
+                                        {% if transaction_type == 'income' %}
+
+                                            <span class="type-badge income">
+
+                                                <i data-feather="arrow-up"
+                                                   style="width:10px;height:10px;"></i>
+
+                                                Income
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="type-badge expense">
+
+                                                <i data-feather="arrow-down"
+                                                   style="width:10px;height:10px;"></i>
+
+                                                Expense
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- ACCOUNT -->
+
+                                    <td>
+
+                                        <span class="account-badge">
+
+                                            {{ transaction.account_name
+                                               or transaction.account
+                                               or 'Unknown Account' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- CATEGORY -->
+
+                                    <td>
+
+                                        <span class="category-badge">
+
+                                            {{ transaction.category
+                                               or 'Uncategorized' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ITEM -->
+
+                                    <td>
+
+                                        <span class="item-badge">
+
+                                            {{ transaction.item or '-' }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- DESCRIPTION -->
+
+                                    <td>
+
+                                        {{ transaction.description or '-' }}
+
+                                    </td>
+
+
+                                    <!-- AMOUNT -->
+
+                                    <td data-order="{{ transaction.amount|float }}">
+
+                                        {% if transaction_type == 'income' %}
+
+                                            <span class="income-amount">
+
+                                                +{{ transaction.currency or currency }}
+
+                                                {{ "%.2f"|format(transaction.amount|float) }}
+
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="expense-amount">
+
+                                                -{{ transaction.currency or currency }}
+
+                                                {{ "%.2f"|format(transaction.amount|float) }}
+
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+                                        <span class="
+                                            status-badge
+                                            status-{{ status_class }}
+                                        ">
+
+                                            {{ transaction_status }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ACTION -->
+
+                                    <td class="action-column no-print">
+
+                                        <button type="button"
+                                                class="action-btn"
+                                                title="View Transaction"
+
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#accountTransactionModal"
+
+                                                data-id="{{ transaction.id|e }}"
+
+                                                data-date="{% if transaction.date and transaction.date.strftime is defined %}{{ transaction.date.strftime('%Y-%m-%d %H:%M')|e }}{% else %}{{ (transaction.date or '-')|e }}{% endif %}"
+
+                                                data-type="{{ (transaction.transaction_type or '-')|e }}"
+
+                                                data-account="{{ (transaction.account_name or transaction.account or 'Unknown Account')|e }}"
+
+                                                data-category="{{ (transaction.category or 'Uncategorized')|e }}"
+
+                                                data-item="{{ (transaction.item or '-')|e }}"
+
+                                                data-description="{{ (transaction.description or '-')|e }}"
+
+                                                data-note="{{ (transaction.note or '-')|e }}"
+
+                                                data-reference="{{ (transaction.reference_no or '-')|e }}"
+
+                                                data-status="{{ (transaction.status or 'Completed')|e }}"
+
+                                                data-currency="{{ (transaction.currency or currency or 'USD')|e }}"
+
+                                                data-amount="{{ transaction.amount|float }}">
+
+                                            <i data-feather="eye"
+                                               style="width:14px;"></i>
+
+                                        </button>
+
+                                    </td>
+
+
+                                </tr>
+
+
+                            {% endfor %}
+
+
+                        </tbody>
+
+
+                    </table>
+
+                </div>
+
+
+            {% else %}
+
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <i data-feather="inbox"></i>
+
+                    </div>
+
+                    <h5>
+                        No Transactions
+                    </h5>
+
+                    <p>
+                        There are currently no account transactions.
+                    </p>
+
+                </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="no-print"
+         style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:15px;
+            flex-wrap:wrap;
+            margin-top:5px;
+            color:#6b7280;
+            font-size:10px;
+         ">
+
+        <div>
+            Transaction By Account Report
+        </div>
+
+        <div>
+
+            {{ total_transactions }} Transactions
+            ·
+            {{ account_count }} Accounts
+            ·
+            {{ category_count }} Categories
+            ·
+            {{ item_count }} Items
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- ============================================================
+     TRANSACTION MODAL
+     ============================================================ -->
+
+<div class="modal fade transaction-modal"
+     id="accountTransactionModal"
+     tabindex="-1"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <!-- HEADER -->
+
+            <div class="invoice-header">
+
+                <div class="invoice-brand">
+
+                    <div>
+
+                        <h4>
+                            Transaction Details
+                        </h4>
+
+                        <p>
+                            Account Transaction
+                        </p>
+
+                    </div>
+
+
+                    <div class="invoice-number">
+
+                        <div class="invoice-number-label">
+                            Transaction ID
+                        </div>
+
+                        <div class="invoice-number-value"
+                             id="invoiceAccountTransactionId">
+
+                            —
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- BODY -->
+
+            <div class="invoice-body">
+
+
+                <div class="invoice-info-grid">
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Date
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceDate">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Type
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceType">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Account
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceAccount">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Category
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceCategory">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Item
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceItem">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Reference
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceReference">
+                            —
+                        </div>
+
+                    </div>
+
+
+                    <div class="invoice-info">
+
+                        <div class="invoice-label">
+                            Status
+                        </div>
+
+                        <div class="invoice-value"
+                             id="accountInvoiceStatus">
+                            —
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+
+                <!-- DESCRIPTION -->
+
+                <table class="invoice-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th style="text-align:right;">
+                                Amount
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        <tr>
+
+                            <td id="accountInvoiceDescription">
+                                —
+                            </td>
+
+                            <td style="text-align:right;"
+                                id="accountInvoiceAmount">
+                                —
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+
+                <!-- NOTE -->
+
+                <div class="invoice-info"
+                     style="margin-bottom:18px;">
+
+                    <div class="invoice-label">
+                        Note
+                    </div>
+
+                    <div class="invoice-value"
+                         id="accountInvoiceNote">
+                        —
+                    </div>
+
+                </div>
+
+
+                <!-- TOTAL -->
+
+                <div class="invoice-total-wrapper">
+
+                    <div class="invoice-total">
+
+                        <div class="invoice-total-row">
+
+                            <span>
+                                Amount
+                            </span>
+
+                            <strong id="accountInvoiceSubtotal">
+                                —
+                            </strong>
+
+                        </div>
+
+
+                        <div class="invoice-total-row final">
+
+                            <span>
+                                Total
+                            </span>
+
+                            <strong id="accountInvoiceTotal">
+                                —
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- FOOTER -->
+
+            <div class="invoice-footer">
+
+                <div class="invoice-footer-note">
+                    Account transaction report record
+                </div>
+
+
+                <div class="no-print">
+
+                    <button type="button"
+                            class="btn btn-secondary btn-sm"
+                            data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+
+                    <button type="button"
+                            class="btn btn-primary btn-sm"
+                            onclick="printAccountTransaction();">
+
+                        <i data-feather="printer"
+                           style="width:13px;"></i>
+
+                        Print
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+
+        /* ========================================================
+           FEATHER
+           ======================================================== */
+
+        if (
+            typeof feather !== "undefined"
+        ) {
+
+            feather.replace();
+
+        }
+
+
+        /* ========================================================
+           DATATABLE
+           ======================================================== */
+
+        if (
+            typeof jQuery !== "undefined"
+            &&
+            typeof jQuery.fn.DataTable !== "undefined"
+            &&
+            document.getElementById(
+                "transactionAccountTable"
+            )
+        ) {
+
+
+            jQuery(
+                "#transactionAccountTable"
+            ).DataTable({
+
+                pageLength: 25,
+
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    [10, 25, 50, 100, "All"]
+                ],
+
+                order: [
+                    [1, "desc"]
+                ],
+
+                columnDefs: [
+
+                    {
+                        targets: 7,
+                        type: "num"
+                    },
+
+                    {
+                        targets: 9,
+                        orderable: false,
+                        searchable: false
+                    }
+
+                ],
+
+                language: {
+
+                    search: "Search:",
+
+                    lengthMenu: "Show _MENU_",
+
+                    info:
+                        "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                    infoEmpty:
+                        "No transactions available",
+
+                    zeroRecords:
+                        "No matching transactions found",
+
+                    paginate: {
+
+                        first: "First",
+
+                        last: "Last",
+
+                        next: "Next",
+
+                        previous: "Previous"
+
+                    }
+
+                }
+
+            });
+
+        }
+
+
+        /* ========================================================
+           TRANSACTION MODAL
+           ======================================================== */
+
+        const modal =
+            document.getElementById(
+                "accountTransactionModal"
+            );
+
+
+        if (modal) {
+
+
+            modal.addEventListener(
+                "show.bs.modal",
+                function (event) {
+
+
+                    const button =
+                        event.relatedTarget;
+
+
+                    if (!button) {
+                        return;
+                    }
+
+
+                    /* --------------------------------------------
+                       GET DATA
+                       -------------------------------------------- */
+
+                    const id =
+                        button.getAttribute(
+                            "data-id"
+                        ) || "—";
+
+
+                    const date =
+                        button.getAttribute(
+                            "data-date"
+                        ) || "—";
+
+
+                    const type =
+                        button.getAttribute(
+                            "data-type"
+                        ) || "—";
+
+
+                    const account =
+                        button.getAttribute(
+                            "data-account"
+                        ) || "Unknown Account";
+
+
+                    const category =
+                        button.getAttribute(
+                            "data-category"
+                        ) || "Uncategorized";
+
+
+                    const item =
+                        button.getAttribute(
+                            "data-item"
+                        ) || "—";
+
+
+                    const description =
+                        button.getAttribute(
+                            "data-description"
+                        ) || "—";
+
+
+                    const note =
+                        button.getAttribute(
+                            "data-note"
+                        ) || "—";
+
+
+                    const reference =
+                        button.getAttribute(
+                            "data-reference"
+                        ) || "—";
+
+
+                    const status =
+                        button.getAttribute(
+                            "data-status"
+                        ) || "Completed";
+
+
+                    const currency =
+                        button.getAttribute(
+                            "data-currency"
+                        ) || "USD";
+
+
+                    const amount =
+                        parseFloat(
+                            button.getAttribute(
+                                "data-amount"
+                            )
+                        ) || 0;
+
+
+                    /* --------------------------------------------
+                       SET DATA
+                       -------------------------------------------- */
+
+                    setAccountText(
+                        "invoiceAccountTransactionId",
+                        id
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceDate",
+                        date
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceType",
+                        type
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceAccount",
+                        account
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceCategory",
+                        category
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceItem",
+                        item
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceDescription",
+                        description
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceNote",
+                        note
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceReference",
+                        reference
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceStatus",
+                        status
+                    );
+
+
+                    /* --------------------------------------------
+                       AMOUNT
+                       -------------------------------------------- */
+
+                    const sign =
+                        type.toLowerCase() === "income"
+                            ? "+"
+                            : "-";
+
+
+                    const formattedAmount =
+                        sign
+                        +
+                        currency
+                        +
+                        " "
+                        +
+                        amount.toLocaleString(
+                            undefined,
+                            {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            }
+                        );
+
+
+                    setAccountText(
+                        "accountInvoiceAmount",
+                        formattedAmount
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceSubtotal",
+                        formattedAmount
+                    );
+
+
+                    setAccountText(
+                        "accountInvoiceTotal",
+                        formattedAmount
+                    );
+
+
+                    if (
+                        typeof feather !== "undefined"
+                    ) {
+
+                        feather.replace();
+
+                    }
+
+                }
+            );
+
+        }
+
+    }
+);
+
+
+/* ================================================================
+   SAFE TEXT
+   ================================================================ */
+
+function setAccountText(
+    elementId,
+    value
+) {
+
+    const element =
+        document.getElementById(
+            elementId
+        );
+
+
+    if (!element) {
+        return;
+    }
+
+
+    if (
+        value === undefined
+        ||
+        value === null
+        ||
+        String(value).trim() === ""
+    ) {
+
+        element.textContent = "—";
+
+        return;
+
+    }
+
+
+    element.textContent =
+        String(value);
+
+}
+
+
+/* ================================================================
+   PRINT REPORT
+   ================================================================ */
+
+function printAccountReport() {
+
+
+    const dateElement =
+        document.getElementById(
+            "printGeneratedDate"
+        );
+
+
+    if (dateElement) {
+
+        dateElement.textContent =
+            new Date().toLocaleString();
+
+    }
+
+
+    window.print();
+
+}
+
+
+/* ================================================================
+   PRINT TRANSACTION
+   ================================================================ */
+
+function printAccountTransaction() {
+
+
+    const modal =
+        document.getElementById(
+            "accountTransactionModal"
+        );
+
+
+    if (!modal) {
+        return;
+    }
+
+
+    const content =
+        modal.querySelector(
+            ".modal-content"
+        );
+
+
+    if (!content) {
+        return;
+    }
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=900,height=700"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Please allow popups to print the transaction."
+        );
+
+        return;
+
+    }
+
+
+    const html =
+        content.innerHTML;
+
+
+    printWindow.document.open();
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <meta charset="UTF-8">
+
+            <title>
+                Account Transaction
+            </title>
+
+            <style>
+
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 30px;
+                    background: #fff;
+                    color: #1f2937;
+                    font-family:
+                        Arial,
+                        Helvetica,
+                        sans-serif;
+                }
+
+                .invoice-header {
+                    padding: 0 0 18px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+
+                .invoice-brand {
+                    display: flex;
+                    justify-content: space-between;
+                    gap: 20px;
+                }
+
+                .invoice-brand h4 {
+                    margin: 0;
+                    font-size: 23px;
+                    font-weight: 800;
+                }
+
+                .invoice-brand p {
+                    margin: 4px 0 0;
+                    font-size: 11px;
+                    color: #6b7280;
+                }
+
+                .invoice-number {
+                    text-align: right;
+                }
+
+                .invoice-number-label {
+                    font-size: 9px;
+                    color: #6b7280;
+                }
+
+                .invoice-number-value {
+                    font-size: 12px;
+                    font-weight: 800;
+                }
+
+                .invoice-body {
+                    padding: 18px 0;
+                }
+
+                .invoice-info-grid {
+                    display: grid;
+                    grid-template-columns:
+                        repeat(2, 1fr);
+                    gap: 10px;
+                    margin-bottom: 18px;
+                }
+
+                .invoice-info {
+                    border: 1px solid #e5e7eb;
+                    border-radius: 7px;
+                    padding: 10px;
+                }
+
+                .invoice-label {
+                    font-size: 8px;
+                    color: #9ca3af;
+                    text-transform: uppercase;
+                    margin-bottom: 3px;
+                }
+
+                .invoice-value {
+                    font-size: 11px;
+                    font-weight: 700;
+                }
+
+                .invoice-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 18px;
+                }
+
+                .invoice-table th {
+                    background: #f8fafc;
+                    padding: 9px;
+                    font-size: 10px;
+                    text-align: left;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+
+                .invoice-table td {
+                    padding: 10px;
+                    font-size: 11px;
+                    border-bottom: 1px solid #f1f5f9;
+                }
+
+                .invoice-total-wrapper {
+                    display: flex;
+                    justify-content: flex-end;
+                }
+
+                .invoice-total {
+                    width: 270px;
+                    border: 1px solid #e5e7eb;
+                }
+
+                .invoice-total-row {
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 9px 11px;
+                    font-size: 11px;
+                }
+
+                .invoice-total-row.final {
+                    background: #f8fafc;
+                    font-size: 14px;
+                    font-weight: 800;
+                }
+
+                .invoice-footer {
+                    padding-top: 13px;
+                    border-top: 1px solid #e5e7eb;
+                }
+
+                .invoice-footer .no-print {
+                    display: none !important;
+                }
+
+                @media print {
+
+                    body {
+                        padding: 15px;
+                    }
+
+                }
+
+            </style>
+
+        </head>
+
+
+        <body>
+
+            ${html}
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+
+    printWindow.focus();
+
+
+    setTimeout(
+        function () {
+
+            printWindow.print();
+
+            printWindow.close();
+
+        },
+        500
+    );
+
+}
+
+</script>
+
+{% endblock %}

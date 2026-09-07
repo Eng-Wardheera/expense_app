@@ -1,0 +1,2240 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Income By Account Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   INCOME BY ACCOUNT REPORT
+   ============================================================ */
+
+.income-account-report {
+    padding: 20px 0 40px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.report-title-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.report-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+    font-size: 24px;
+}
+
+.report-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.report-subtitle {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.report-action-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .2s ease;
+}
+
+.report-action-btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-print {
+    background: #198754;
+    color: #fff;
+}
+
+.btn-print:hover {
+    color: #fff;
+    background: #157347;
+}
+
+.btn-back {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-back:hover {
+    color: #111827;
+    background: #e5e7eb;
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.summary-card {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+}
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    bottom: -30px;
+    width: 95px;
+    height: 95px;
+    border-radius: 50%;
+    background: rgba(25, 135, 84, 0.05);
+}
+
+.summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.summary-label {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.summary-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0fdf4;
+    color: #198754;
+}
+
+.summary-value {
+    margin-top: 12px;
+    color: #111827;
+    font-size: 25px;
+    font-weight: 800;
+}
+
+.summary-meta {
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.income-value {
+    color: #198754;
+}
+
+.expense-value {
+    color: #dc3545;
+}
+
+.net-positive {
+    color: #198754;
+}
+
+.net-negative {
+    color: #dc3545;
+}
+
+/* ============================================================
+   OVERVIEW
+   ============================================================ */
+
+.overview-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+}
+
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.section-title {
+    margin: 0;
+    color: #1f2937;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.section-description {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.overview-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.overview-stat {
+    background: #fafafa;
+    border: 1px solid #eef0f2;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.overview-stat-label {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.overview-stat-value {
+    margin-top: 7px;
+    color: #111827;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   ACCOUNT BREAKDOWN
+   ============================================================ */
+
+.account-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 22px;
+    margin-bottom: 25px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+}
+
+.account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.account-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.account-header {
+    padding: 18px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.account-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.account-name-area {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.account-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(25, 135, 84, 0.10);
+    color: #198754;
+}
+
+.account-name {
+    margin: 0;
+    color: #1f2937;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.account-count {
+    margin-top: 4px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.account-total-box {
+    text-align: right;
+}
+
+.account-total-label {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.account-total-value {
+    margin-top: 3px;
+    color: #198754;
+    font-size: 21px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   ACCOUNT SUMMARY
+   ============================================================ */
+
+.account-summary {
+    padding: 16px 18px 0;
+}
+
+.breakdown-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.breakdown-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+}
+
+.breakdown-table th {
+    padding: 11px 12px;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    white-space: nowrap;
+}
+
+.breakdown-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f2f4;
+    color: #374151;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.breakdown-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.amount-total {
+    color: #198754;
+    font-weight: 800;
+}
+
+.amount-income {
+    color: #198754;
+    font-weight: 800;
+}
+
+.amount-expense {
+    color: #dc3545;
+    font-weight: 800;
+}
+
+.net-profit {
+    color: #198754;
+    font-weight: 800;
+}
+
+.net-loss {
+    color: #dc3545;
+    font-weight: 800;
+}
+
+/* ============================================================
+   CATEGORY BREAKDOWN
+   ============================================================ */
+
+.category-section-inner {
+    padding: 0 18px 18px;
+}
+
+.category-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 11px;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.category-heading i {
+    color: #198754;
+}
+
+.category-name-cell {
+    color: #1f2937;
+    font-weight: 800;
+}
+
+.category-total {
+    color: #198754;
+    font-weight: 800;
+}
+
+/* ============================================================
+   ITEM BREAKDOWN
+   ============================================================ */
+
+.item-section {
+    padding: 0 18px 18px;
+}
+
+.item-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 17px 0 10px;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.item-heading i {
+    color: #198754;
+}
+
+.item-name {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    padding: 55px 20px;
+    text-align: center;
+    color: #6b7280;
+}
+
+.empty-state-icon {
+    width: 66px;
+    height: 66px;
+    margin: 0 auto 15px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #9ca3af;
+    font-size: 27px;
+}
+
+.empty-state h4 {
+    margin: 0 0 7px;
+    color: #374151;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 13px;
+}
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.transactions-section {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+}
+
+#incomeAccountTransactionsTable {
+    width: 100% !important;
+}
+
+#incomeAccountTransactionsTable th {
+    white-space: nowrap;
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+#incomeAccountTransactionsTable td {
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+.transaction-date {
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.transaction-account {
+    color: #1f2937;
+    font-weight: 700;
+}
+
+.transaction-category {
+    color: #374151;
+    font-weight: 700;
+}
+
+.transaction-item {
+    color: #111827;
+    font-weight: 700;
+}
+
+.transaction-description {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #6b7280;
+}
+
+.income-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: rgba(25, 135, 84, 0.10);
+    color: #198754;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.status-completed {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.status-pending {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.status-cancelled {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+/* ============================================================
+   INVOICE MODAL
+   ============================================================ */
+
+.invoice-modal-content {
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.invoice-header {
+    padding: 20px;
+    background: #198754;
+    color: #fff;
+}
+
+.invoice-header h5 {
+    margin: 0;
+    font-weight: 800;
+}
+
+.invoice-body {
+    padding: 22px;
+}
+
+.invoice-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eef0f2;
+}
+
+.invoice-row:last-child {
+    border-bottom: 0;
+}
+
+.invoice-label {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.invoice-value {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: right;
+}
+
+.invoice-total {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.invoice-total .invoice-value {
+    color: #198754;
+    font-size: 20px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1199px) {
+
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .overview-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 767px) {
+
+    .income-account-report {
+        padding: 12px 0 30px;
+    }
+
+    .report-title {
+        font-size: 21px;
+    }
+
+    .report-icon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .overview-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .overview-card,
+    .account-section,
+    .transactions-section {
+        padding: 16px;
+    }
+
+    .account-header {
+        padding: 14px;
+    }
+
+    .account-total-box {
+        width: 100%;
+        text-align: left;
+    }
+
+    .category-section-inner,
+    .item-section {
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+
+    .report-actions {
+        width: 100%;
+    }
+
+    .report-action-btn {
+        flex: 1;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .sidebar,
+    .navbar,
+    .header,
+    .footer,
+    .report-actions,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_info,
+    .dataTables_paginate,
+    .no-print,
+    .modal {
+        display: none !important;
+    }
+
+    .income-account-report {
+        padding: 0 !important;
+    }
+
+    .summary-card,
+    .overview-card,
+    .account-section,
+    .transactions-section {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .account-card {
+        break-inside: avoid;
+    }
+
+    .breakdown-table-wrap {
+        overflow: visible !important;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .overview-stats {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    #incomeAccountTransactionsTable {
+        font-size: 10px !important;
+    }
+}
+</style>
+
+
+<div class="income-account-report">
+
+    <!-- ========================================================
+         PAGE HEADER
+         ======================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-title-area">
+
+            <div class="report-icon">
+                <i data-feather="credit-card"></i>
+            </div>
+
+            <div>
+
+                <h1 class="report-title">
+                    Income By Account
+                </h1>
+
+                <p class="report-subtitle">
+                    Detailed income analysis grouped by account, category and item
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="report-actions no-print">
+
+            <button
+                type="button"
+                class="report-action-btn btn-print"
+                onclick="printReport()"
+            >
+                <i data-feather="printer"></i>
+                Print Report
+            </button>
+
+
+            <a
+                href="{{ url_for('main.dashboard') }}"
+                class="report-action-btn btn-back"
+            >
+                <i data-feather="arrow-left"></i>
+                Back
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY CARDS
+         ======================================================== -->
+
+    <div class="summary-grid">
+
+        <!-- TOTAL INCOME -->
+
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-label">
+                    Total Income
+                </div>
+
+                <div class="summary-icon">
+                    <i data-feather="trending-up"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value income-value">
+
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(total_income|default(0)) }}
+
+            </div>
+
+            <div class="summary-meta">
+                All income accounts
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNTS -->
+
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-label">
+                    Accounts
+                </div>
+
+                <div class="summary-icon">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                {{ account_count|default(0) }}
+            </div>
+
+            <div class="summary-meta">
+                Accounts receiving income
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORIES -->
+
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-label">
+                    Categories
+                </div>
+
+                <div class="summary-icon">
+                    <i data-feather="layers"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                {{ category_count|default(0) }}
+            </div>
+
+            <div class="summary-meta">
+                Income categories
+            </div>
+
+        </div>
+
+
+        <!-- ITEMS -->
+
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-label">
+                    Items
+                </div>
+
+                <div class="summary-icon">
+                    <i data-feather="package"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                {{ item_count|default(0) }}
+            </div>
+
+            <div class="summary-meta">
+                Income items
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         OVERVIEW
+         ======================================================== -->
+
+    <div class="overview-card">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 class="section-title">
+                    Income Overview
+                </h2>
+
+                <p class="section-description">
+                    Total, income, expense and net profit/loss
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="overview-stats">
+
+            <!-- TOTAL -->
+
+            <div class="overview-stat">
+
+                <div class="overview-stat-label">
+                    Total
+                </div>
+
+                <div class="overview-stat-value income-value">
+
+                    {{ currency|default('USD') }}
+                    {{ "{:,.2f}".format(total_income|default(0)) }}
+
+                </div>
+
+            </div>
+
+
+            <!-- INCOME -->
+
+            <div class="overview-stat">
+
+                <div class="overview-stat-label">
+                    Income
+                </div>
+
+                <div class="overview-stat-value income-value">
+
+                    {{ currency|default('USD') }}
+                    {{ "{:,.2f}".format(total_income|default(0)) }}
+
+                </div>
+
+            </div>
+
+
+            <!-- EXPENSE -->
+
+            <div class="overview-stat">
+
+                <div class="overview-stat-label">
+                    Expense
+                </div>
+
+                <div class="overview-stat-value expense-value">
+
+                    {{ currency|default('USD') }}
+                    {{ "{:,.2f}".format(total_expense|default(0)) }}
+
+                </div>
+
+            </div>
+
+
+            <!-- NET -->
+
+            <div class="overview-stat">
+
+                <div class="overview-stat-label">
+                    Net Profit / Loss
+                </div>
+
+                <div
+                    class="
+                    overview-stat-value
+                    {% if net_total|default(0) >= 0 %}
+                        net-positive
+                    {% else %}
+                        net-negative
+                    {% endif %}
+                    "
+                >
+
+                    {{ currency|default('USD') }}
+                    {{ "{:,.2f}".format(net_total|default(0)) }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT BREAKDOWN
+         ======================================================== -->
+
+    <div class="account-section">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 class="section-title">
+                    Account Breakdown
+                </h2>
+
+                <p class="section-description">
+                    Account → Category → Item
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if income_by_account|default({})|length > 0 %}
+
+            <div class="account-list">
+
+                {% for account_name, data in income_by_account.items() %}
+
+                    <div class="account-card">
+
+                        <!-- ==================================================
+                             ACCOUNT HEADER
+                             ================================================== -->
+
+                        <div class="account-header">
+
+                            <div class="account-header-main">
+
+                                <div class="account-name-area">
+
+                                    <div class="account-icon">
+                                        <i data-feather="credit-card"></i>
+                                    </div>
+
+                                    <div>
+
+                                        <h3 class="account-name">
+                                            {{ account_name }}
+                                        </h3>
+
+                                        <div class="account-count">
+
+                                            {{ data["transaction_count"]|default(0) }}
+
+                                            transaction(s)
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+
+                                <div class="account-total-box">
+
+                                    <div class="account-total-label">
+                                        Account Total
+                                    </div>
+
+                                    <div class="account-total-value">
+
+                                        {{ currency|default('USD') }}
+
+                                        {{ "{:,.2f}".format(
+                                            data["total"]|default(0)
+                                        ) }}
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             ACCOUNT SUMMARY
+                             ================================================== -->
+
+                        <div class="account-summary">
+
+                            <div class="breakdown-table-wrap">
+
+                                <table class="breakdown-table">
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th>
+                                                Total
+                                            </th>
+
+                                            <th>
+                                                Income
+                                            </th>
+
+                                            <th>
+                                                Expense
+                                            </th>
+
+                                            <th>
+                                                Net Profit / Loss
+                                            </th>
+
+                                            <th>
+                                                Transactions
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+                                        <tr>
+
+                                            <td class="amount-total">
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    data["total"]|default(0)
+                                                ) }}
+
+                                            </td>
+
+
+                                            <td class="amount-income">
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    data["income"]|default(0)
+                                                ) }}
+
+                                            </td>
+
+
+                                            <td class="amount-expense">
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    data["expense"]|default(0)
+                                                ) }}
+
+                                            </td>
+
+
+                                            <td
+                                                class="
+                                                {% if data['net']|default(0) >= 0 %}
+                                                    net-profit
+                                                {% else %}
+                                                    net-loss
+                                                {% endif %}
+                                                "
+                                            >
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    data["net"]|default(0)
+                                                ) }}
+
+                                            </td>
+
+
+                                            <td>
+
+                                                {{ data["transaction_count"]|default(0) }}
+
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             CATEGORIES
+                             ================================================== -->
+
+                        {% set categories = data["categories"]|default({}) %}
+
+
+                        {% if categories|length > 0 %}
+
+                            <div class="category-section-inner">
+
+                                <div class="category-heading">
+
+                                    <i data-feather="layers"></i>
+
+                                    Category Breakdown
+
+                                </div>
+
+
+                                <div class="breakdown-table-wrap">
+
+                                    <table class="breakdown-table">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th>
+                                                    Category
+                                                </th>
+
+                                                <th>
+                                                    Total
+                                                </th>
+
+                                                <th>
+                                                    Income
+                                                </th>
+
+                                                <th>
+                                                    Expense
+                                                </th>
+
+                                                <th>
+                                                    Net Profit / Loss
+                                                </th>
+
+                                                <th>
+                                                    Transactions
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+
+                                        <tbody>
+
+                                            {% for category_name, category_data in categories.items() %}
+
+                                                <tr>
+
+                                                    <td class="category-name-cell">
+
+                                                        {{ category_name }}
+
+                                                    </td>
+
+
+                                                    <td class="amount-total">
+
+                                                        {{ currency|default('USD') }}
+
+                                                        {{ "{:,.2f}".format(
+                                                            category_data["total"]|default(0)
+                                                        ) }}
+
+                                                    </td>
+
+
+                                                    <td class="amount-income">
+
+                                                        {{ currency|default('USD') }}
+
+                                                        {{ "{:,.2f}".format(
+                                                            category_data["income"]|default(0)
+                                                        ) }}
+
+                                                    </td>
+
+
+                                                    <td class="amount-expense">
+
+                                                        {{ currency|default('USD') }}
+
+                                                        {{ "{:,.2f}".format(
+                                                            category_data["expense"]|default(0)
+                                                        ) }}
+
+                                                    </td>
+
+
+                                                    <td
+                                                        class="
+                                                        {% if category_data['net']|default(0) >= 0 %}
+                                                            net-profit
+                                                        {% else %}
+                                                            net-loss
+                                                        {% endif %}
+                                                        "
+                                                    >
+
+                                                        {{ currency|default('USD') }}
+
+                                                        {{ "{:,.2f}".format(
+                                                            category_data["net"]|default(0)
+                                                        ) }}
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        {{ category_data["transaction_count"]|default(0) }}
+
+                                                    </td>
+
+                                                </tr>
+
+
+                                                <!-- ====================================
+                                                     ITEM BREAKDOWN
+                                                     ==================================== -->
+
+                                                {% set items = category_data["items"]|default({}) %}
+
+
+                                                {% if items|length > 0 %}
+
+                                                    {% for item_name, item_data in items.items() %}
+
+                                                        <tr>
+
+                                                            <td style="padding-left: 35px;">
+
+                                                                <span class="item-name">
+
+                                                                    <i
+                                                                        data-feather="corner-down-right"
+                                                                        style="width:14px;height:14px;margin-right:5px;"
+                                                                    ></i>
+
+                                                                    {{ item_name }}
+
+                                                                </span>
+
+                                                            </td>
+
+
+                                                            <td class="amount-total">
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "{:,.2f}".format(
+                                                                    item_data["total"]|default(0)
+                                                                ) }}
+
+                                                            </td>
+
+
+                                                            <td class="amount-income">
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "{:,.2f}".format(
+                                                                    item_data["income"]|default(0)
+                                                                ) }}
+
+                                                            </td>
+
+
+                                                            <td class="amount-expense">
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "{:,.2f}".format(
+                                                                    item_data["expense"]|default(0)
+                                                                ) }}
+
+                                                            </td>
+
+
+                                                            <td
+                                                                class="
+                                                                {% if item_data['net']|default(0) >= 0 %}
+                                                                    net-profit
+                                                                {% else %}
+                                                                    net-loss
+                                                                {% endif %}
+                                                                "
+                                                            >
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "{:,.2f}".format(
+                                                                    item_data["net"]|default(0)
+                                                                ) }}
+
+                                                            </td>
+
+
+                                                            <td>
+
+                                                                {{ item_data["transaction_count"]|default(0) }}
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    {% endfor %}
+
+                                                {% endif %}
+
+                                            {% endfor %}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="empty-state">
+
+                                <div class="empty-state-icon">
+                                    <i data-feather="layers"></i>
+                                </div>
+
+                                <h4>
+                                    No Categories
+                                </h4>
+
+                                <p>
+                                    No category information is available for this account.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-state-icon">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+                <h4>
+                    No Income Accounts
+                </h4>
+
+                <p>
+                    There are no income transactions available by account.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTION TABLE
+         ======================================================== -->
+
+    <div class="transactions-section">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 class="section-title">
+                    Income Transactions
+                </h2>
+
+                <p class="section-description">
+                    Complete income transaction list
+                </p>
+
+            </div>
+
+        </div>
+
+
+        {% if transactions|default([])|length > 0 %}
+
+            <div class="table-responsive">
+
+                <table
+                    id="incomeAccountTransactionsTable"
+                    class="table table-hover align-middle"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                #
+                            </th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Account
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th>
+                                Type
+                            </th>
+
+                            <th>
+                                Amount
+                            </th>
+
+                            <th>
+                                Description
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th class="no-print">
+                                Action
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for transaction in transactions %}
+
+                            {% set transaction_amount =
+                                transaction["amount"]|default(0)|float
+                            %}
+
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+
+                                <td class="transaction-date">
+
+                                    {% if transaction["date"] %}
+
+                                        {% if transaction["date"].strftime is defined %}
+
+                                            {{ transaction["date"].strftime("%Y-%m-%d %H:%M") }}
+
+                                        {% else %}
+
+                                            {{ transaction["date"] }}
+
+                                        {% endif %}
+
+                                    {% else %}
+
+                                        —
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="transaction-account">
+
+                                    {{ transaction["account_name"]|default("Unknown Account") }}
+
+                                </td>
+
+
+                                <td class="transaction-category">
+
+                                    {{ transaction["category"]|default("Uncategorized") }}
+
+                                </td>
+
+
+                                <td class="transaction-item">
+
+                                    {{ transaction["item"]|default("—") }}
+
+                                </td>
+
+
+                                <td>
+
+                                    <span class="income-badge">
+
+                                        <i data-feather="arrow-up-right"></i>
+
+                                        Income
+
+                                    </span>
+
+                                </td>
+
+
+                                <td
+                                    class="amount-income"
+                                    data-order="{{ transaction_amount }}"
+                                >
+
+                                    {{ transaction["currency"]|default(currency|default("USD")) }}
+
+                                    {{ "{:,.2f}".format(transaction_amount) }}
+
+                                </td>
+
+
+                                <td>
+
+                                    <div
+                                        class="transaction-description"
+                                        title="{{ transaction['description']|default(transaction['note']|default('—')) }}"
+                                    >
+
+                                        {{ transaction["description"]|default(
+                                            transaction["note"]|default("—")
+                                        ) }}
+
+                                    </div>
+
+                                </td>
+
+
+                                <td>
+
+                                    {% set status =
+                                        transaction["status"]|default("Completed")|string|lower
+                                    %}
+
+
+                                    {% if status in ["completed", "complete", "paid"] %}
+
+                                        <span class="status-badge status-completed">
+                                            Completed
+                                        </span>
+
+                                    {% elif status == "pending" %}
+
+                                        <span class="status-badge status-pending">
+                                            Pending
+                                        </span>
+
+                                    {% elif status in ["cancelled", "canceled"] %}
+
+                                        <span class="status-badge status-cancelled">
+                                            Cancelled
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge">
+                                            {{ transaction["status"]|default("Completed") }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td class="no-print">
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-success"
+                                        onclick='showIncomeInvoice({{ transaction|tojson|safe }})'
+                                        title="View Transaction"
+                                    >
+
+                                        <i data-feather="eye"></i>
+
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-state-icon">
+                    <i data-feather="inbox"></i>
+                </div>
+
+                <h4>
+                    No Transactions Found
+                </h4>
+
+                <p>
+                    No income transactions are available.
+                </p>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     INVOICE MODAL
+     ============================================================ -->
+
+<div
+    class="modal fade"
+    id="incomeInvoiceModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content invoice-modal-content">
+
+            <div class="invoice-header">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <h5>
+                        Income Transaction
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"
+                    ></button>
+
+                </div>
+
+            </div>
+
+
+            <div class="invoice-body">
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Date
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceDate"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Account
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceAccount"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Category
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceCategory"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Item
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceItem"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Type
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceType"
+                    >
+                        Income
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Description
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceDescription"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <div class="invoice-label">
+                        Status
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceStatus"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="invoice-row invoice-total">
+
+                    <div class="invoice-label">
+                        Total Income
+                    </div>
+
+                    <div
+                        class="invoice-value"
+                        id="incomeInvoiceAmount"
+                    >
+                        USD 0.00
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ========================================================
+       FEATHER ICONS
+       ======================================================== */
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+
+    /* ========================================================
+       DATATABLE
+       ======================================================== */
+
+    if (
+        typeof $ !== "undefined" &&
+        $.fn.DataTable &&
+        document.querySelector("#incomeAccountTransactionsTable")
+    ) {
+
+        $("#incomeAccountTransactionsTable").DataTable({
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            responsive: true,
+
+            autoWidth: false,
+
+            columnDefs: [
+
+                {
+                    targets: 6,
+                    type: "num"
+                },
+
+                {
+                    targets: 9,
+                    orderable: false,
+                    searchable: false
+                }
+
+            ],
+
+            language: {
+
+                search: "Search:",
+
+                lengthMenu: "Show _MENU_",
+
+                info: "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty: "Showing 0 transactions",
+
+                zeroRecords: "No matching transactions found",
+
+                emptyTable: "No income transactions available"
+
+            }
+
+        });
+
+    }
+
+});
+
+
+/* ============================================================
+   PRINT REPORT
+   ============================================================ */
+
+function printReport() {
+
+    window.print();
+
+}
+
+
+/* ============================================================
+   SHOW INCOME INVOICE
+   ============================================================ */
+
+function showIncomeInvoice(transaction) {
+
+    if (!transaction) {
+        return;
+    }
+
+
+    /* ========================================================
+       DATE
+       ======================================================== */
+
+    let dateValue =
+        transaction.date ||
+        "—";
+
+
+    document.getElementById(
+        "incomeInvoiceDate"
+    ).textContent =
+        dateValue;
+
+
+    /* ========================================================
+       ACCOUNT
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceAccount"
+    ).textContent =
+        transaction.account_name ||
+        "Unknown Account";
+
+
+    /* ========================================================
+       CATEGORY
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceCategory"
+    ).textContent =
+        transaction.category ||
+        "Uncategorized";
+
+
+    /* ========================================================
+       ITEM
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceItem"
+    ).textContent =
+        transaction.item ||
+        "—";
+
+
+    /* ========================================================
+       TYPE
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceType"
+    ).textContent =
+        "Income";
+
+
+    /* ========================================================
+       DESCRIPTION
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceDescription"
+    ).textContent =
+        transaction.description ||
+        transaction.note ||
+        "—";
+
+
+    /* ========================================================
+       STATUS
+       ======================================================== */
+
+    document.getElementById(
+        "incomeInvoiceStatus"
+    ).textContent =
+        transaction.status ||
+        "Completed";
+
+
+    /* ========================================================
+       AMOUNT
+       ======================================================== */
+
+    let amount =
+        parseFloat(
+            transaction.amount || 0
+        );
+
+
+    if (isNaN(amount)) {
+        amount = 0;
+    }
+
+
+    let currency =
+        transaction.currency ||
+        "{{ currency|default('USD') }}";
+
+
+    document.getElementById(
+        "incomeInvoiceAmount"
+    ).textContent =
+        currency +
+        " " +
+        amount.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+
+    /* ========================================================
+       OPEN MODAL
+       ======================================================== */
+
+    const modalElement =
+        document.getElementById(
+            "incomeInvoiceModal"
+        );
+
+
+    if (
+        typeof bootstrap !== "undefined" &&
+        modalElement
+    ) {
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+
+}
+
+</script>
+
+{% endblock %}
+

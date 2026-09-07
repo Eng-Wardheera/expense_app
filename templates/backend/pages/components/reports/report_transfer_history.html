@@ -1,0 +1,3076 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transfer History Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   TRANSFER HISTORY REPORT
+   Bootstrap-free custom UI
+   ============================================================ */
+
+.transfer-history-page {
+    padding: 24px;
+    min-height: 100vh;
+    background: #f5f7fb;
+    color: #172033;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.th-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.th-title-area h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.th-title-area p {
+    margin: 7px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.th-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.th-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: .2s ease;
+}
+
+.th-btn:hover {
+    transform: translateY(-1px);
+}
+
+.th-btn-primary {
+    background: #2563eb;
+    color: #fff;
+}
+
+.th-btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.th-btn-secondary {
+    background: #fff;
+    color: #374151;
+    border: 1px solid #dbe1ea;
+}
+
+.th-btn-secondary:hover {
+    background: #f9fafb;
+}
+
+/* ============================================================
+   MAIN STAT CARDS
+   ============================================================ */
+
+.th-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.th-stat-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .05);
+    position: relative;
+    overflow: hidden;
+}
+
+.th-stat-card::after {
+    content: "";
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    right: -28px;
+    top: -28px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .07);
+}
+
+.th-stat-label {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.th-stat-value {
+    margin-top: 8px;
+    font-size: 25px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.th-stat-small {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+/* ============================================================
+   STATUS CARDS
+   ============================================================ */
+
+.th-status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.th-status-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.th-status-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.th-status-name {
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.th-status-count {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin-top: 8px;
+}
+
+.th-status-amount {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 3px;
+}
+
+/* ============================================================
+   TYPE SUMMARY
+   ============================================================ */
+
+.th-type-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.th-type-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 16px;
+}
+
+.th-type-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+}
+
+.th-type-count {
+    font-size: 22px;
+    font-weight: 800;
+    margin-top: 7px;
+    color: #111827;
+}
+
+.th-type-amount {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 3px;
+}
+
+/* ============================================================
+   REPORT PANEL
+   ============================================================ */
+
+.th-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .05);
+    overflow: hidden;
+}
+
+.th-panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #edf0f4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.th-panel-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.th-panel-header span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.th-filters {
+    padding: 18px 20px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafbfc;
+}
+
+.th-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(200px, 2fr)
+        minmax(160px, 1fr)
+        minmax(140px, 1fr)
+        minmax(130px, 1fr)
+        minmax(130px, 1fr)
+        minmax(130px, 1fr);
+    gap: 12px;
+}
+
+.th-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.th-filter-group label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.th-input,
+.th-select {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d9dee8;
+    background: #fff;
+    border-radius: 9px;
+    padding: 10px 11px;
+    font-size: 13px;
+    color: #1f2937;
+    outline: none;
+    transition: .2s;
+}
+
+.th-input:focus,
+.th-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.th-filter-actions {
+    margin-top: 13px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.th-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.th-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1250px;
+}
+
+.th-table thead th {
+    background: #f8fafc;
+    color: #6b7280;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 800;
+    padding: 13px 14px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.th-table tbody td {
+    padding: 14px;
+    border-bottom: 1px solid #eef1f5;
+    font-size: 13px;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.th-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.th-date {
+    white-space: nowrap;
+    font-weight: 700;
+    color: #374151;
+}
+
+.th-id {
+    font-family: monospace;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.th-amount {
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.th-description {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   TYPE BADGES
+   ============================================================ */
+
+.th-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.type-account-account {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.type-account-saving {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.type-saving-account {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.type-saving-saving {
+    background: #faf5ff;
+    color: #7e22ce;
+}
+
+.type-unknown {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+.th-status {
+    display: inline-flex;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: capitalize;
+}
+
+.status-completed,
+.status-success,
+.status-successful {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-cancelled,
+.status-canceled {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.status-default {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+/* ============================================================
+   VIEW BUTTON
+   ============================================================ */
+
+.th-view-btn {
+    border: 1px solid #dbe3ef;
+    background: #fff;
+    color: #2563eb;
+    padding: 7px 11px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    transition: .2s;
+}
+
+.th-view-btn:hover {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.th-empty {
+    display: none;
+    text-align: center;
+    padding: 55px 20px;
+    color: #6b7280;
+}
+
+.th-empty-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 12px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.th-empty h3 {
+    margin: 0;
+    color: #374151;
+    font-size: 16px;
+}
+
+.th-empty p {
+    margin: 7px 0 0;
+    font-size: 13px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.th-table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    color: #6b7280;
+    font-size: 12px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   CUSTOM MODAL
+   ============================================================ */
+
+.th-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(15, 23, 42, .62);
+    backdrop-filter: blur(5px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.th-modal-overlay.show {
+    display: flex;
+}
+
+.th-modal {
+    width: min(850px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.25);
+    animation: thModalIn .18s ease;
+}
+
+@keyframes thModalIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.th-modal-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #edf0f4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.th-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.th-modal-close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 9px;
+    background: #f3f4f6;
+    color: #374151;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.th-modal-close:hover {
+    background: #e5e7eb;
+}
+
+.th-modal-body {
+    padding: 20px;
+}
+
+.th-modal-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.th-modal-summary-card {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 13px;
+}
+
+.th-modal-summary-label {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.th-modal-summary-value {
+    margin-top: 6px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.th-details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+}
+
+.th-detail {
+    border: 1px solid #e8ebf0;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.th-detail-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    color: #9ca3af;
+    font-weight: 800;
+    letter-spacing: .4px;
+}
+
+.th-detail-value {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #1f2937;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.th-detail.full {
+    grid-column: 1 / -1;
+}
+
+.th-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #edf0f4;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+    .th-stat-grid,
+    .th-status-grid,
+    .th-type-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .th-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .transfer-history-page {
+        padding: 14px;
+    }
+
+    .th-header {
+        flex-direction: column;
+    }
+
+    .th-actions {
+        width: 100%;
+    }
+
+    .th-btn {
+        flex: 1;
+    }
+
+    .th-stat-grid,
+    .th-status-grid,
+    .th-type-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .th-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .th-panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .th-modal-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .th-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .th-detail.full {
+        grid-column: auto;
+    }
+}
+</style>
+
+
+<div class="transfer-history-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="th-header">
+
+        <div class="th-title-area">
+            <h1>Transfer History</h1>
+            <p>
+                Complete history of account and saving transfers
+            </p>
+        </div>
+
+        <div class="th-actions">
+
+            <a
+                href="{{ url_for('main.all_account_transfers') }}"
+                class="th-btn th-btn-secondary"
+            >
+                ← All Transfers
+            </a>
+
+            <button
+                type="button"
+                class="th-btn th-btn-primary"
+                onclick="exportTransferHistoryCSV()"
+            >
+                ↓ Export CSV
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN STATISTICS
+         ======================================================== -->
+
+    <div class="th-stat-grid">
+
+        <div class="th-stat-card">
+            <div class="th-stat-label">Total Transfers</div>
+
+            <div class="th-stat-value" id="statTotalTransfers">
+                {{ total_transfers|default(0) }}
+            </div>
+
+            <div class="th-stat-small">
+                All transfer records
+            </div>
+        </div>
+
+
+        <div class="th-stat-card">
+            <div class="th-stat-label">Total Amount</div>
+
+            <div class="th-stat-value" id="statTotalAmount">
+                {{ "%.2f"|format(total_amount|default(0)|float) }}
+            </div>
+
+            <div class="th-stat-small">
+                Combined transfer value
+            </div>
+        </div>
+
+
+        <div class="th-stat-card">
+            <div class="th-stat-label">Completed Amount</div>
+
+            <div class="th-stat-value" id="statCompletedAmount">
+                {{ "%.2f"|format(completed_amount|default(0)|float) }}
+            </div>
+
+            <div class="th-stat-small">
+                {{ completed_count|default(0) }} completed transfers
+            </div>
+        </div>
+
+
+        <div class="th-stat-card">
+            <div class="th-stat-label">Pending Amount</div>
+
+            <div class="th-stat-value" id="statPendingAmount">
+                {{ "%.2f"|format(pending_amount|default(0)|float) }}
+            </div>
+
+            <div class="th-stat-small">
+                {{ pending_count|default(0) }} pending transfers
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         STATUS SUMMARY
+         ======================================================== -->
+
+    <div class="th-status-grid">
+
+        <div class="th-status-card">
+
+            <div class="th-status-head">
+                <div class="th-status-name">
+                    Completed
+                </div>
+
+                <span class="th-status status-completed">
+                    Completed
+                </span>
+            </div>
+
+            <div class="th-status-count">
+                {{ completed_count|default(0) }}
+            </div>
+
+            <div class="th-status-amount">
+                {{ "%.2f"|format(completed_amount|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="th-status-card">
+
+            <div class="th-status-head">
+                <div class="th-status-name">
+                    Pending
+                </div>
+
+                <span class="th-status status-pending">
+                    Pending
+                </span>
+            </div>
+
+            <div class="th-status-count">
+                {{ pending_count|default(0) }}
+            </div>
+
+            <div class="th-status-amount">
+                {{ "%.2f"|format(pending_amount|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="th-status-card">
+
+            <div class="th-status-head">
+                <div class="th-status-name">
+                    Failed
+                </div>
+
+                <span class="th-status status-failed">
+                    Failed
+                </span>
+            </div>
+
+            <div class="th-status-count">
+                {{ failed_count|default(0) }}
+            </div>
+
+            <div class="th-status-amount">
+                {{ "%.2f"|format(failed_amount|default(0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="th-status-card">
+
+            <div class="th-status-head">
+                <div class="th-status-name">
+                    Cancelled
+                </div>
+
+                <span class="th-status status-cancelled">
+                    Cancelled
+                </span>
+            </div>
+
+            <div class="th-status-count">
+                {{ cancelled_count|default(0) }}
+            </div>
+
+            <div class="th-status-amount">
+                {{ "%.2f"|format(cancelled_amount|default(0)|float) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSFER TYPE SUMMARY
+         ======================================================== -->
+
+    <div class="th-type-grid">
+
+        <div class="th-type-card">
+            <div class="th-type-title">
+                Account → Account
+            </div>
+
+            <div class="th-type-count">
+                {{ account_to_account_count|default(0) }}
+            </div>
+
+            <div class="th-type-amount">
+                {{ "%.2f"|format(account_to_account_amount|default(0)|float) }}
+            </div>
+        </div>
+
+
+        <div class="th-type-card">
+            <div class="th-type-title">
+                Account → Saving
+            </div>
+
+            <div class="th-type-count">
+                {{ account_to_saving_count|default(0) }}
+            </div>
+
+            <div class="th-type-amount">
+                {{ "%.2f"|format(account_to_saving_amount|default(0)|float) }}
+            </div>
+        </div>
+
+
+        <div class="th-type-card">
+            <div class="th-type-title">
+                Saving → Account
+            </div>
+
+            <div class="th-type-count">
+                {{ saving_to_account_count|default(0) }}
+            </div>
+
+            <div class="th-type-amount">
+                {{ "%.2f"|format(saving_to_account_amount|default(0)|float) }}
+            </div>
+        </div>
+
+
+        <div class="th-type-card">
+            <div class="th-type-title">
+                Saving → Saving
+            </div>
+
+            <div class="th-type-count">
+                {{ saving_to_saving_count|default(0) }}
+            </div>
+
+            <div class="th-type-amount">
+                {{ "%.2f"|format(saving_to_saving_amount|default(0)|float) }}
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         REPORT PANEL
+         ======================================================== -->
+
+    <div class="th-panel">
+
+        <div class="th-panel-header">
+
+            <div>
+                <h2>Transfer Records</h2>
+
+                <span id="resultCounter">
+                    Showing {{ transfers|length }} records
+                </span>
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+             ==================================================== -->
+
+        <div class="th-filters">
+
+            <div class="th-filter-grid">
+
+                <!-- Search -->
+
+                <div class="th-filter-group">
+
+                    <label for="searchInput">
+                        Search
+                    </label>
+
+                    <input
+                        type="text"
+                        id="searchInput"
+                        class="th-input"
+                        placeholder="Search account, saving, reference..."
+                    >
+
+                </div>
+
+
+                <!-- Transfer Type -->
+
+                <div class="th-filter-group">
+
+                    <label for="typeFilter">
+                        Transfer Type
+                    </label>
+
+                    <select
+                        id="typeFilter"
+                        class="th-select"
+                    >
+                        <option value="">All Types</option>
+                        <option value="account_to_account">
+                            Account → Account
+                        </option>
+                        <option value="account_to_saving">
+                            Account → Saving
+                        </option>
+                        <option value="saving_to_account">
+                            Saving → Account
+                        </option>
+                        <option value="saving_to_saving">
+                            Saving → Saving
+                        </option>
+                    </select>
+
+                </div>
+
+
+                <!-- Status -->
+
+                <div class="th-filter-group">
+
+                    <label for="statusFilter">
+                        Status
+                    </label>
+
+                    <select
+                        id="statusFilter"
+                        class="th-select"
+                    >
+                        <option value="">All Status</option>
+                        <option value="completed">Completed</option>
+                        <option value="pending">Pending</option>
+                        <option value="failed">Failed</option>
+                        <option value="cancelled">Cancelled</option>
+                        <option value="canceled">Canceled</option>
+                    </select>
+
+                </div>
+
+
+                <!-- Currency -->
+
+                <div class="th-filter-group">
+
+                    <label for="currencyFilter">
+                        Currency
+                    </label>
+
+                    <select
+                        id="currencyFilter"
+                        class="th-select"
+                    >
+
+                        <option value="">
+                            All Currency
+                        </option>
+
+                        {% set currencies = [] %}
+
+                        {% for t in transfers %}
+
+                            {% set currency = t.currency|default('USD')|upper %}
+
+                            {% if currency not in currencies %}
+                                {% set _ = currencies.append(currency) %}
+                            {% endif %}
+
+                        {% endfor %}
+
+                        {% for currency in currencies|sort %}
+
+                            <option value="{{ currency }}">
+                                {{ currency }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- Date From -->
+
+                <div class="th-filter-group">
+
+                    <label for="dateFrom">
+                        Date From
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dateFrom"
+                        class="th-input"
+                    >
+
+                </div>
+
+
+                <!-- Date To -->
+
+                <div class="th-filter-group">
+
+                    <label for="dateTo">
+                        Date To
+                    </label>
+
+                    <input
+                        type="date"
+                        id="dateTo"
+                        class="th-input"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- Second filter row -->
+
+            <div
+                class="th-filter-grid"
+                style="margin-top:12px;"
+            >
+
+                <!-- Min Amount -->
+
+                <div class="th-filter-group">
+
+                    <label for="minAmount">
+                        Minimum Amount
+                    </label>
+
+                    <input
+                        type="number"
+                        id="minAmount"
+                        class="th-input"
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                    >
+
+                </div>
+
+
+                <!-- Max Amount -->
+
+                <div class="th-filter-group">
+
+                    <label for="maxAmount">
+                        Maximum Amount
+                    </label>
+
+                    <input
+                        type="number"
+                        id="maxAmount"
+                        class="th-input"
+                        placeholder="0.00"
+                        step="0.01"
+                        min="0"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="th-filter-actions">
+
+                <button
+                    type="button"
+                    class="th-btn th-btn-secondary"
+                    onclick="clearTransferFilters()"
+                >
+                    Clear Filters
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             TABLE
+             ==================================================== -->
+
+        <div class="th-table-wrap">
+
+            <table
+                class="th-table"
+                id="transferHistoryTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Transfer Type</th>
+
+                        <th>From</th>
+
+                        <th>To</th>
+
+                        <th>Amount</th>
+
+                        <th>Currency</th>
+
+                        <th>Status</th>
+
+                        <th>Reference</th>
+
+                        <th>Description</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="transferTableBody">
+
+                {% for transfer in transfers %}
+
+                    {% set transfer_type =
+                        transfer.transfer_type|default('')|lower
+                    %}
+
+                    {% set status =
+                        transfer.status|default('pending')|lower
+                    %}
+
+                    <tr
+                        data-index="{{ loop.index0 }}"
+                    >
+
+                        <!-- Number -->
+
+                        <td>
+                            <strong>{{ loop.index }}</strong>
+                        </td>
+
+
+                        <!-- Date -->
+
+                        <td class="th-date">
+
+                            {{
+                                transfer.created_at_display
+                                |default(
+                                    transfer.created_at
+                                    |default('-')
+                                )
+                            }}
+
+                        </td>
+
+
+                        <!-- Type -->
+
+                        <td>
+
+                            {% if transfer_type == 'account_to_account' %}
+
+                                <span class="th-type-badge type-account-account">
+                                    Account → Account
+                                </span>
+
+                            {% elif transfer_type == 'account_to_saving' %}
+
+                                <span class="th-type-badge type-account-saving">
+                                    Account → Saving
+                                </span>
+
+                            {% elif transfer_type == 'saving_to_account' %}
+
+                                <span class="th-type-badge type-saving-account">
+                                    Saving → Account
+                                </span>
+
+                            {% elif transfer_type == 'saving_to_saving' %}
+
+                                <span class="th-type-badge type-saving-saving">
+                                    Saving → Saving
+                                </span>
+
+                            {% else %}
+
+                                <span class="th-type-badge type-unknown">
+                                    {{ transfer_type|replace('_', ' ')|title }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- From -->
+
+                        <td>
+
+                            <div>
+                                <strong>
+                                    {{ transfer.from_name|default('-') }}
+                                </strong>
+                            </div>
+
+                            {% if transfer.from_type %}
+                                <div class="th-id">
+                                    {{ transfer.from_type|title }}
+                                </div>
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- To -->
+
+                        <td>
+
+                            <div>
+                                <strong>
+                                    {{ transfer.to_name|default('-') }}
+                                </strong>
+                            </div>
+
+                            {% if transfer.to_type %}
+                                <div class="th-id">
+                                    {{ transfer.to_type|title }}
+                                </div>
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Amount -->
+
+                        <td class="th-amount">
+
+                            {{ "%.2f"|format(
+                                transfer.amount|default(0)|float
+                            ) }}
+
+                        </td>
+
+
+                        <!-- Currency -->
+
+                        <td>
+
+                            {{ transfer.currency|default('USD')|upper }}
+
+                        </td>
+
+
+                        <!-- Status -->
+
+                        <td>
+
+                            {% if status in [
+                                'completed',
+                                'success',
+                                'successful'
+                            ] %}
+
+                                <span class="th-status status-completed">
+                                    {{ status|title }}
+                                </span>
+
+                            {% elif status == 'pending' %}
+
+                                <span class="th-status status-pending">
+                                    Pending
+                                </span>
+
+                            {% elif status == 'failed' %}
+
+                                <span class="th-status status-failed">
+                                    Failed
+                                </span>
+
+                            {% elif status in ['cancelled', 'canceled'] %}
+
+                                <span class="th-status status-cancelled">
+                                    {{ status|title }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="th-status status-default">
+                                    {{ status|title }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- Reference -->
+
+                        <td>
+
+                            <span class="th-id">
+
+                                {{
+                                    transfer.reference_no
+                                    |default(
+                                        transfer.reference
+                                        |default('-')
+                                    )
+                                }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- Description -->
+
+                        <td>
+
+                            <div class="th-description">
+
+                                {{
+                                    transfer.description
+                                    |default('-')
+                                }}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- Action -->
+
+                        <td>
+
+                            <button
+                                type="button"
+                                class="th-view-btn"
+                                onclick="openTransferModal({{ loop.index0 }})"
+                            >
+                                View
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- ====================================================
+             EMPTY STATE
+             ==================================================== -->
+
+        <div
+            class="th-empty"
+            id="emptyState"
+        >
+
+            <div class="th-empty-icon">
+                ↔
+            </div>
+
+            <h3>
+                No transfers found
+            </h3>
+
+            <p>
+                Try changing your filters or search criteria.
+            </p>
+
+        </div>
+
+
+        <!-- ====================================================
+             TABLE FOOTER
+             ==================================================== -->
+
+        <div class="th-table-footer">
+
+            <div>
+                Total records:
+                <strong id="footerCount">
+                    {{ transfers|length }}
+                </strong>
+            </div>
+
+            <div>
+                Filtered amount:
+                <strong id="footerAmount">
+                    0.00
+                </strong>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM TRANSFER DETAILS MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    class="th-modal-overlay"
+    id="transferModal"
+>
+
+    <div
+        class="th-modal"
+        role="dialog"
+        aria-modal="true"
+    >
+
+        <div class="th-modal-header">
+
+            <h3>
+                Transfer Details
+            </h3>
+
+            <button
+                type="button"
+                class="th-modal-close"
+                onclick="closeTransferModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="th-modal-body">
+
+            <!-- Summary -->
+
+            <div class="th-modal-summary">
+
+                <div class="th-modal-summary-card">
+
+                    <div class="th-modal-summary-label">
+                        Amount
+                    </div>
+
+                    <div
+                        class="th-modal-summary-value"
+                        id="modalAmount"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-modal-summary-card">
+
+                    <div class="th-modal-summary-label">
+                        Transfer Type
+                    </div>
+
+                    <div
+                        class="th-modal-summary-value"
+                        id="modalType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-modal-summary-card">
+
+                    <div class="th-modal-summary-label">
+                        Status
+                    </div>
+
+                    <div
+                        class="th-modal-summary-value"
+                        id="modalStatus"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- Details -->
+
+            <div class="th-details-grid">
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFrom"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalTo"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From Type
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFromType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To Type
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalToType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From Account ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFromAccountId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To Account ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalToAccountId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From Saving ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFromSavingId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To Saving ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalToSavingId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        Currency
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalCurrency"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        Date
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalDate"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        Reference
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalReference"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        Transaction ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalTransactionId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        User ID
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalUserId"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        Direction
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalDirection"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From Account Balance Before
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFromBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        From Account Balance After
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalFromBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To Account Balance Before
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalToBalanceBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail">
+
+                    <div class="th-detail-label">
+                        To Account Balance After
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalToBalanceAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="th-detail full">
+
+                    <div class="th-detail-label">
+                        Description
+                    </div>
+
+                    <div
+                        class="th-detail-value"
+                        id="modalDescription"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="th-modal-footer">
+
+            <button
+                type="button"
+                class="th-btn th-btn-secondary"
+                onclick="closeTransferModal()"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+/* ============================================================
+   TRANSFER DATA FROM FLASK
+   ============================================================ */
+
+const transferHistory = {{ transfers_json|default('[]')|safe }};
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function safeValue(value, fallback = "-") {
+
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return fallback;
+    }
+
+    return String(value);
+}
+
+
+function formatNumber(value) {
+
+    const number = parseFloat(value);
+
+    if (isNaN(number)) {
+        return "0.00";
+    }
+
+    return number.toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+function normalizeType(type) {
+
+    return safeValue(type, "")
+        .toLowerCase()
+        .trim();
+
+}
+
+
+function normalizeStatus(status) {
+
+    return safeValue(status, "")
+        .toLowerCase()
+        .trim();
+
+}
+
+
+function getTransferTypeLabel(type) {
+
+    const value = normalizeType(type);
+
+    switch (value) {
+
+        case "account_to_account":
+            return "Account → Account";
+
+        case "account_to_saving":
+            return "Account → Saving";
+
+        case "saving_to_account":
+            return "Saving → Account";
+
+        case "saving_to_saving":
+            return "Saving → Saving";
+
+        default:
+            return value
+                .replaceAll("_", " ")
+                .replace(/\b\w/g, c => c.toUpperCase());
+
+    }
+}
+
+
+function getFromName(t) {
+
+    return safeValue(
+        t.from_name ||
+        t.from_account_name ||
+        t.from_saving_name ||
+        t.source_name ||
+        t.source_account_name ||
+        t.source_saving_name,
+        "-"
+    );
+
+}
+
+
+function getToName(t) {
+
+    return safeValue(
+        t.to_name ||
+        t.to_account_name ||
+        t.to_saving_name ||
+        t.destination_name ||
+        t.destination_account_name ||
+        t.destination_saving_name,
+        "-"
+    );
+
+}
+
+
+function getReference(t) {
+
+    return safeValue(
+        t.reference_no ||
+        t.reference ||
+        t.ref ||
+        t.transaction_reference,
+        "-"
+    );
+
+}
+
+
+function getDateValue(t) {
+
+    return safeValue(
+        t.created_at ||
+        t.date ||
+        t.transaction_date,
+        ""
+    );
+
+}
+
+
+function getDisplayDate(t) {
+
+    return safeValue(
+        t.created_at_display ||
+        t.created_at ||
+        t.date ||
+        t.transaction_date,
+        "-"
+    );
+
+}
+
+
+/* ============================================================
+   FILTER ELEMENTS
+   ============================================================ */
+
+const searchInput = document.getElementById("searchInput");
+const typeFilter = document.getElementById("typeFilter");
+const statusFilter = document.getElementById("statusFilter");
+const currencyFilter = document.getElementById("currencyFilter");
+const dateFrom = document.getElementById("dateFrom");
+const dateTo = document.getElementById("dateTo");
+const minAmount = document.getElementById("minAmount");
+const maxAmount = document.getElementById("maxAmount");
+
+const tableBody = document.getElementById("transferTableBody");
+const emptyState = document.getElementById("emptyState");
+const resultCounter = document.getElementById("resultCounter");
+const footerCount = document.getElementById("footerCount");
+const footerAmount = document.getElementById("footerAmount");
+
+
+/* ============================================================
+   FILTER FUNCTION
+   ============================================================ */
+
+function getFilteredTransfers() {
+
+    const search =
+        searchInput.value
+            .trim()
+            .toLowerCase();
+
+    const selectedType =
+        typeFilter.value
+            .trim()
+            .toLowerCase();
+
+    const selectedStatus =
+        statusFilter.value
+            .trim()
+            .toLowerCase();
+
+    const selectedCurrency =
+        currencyFilter.value
+            .trim()
+            .toLowerCase();
+
+    const fromDate =
+        dateFrom.value;
+
+    const toDate =
+        dateTo.value;
+
+    const min =
+        minAmount.value === ""
+            ? null
+            : parseFloat(minAmount.value);
+
+    const max =
+        maxAmount.value === ""
+            ? null
+            : parseFloat(maxAmount.value);
+
+
+    return transferHistory.filter(function(t) {
+
+        /* -----------------------------------------------
+           SEARCH
+           ----------------------------------------------- */
+
+        if (search) {
+
+            const searchable = [
+
+                t.id,
+                t._id,
+
+                t.user_id,
+
+                t.transfer_type,
+                t.transaction_type,
+                t.direction,
+
+                getFromName(t),
+                getToName(t),
+
+                t.from_account_id,
+                t.to_account_id,
+
+                t.from_saving_id,
+                t.to_saving_id,
+
+                t.from_account_name,
+                t.to_account_name,
+
+                t.from_saving_name,
+                t.to_saving_name,
+
+                getReference(t),
+
+                t.description,
+
+                t.currency,
+
+                t.status
+
+            ]
+            .map(v => safeValue(v, ""))
+            .join(" ")
+            .toLowerCase();
+
+
+            if (!searchable.includes(search)) {
+                return false;
+            }
+
+        }
+
+
+        /* -----------------------------------------------
+           TYPE
+           ----------------------------------------------- */
+
+        if (selectedType) {
+
+            if (
+                normalizeType(t.transfer_type)
+                !== selectedType
+            ) {
+                return false;
+            }
+
+        }
+
+
+        /* -----------------------------------------------
+           STATUS
+           ----------------------------------------------- */
+
+        if (selectedStatus) {
+
+            if (
+                normalizeStatus(t.status)
+                !== selectedStatus
+            ) {
+                return false;
+            }
+
+        }
+
+
+        /* -----------------------------------------------
+           CURRENCY
+           ----------------------------------------------- */
+
+        if (selectedCurrency) {
+
+            if (
+                safeValue(t.currency, "")
+                    .toLowerCase()
+                !== selectedCurrency
+            ) {
+                return false;
+            }
+
+        }
+
+
+        /* -----------------------------------------------
+           AMOUNT
+           ----------------------------------------------- */
+
+        const amount =
+            parseFloat(t.amount || 0);
+
+
+        if (
+            min !== null &&
+            !isNaN(min) &&
+            amount < min
+        ) {
+            return false;
+        }
+
+
+        if (
+            max !== null &&
+            !isNaN(max) &&
+            amount > max
+        ) {
+            return false;
+        }
+
+
+        /* -----------------------------------------------
+           DATE
+           ----------------------------------------------- */
+
+        const rawDate =
+            getDateValue(t);
+
+        if (fromDate && rawDate) {
+
+            const recordDate =
+                new Date(rawDate);
+
+            const start =
+                new Date(fromDate + "T00:00:00");
+
+            if (
+                !isNaN(recordDate.getTime()) &&
+                recordDate < start
+            ) {
+                return false;
+            }
+
+        }
+
+
+        if (toDate && rawDate) {
+
+            const recordDate =
+                new Date(rawDate);
+
+            const end =
+                new Date(toDate + "T23:59:59");
+
+            if (
+                !isNaN(recordDate.getTime()) &&
+                recordDate > end
+            ) {
+                return false;
+            }
+
+        }
+
+
+        return true;
+
+    });
+
+}
+
+
+/* ============================================================
+   RENDER TABLE
+   ============================================================ */
+
+function renderTransferTable() {
+
+    const filtered =
+        getFilteredTransfers();
+
+
+    tableBody.innerHTML = "";
+
+
+    let filteredAmount = 0;
+
+
+    filtered.forEach(function(t, index) {
+
+        const amount =
+            parseFloat(t.amount || 0);
+
+        filteredAmount +=
+            isNaN(amount) ? 0 : amount;
+
+
+        const type =
+            normalizeType(t.transfer_type);
+
+        const status =
+            normalizeStatus(t.status);
+
+        let typeClass =
+            "type-unknown";
+
+
+        if (type === "account_to_account") {
+            typeClass = "type-account-account";
+        }
+        else if (type === "account_to_saving") {
+            typeClass = "type-account-saving";
+        }
+        else if (type === "saving_to_account") {
+            typeClass = "type-saving-account";
+        }
+        else if (type === "saving_to_saving") {
+            typeClass = "type-saving-saving";
+        }
+
+
+        let statusClass =
+            "status-default";
+
+
+        if (
+            status === "completed" ||
+            status === "success" ||
+            status === "successful"
+        ) {
+            statusClass = "status-completed";
+        }
+        else if (status === "pending") {
+            statusClass = "status-pending";
+        }
+        else if (status === "failed") {
+            statusClass = "status-failed";
+        }
+        else if (
+            status === "cancelled" ||
+            status === "canceled"
+        ) {
+            statusClass = "status-cancelled";
+        }
+
+
+        const tr =
+            document.createElement("tr");
+
+
+        tr.innerHTML = `
+
+            <td>
+                <strong>${index + 1}</strong>
+            </td>
+
+            <td class="th-date">
+                ${escapeHtml(getDisplayDate(t))}
+            </td>
+
+            <td>
+                <span class="th-type-badge ${typeClass}">
+                    ${escapeHtml(getTransferTypeLabel(type))}
+                </span>
+            </td>
+
+            <td>
+                <strong>
+                    ${escapeHtml(getFromName(t))}
+                </strong>
+
+                ${
+                    t.from_type
+                    ? `<div class="th-id">
+                        ${escapeHtml(t.from_type)}
+                       </div>`
+                    : ""
+                }
+            </td>
+
+            <td>
+                <strong>
+                    ${escapeHtml(getToName(t))}
+                </strong>
+
+                ${
+                    t.to_type
+                    ? `<div class="th-id">
+                        ${escapeHtml(t.to_type)}
+                       </div>`
+                    : ""
+                }
+            </td>
+
+            <td class="th-amount">
+                ${formatNumber(amount)}
+            </td>
+
+            <td>
+                ${escapeHtml(
+                    safeValue(t.currency, "USD").toUpperCase()
+                )}
+            </td>
+
+            <td>
+                <span class="th-status ${statusClass}">
+                    ${escapeHtml(
+                        status
+                            ? status.charAt(0).toUpperCase()
+                              + status.slice(1)
+                            : "Pending"
+                    )}
+                </span>
+            </td>
+
+            <td>
+                <span class="th-id">
+                    ${escapeHtml(getReference(t))}
+                </span>
+            </td>
+
+            <td>
+                <div class="th-description">
+                    ${escapeHtml(
+                        safeValue(t.description, "-")
+                    )}
+                </div>
+            </td>
+
+            <td>
+                <button
+                    type="button"
+                    class="th-view-btn"
+                    onclick="openTransferModal(${transferHistory.indexOf(t)})"
+                >
+                    View
+                </button>
+            </td>
+
+        `;
+
+
+        tableBody.appendChild(tr);
+
+    });
+
+
+    /* ========================================================
+       EMPTY STATE
+       ======================================================== */
+
+    if (filtered.length === 0) {
+
+        emptyState.style.display = "block";
+
+    } else {
+
+        emptyState.style.display = "none";
+
+    }
+
+
+    /* ========================================================
+       COUNTERS
+       ======================================================== */
+
+    resultCounter.textContent =
+        `Showing ${filtered.length} of ${transferHistory.length} records`;
+
+    footerCount.textContent =
+        filtered.length;
+
+    footerAmount.textContent =
+        formatNumber(filteredAmount);
+
+}
+
+
+/* ============================================================
+   HTML ESCAPE
+   ============================================================ */
+
+function escapeHtml(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+
+/* ============================================================
+   OPEN MODAL
+   ============================================================ */
+
+function openTransferModal(index) {
+
+    const t =
+        transferHistory[index];
+
+    if (!t) {
+        return;
+    }
+
+
+    document.getElementById("modalAmount").textContent =
+        formatNumber(t.amount) +
+        " " +
+        safeValue(t.currency, "USD").toUpperCase();
+
+
+    document.getElementById("modalType").textContent =
+        getTransferTypeLabel(t.transfer_type);
+
+
+    document.getElementById("modalStatus").textContent =
+        safeValue(t.status, "Pending");
+
+
+    document.getElementById("modalFrom").textContent =
+        getFromName(t);
+
+
+    document.getElementById("modalTo").textContent =
+        getToName(t);
+
+
+    document.getElementById("modalFromType").textContent =
+        safeValue(t.from_type);
+
+
+    document.getElementById("modalToType").textContent =
+        safeValue(t.to_type);
+
+
+    document.getElementById("modalFromAccountId").textContent =
+        safeValue(
+            t.from_account_id
+        );
+
+
+    document.getElementById("modalToAccountId").textContent =
+        safeValue(
+            t.to_account_id
+        );
+
+
+    document.getElementById("modalFromSavingId").textContent =
+        safeValue(
+            t.from_saving_id
+        );
+
+
+    document.getElementById("modalToSavingId").textContent =
+        safeValue(
+            t.to_saving_id
+        );
+
+
+    document.getElementById("modalCurrency").textContent =
+        safeValue(
+            t.currency,
+            "USD"
+        ).toUpperCase();
+
+
+    document.getElementById("modalDate").textContent =
+        getDisplayDate(t);
+
+
+    document.getElementById("modalReference").textContent =
+        getReference(t);
+
+
+    document.getElementById("modalTransactionId").textContent =
+        safeValue(
+            t.id ||
+            t._id
+        );
+
+
+    document.getElementById("modalUserId").textContent =
+        safeValue(
+            t.user_id
+        );
+
+
+    document.getElementById("modalDirection").textContent =
+        safeValue(
+            t.direction
+        );
+
+
+    document.getElementById("modalFromBalanceBefore").textContent =
+        safeValue(
+            t.from_account_balance_before ??
+            t.from_balance_before ??
+            t.source_balance_before
+        );
+
+
+    document.getElementById("modalFromBalanceAfter").textContent =
+        safeValue(
+            t.from_account_balance_after ??
+            t.from_balance_after ??
+            t.source_balance_after
+        );
+
+
+    document.getElementById("modalToBalanceBefore").textContent =
+        safeValue(
+            t.to_account_balance_before ??
+            t.to_balance_before ??
+            t.destination_balance_before
+        );
+
+
+    document.getElementById("modalToBalanceAfter").textContent =
+        safeValue(
+            t.to_account_balance_after ??
+            t.to_balance_after ??
+            t.destination_balance_after
+        );
+
+
+    document.getElementById("modalDescription").textContent =
+        safeValue(
+            t.description
+        );
+
+
+    document
+        .getElementById("transferModal")
+        .classList.add("show");
+
+
+    document.body.style.overflow =
+        "hidden";
+
+}
+
+
+/* ============================================================
+   CLOSE MODAL
+   ============================================================ */
+
+function closeTransferModal() {
+
+    document
+        .getElementById("transferModal")
+        .classList.remove("show");
+
+
+    document.body.style.overflow =
+        "";
+
+}
+
+
+/* ============================================================
+   CLEAR FILTERS
+   ============================================================ */
+
+function clearTransferFilters() {
+
+    searchInput.value = "";
+    typeFilter.value = "";
+    statusFilter.value = "";
+    currencyFilter.value = "";
+    dateFrom.value = "";
+    dateTo.value = "";
+    minAmount.value = "";
+    maxAmount.value = "";
+
+
+    renderTransferTable();
+
+}
+
+
+/* ============================================================
+   LIVE FILTER EVENTS
+   ============================================================ */
+
+[
+    searchInput,
+    typeFilter,
+    statusFilter,
+    currencyFilter,
+    dateFrom,
+    dateTo,
+    minAmount,
+    maxAmount
+].forEach(function(element) {
+
+    element.addEventListener(
+        "input",
+        renderTransferTable
+    );
+
+    element.addEventListener(
+        "change",
+        renderTransferTable
+    );
+
+});
+
+
+/* ============================================================
+   MODAL EVENTS
+   ============================================================ */
+
+document
+    .getElementById("transferModal")
+    .addEventListener(
+        "click",
+        function(event) {
+
+            if (
+                event.target === this
+            ) {
+                closeTransferModal();
+            }
+
+        }
+    );
+
+
+document.addEventListener(
+    "keydown",
+    function(event) {
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            closeTransferModal();
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   CSV EXPORT
+   IMPORTANT:
+   EXPORTS FILTERED DATA ONLY
+   ============================================================ */
+
+function exportTransferHistoryCSV() {
+
+    const filtered =
+        getFilteredTransfers();
+
+
+    if (!filtered.length) {
+
+        alert(
+            "No transfer records available for export."
+        );
+
+        return;
+
+    }
+
+
+    const rows = [];
+
+
+    rows.push([
+        "No",
+        "Date",
+        "Transfer Type",
+        "From",
+        "From Type",
+        "To",
+        "To Type",
+        "Amount",
+        "Currency",
+        "Status",
+        "Reference",
+        "Description",
+        "Transaction ID",
+        "User ID",
+        "Direction"
+    ]);
+
+
+    filtered.forEach(function(t, index) {
+
+        rows.push([
+
+            index + 1,
+
+            getDisplayDate(t),
+
+            getTransferTypeLabel(
+                t.transfer_type
+            ),
+
+            getFromName(t),
+
+            safeValue(
+                t.from_type
+            ),
+
+            getToName(t),
+
+            safeValue(
+                t.to_type
+            ),
+
+            formatNumber(
+                t.amount
+            ),
+
+            safeValue(
+                t.currency,
+                "USD"
+            ).toUpperCase(),
+
+            safeValue(
+                t.status,
+                "pending"
+            ),
+
+            getReference(t),
+
+            safeValue(
+                t.description,
+                ""
+            ),
+
+            safeValue(
+                t.id ||
+                t._id,
+                ""
+            ),
+
+            safeValue(
+                t.user_id,
+                ""
+            ),
+
+            safeValue(
+                t.direction,
+                ""
+            )
+
+        ]);
+
+    });
+
+
+    const csv =
+        rows
+            .map(function(row) {
+
+                return row
+                    .map(function(value) {
+
+                        return `"${String(value)
+                            .replaceAll('"', '""')}"`;
+
+                    })
+                    .join(",");
+
+            })
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href = url;
+
+
+    const now =
+        new Date();
+
+
+    const date =
+        now
+            .toISOString()
+            .slice(0, 10);
+
+
+    link.download =
+        `transfer_history_${date}.csv`;
+
+
+    document.body.appendChild(link);
+
+
+    link.click();
+
+
+    document.body.removeChild(link);
+
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* ============================================================
+   INITIAL RENDER
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        renderTransferTable();
+
+    }
+);
+
+</script>
+
+{% endblock %}
+

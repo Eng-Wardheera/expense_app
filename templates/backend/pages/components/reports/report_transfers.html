@@ -1,0 +1,3162 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transfers Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   TRANSFERS REPORT
+   ============================================================ */
+
+:root {
+    --tr-primary: #2563eb;
+    --tr-primary-dark: #1d4ed8;
+    --tr-success: #16a34a;
+    --tr-warning: #d97706;
+    --tr-danger: #dc2626;
+    --tr-info: #0891b2;
+    --tr-dark: #0f172a;
+    --tr-text: #334155;
+    --tr-muted: #64748b;
+    --tr-border: #e2e8f0;
+    --tr-bg: #f8fafc;
+    --tr-white: #ffffff;
+    --tr-radius: 16px;
+    --tr-shadow: 0 8px 25px rgba(15, 23, 42, .07);
+}
+
+.transfers-report-page {
+    width: 100%;
+    padding: 20px;
+    background: var(--tr-bg);
+    min-height: 100vh;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.report-title-box {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.report-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, .25);
+}
+
+.report-title-box h2 {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    color: var(--tr-dark);
+}
+
+.report-title-box p {
+    margin: 4px 0 0;
+    color: var(--tr-muted);
+    font-size: 13px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.btn-report {
+    border: none;
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.btn-report:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary-report {
+    background: var(--tr-primary);
+    color: white;
+}
+
+.btn-primary-report:hover {
+    background: var(--tr-primary-dark);
+}
+
+.btn-light-report {
+    background: white;
+    color: var(--tr-text);
+    border: 1px solid var(--tr-border);
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: white;
+    border: 1px solid var(--tr-border);
+    border-radius: var(--tr-radius);
+    padding: 17px;
+    box-shadow: var(--tr-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    right: -20px;
+    bottom: -25px;
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .05);
+}
+
+.summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.summary-label {
+    color: var(--tr-muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.summary-icon {
+    width: 37px;
+    height: 37px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+}
+
+.icon-blue {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.icon-green {
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.icon-orange {
+    color: #d97706;
+    background: #fffbeb;
+}
+
+.icon-red {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.icon-purple {
+    color: #7c3aed;
+    background: #f5f3ff;
+}
+
+.summary-value {
+    margin-top: 10px;
+    font-size: 23px;
+    font-weight: 850;
+    color: var(--tr-dark);
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.filter-card {
+    background: white;
+    border: 1px solid var(--tr-border);
+    border-radius: var(--tr-radius);
+    box-shadow: var(--tr-shadow);
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.filter-header h3 {
+    margin: 0;
+    color: var(--tr-dark);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.filter-header span {
+    color: var(--tr-muted);
+    font-size: 12px;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(180px, 1.5fr)
+        minmax(140px, 1fr)
+        minmax(140px, 1fr)
+        minmax(120px, .8fr)
+        minmax(135px, 1fr)
+        minmax(135px, 1fr)
+        auto;
+    gap: 11px;
+    align-items: end;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #475569;
+    text-transform: uppercase;
+}
+
+.filter-input,
+.filter-select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #dbe3ed;
+    border-radius: 10px;
+    background: #fff;
+    color: #1e293b;
+    padding: 0 12px;
+    outline: none;
+    font-size: 13px;
+    transition: .2s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    border-color: var(--tr-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.reset-filter {
+    height: 42px;
+    border: none;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.reset-filter:hover {
+    background: #e2e8f0;
+}
+
+/* ============================================================
+   RESULTS BAR
+   ============================================================ */
+
+.results-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.results-info {
+    color: var(--tr-muted);
+    font-size: 13px;
+}
+
+.results-info strong {
+    color: var(--tr-dark);
+}
+
+.amount-result {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tr-dark);
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.table-card {
+    background: white;
+    border: 1px solid var(--tr-border);
+    border-radius: var(--tr-radius);
+    box-shadow: var(--tr-shadow);
+    overflow: hidden;
+}
+
+.table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.transfers-table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: collapse;
+}
+
+.transfers-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    font-weight: 850;
+    padding: 14px 13px;
+    border-bottom: 1px solid var(--tr-border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.transfers-table tbody td {
+    padding: 14px 13px;
+    border-bottom: 1px solid #edf1f5;
+    color: var(--tr-text);
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.transfers-table tbody tr {
+    transition: background .15s ease;
+}
+
+.transfers-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.transfer-number {
+    color: #94a3b8;
+    font-weight: 800;
+}
+
+.reference {
+    font-family: monospace;
+    font-size: 11px;
+    color: #475569;
+    background: #f8fafc;
+    padding: 5px 7px;
+    border-radius: 6px;
+}
+
+.type-badge,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.type-deposit {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.type-withdraw {
+    color: #c2410c;
+    background: #ffedd5;
+}
+
+.type-transfer {
+    color: #1d4ed8;
+    background: #dbeafe;
+}
+
+.type-other {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.status-completed {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.status-pending {
+    color: #a16207;
+    background: #fef9c3;
+}
+
+.status-failed,
+.status-cancelled {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.status-other {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.flow-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 250px;
+}
+
+.flow-side {
+    min-width: 95px;
+}
+
+.flow-name {
+    font-weight: 750;
+    color: #1e293b;
+    white-space: nowrap;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.flow-type {
+    margin-top: 2px;
+    color: #94a3b8;
+    font-size: 10px;
+}
+
+.flow-arrow {
+    color: #94a3b8;
+    font-size: 15px;
+}
+
+.amount-cell {
+    font-weight: 850;
+    color: #0f172a;
+    white-space: nowrap;
+}
+
+.currency-small {
+    font-size: 10px;
+    color: #64748b;
+    margin-left: 2px;
+}
+
+.date-cell {
+    white-space: nowrap;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.description-cell {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 55px 20px;
+    display: none;
+}
+
+.empty-icon {
+    width: 65px;
+    height: 65px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+}
+
+.empty-state h3 {
+    margin: 0 0 6px;
+    color: #1e293b;
+}
+
+.empty-state p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+}
+
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+
+.pagination-area {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 18px;
+    border-top: 1px solid var(--tr-border);
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.pagination-info {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.pagination {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.page-btn {
+    min-width: 34px;
+    height: 34px;
+    border: 1px solid var(--tr-border);
+    border-radius: 8px;
+    background: white;
+    color: #475569;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.page-btn:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+.page-btn.active {
+    background: var(--tr-primary);
+    border-color: var(--tr-primary);
+    color: white;
+}
+
+.page-btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   DETAIL MODAL
+   ============================================================ */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .55);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.modal-overlay.show {
+    display: flex;
+}
+
+.detail-modal {
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 25px 70px rgba(15, 23, 42, .25);
+}
+
+.modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--tr-border);
+}
+
+.modal-head h3 {
+    margin: 0;
+    color: var(--tr-dark);
+    font-size: 18px;
+}
+
+.modal-close {
+    width: 35px;
+    height: 35px;
+    border: none;
+    border-radius: 9px;
+    background: #f1f5f9;
+    color: #475569;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.detail-amount {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.detail-amount .value {
+    font-size: 31px;
+    font-weight: 900;
+    color: #0f172a;
+}
+
+.detail-amount .label {
+    font-size: 11px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.detail-item {
+    border: 1px solid #edf1f5;
+    background: #f8fafc;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.detail-item.full {
+    grid-column: 1 / -1;
+}
+
+.detail-item .label {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.detail-item .value {
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 750;
+    word-break: break-word;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+
+.report-toast {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background: #0f172a;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(15px);
+    transition: .25s ease;
+    z-index: 10000;
+}
+
+.report-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .filters-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+    .transfers-report-page {
+        padding: 12px;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-item.full {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 550px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-title-box h2 {
+        font-size: 20px;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn-report {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: white !important;
+    }
+
+    .transfers-report-page {
+        padding: 0;
+        background: white;
+    }
+
+    .header-actions,
+    .filter-card,
+    .pagination-area,
+    .action-column,
+    .modal-overlay,
+    .report-toast {
+        display: none !important;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .summary-card,
+    .table-card {
+        box-shadow: none;
+    }
+
+    .transfers-table {
+        min-width: 0;
+    }
+}
+</style>
+
+
+<div class="transfers-report-page">
+
+    <!-- ======================================================
+         HEADER
+         ====================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-title-box">
+
+            <div class="report-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+
+            <div>
+                <h2>Transfers Report</h2>
+                <p>Complete report of account and saving transfers</p>
+            </div>
+
+        </div>
+
+        <div class="header-actions">
+
+            <button
+                type="button"
+                class="btn-report btn-light-report"
+                onclick="window.print()"
+            >
+                <i class="fas fa-print"></i>
+                Print
+            </button>
+
+            <button
+                type="button"
+                class="btn-report btn-primary-report"
+                onclick="exportCSV()"
+            >
+                <i class="fas fa-file-csv"></i>
+                Export CSV
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         SUMMARY
+         ====================================================== -->
+
+    <div class="summary-grid">
+
+        <div class="summary-card">
+            <div class="summary-top">
+                <div class="summary-label">Total Transfers</div>
+                <div class="summary-icon icon-blue">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+            </div>
+
+            <div class="summary-value" id="summaryTotal">
+                0
+            </div>
+        </div>
+
+
+        <div class="summary-card">
+            <div class="summary-top">
+                <div class="summary-label">Total Amount</div>
+                <div class="summary-icon icon-purple">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+            </div>
+
+            <div class="summary-value" id="summaryAmount">
+                $0.00
+            </div>
+        </div>
+
+
+        <div class="summary-card">
+            <div class="summary-top">
+                <div class="summary-label">Deposits</div>
+                <div class="summary-icon icon-green">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+            </div>
+
+            <div class="summary-value" id="summaryDeposits">
+                $0.00
+            </div>
+        </div>
+
+
+        <div class="summary-card">
+            <div class="summary-top">
+                <div class="summary-label">Withdrawals</div>
+                <div class="summary-icon icon-orange">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+            </div>
+
+            <div class="summary-value" id="summaryWithdrawals">
+                $0.00
+            </div>
+        </div>
+
+
+        <div class="summary-card">
+            <div class="summary-top">
+                <div class="summary-label">Account Transfers</div>
+                <div class="summary-icon icon-red">
+                    <i class="fas fa-random"></i>
+                </div>
+            </div>
+
+            <div class="summary-value" id="summaryAccountTransfers">
+                $0.00
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         FILTERS
+         ====================================================== -->
+
+    <div class="filter-card">
+
+        <div class="filter-header">
+
+            <h3>
+                <i class="fas fa-filter"></i>
+                Filter Transfers
+            </h3>
+
+            <span id="filterResultText">
+                All transfers
+            </span>
+
+        </div>
+
+
+        <div class="filters-grid">
+
+            <!-- SEARCH -->
+
+            <div class="filter-group">
+
+                <label for="searchInput">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="filter-input"
+                    placeholder="Reference, account, saving..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- TYPE -->
+
+            <div class="filter-group">
+
+                <label for="typeFilter">
+                    Transfer Type
+                </label>
+
+                <select
+                    id="typeFilter"
+                    class="filter-select"
+                >
+                    <option value="">All Types</option>
+                    <option value="account_to_account">
+                        Account → Account
+                    </option>
+                    <option value="account_to_saving">
+                        Account → Saving
+                    </option>
+                    <option value="saving_to_account">
+                        Saving → Account
+                    </option>
+                    <option value="transfer">
+                        Transfer
+                    </option>
+                    <option value="deposit">
+                        Deposit
+                    </option>
+                    <option value="withdraw">
+                        Withdraw
+                    </option>
+                </select>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div class="filter-group">
+
+                <label for="statusFilter">
+                    Status
+                </label>
+
+                <select
+                    id="statusFilter"
+                    class="filter-select"
+                >
+                    <option value="">All Status</option>
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+
+            </div>
+
+
+            <!-- CURRENCY -->
+
+            <div class="filter-group">
+
+                <label for="currencyFilter">
+                    Currency
+                </label>
+
+                <select
+                    id="currencyFilter"
+                    class="filter-select"
+                >
+                    <option value="">All</option>
+                    <option value="USD">USD</option>
+                    <option value="SOS">SOS</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                </select>
+
+            </div>
+
+
+            <!-- DATE FROM -->
+
+            <div class="filter-group">
+
+                <label for="dateFrom">
+                    Date From
+                </label>
+
+                <input
+                    type="date"
+                    id="dateFrom"
+                    class="filter-input"
+                >
+
+            </div>
+
+
+            <!-- DATE TO -->
+
+            <div class="filter-group">
+
+                <label for="dateTo">
+                    Date To
+                </label>
+
+                <input
+                    type="date"
+                    id="dateTo"
+                    class="filter-input"
+                >
+
+            </div>
+
+
+            <!-- RESET -->
+
+            <div class="filter-group">
+
+                <button
+                    type="button"
+                    class="reset-filter"
+                    id="resetFilters"
+                >
+                    <i class="fas fa-undo"></i>
+                    Reset
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         RESULTS BAR
+         ====================================================== -->
+
+    <div class="results-bar">
+
+        <div class="results-info">
+
+            Showing
+            <strong id="visibleCount">0</strong>
+            of
+            <strong id="totalCount">0</strong>
+            transfers
+
+        </div>
+
+        <div class="amount-result">
+
+            Filtered Amount:
+            <span id="filteredAmount">$0.00</span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ======================================================
+         TABLE
+         ====================================================== -->
+
+    <div class="table-card">
+
+        <div class="table-scroll">
+
+            <table class="transfers-table">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Reference</th>
+
+                        <th>Type</th>
+
+                        <th>From</th>
+
+                        <th>To</th>
+
+                        <th>Amount</th>
+
+                        <th>Status</th>
+
+                        <th>Description</th>
+
+                        <th>Date</th>
+
+                        <th class="action-column">
+                            Action
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="transfersTableBody">
+                </tbody>
+
+            </table>
+
+
+            <!-- EMPTY -->
+
+            <div
+                class="empty-state"
+                id="emptyState"
+            >
+
+                <div class="empty-icon">
+                    <i class="fas fa-search"></i>
+                </div>
+
+                <h3>No transfers found</h3>
+
+                <p>
+                    Try changing or clearing your filters.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- ==================================================
+             PAGINATION
+             ================================================== -->
+
+        <div class="pagination-area">
+
+            <div class="pagination-info">
+                Page
+                <strong id="currentPageText">1</strong>
+                of
+                <strong id="totalPagesText">1</strong>
+            </div>
+
+            <div
+                class="pagination"
+                id="pagination"
+            >
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     DETAIL MODAL
+     ============================================================ -->
+
+<div
+    class="modal-overlay"
+    id="detailModal"
+>
+
+    <div class="detail-modal">
+
+        <div class="modal-head">
+
+            <h3>
+                <i class="fas fa-receipt"></i>
+                Transfer Details
+            </h3>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeDetailModal()"
+            >
+                &times;
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <div class="detail-amount">
+
+                <div
+                    class="value"
+                    id="modalAmount"
+                >
+                    $0.00
+                </div>
+
+                <div class="label">
+                    Transfer Amount
+                </div>
+
+            </div>
+
+
+            <div class="detail-grid">
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        Reference
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalReference"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        Status
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalStatus"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        Transfer Type
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalType"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        Date
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalDate"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        From
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalFrom"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        To
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalTo"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        From Balance Before
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalFromBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        From Balance After
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalFromAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        To Balance Before
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalToBefore"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="label">
+                        To Balance After
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalToAfter"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item full">
+
+                    <div class="label">
+                        Description
+                    </div>
+
+                    <div
+                        class="value"
+                        id="modalDescription"
+                    >
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="report-toast"
+    id="reportToast"
+></div>
+
+
+<!-- ============================================================
+     DATA FROM FLASK
+     ============================================================ -->
+
+<script id="transfersData" type="application/json">
+{{ transfers_json | default('[]') | safe }}
+</script>
+
+
+<script>
+/* ============================================================
+   TRANSFERS REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ---------------------------------------------------------
+       LOAD DATA
+       --------------------------------------------------------- */
+
+    let allTransfers = [];
+
+    try {
+
+        const dataElement =
+            document.getElementById("transfersData");
+
+        const rawData =
+            dataElement
+                ? dataElement.textContent.trim()
+                : "[]";
+
+        allTransfers =
+            rawData
+                ? JSON.parse(rawData)
+                : [];
+
+        if (!Array.isArray(allTransfers)) {
+            allTransfers = [];
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Transfers JSON error:",
+            error
+        );
+
+        allTransfers = [];
+    }
+
+
+    /* ---------------------------------------------------------
+       STATE
+       --------------------------------------------------------- */
+
+    let filteredTransfers = [];
+
+    let currentPage = 1;
+
+    const rowsPerPage = 15;
+
+
+    /* ---------------------------------------------------------
+       ELEMENTS
+       --------------------------------------------------------- */
+
+    const searchInput =
+        document.getElementById("searchInput");
+
+    const typeFilter =
+        document.getElementById("typeFilter");
+
+    const statusFilter =
+        document.getElementById("statusFilter");
+
+    const currencyFilter =
+        document.getElementById("currencyFilter");
+
+    const dateFrom =
+        document.getElementById("dateFrom");
+
+    const dateTo =
+        document.getElementById("dateTo");
+
+    const resetFilters =
+        document.getElementById("resetFilters");
+
+    const tableBody =
+        document.getElementById("transfersTableBody");
+
+    const emptyState =
+        document.getElementById("emptyState");
+
+    const pagination =
+        document.getElementById("pagination");
+
+
+    /* ---------------------------------------------------------
+       HELPERS
+       --------------------------------------------------------- */
+
+    function safe(value, fallback = "") {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return fallback;
+        }
+
+        return String(value);
+    }
+
+
+    function number(value) {
+
+        const n =
+            parseFloat(value);
+
+        return Number.isFinite(n)
+            ? n
+            : 0;
+    }
+
+
+    function escapeHtml(value) {
+
+        return safe(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    function normalize(value) {
+
+        return safe(value)
+            .trim()
+            .toLowerCase();
+    }
+
+
+    function formatMoney(
+        amount,
+        currency = "USD"
+    ) {
+
+        const value =
+            number(amount);
+
+        return (
+            value.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            )
+            + " "
+            + safe(currency, "USD")
+        );
+    }
+
+
+    function getReference(t) {
+
+        return (
+            t.reference_no ||
+            t.reference ||
+            t.ref ||
+            "-"
+        );
+    }
+
+
+    function getType(t) {
+
+        return normalize(
+            t.transfer_type ||
+            t.transaction_type ||
+            t.direction ||
+            ""
+        );
+    }
+
+
+    function getTypeLabel(t) {
+
+        const type =
+            getType(t);
+
+        if (
+            type === "account_to_saving"
+        ) {
+            return "Account → Saving";
+        }
+
+        if (
+            type === "saving_to_account"
+        ) {
+            return "Saving → Account";
+        }
+
+        if (
+            type === "account_to_account"
+        ) {
+            return "Account → Account";
+        }
+
+        if (
+            type === "deposit"
+        ) {
+            return "Deposit";
+        }
+
+        if (
+            type === "withdraw"
+        ) {
+            return "Withdraw";
+        }
+
+        if (
+            type === "transfer"
+        ) {
+            return "Transfer";
+        }
+
+        return safe(
+            t.transfer_type ||
+            t.transaction_type ||
+            "Transfer"
+        );
+    }
+
+
+    function getTypeClass(t) {
+
+        const type =
+            getType(t);
+
+        if (
+            type === "account_to_saving" ||
+            type === "deposit"
+        ) {
+            return "type-deposit";
+        }
+
+        if (
+            type === "saving_to_account" ||
+            type === "withdraw"
+        ) {
+            return "type-withdraw";
+        }
+
+        if (
+            type === "account_to_account" ||
+            type === "transfer"
+        ) {
+            return "type-transfer";
+        }
+
+        return "type-other";
+    }
+
+
+    function getStatus(t) {
+
+        return normalize(
+            t.status || "completed"
+        );
+    }
+
+
+    function getStatusClass(t) {
+
+        const status =
+            getStatus(t);
+
+        if (status === "completed") {
+            return "status-completed";
+        }
+
+        if (status === "pending") {
+            return "status-pending";
+        }
+
+        if (status === "failed") {
+            return "status-failed";
+        }
+
+        if (status === "cancelled") {
+            return "status-cancelled";
+        }
+
+        return "status-other";
+    }
+
+
+    function getFromName(t) {
+
+        return (
+            t.from_name ||
+            t.from_account_name ||
+            t.from_saving_name ||
+            "-"
+        );
+    }
+
+
+    function getToName(t) {
+
+        return (
+            t.to_name ||
+            t.to_account_name ||
+            t.to_saving_name ||
+            "-"
+        );
+    }
+
+
+    function getFromType(t) {
+
+        return (
+            t.from_type ||
+            (
+                t.from_saving_name
+                    ? "Saving"
+                    : "Account"
+            )
+        );
+    }
+
+
+    function getToType(t) {
+
+        return (
+            t.to_type ||
+            (
+                t.to_saving_name
+                    ? "Saving"
+                    : "Account"
+            )
+        );
+    }
+
+
+    function getDateValue(t) {
+
+        return (
+            t.created_at ||
+            t.date ||
+            ""
+        );
+    }
+
+
+    function getDisplayDate(t) {
+
+        return (
+            t.created_at_display ||
+            t.date_display ||
+            t.date ||
+            t.created_at ||
+            "-"
+        );
+    }
+
+
+    function getDateOnly(t) {
+
+        const raw =
+            getDateValue(t);
+
+        if (!raw) {
+            return "";
+        }
+
+        const text =
+            safe(raw);
+
+        /*
+         * Handles:
+         * 2026-09-03
+         * 2026-09-03T10:30:00
+         * 2026-09-03 10:30:00
+         */
+
+        const match =
+            text.match(
+                /^(\d{4}-\d{2}-\d{2})/
+            );
+
+        if (match) {
+            return match[1];
+        }
+
+        const d =
+            new Date(text);
+
+        if (
+            !Number.isNaN(
+                d.getTime()
+            )
+        ) {
+
+            const year =
+                d.getFullYear();
+
+            const month =
+                String(
+                    d.getMonth() + 1
+                ).padStart(2, "0");
+
+            const day =
+                String(
+                    d.getDate()
+                ).padStart(2, "0");
+
+            return (
+                year +
+                "-" +
+                month +
+                "-" +
+                day
+            );
+        }
+
+        return "";
+    }
+
+
+    function getDescription(t) {
+
+        return (
+            t.description ||
+            t.note ||
+            "-"
+        );
+    }
+
+
+    /* ---------------------------------------------------------
+       SEARCH TEXT
+       --------------------------------------------------------- */
+
+    function getSearchText(t) {
+
+        return [
+            getReference(t),
+            t.transfer_type,
+            t.transaction_type,
+            t.direction,
+            getTypeLabel(t),
+            getStatus(t),
+            t.currency,
+            getFromName(t),
+            getToName(t),
+            getFromType(t),
+            getToType(t),
+            getDescription(t),
+            t.id,
+            t._id
+        ]
+        .map(normalize)
+        .join(" ");
+
+    }
+
+
+    /* ---------------------------------------------------------
+       FILTER FUNCTION
+       --------------------------------------------------------- */
+
+    function applyFilters() {
+
+        const search =
+            normalize(
+                searchInput.value
+            );
+
+        const selectedType =
+            normalize(
+                typeFilter.value
+            );
+
+        const selectedStatus =
+            normalize(
+                statusFilter.value
+            );
+
+        const selectedCurrency =
+            normalize(
+                currencyFilter.value
+            );
+
+        const from =
+            dateFrom.value;
+
+        const to =
+            dateTo.value;
+
+
+        filteredTransfers =
+            allTransfers.filter(
+                function (t) {
+
+                    /* SEARCH */
+
+                    if (
+                        search &&
+                        !getSearchText(t)
+                            .includes(search)
+                    ) {
+                        return false;
+                    }
+
+
+                    /* TYPE */
+
+                    if (selectedType) {
+
+                        const actualType =
+                            getType(t);
+
+                        const labelType =
+                            normalize(
+                                getTypeLabel(t)
+                            );
+
+                        let typeMatch =
+                            actualType === selectedType;
+
+                        if (
+                            selectedType === "transfer"
+                        ) {
+                            typeMatch =
+                                typeMatch ||
+                                actualType ===
+                                "account_to_account";
+                        }
+
+                        if (
+                            selectedType === "deposit"
+                        ) {
+                            typeMatch =
+                                typeMatch ||
+                                actualType ===
+                                "account_to_saving";
+                        }
+
+                        if (
+                            selectedType === "withdraw"
+                        ) {
+                            typeMatch =
+                                typeMatch ||
+                                actualType ===
+                                "saving_to_account";
+                        }
+
+                        if (
+                            !typeMatch &&
+                            !labelType.includes(
+                                selectedType
+                            )
+                        ) {
+                            return false;
+                        }
+                    }
+
+
+                    /* STATUS */
+
+                    if (
+                        selectedStatus &&
+                        getStatus(t) !==
+                        selectedStatus
+                    ) {
+                        return false;
+                    }
+
+
+                    /* CURRENCY */
+
+                    if (
+                        selectedCurrency &&
+                        normalize(
+                            t.currency ||
+                            "USD"
+                        ) !== selectedCurrency
+                    ) {
+                        return false;
+                    }
+
+
+                    /* DATE FROM */
+
+                    const transactionDate =
+                        getDateOnly(t);
+
+                    if (
+                        from &&
+                        transactionDate &&
+                        transactionDate < from
+                    ) {
+                        return false;
+                    }
+
+
+                    /* DATE TO */
+
+                    if (
+                        to &&
+                        transactionDate &&
+                        transactionDate > to
+                    ) {
+                        return false;
+                    }
+
+
+                    return true;
+
+                }
+            );
+
+
+        currentPage = 1;
+
+        renderTable();
+
+        renderPagination();
+
+        updateSummary();
+
+    }
+
+
+    /* ---------------------------------------------------------
+       RENDER TABLE
+       --------------------------------------------------------- */
+
+    function renderTable() {
+
+        tableBody.innerHTML = "";
+
+        const total =
+            filteredTransfers.length;
+
+        const start =
+            (currentPage - 1) *
+            rowsPerPage;
+
+        const end =
+            Math.min(
+                start + rowsPerPage,
+                total
+            );
+
+        const pageItems =
+            filteredTransfers.slice(
+                start,
+                end
+            );
+
+
+        if (total === 0) {
+
+            emptyState.style.display =
+                "block";
+
+            document.getElementById(
+                "visibleCount"
+            ).textContent = "0";
+
+            return;
+
+        }
+
+
+        emptyState.style.display =
+            "none";
+
+
+        document.getElementById(
+            "visibleCount"
+        ).textContent =
+            String(
+                pageItems.length
+            );
+
+
+        pageItems.forEach(
+            function (t, index) {
+
+                const globalIndex =
+                    start + index + 1;
+
+                const typeClass =
+                    getTypeClass(t);
+
+                const statusClass =
+                    getStatusClass(t);
+
+                const currency =
+                    safe(
+                        t.currency,
+                        "USD"
+                    );
+
+                const amount =
+                    number(t.amount);
+
+                const row =
+                    document.createElement("tr");
+
+
+                row.innerHTML = `
+
+                    <td>
+                        <span class="transfer-number">
+                            ${globalIndex}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="reference">
+                            ${escapeHtml(
+                                getReference(t)
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="type-badge ${typeClass}">
+                            ${escapeHtml(
+                                getTypeLabel(t)
+                            )}
+                        </span>
+                    </td>
+
+                    <td>
+
+                        <div class="flow-side">
+
+                            <div class="flow-name"
+                                 title="${escapeHtml(
+                                     getFromName(t)
+                                 )}">
+                                ${escapeHtml(
+                                    getFromName(t)
+                                )}
+                            </div>
+
+                            <div class="flow-type">
+                                ${escapeHtml(
+                                    getFromType(t)
+                                )}
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+
+                        <div class="flow-side">
+
+                            <div class="flow-name"
+                                 title="${escapeHtml(
+                                     getToName(t)
+                                 )}">
+                                ${escapeHtml(
+                                    getToName(t)
+                                )}
+                            </div>
+
+                            <div class="flow-type">
+                                ${escapeHtml(
+                                    getToType(t)
+                                )}
+                            </div>
+
+                        </div>
+
+                    </td>
+
+                    <td>
+
+                        <div class="amount-cell">
+                            ${amount.toLocaleString(
+                                undefined,
+                                {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                }
+                            )}
+
+                            <span class="currency-small">
+                                ${escapeHtml(
+                                    currency
+                                )}
+                            </span>
+                        </div>
+
+                    </td>
+
+                    <td>
+
+                        <span class="status-badge ${statusClass}">
+                            <i class="fas fa-circle"
+                               style="font-size:5px;"></i>
+
+                            ${escapeHtml(
+                                getStatus(t)
+                            ).toUpperCase()}
+                        </span>
+
+                    </td>
+
+                    <td>
+
+                        <div
+                            class="description-cell"
+                            title="${escapeHtml(
+                                getDescription(t)
+                            )}"
+                        >
+                            ${escapeHtml(
+                                getDescription(t)
+                            )}
+                        </div>
+
+                    </td>
+
+                    <td>
+
+                        <div class="date-cell">
+                            ${escapeHtml(
+                                getDisplayDate(t)
+                            )}
+                        </div>
+
+                    </td>
+
+                    <td class="action-column">
+
+                        <button
+                            type="button"
+                            class="btn-report btn-light-report"
+                            onclick="openDetailModal(${start + index})"
+                            style="padding:7px 10px;"
+                            title="View details"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+
+                    </td>
+
+                `;
+
+
+                tableBody.appendChild(row);
+
+            }
+        );
+
+    }
+
+
+    /* ---------------------------------------------------------
+       PAGINATION
+       --------------------------------------------------------- */
+
+    function renderPagination() {
+
+        pagination.innerHTML = "";
+
+        const totalPages =
+            Math.max(
+                1,
+                Math.ceil(
+                    filteredTransfers.length /
+                    rowsPerPage
+                )
+            );
+
+
+        document.getElementById(
+            "currentPageText"
+        ).textContent =
+            String(currentPage);
+
+
+        document.getElementById(
+            "totalPagesText"
+        ).textContent =
+            String(totalPages);
+
+
+        /* PREVIOUS */
+
+        const previous =
+            document.createElement("button");
+
+        previous.className =
+            "page-btn";
+
+        previous.innerHTML =
+            '<i class="fas fa-chevron-left"></i>';
+
+        previous.disabled =
+            currentPage <= 1;
+
+        previous.onclick =
+            function () {
+
+                if (currentPage > 1) {
+
+                    currentPage--;
+
+                    renderTable();
+
+                    renderPagination();
+
+                }
+
+            };
+
+        pagination.appendChild(previous);
+
+
+        /* PAGE NUMBERS */
+
+        let startPage =
+            Math.max(
+                1,
+                currentPage - 2
+            );
+
+        let endPage =
+            Math.min(
+                totalPages,
+                currentPage + 2
+            );
+
+
+        if (
+            currentPage <= 3
+        ) {
+            endPage =
+                Math.min(
+                    5,
+                    totalPages
+                );
+        }
+
+
+        if (
+            currentPage >=
+            totalPages - 2
+        ) {
+            startPage =
+                Math.max(
+                    1,
+                    totalPages - 4
+                );
+        }
+
+
+        for (
+            let page = startPage;
+            page <= endPage;
+            page++
+        ) {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.className =
+                "page-btn" +
+                (
+                    page === currentPage
+                        ? " active"
+                        : ""
+                );
+
+            button.textContent =
+                String(page);
+
+
+            button.onclick =
+                function () {
+
+                    currentPage =
+                        page;
+
+                    renderTable();
+
+                    renderPagination();
+
+                };
+
+
+            pagination.appendChild(
+                button
+            );
+
+        }
+
+
+        /* NEXT */
+
+        const next =
+            document.createElement("button");
+
+        next.className =
+            "page-btn";
+
+        next.innerHTML =
+            '<i class="fas fa-chevron-right"></i>';
+
+        next.disabled =
+            currentPage >= totalPages;
+
+        next.onclick =
+            function () {
+
+                if (
+                    currentPage <
+                    totalPages
+                ) {
+
+                    currentPage++;
+
+                    renderTable();
+
+                    renderPagination();
+
+                }
+
+            };
+
+        pagination.appendChild(next);
+
+    }
+
+
+    /* ---------------------------------------------------------
+       UPDATE SUMMARY
+       --------------------------------------------------------- */
+
+    function updateSummary() {
+
+        const total =
+            filteredTransfers.length;
+
+
+        document.getElementById(
+            "totalCount"
+        ).textContent =
+            String(total);
+
+
+        document.getElementById(
+            "filterResultText"
+        ).textContent =
+            total === allTransfers.length
+                ? "All transfers"
+                : `${total} filtered`;
+
+
+        /*
+         * Important:
+         * Currency totals are separated.
+         * If multiple currencies exist, display them
+         * independently instead of incorrectly adding USD+SOS.
+         */
+
+        const currencyTotals = {};
+
+
+        let depositTotal = 0;
+        let withdrawTotal = 0;
+        let accountTransferTotal = 0;
+
+
+        filteredTransfers.forEach(
+            function (t) {
+
+                const amount =
+                    number(t.amount);
+
+                const currency =
+                    safe(
+                        t.currency,
+                        "USD"
+                    ).toUpperCase();
+
+
+                if (
+                    !currencyTotals[currency]
+                ) {
+                    currencyTotals[currency] = 0;
+                }
+
+
+                currencyTotals[currency] +=
+                    amount;
+
+
+                const type =
+                    getType(t);
+
+
+                if (
+                    type ===
+                    "account_to_saving" ||
+                    type ===
+                    "deposit"
+                ) {
+
+                    depositTotal +=
+                        amount;
+
+                }
+                else if (
+                    type ===
+                    "saving_to_account" ||
+                    type ===
+                    "withdraw"
+                ) {
+
+                    withdrawTotal +=
+                        amount;
+
+                }
+                else if (
+                    type ===
+                    "account_to_account" ||
+                    type ===
+                    "transfer"
+                ) {
+
+                    accountTransferTotal +=
+                        amount;
+
+                }
+
+            }
+        );
+
+
+        const currencies =
+            Object.keys(
+                currencyTotals
+            );
+
+
+        let totalText = "$0.00";
+
+
+        if (currencies.length === 1) {
+
+            const c =
+                currencies[0];
+
+            totalText =
+                formatMoney(
+                    currencyTotals[c],
+                    c
+                );
+
+        }
+        else if (
+            currencies.length > 1
+        ) {
+
+            totalText =
+                currencies
+                    .map(
+                        c =>
+                            formatMoney(
+                                currencyTotals[c],
+                                c
+                            )
+                    )
+                    .join(" | ");
+
+        }
+
+
+        document.getElementById(
+            "summaryTotal"
+        ).textContent =
+            String(total);
+
+
+        document.getElementById(
+            "summaryAmount"
+        ).textContent =
+            totalText;
+
+
+        document.getElementById(
+            "summaryDeposits"
+        ).textContent =
+            depositTotal.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+
+
+        document.getElementById(
+            "summaryWithdrawals"
+        ).textContent =
+            withdrawTotal.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+
+
+        document.getElementById(
+            "summaryAccountTransfers"
+        ).textContent =
+            accountTransferTotal.toLocaleString(
+                undefined,
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+
+
+        let filteredAmountText =
+            totalText;
+
+        document.getElementById(
+            "filteredAmount"
+        ).textContent =
+            filteredAmountText;
+
+    }
+
+
+    /* ---------------------------------------------------------
+       FILTER EVENTS
+       --------------------------------------------------------- */
+
+    searchInput.addEventListener(
+        "input",
+        applyFilters
+    );
+
+    typeFilter.addEventListener(
+        "change",
+        applyFilters
+    );
+
+    statusFilter.addEventListener(
+        "change",
+        applyFilters
+    );
+
+    currencyFilter.addEventListener(
+        "change",
+        applyFilters
+    );
+
+    dateFrom.addEventListener(
+        "change",
+        applyFilters
+    );
+
+    dateTo.addEventListener(
+        "change",
+        applyFilters
+    );
+
+
+    /* ---------------------------------------------------------
+       RESET
+       --------------------------------------------------------- */
+
+    resetFilters.addEventListener(
+        "click",
+        function () {
+
+            searchInput.value = "";
+
+            typeFilter.value = "";
+
+            statusFilter.value = "";
+
+            currencyFilter.value = "";
+
+            dateFrom.value = "";
+
+            dateTo.value = "";
+
+            currentPage = 1;
+
+            applyFilters();
+
+            showToast(
+                "Filters have been reset."
+            );
+
+        }
+    );
+
+
+    /* ---------------------------------------------------------
+       DETAIL MODAL
+       --------------------------------------------------------- */
+
+    window.openDetailModal =
+        function (index) {
+
+            const t =
+                filteredTransfers[index];
+
+            if (!t) {
+                return;
+            }
+
+
+            const currency =
+                safe(
+                    t.currency,
+                    "USD"
+                );
+
+
+            document.getElementById(
+                "modalAmount"
+            ).textContent =
+                formatMoney(
+                    t.amount,
+                    currency
+                );
+
+
+            document.getElementById(
+                "modalReference"
+            ).textContent =
+                getReference(t);
+
+
+            document.getElementById(
+                "modalStatus"
+            ).textContent =
+                safe(
+                    getStatus(t)
+                ).toUpperCase();
+
+
+            document.getElementById(
+                "modalType"
+            ).textContent =
+                getTypeLabel(t);
+
+
+            document.getElementById(
+                "modalDate"
+            ).textContent =
+                getDisplayDate(t);
+
+
+            document.getElementById(
+                "modalFrom"
+            ).textContent =
+                getFromName(t) +
+                " (" +
+                getFromType(t) +
+                ")";
+
+
+            document.getElementById(
+                "modalTo"
+            ).textContent =
+                getToName(t) +
+                " (" +
+                getToType(t) +
+                ")";
+
+
+            document.getElementById(
+                "modalFromBefore"
+            ).textContent =
+                formatBalance(
+                    t.from_balance_before ??
+                    t.from_account_balance_before ??
+                    t.from_saving_balance_before,
+                    currency
+                );
+
+
+            document.getElementById(
+                "modalFromAfter"
+            ).textContent =
+                formatBalance(
+                    t.from_balance_after ??
+                    t.from_account_balance_after ??
+                    t.from_saving_balance_after,
+                    currency
+                );
+
+
+            document.getElementById(
+                "modalToBefore"
+            ).textContent =
+                formatBalance(
+                    t.to_balance_before ??
+                    t.to_account_balance_before ??
+                    t.to_saving_balance_before,
+                    currency
+                );
+
+
+            document.getElementById(
+                "modalToAfter"
+            ).textContent =
+                formatBalance(
+                    t.to_balance_after ??
+                    t.to_account_balance_after ??
+                    t.to_saving_balance_after,
+                    currency
+                );
+
+
+            document.getElementById(
+                "modalDescription"
+            ).textContent =
+                getDescription(t);
+
+
+            document.getElementById(
+                "detailModal"
+            ).classList.add("show");
+
+        };
+
+
+    function formatBalance(
+        value,
+        currency
+    ) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+            return "-";
+        }
+
+        return formatMoney(
+            value,
+            currency
+        );
+
+    }
+
+
+    window.closeDetailModal =
+        function () {
+
+            document.getElementById(
+                "detailModal"
+            ).classList.remove("show");
+
+        };
+
+
+    document.getElementById(
+        "detailModal"
+    ).addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                event.target === this
+            ) {
+                closeDetailModal();
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+            ) {
+                closeDetailModal();
+            }
+
+        }
+    );
+
+
+    /* ---------------------------------------------------------
+       EXPORT CSV
+       --------------------------------------------------------- */
+
+    window.exportCSV =
+        function () {
+
+            if (
+                filteredTransfers.length === 0
+            ) {
+
+                showToast(
+                    "No transfers to export."
+                );
+
+                return;
+            }
+
+
+            const headers = [
+                "#",
+                "Reference",
+                "Transfer Type",
+                "From",
+                "From Type",
+                "To",
+                "To Type",
+                "Amount",
+                "Currency",
+                "Status",
+                "Description",
+                "Date"
+            ];
+
+
+            const rows =
+                filteredTransfers.map(
+                    function (t, index) {
+
+                        return [
+                            index + 1,
+                            getReference(t),
+                            getTypeLabel(t),
+                            getFromName(t),
+                            getFromType(t),
+                            getToName(t),
+                            getToType(t),
+                            number(t.amount)
+                                .toFixed(2),
+                            safe(
+                                t.currency,
+                                "USD"
+                            ),
+                            getStatus(t),
+                            getDescription(t),
+                            getDisplayDate(t)
+                        ];
+
+                    }
+                );
+
+
+            const csvData =
+                [headers, ...rows]
+                    .map(
+                        row =>
+                            row
+                                .map(
+                                    value =>
+                                        '"' +
+                                        safe(value)
+                                            .replace(
+                                                /"/g,
+                                                '""'
+                                            ) +
+                                        '"'
+                                )
+                                .join(",")
+                    )
+                    .join("\r\n");
+
+
+            const blob =
+                new Blob(
+                    [csvData],
+                    {
+                        type:
+                            "text/csv;charset=utf-8;"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(blob);
+
+
+            const link =
+                document.createElement("a");
+
+            link.href = url;
+
+            link.download =
+                "transfers_report_" +
+                new Date()
+                    .toISOString()
+                    .slice(0, 10) +
+                ".csv";
+
+
+            document.body.appendChild(link);
+
+            link.click();
+
+            document.body.removeChild(link);
+
+            URL.revokeObjectURL(url);
+
+
+            showToast(
+                "Transfers exported successfully."
+            );
+
+        };
+
+
+    /* ---------------------------------------------------------
+       TOAST
+       --------------------------------------------------------- */
+
+    function showToast(message) {
+
+        const toast =
+            document.getElementById(
+                "reportToast"
+            );
+
+        toast.textContent =
+            message;
+
+        toast.classList.add("show");
+
+
+        setTimeout(
+            function () {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            2500
+        );
+
+    }
+
+
+    /* ---------------------------------------------------------
+       INITIAL LOAD
+       --------------------------------------------------------- */
+
+    applyFilters();
+
+
+})();
+</script>
+
+{% endblock %}

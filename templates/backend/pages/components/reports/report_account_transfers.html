@@ -1,0 +1,3621 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Account → Account Transfers Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   ACCOUNT TRANSFERS REPORT
+   CUSTOM MODAL — NO BOOTSTRAP MODAL
+   ============================================================ */
+
+.account-transfer-page {
+    padding: 20px;
+}
+
+/* ------------------------------------------------------------
+   HEADER
+------------------------------------------------------------ */
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+}
+
+.report-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.report-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef4ff;
+    color: #2563eb;
+    font-size: 24px;
+}
+
+.report-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.report-subtitle {
+    margin: 4px 0 0;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------
+   BUTTONS
+------------------------------------------------------------ */
+.custom-btn {
+    border: 0;
+    border-radius: 9px;
+    padding: 10px 15px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: .2s ease;
+    text-decoration: none;
+}
+
+.custom-btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-primary-custom {
+    background: #2563eb;
+    color: #fff;
+}
+
+.btn-primary-custom:hover {
+    background: #1d4ed8;
+    color: #fff;
+}
+
+.btn-secondary-custom {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.btn-secondary-custom:hover {
+    background: #e5e7eb;
+}
+
+.btn-success-custom {
+    background: #16a34a;
+    color: #fff;
+}
+
+.btn-success-custom:hover {
+    background: #15803d;
+    color: #fff;
+}
+
+/* ------------------------------------------------------------
+   SUMMARY CARDS
+------------------------------------------------------------ */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.summary-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.04);
+}
+
+.summary-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-label {
+    color: #6b7280;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.summary-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f3f4f6;
+}
+
+.summary-value {
+    margin-top: 10px;
+    font-size: 24px;
+    font-weight: 750;
+    color: #111827;
+}
+
+.summary-small {
+    margin-top: 4px;
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* ------------------------------------------------------------
+   STATUS SUMMARY
+------------------------------------------------------------ */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.status-card {
+    border-radius: 12px;
+    padding: 14px 16px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+}
+
+.status-name {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-number {
+    margin-top: 5px;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   SCOPE
+------------------------------------------------------------ */
+.scope-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    padding: 15px 18px;
+    margin-bottom: 20px;
+}
+
+.scope-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 8px;
+}
+
+.scope-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.scope-item {
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.scope-included {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.scope-excluded {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+/* ------------------------------------------------------------
+   FILTER PANEL
+------------------------------------------------------------ */
+.filter-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 15px;
+    padding: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,.04);
+}
+
+.filter-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 650;
+    color: #374151;
+}
+
+.filter-control {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 0 11px;
+    font-size: 13px;
+    background: #fff;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.filter-control:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.10);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 15px;
+}
+
+/* ------------------------------------------------------------
+   TABLE
+------------------------------------------------------------ */
+.table-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 3px 12px rgba(0,0,0,.04);
+}
+
+.table-header {
+    padding: 17px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.table-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.result-count {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.transfer-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1200px;
+}
+
+.transfer-table thead th {
+    background: #f9fafb;
+    color: #6b7280;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    padding: 13px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.transfer-table tbody td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+.transfer-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.transfer-number {
+    color: #9ca3af;
+    font-weight: 700;
+}
+
+.account-name {
+    font-weight: 700;
+    color: #111827;
+}
+
+.account-type {
+    display: block;
+    color: #9ca3af;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.transfer-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+    font-size: 18px;
+}
+
+.amount {
+    font-weight: 750;
+    color: #111827;
+}
+
+.currency {
+    color: #6b7280;
+    font-size: 11px;
+    margin-left: 3px;
+}
+
+.reference {
+    font-family: monospace;
+    font-size: 11px;
+    color: #4b5563;
+}
+
+.description-cell {
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------
+   STATUS BADGES
+------------------------------------------------------------ */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+
+.status-completed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.status-cancelled {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.status-default {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+/* ------------------------------------------------------------
+   BALANCE
+------------------------------------------------------------ */
+.balance-box {
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+.balance-before {
+    color: #6b7280;
+}
+
+.balance-after {
+    color: #111827;
+    font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   ACTION
+------------------------------------------------------------ */
+.action-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #dbeafe;
+    background: #eff6ff;
+    color: #2563eb;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.action-btn:hover {
+    background: #2563eb;
+    color: #fff;
+}
+
+/* ------------------------------------------------------------
+   EMPTY
+------------------------------------------------------------ */
+.empty-state {
+    padding: 60px 20px;
+    text-align: center;
+    display: none;
+}
+
+.empty-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 25px;
+}
+
+.empty-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.empty-text {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+/* ============================================================
+   CUSTOM MODAL
+   NO BOOTSTRAP
+============================================================ */
+
+.custom-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, .62);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+
+    z-index: 999999;
+
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.custom-modal-overlay.active {
+    display: flex;
+}
+
+.custom-modal {
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+
+    background: #fff;
+    border-radius: 18px;
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.25);
+
+    overflow: hidden;
+
+    animation: modalOpen .22s ease-out;
+}
+
+@keyframes modalOpen {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.custom-modal-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid #e5e7eb;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.modal-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.modal-heading-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: #eff6ff;
+    color: #2563eb;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 18px;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 750;
+}
+
+.modal-subtitle {
+    margin: 3px 0 0;
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+
+    border: 0;
+    border-radius: 9px;
+
+    background: #f3f4f6;
+    color: #4b5563;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 18px;
+}
+
+.modal-close:hover {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.custom-modal-body {
+    padding: 20px;
+    max-height: calc(90vh - 145px);
+    overflow-y: auto;
+}
+
+/* ------------------------------------------------------------
+   MODAL AMOUNT
+------------------------------------------------------------ */
+.modal-amount-box {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 13px;
+    padding: 17px;
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.modal-amount-label {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 650;
+}
+
+.modal-amount {
+    margin-top: 5px;
+    font-size: 30px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.modal-status {
+    margin-top: 8px;
+}
+
+/* ------------------------------------------------------------
+   MODAL ACCOUNT FLOW
+------------------------------------------------------------ */
+.account-flow {
+    display: grid;
+    grid-template-columns: 1fr 55px 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.flow-account {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.flow-label {
+    font-size: 10px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.flow-name {
+    font-weight: 750;
+    font-size: 14px;
+    color: #111827;
+}
+
+.flow-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #2563eb;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin: auto;
+}
+
+/* ------------------------------------------------------------
+   MODAL DETAILS GRID
+------------------------------------------------------------ */
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.detail-item {
+    background: #f9fafb;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.detail-label {
+    font-size: 10px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 13px;
+    font-weight: 650;
+    color: #111827;
+    word-break: break-word;
+}
+
+/* ------------------------------------------------------------
+   MODAL BALANCES
+------------------------------------------------------------ */
+.modal-balance-section {
+    margin-top: 18px;
+}
+
+.modal-section-title {
+    font-size: 13px;
+    font-weight: 750;
+    margin-bottom: 10px;
+}
+
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.balance-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.balance-title {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.balance-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+}
+
+.balance-row span:first-child {
+    color: #9ca3af;
+}
+
+.balance-row span:last-child {
+    font-weight: 700;
+}
+
+/* ------------------------------------------------------------
+   MODAL DESCRIPTION
+------------------------------------------------------------ */
+.modal-description {
+    margin-top: 18px;
+    padding: 13px;
+    border-radius: 10px;
+    background: #f9fafb;
+    border: 1px solid #f0f0f0;
+}
+
+.modal-description-text {
+    font-size: 13px;
+    color: #4b5563;
+    line-height: 1.6;
+    word-break: break-word;
+}
+
+/* ------------------------------------------------------------
+   MODAL FOOTER
+------------------------------------------------------------ */
+.custom-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid #e5e7eb;
+
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ------------------------------------------------------------
+   PRINT
+------------------------------------------------------------ */
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .account-transfer-page {
+        padding: 0;
+    }
+
+    .header-actions,
+    .filter-panel,
+    .scope-box,
+    .action-btn,
+    .custom-modal-overlay {
+        display: none !important;
+    }
+
+    .summary-card,
+    .status-card,
+    .table-card {
+        box-shadow: none !important;
+    }
+
+    .transfer-table {
+        min-width: 0;
+    }
+}
+
+/* ------------------------------------------------------------
+   RESPONSIVE
+------------------------------------------------------------ */
+@media (max-width: 1100px) {
+
+    .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 700px) {
+
+    .account-transfer-page {
+        padding: 12px;
+    }
+
+    .report-title {
+        font-size: 20px;
+    }
+
+    .summary-grid,
+    .status-grid,
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-header {
+        align-items: flex-start;
+    }
+
+    .header-actions {
+        width: 100%;
+    }
+
+    .custom-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .account-flow {
+        grid-template-columns: 1fr;
+    }
+
+    .flow-icon {
+        transform: rotate(90deg);
+    }
+
+    .details-grid,
+    .balance-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .custom-modal-overlay {
+        padding: 10px;
+    }
+
+    .custom-modal {
+        max-height: 95vh;
+        border-radius: 14px;
+    }
+
+    .custom-modal-body {
+        max-height: calc(95vh - 145px);
+    }
+}
+
+/* ------------------------------------------------------------
+   DARK BACKGROUND COMPATIBILITY
+------------------------------------------------------------ */
+@media (prefers-color-scheme: dark) {
+    /* Modal remains intentionally white for readability */
+}
+</style>
+
+
+<div class="account-transfer-page">
+
+    <!-- ========================================================
+         HEADER
+    ========================================================= -->
+    <div class="report-header">
+
+        <div class="report-title-wrap">
+
+            <div class="report-icon">
+                <i class="feather-repeat"></i>
+            </div>
+
+            <div>
+                <h1 class="report-title">
+                    Account → Account Transfers
+                </h1>
+
+                <p class="report-subtitle">
+                    Complete report for transfers between accounts only
+                </p>
+            </div>
+
+        </div>
+
+        <div class="header-actions">
+
+            <button
+                type="button"
+                class="custom-btn btn-secondary-custom"
+                onclick="printReport()">
+
+                <i class="feather-printer"></i>
+                Print
+            </button>
+
+            <button
+                type="button"
+                class="custom-btn btn-success-custom"
+                onclick="exportTransfersCSV()">
+
+                <i class="feather-download"></i>
+                Export CSV
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY CARDS
+    ========================================================= -->
+    <div class="summary-grid">
+
+        <!-- Total Transfers -->
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div class="summary-label">
+                    Total Transfers
+                </div>
+
+                <div class="summary-icon">
+                    <i class="feather-repeat"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value" id="totalTransfersValue">
+                {{ total_transfers|default(0) }}
+            </div>
+
+            <div class="summary-small">
+                Account → Account only
+            </div>
+
+        </div>
+
+
+        <!-- Total Amount -->
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div class="summary-label">
+                    Total Amount
+                </div>
+
+                <div class="summary-icon">
+                    <i class="feather-dollar-sign"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                ${{ "%.2f"|format(total_amount|default(0)) }}
+            </div>
+
+            <div class="summary-small">
+                All account transfers
+            </div>
+
+        </div>
+
+
+        <!-- Completed -->
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div class="summary-label">
+                    Completed
+                </div>
+
+                <div class="summary-icon">
+                    <i class="feather-check-circle"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                {{ completed_count|default(0) }}
+            </div>
+
+            <div class="summary-small">
+                ${{ "%.2f"|format(completed_amount|default(0)) }}
+            </div>
+
+        </div>
+
+
+        <!-- Pending -->
+        <div class="summary-card">
+
+            <div class="summary-card-top">
+
+                <div class="summary-label">
+                    Pending
+                </div>
+
+                <div class="summary-icon">
+                    <i class="feather-clock"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-value">
+                {{ pending_count|default(0) }}
+            </div>
+
+            <div class="summary-small">
+                ${{ "%.2f"|format(pending_amount|default(0)) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         STATUS SUMMARY
+    ========================================================= -->
+    <div class="status-grid">
+
+        <div class="status-card">
+
+            <div class="status-name">
+                Completed
+            </div>
+
+            <div class="status-number">
+                {{ completed_count|default(0) }}
+            </div>
+
+        </div>
+
+        <div class="status-card">
+
+            <div class="status-name">
+                Pending
+            </div>
+
+            <div class="status-number">
+                {{ pending_count|default(0) }}
+            </div>
+
+        </div>
+
+        <div class="status-card">
+
+            <div class="status-name">
+                Failed
+            </div>
+
+            <div class="status-number">
+                {{ failed_count|default(0) }}
+            </div>
+
+        </div>
+
+        <div class="status-card">
+
+            <div class="status-name">
+                Cancelled
+            </div>
+
+            <div class="status-number">
+                {{ cancelled_count|default(0) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         REPORT SCOPE
+    ========================================================= -->
+    <div class="scope-box">
+
+        <div class="scope-title">
+            <i class="feather-filter"></i>
+            Report Scope
+        </div>
+
+        <div class="scope-list">
+
+            <span class="scope-item scope-included">
+                <i class="feather-check"></i>
+                Account → Account
+            </span>
+
+            <span class="scope-item scope-excluded">
+                <i class="feather-x"></i>
+                Account → Saving excluded
+            </span>
+
+            <span class="scope-item scope-excluded">
+                <i class="feather-x"></i>
+                Saving → Account excluded
+            </span>
+
+            <span class="scope-item scope-excluded">
+                <i class="feather-x"></i>
+                Saving → Saving excluded
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTER PANEL
+    ========================================================= -->
+    <div class="filter-panel">
+
+        <div class="filter-title">
+            <i class="feather-sliders"></i>
+            Filter Transfers
+        </div>
+
+        <div class="filter-grid">
+
+            <!-- Search -->
+            <div class="filter-group">
+
+                <label for="searchInput">
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    id="searchInput"
+                    class="filter-control"
+                    placeholder="Account, reference, description..."
+                    oninput="applyFilters()">
+
+            </div>
+
+
+            <!-- From Account -->
+            <div class="filter-group">
+
+                <label for="fromAccountFilter">
+                    From Account
+                </label>
+
+                <select
+                    id="fromAccountFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+                    <option value="">
+                        All From Accounts
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- To Account -->
+            <div class="filter-group">
+
+                <label for="toAccountFilter">
+                    To Account
+                </label>
+
+                <select
+                    id="toAccountFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+                    <option value="">
+                        All To Accounts
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Status -->
+            <div class="filter-group">
+
+                <label for="statusFilter">
+                    Status
+                </label>
+
+                <select
+                    id="statusFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="failed">
+                        Failed
+                    </option>
+
+                    <option value="cancelled">
+                        Cancelled
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Currency -->
+            <div class="filter-group">
+
+                <label for="currencyFilter">
+                    Currency
+                </label>
+
+                <select
+                    id="currencyFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+                    <option value="">
+                        All Currency
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- Date From -->
+            <div class="filter-group">
+
+                <label for="dateFromFilter">
+                    Date From
+                </label>
+
+                <input
+                    type="date"
+                    id="dateFromFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+            </div>
+
+
+            <!-- Date To -->
+            <div class="filter-group">
+
+                <label for="dateToFilter">
+                    Date To
+                </label>
+
+                <input
+                    type="date"
+                    id="dateToFilter"
+                    class="filter-control"
+                    onchange="applyFilters()">
+
+            </div>
+
+
+            <!-- Min Amount -->
+            <div class="filter-group">
+
+                <label for="minAmountFilter">
+                    Minimum Amount
+                </label>
+
+                <input
+                    type="number"
+                    id="minAmountFilter"
+                    class="filter-control"
+                    placeholder="0.00"
+                    step="0.01"
+                    oninput="applyFilters()">
+
+            </div>
+
+
+            <!-- Max Amount -->
+            <div class="filter-group">
+
+                <label for="maxAmountFilter">
+                    Maximum Amount
+                </label>
+
+                <input
+                    type="number"
+                    id="maxAmountFilter"
+                    class="filter-control"
+                    placeholder="0.00"
+                    step="0.01"
+                    oninput="applyFilters()">
+
+            </div>
+
+        </div>
+
+
+        <div class="filter-actions">
+
+            <button
+                type="button"
+                class="custom-btn btn-secondary-custom"
+                onclick="resetFilters()">
+
+                <i class="feather-refresh-cw"></i>
+                Reset Filters
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TABLE
+    ========================================================= -->
+    <div class="table-card">
+
+        <div class="table-header">
+
+            <div>
+                <h3 class="table-title">
+                    Account Transfer Transactions
+                </h3>
+
+                <div class="result-count">
+                    Showing
+                    <strong id="visibleCount">
+                        {{ total_transfers|default(0) }}
+                    </strong>
+                    of
+                    <strong>
+                        {{ total_transfers|default(0) }}
+                    </strong>
+                    transfers
+                </div>
+            </div>
+
+            <div class="result-count">
+                Total:
+                <strong id="filteredAmount">
+                    $0.00
+                </strong>
+            </div>
+
+        </div>
+
+
+        <div class="table-responsive">
+
+            <table
+                class="transfer-table"
+                id="transfersTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>From Account</th>
+
+                        <th></th>
+
+                        <th>To Account</th>
+
+                        <th>Amount</th>
+
+                        <th>Status</th>
+
+                        <th>Reference</th>
+
+                        <th>Description</th>
+
+                        <th>Balances</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="transferTableBody">
+
+                {% for transfer in transfers %}
+
+                    <tr
+                        class="transfer-row"
+                        data-index="{{ loop.index0 }}">
+
+                        <td class="transfer-number">
+                            {{ loop.index }}
+                        </td>
+
+                        <td>
+                            {{ transfer.created_at_display or '-' }}
+                        </td>
+
+
+                        <!-- FROM -->
+                        <td>
+
+                            <div class="account-name">
+                                {{ transfer.from_name or 'Unknown Account' }}
+                            </div>
+
+                            <span class="account-type">
+                                Account
+                            </span>
+
+                        </td>
+
+
+                        <!-- ARROW -->
+                        <td>
+
+                            <div class="transfer-arrow">
+                                <i class="feather-arrow-right"></i>
+                            </div>
+
+                        </td>
+
+
+                        <!-- TO -->
+                        <td>
+
+                            <div class="account-name">
+                                {{ transfer.to_name or 'Unknown Account' }}
+                            </div>
+
+                            <span class="account-type">
+                                Account
+                            </span>
+
+                        </td>
+
+
+                        <!-- AMOUNT -->
+                        <td>
+
+                            <span class="amount">
+                                {{ "%.2f"|format(transfer.amount|default(0)) }}
+                            </span>
+
+                            <span class="currency">
+                                {{ transfer.currency or 'USD' }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- STATUS -->
+                        <td>
+
+                            {% set status = (transfer.status or 'completed')|lower %}
+
+                            <span
+                                class="status-badge
+                                {% if status == 'completed' %}
+                                    status-completed
+                                {% elif status == 'pending' %}
+                                    status-pending
+                                {% elif status == 'failed' %}
+                                    status-failed
+                                {% elif status == 'cancelled' %}
+                                    status-cancelled
+                                {% else %}
+                                    status-default
+                                {% endif %}">
+
+                                {{ status }}
+
+                            </span>
+
+                        </td>
+
+
+                        <!-- REFERENCE -->
+                        <td>
+
+                            <span class="reference">
+                                {{ transfer.reference_no or '-' }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- DESCRIPTION -->
+                        <td>
+
+                            <div
+                                class="description-cell"
+                                title="{{ transfer.description or '' }}">
+
+                                {{ transfer.description or '-' }}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- BALANCES -->
+                        <td>
+
+                            <div class="balance-box">
+
+                                {% if transfer.from_balance_before is not none %}
+
+                                    <div class="balance-before">
+                                        From:
+                                        {{ "%.2f"|format(transfer.from_balance_before) }}
+                                    </div>
+
+                                {% endif %}
+
+                                {% if transfer.from_balance_after is not none %}
+
+                                    <div class="balance-after">
+                                        →
+                                        {{ "%.2f"|format(transfer.from_balance_after) }}
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- ACTION -->
+                        <td>
+
+                            <button
+                                type="button"
+                                class="action-btn"
+                                title="View Transfer Details"
+                                onclick="openTransferModal({{ loop.index0 }})">
+
+                                <i class="feather-eye"></i>
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- EMPTY STATE -->
+        <div
+            class="empty-state"
+            id="emptyState">
+
+            <div class="empty-icon">
+                <i class="feather-search"></i>
+            </div>
+
+            <div class="empty-title">
+                No transfers found
+            </div>
+
+            <div class="empty-text">
+                No account-to-account transfers match your filters.
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM TRANSFER DETAILS MODAL
+     NO BOOTSTRAP
+============================================================ -->
+
+<div
+    id="transferDetailsModal"
+    class="custom-modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true">
+
+    <div
+        class="custom-modal"
+        onclick="event.stopPropagation()">
+
+
+        <!-- MODAL HEADER -->
+        <div class="custom-modal-header">
+
+            <div class="modal-heading">
+
+                <div class="modal-heading-icon">
+                    <i class="feather-repeat"></i>
+                </div>
+
+                <div>
+
+                    <h3 class="modal-title">
+                        Transfer Details
+                    </h3>
+
+                    <p class="modal-subtitle">
+                        Account → Account transfer information
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeTransferModal()"
+                aria-label="Close">
+
+                <i class="feather-x"></i>
+
+            </button>
+
+        </div>
+
+
+        <!-- MODAL BODY -->
+        <div class="custom-modal-body">
+
+
+            <!-- AMOUNT -->
+            <div class="modal-amount-box">
+
+                <div class="modal-amount-label">
+                    TRANSFER AMOUNT
+                </div>
+
+                <div
+                    class="modal-amount"
+                    id="modalAmount">
+                    -
+                </div>
+
+                <div id="modalStatus" class="modal-status">
+                    -
+                </div>
+
+            </div>
+
+
+            <!-- ACCOUNT FLOW -->
+            <div class="account-flow">
+
+
+                <div class="flow-account">
+
+                    <div class="flow-label">
+                        From Account
+                    </div>
+
+                    <div
+                        class="flow-name"
+                        id="modalFromAccount">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="flow-icon">
+
+                    <i class="feather-arrow-right"></i>
+
+                </div>
+
+
+                <div class="flow-account">
+
+                    <div class="flow-label">
+                        To Account
+                    </div>
+
+                    <div
+                        class="flow-name"
+                        id="modalToAccount">
+                        -
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- DETAILS -->
+            <div class="details-grid">
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Transfer ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalTransferId">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Date
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalDate">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Currency
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalCurrency">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        Reference
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalReference">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        From Account ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalFromAccountId">
+                        -
+                    </div>
+
+                </div>
+
+
+                <div class="detail-item">
+
+                    <div class="detail-label">
+                        To Account ID
+                    </div>
+
+                    <div
+                        class="detail-value"
+                        id="modalToAccountId">
+                        -
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- BALANCES -->
+            <div class="modal-balance-section">
+
+                <div class="modal-section-title">
+                    Account Balances
+                </div>
+
+
+                <div class="balance-grid">
+
+
+                    <!-- FROM BALANCE -->
+                    <div class="balance-card">
+
+                        <div class="balance-title">
+                            From Account
+                        </div>
+
+
+                        <div class="balance-row">
+
+                            <span>
+                                Before
+                            </span>
+
+                            <span id="modalFromBefore">
+                                -
+                            </span>
+
+                        </div>
+
+
+                        <div class="balance-row">
+
+                            <span>
+                                After
+                            </span>
+
+                            <span id="modalFromAfter">
+                                -
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- TO BALANCE -->
+                    <div class="balance-card">
+
+                        <div class="balance-title">
+                            To Account
+                        </div>
+
+
+                        <div class="balance-row">
+
+                            <span>
+                                Before
+                            </span>
+
+                            <span id="modalToBefore">
+                                -
+                            </span>
+
+                        </div>
+
+
+                        <div class="balance-row">
+
+                            <span>
+                                After
+                            </span>
+
+                            <span id="modalToAfter">
+                                -
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+            <!-- DESCRIPTION -->
+            <div class="modal-description">
+
+                <div class="detail-label">
+                    Description
+                </div>
+
+                <div
+                    class="modal-description-text"
+                    id="modalDescription">
+
+                    -
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <!-- MODAL FOOTER -->
+        <div class="custom-modal-footer">
+
+            <button
+                type="button"
+                class="custom-btn btn-secondary-custom"
+                onclick="closeTransferModal()">
+
+                <i class="feather-x"></i>
+                Close
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   ACCOUNT TRANSFERS REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* --------------------------------------------------------
+       DATA FROM FLASK
+    -------------------------------------------------------- */
+
+    let accountTransfers = [];
+
+    try {
+
+        accountTransfers = {{ transfers_json|default('[]')|safe }};
+
+        if (!Array.isArray(accountTransfers)) {
+            accountTransfers = [];
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Unable to load transfer JSON:",
+            error
+        );
+
+        accountTransfers = [];
+
+    }
+
+
+    /* --------------------------------------------------------
+       DOM READY
+    -------------------------------------------------------- */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            populateFilters();
+
+            applyFilters();
+
+            setupKeyboardEvents();
+
+        }
+    );
+
+
+    /* --------------------------------------------------------
+       SAFE STRING
+    -------------------------------------------------------- */
+
+    function safeString(value, fallback = "") {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+            return fallback;
+        }
+
+        return String(value);
+
+    }
+
+
+    /* --------------------------------------------------------
+       SAFE NUMBER
+    -------------------------------------------------------- */
+
+    function safeNumber(value) {
+
+        const number = Number(value);
+
+        if (Number.isFinite(number)) {
+            return number;
+        }
+
+        return 0;
+
+    }
+
+
+    /* --------------------------------------------------------
+       FORMAT MONEY
+    -------------------------------------------------------- */
+
+    function formatMoney(
+        amount,
+        currency = "USD"
+    ) {
+
+        const value = safeNumber(amount);
+
+        return (
+            value.toLocaleString(
+                "en-US",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            )
+            + " "
+            + safeString(currency, "USD").toUpperCase()
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       NORMALIZE DATE
+    -------------------------------------------------------- */
+
+    function normalizeDate(value) {
+
+        if (!value) {
+            return null;
+        }
+
+        const date = new Date(value);
+
+        if (!Number.isNaN(date.getTime())) {
+            return date;
+        }
+
+        return null;
+
+    }
+
+
+    /* --------------------------------------------------------
+       GET DATE ONLY
+    -------------------------------------------------------- */
+
+    function getDateOnly(value) {
+
+        const date = normalizeDate(value);
+
+        if (!date) {
+            return "";
+        }
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(2, "0");
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(2, "0");
+
+        return (
+            year +
+            "-" +
+            month +
+            "-" +
+            day
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       POPULATE FILTERS
+    -------------------------------------------------------- */
+
+    function populateFilters() {
+
+        const fromSelect =
+            document.getElementById(
+                "fromAccountFilter"
+            );
+
+        const toSelect =
+            document.getElementById(
+                "toAccountFilter"
+            );
+
+        const currencySelect =
+            document.getElementById(
+                "currencyFilter"
+            );
+
+
+        const fromAccounts =
+            new Set();
+
+        const toAccounts =
+            new Set();
+
+        const currencies =
+            new Set();
+
+
+        accountTransfers.forEach(
+            function (transfer) {
+
+                const from =
+                    safeString(
+                        transfer.from_name
+                    ).trim();
+
+                const to =
+                    safeString(
+                        transfer.to_name
+                    ).trim();
+
+                const currency =
+                    safeString(
+                        transfer.currency,
+                        "USD"
+                    )
+                    .trim()
+                    .toUpperCase();
+
+
+                if (from) {
+                    fromAccounts.add(from);
+                }
+
+                if (to) {
+                    toAccounts.add(to);
+                }
+
+                if (currency) {
+                    currencies.add(currency);
+                }
+
+            }
+        );
+
+
+        Array.from(fromAccounts)
+            .sort(
+                (a, b) =>
+                    a.localeCompare(b)
+            )
+            .forEach(
+                function (account) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        account;
+
+                    option.textContent =
+                        account;
+
+                    fromSelect.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+
+        Array.from(toAccounts)
+            .sort(
+                (a, b) =>
+                    a.localeCompare(b)
+            )
+            .forEach(
+                function (account) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        account;
+
+                    option.textContent =
+                        account;
+
+                    toSelect.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+
+        Array.from(currencies)
+            .sort()
+            .forEach(
+                function (currency) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+                    option.value =
+                        currency;
+
+                    option.textContent =
+                        currency;
+
+                    currencySelect.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+    }
+
+
+    /* --------------------------------------------------------
+       APPLY FILTERS
+    -------------------------------------------------------- */
+
+    window.applyFilters = function () {
+
+        const search =
+            safeString(
+                document.getElementById(
+                    "searchInput"
+                ).value
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const fromFilter =
+            safeString(
+                document.getElementById(
+                    "fromAccountFilter"
+                ).value
+            );
+
+
+        const toFilter =
+            safeString(
+                document.getElementById(
+                    "toAccountFilter"
+                ).value
+            );
+
+
+        const statusFilter =
+            safeString(
+                document.getElementById(
+                    "statusFilter"
+                ).value
+            )
+            .toLowerCase();
+
+
+        const currencyFilter =
+            safeString(
+                document.getElementById(
+                    "currencyFilter"
+                ).value
+            )
+            .toUpperCase();
+
+
+        const dateFrom =
+            safeString(
+                document.getElementById(
+                    "dateFromFilter"
+                ).value
+            );
+
+
+        const dateTo =
+            safeString(
+                document.getElementById(
+                    "dateToFilter"
+                ).value
+            );
+
+
+        const minAmountRaw =
+            document.getElementById(
+                "minAmountFilter"
+            ).value;
+
+
+        const maxAmountRaw =
+            document.getElementById(
+                "maxAmountFilter"
+            ).value;
+
+
+        const minAmount =
+            minAmountRaw === ""
+                ? null
+                : safeNumber(
+                    minAmountRaw
+                );
+
+
+        const maxAmount =
+            maxAmountRaw === ""
+                ? null
+                : safeNumber(
+                    maxAmountRaw
+                );
+
+
+        const rows =
+            document.querySelectorAll(
+                ".transfer-row"
+            );
+
+
+        let visibleCount = 0;
+
+        let totalAmount = 0;
+
+
+        rows.forEach(
+            function (row) {
+
+                const index =
+                    Number(
+                        row.dataset.index
+                    );
+
+                const transfer =
+                    accountTransfers[index];
+
+
+                if (!transfer) {
+
+                    row.style.display =
+                        "none";
+
+                    return;
+
+                }
+
+
+                const from =
+                    safeString(
+                        transfer.from_name
+                    );
+
+                const to =
+                    safeString(
+                        transfer.to_name
+                    );
+
+                const status =
+                    safeString(
+                        transfer.status,
+                        "completed"
+                    )
+                    .toLowerCase();
+
+                const currency =
+                    safeString(
+                        transfer.currency,
+                        "USD"
+                    )
+                    .toUpperCase();
+
+                const reference =
+                    safeString(
+                        transfer.reference_no
+                    );
+
+                const description =
+                    safeString(
+                        transfer.description
+                    );
+
+                const id =
+                    safeString(
+                        transfer.id
+                    );
+
+
+                const searchableText = (
+
+                    from +
+                    " " +
+                    to +
+                    " " +
+                    status +
+                    " " +
+                    currency +
+                    " " +
+                    reference +
+                    " " +
+                    description +
+                    " " +
+                    id
+
+                ).toLowerCase();
+
+
+                const amount =
+                    safeNumber(
+                        transfer.amount
+                    );
+
+
+                const transferDate =
+                    getDateOnly(
+                        transfer.created_at
+                        ||
+                        transfer.created_at_display
+                    );
+
+
+                let matches =
+                    true;
+
+
+                /* SEARCH */
+                if (
+                    search &&
+                    !searchableText.includes(
+                        search
+                    )
+                ) {
+                    matches = false;
+                }
+
+
+                /* FROM */
+                if (
+                    fromFilter &&
+                    from !== fromFilter
+                ) {
+                    matches = false;
+                }
+
+
+                /* TO */
+                if (
+                    toFilter &&
+                    to !== toFilter
+                ) {
+                    matches = false;
+                }
+
+
+                /* STATUS */
+                if (
+                    statusFilter &&
+                    status !== statusFilter
+                ) {
+                    matches = false;
+                }
+
+
+                /* CURRENCY */
+                if (
+                    currencyFilter &&
+                    currency !== currencyFilter
+                ) {
+                    matches = false;
+                }
+
+
+                /* DATE FROM */
+                if (
+                    dateFrom &&
+                    transferDate &&
+                    transferDate < dateFrom
+                ) {
+                    matches = false;
+                }
+
+
+                /* DATE TO */
+                if (
+                    dateTo &&
+                    transferDate &&
+                    transferDate > dateTo
+                ) {
+                    matches = false;
+                }
+
+
+                /* MIN AMOUNT */
+                if (
+                    minAmount !== null &&
+                    amount < minAmount
+                ) {
+                    matches = false;
+                }
+
+
+                /* MAX AMOUNT */
+                if (
+                    maxAmount !== null &&
+                    amount > maxAmount
+                ) {
+                    matches = false;
+                }
+
+
+                if (matches) {
+
+                    row.style.display =
+                        "";
+
+                    visibleCount++;
+
+                    totalAmount += amount;
+
+                } else {
+
+                    row.style.display =
+                        "none";
+
+                }
+
+            }
+        );
+
+
+        document.getElementById(
+            "visibleCount"
+        ).textContent =
+            visibleCount;
+
+
+        document.getElementById(
+            "filteredAmount"
+        ).textContent =
+            "$" +
+            totalAmount.toLocaleString(
+                "en-US",
+                {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }
+            );
+
+
+        const emptyState =
+            document.getElementById(
+                "emptyState"
+            );
+
+
+        if (visibleCount === 0) {
+
+            emptyState.style.display =
+                "block";
+
+        } else {
+
+            emptyState.style.display =
+                "none";
+
+        }
+
+    };
+
+
+    /* --------------------------------------------------------
+       RESET FILTERS
+    -------------------------------------------------------- */
+
+    window.resetFilters = function () {
+
+        document.getElementById(
+            "searchInput"
+        ).value = "";
+
+
+        document.getElementById(
+            "fromAccountFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "toAccountFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "statusFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "currencyFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "dateFromFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "dateToFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "minAmountFilter"
+        ).value = "";
+
+
+        document.getElementById(
+            "maxAmountFilter"
+        ).value = "";
+
+
+        applyFilters();
+
+    };
+
+
+    /* ========================================================
+       CUSTOM MODAL
+       NO BOOTSTRAP
+    ======================================================== */
+
+    window.openTransferModal = function (index) {
+
+        const transfer =
+            accountTransfers[index];
+
+
+        if (!transfer) {
+
+            console.error(
+                "Transfer not found:",
+                index
+            );
+
+            return;
+
+        }
+
+
+        const currency =
+            safeString(
+                transfer.currency,
+                "USD"
+            ).toUpperCase();
+
+
+        const status =
+            safeString(
+                transfer.status,
+                "completed"
+            ).toLowerCase();
+
+
+        /* ----------------------------------------------------
+           BASIC DETAILS
+        ---------------------------------------------------- */
+
+        document.getElementById(
+            "modalAmount"
+        ).textContent =
+            formatMoney(
+                transfer.amount,
+                currency
+            );
+
+
+        document.getElementById(
+            "modalFromAccount"
+        ).textContent =
+            safeString(
+                transfer.from_name,
+                "Unknown Account"
+            );
+
+
+        document.getElementById(
+            "modalToAccount"
+        ).textContent =
+            safeString(
+                transfer.to_name,
+                "Unknown Account"
+            );
+
+
+        document.getElementById(
+            "modalTransferId"
+        ).textContent =
+            safeString(
+                transfer.id,
+                "-"
+            );
+
+
+        document.getElementById(
+            "modalDate"
+        ).textContent =
+            safeString(
+                transfer.created_at_display,
+                transfer.created_at || "-"
+            );
+
+
+        document.getElementById(
+            "modalCurrency"
+        ).textContent =
+            currency;
+
+
+        document.getElementById(
+            "modalReference"
+        ).textContent =
+            safeString(
+                transfer.reference_no,
+                "-"
+            );
+
+
+        document.getElementById(
+            "modalFromAccountId"
+        ).textContent =
+            safeString(
+                transfer.from_account_id,
+                "-"
+            );
+
+
+        document.getElementById(
+            "modalToAccountId"
+        ).textContent =
+            safeString(
+                transfer.to_account_id,
+                "-"
+            );
+
+
+        /* ----------------------------------------------------
+           STATUS
+        ---------------------------------------------------- */
+
+        const statusElement =
+            document.getElementById(
+                "modalStatus"
+            );
+
+
+        let statusClass =
+            "status-default";
+
+
+        if (status === "completed") {
+            statusClass =
+                "status-completed";
+        }
+
+        else if (status === "pending") {
+            statusClass =
+                "status-pending";
+        }
+
+        else if (status === "failed") {
+            statusClass =
+                "status-failed";
+        }
+
+        else if (status === "cancelled") {
+            statusClass =
+                "status-cancelled";
+        }
+
+
+        statusElement.innerHTML =
+            '<span class="status-badge ' +
+            statusClass +
+            '">' +
+            escapeHtml(status) +
+            '</span>';
+
+
+        /* ----------------------------------------------------
+           BALANCES
+        ---------------------------------------------------- */
+
+        document.getElementById(
+            "modalFromBefore"
+        ).textContent =
+            formatBalance(
+                transfer.from_balance_before,
+                currency
+            );
+
+
+        document.getElementById(
+            "modalFromAfter"
+        ).textContent =
+            formatBalance(
+                transfer.from_balance_after,
+                currency
+            );
+
+
+        document.getElementById(
+            "modalToBefore"
+        ).textContent =
+            formatBalance(
+                transfer.to_balance_before,
+                currency
+            );
+
+
+        document.getElementById(
+            "modalToAfter"
+        ).textContent =
+            formatBalance(
+                transfer.to_balance_after,
+                currency
+            );
+
+
+        /* ----------------------------------------------------
+           DESCRIPTION
+        ---------------------------------------------------- */
+
+        document.getElementById(
+            "modalDescription"
+        ).textContent =
+            safeString(
+                transfer.description,
+                "No description provided."
+            );
+
+
+        /* ----------------------------------------------------
+           SHOW MODAL
+        ---------------------------------------------------- */
+
+        const modal =
+            document.getElementById(
+                "transferDetailsModal"
+            );
+
+
+        modal.classList.add(
+            "active"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.style.overflow =
+            "hidden";
+
+    };
+
+
+    /* --------------------------------------------------------
+       CLOSE MODAL
+    -------------------------------------------------------- */
+
+    window.closeTransferModal = function () {
+
+        const modal =
+            document.getElementById(
+                "transferDetailsModal"
+            );
+
+
+        modal.classList.remove(
+            "active"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        document.body.style.overflow =
+            "";
+
+    };
+
+
+    /* --------------------------------------------------------
+       BALANCE FORMAT
+    -------------------------------------------------------- */
+
+    function formatBalance(
+        value,
+        currency
+    ) {
+
+        if (
+            value === null ||
+            value === undefined ||
+            value === ""
+        ) {
+
+            return "-";
+
+        }
+
+
+        return formatMoney(
+            value,
+            currency
+        );
+
+    }
+
+
+    /* --------------------------------------------------------
+       ESCAPE HTML
+    -------------------------------------------------------- */
+
+    function escapeHtml(value) {
+
+        return safeString(value)
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+
+    }
+
+
+    /* --------------------------------------------------------
+       KEYBOARD EVENTS
+    -------------------------------------------------------- */
+
+    function setupKeyboardEvents() {
+
+        document.addEventListener(
+            "keydown",
+            function (event) {
+
+                if (
+                    event.key === "Escape"
+                ) {
+
+                    closeTransferModal();
+
+                }
+
+            }
+        );
+
+
+        const modal =
+            document.getElementById(
+                "transferDetailsModal"
+            );
+
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    closeTransferModal();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT
+    ======================================================== */
+
+    window.printReport = function () {
+
+        closeTransferModal();
+
+        setTimeout(
+            function () {
+
+                window.print();
+
+            },
+            100
+        );
+
+    };
+
+
+    /* ========================================================
+       CSV EXPORT
+       USE FILTERED TRANSFERS DIRECTLY
+    ======================================================== */
+
+    window.exportTransfersCSV = function () {
+
+        const search =
+            safeString(
+                document.getElementById(
+                    "searchInput"
+                ).value
+            )
+            .trim()
+            .toLowerCase();
+
+
+        const fromFilter =
+            safeString(
+                document.getElementById(
+                    "fromAccountFilter"
+                ).value
+            );
+
+
+        const toFilter =
+            safeString(
+                document.getElementById(
+                    "toAccountFilter"
+                ).value
+            );
+
+
+        const statusFilter =
+            safeString(
+                document.getElementById(
+                    "statusFilter"
+                ).value
+            )
+            .toLowerCase();
+
+
+        const currencyFilter =
+            safeString(
+                document.getElementById(
+                    "currencyFilter"
+                ).value
+            )
+            .toUpperCase();
+
+
+        const dateFrom =
+            safeString(
+                document.getElementById(
+                    "dateFromFilter"
+                ).value
+            );
+
+
+        const dateTo =
+            safeString(
+                document.getElementById(
+                    "dateToFilter"
+                ).value
+            );
+
+
+        const minRaw =
+            document.getElementById(
+                "minAmountFilter"
+            ).value;
+
+
+        const maxRaw =
+            document.getElementById(
+                "maxAmountFilter"
+            ).value;
+
+
+        const minAmount =
+            minRaw === ""
+                ? null
+                : safeNumber(minRaw);
+
+
+        const maxAmount =
+            maxRaw === ""
+                ? null
+                : safeNumber(maxRaw);
+
+
+        const filtered =
+            accountTransfers.filter(
+                function (transfer) {
+
+                    const from =
+                        safeString(
+                            transfer.from_name
+                        );
+
+                    const to =
+                        safeString(
+                            transfer.to_name
+                        );
+
+                    const status =
+                        safeString(
+                            transfer.status,
+                            "completed"
+                        )
+                        .toLowerCase();
+
+                    const currency =
+                        safeString(
+                            transfer.currency,
+                            "USD"
+                        )
+                        .toUpperCase();
+
+                    const reference =
+                        safeString(
+                            transfer.reference_no
+                        );
+
+                    const description =
+                        safeString(
+                            transfer.description
+                        );
+
+                    const id =
+                        safeString(
+                            transfer.id
+                        );
+
+                    const amount =
+                        safeNumber(
+                            transfer.amount
+                        );
+
+                    const transferDate =
+                        getDateOnly(
+                            transfer.created_at
+                            ||
+                            transfer.created_at_display
+                        );
+
+
+                    const searchable =
+                        (
+                            from +
+                            " " +
+                            to +
+                            " " +
+                            status +
+                            " " +
+                            currency +
+                            " " +
+                            reference +
+                            " " +
+                            description +
+                            " " +
+                            id
+                        ).toLowerCase();
+
+
+                    if (
+                        search &&
+                        !searchable.includes(
+                            search
+                        )
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        fromFilter &&
+                        from !== fromFilter
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        toFilter &&
+                        to !== toFilter
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        statusFilter &&
+                        status !== statusFilter
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        currencyFilter &&
+                        currency !== currencyFilter
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        dateFrom &&
+                        transferDate &&
+                        transferDate < dateFrom
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        dateTo &&
+                        transferDate &&
+                        transferDate > dateTo
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        minAmount !== null &&
+                        amount < minAmount
+                    ) {
+                        return false;
+                    }
+
+
+                    if (
+                        maxAmount !== null &&
+                        amount > maxAmount
+                    ) {
+                        return false;
+                    }
+
+
+                    return true;
+
+                }
+            );
+
+
+        if (
+            filtered.length === 0
+        ) {
+
+            alert(
+                "There are no transfers to export."
+            );
+
+            return;
+
+        }
+
+
+        const headers = [
+
+            "No",
+            "Date",
+            "From Account",
+            "To Account",
+            "Amount",
+            "Currency",
+            "Status",
+            "Reference",
+            "Description",
+            "From Balance Before",
+            "From Balance After",
+            "To Balance Before",
+            "To Balance After"
+
+        ];
+
+
+        const rows = [];
+
+
+        filtered.forEach(
+            function (transfer, index) {
+
+                rows.push([
+
+                    index + 1,
+
+                    safeString(
+                        transfer.created_at_display,
+                        transfer.created_at || ""
+                    ),
+
+                    safeString(
+                        transfer.from_name
+                    ),
+
+                    safeString(
+                        transfer.to_name
+                    ),
+
+                    safeNumber(
+                        transfer.amount
+                    ).toFixed(2),
+
+                    safeString(
+                        transfer.currency,
+                        "USD"
+                    ).toUpperCase(),
+
+                    safeString(
+                        transfer.status,
+                        "completed"
+                    ),
+
+                    safeString(
+                        transfer.reference_no
+                    ),
+
+                    safeString(
+                        transfer.description
+                    ),
+
+                    transfer.from_balance_before
+                        !== null &&
+                    transfer.from_balance_before
+                        !== undefined
+                        ? safeNumber(
+                            transfer.from_balance_before
+                        ).toFixed(2)
+                        : "",
+
+                    transfer.from_balance_after
+                        !== null &&
+                    transfer.from_balance_after
+                        !== undefined
+                        ? safeNumber(
+                            transfer.from_balance_after
+                        ).toFixed(2)
+                        : "",
+
+                    transfer.to_balance_before
+                        !== null &&
+                    transfer.to_balance_before
+                        !== undefined
+                        ? safeNumber(
+                            transfer.to_balance_before
+                        ).toFixed(2)
+                        : "",
+
+                    transfer.to_balance_after
+                        !== null &&
+                    transfer.to_balance_after
+                        !== undefined
+                        ? safeNumber(
+                            transfer.to_balance_after
+                        ).toFixed(2)
+                        : ""
+
+                ]);
+
+            }
+        );
+
+
+        const csvContent =
+            [
+                headers,
+                ...rows
+            ]
+            .map(
+                row =>
+                    row
+                    .map(csvEscape)
+                    .join(",")
+            )
+            .join("\n");
+
+
+        const blob =
+            new Blob(
+                [
+                    "\ufeff" +
+                    csvContent
+                ],
+                {
+                    type:
+                        "text/csv;charset=utf-8;"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(
+                blob
+            );
+
+
+        const link =
+            document.createElement(
+                "a"
+            );
+
+
+        link.href = url;
+
+        link.download =
+            "account_to_account_transfers.csv";
+
+
+        document.body.appendChild(
+            link
+        );
+
+
+        link.click();
+
+
+        document.body.removeChild(
+            link
+        );
+
+
+        URL.revokeObjectURL(
+            url
+        );
+
+    };
+
+
+    /* --------------------------------------------------------
+       CSV ESCAPE
+    -------------------------------------------------------- */
+
+    function csvEscape(value) {
+
+        const stringValue =
+            safeString(value);
+
+
+        if (
+            stringValue.includes(",") ||
+            stringValue.includes('"') ||
+            stringValue.includes("\n")
+        ) {
+
+            return (
+                '"' +
+                stringValue.replace(
+                    /"/g,
+                    '""'
+                ) +
+                '"'
+            );
+
+        }
+
+
+        return stringValue;
+
+    }
+
+
+})();
+</script>
+
+{% endblock %}
+

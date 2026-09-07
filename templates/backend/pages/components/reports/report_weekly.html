@@ -1,0 +1,3755 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Weekly Financial Report{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   WEEKLY FINANCIAL REPORT
+   ADVANCED 7-DAY DASHBOARD
+   ============================================================ */
+
+.weekly-page {
+    --wr-bg: #f5f7fb;
+    --wr-card: #ffffff;
+    --wr-border: #e5e9f0;
+    --wr-text: #172033;
+    --wr-muted: #7b8496;
+    --wr-soft: #f8fafc;
+    --wr-green: #16a34a;
+    --wr-red: #dc2626;
+    --wr-blue: #2563eb;
+    --wr-orange: #f59e0b;
+    --wr-purple: #7c3aed;
+
+    width: 100%;
+    max-width: 1700px;
+    margin: 0 auto;
+    padding: 24px;
+    background: var(--wr-bg);
+    color: var(--wr-text);
+    box-sizing: border-box;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.wr-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.wr-title-area {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+
+.wr-main-icon {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 16px;
+    background: var(--wr-text);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 23px;
+}
+
+.wr-title h1 {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 850;
+    letter-spacing: -.4px;
+}
+
+.wr-title p {
+    margin: 5px 0 0;
+    color: var(--wr-muted);
+    font-size: 13px;
+}
+
+.wr-current-date {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 9px;
+    padding: 6px 10px;
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.wr-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.wr-btn {
+    height: 40px;
+    padding: 0 13px;
+    border-radius: 9px;
+    border: 1px solid var(--wr-border);
+    background: white;
+    color: var(--wr-text);
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.wr-btn:hover {
+    transform: translateY(-1px);
+    background: #f8fafc;
+}
+
+.wr-btn.primary {
+    background: var(--wr-text);
+    color: white;
+    border-color: var(--wr-text);
+}
+
+.wr-btn.success {
+    background: var(--wr-green);
+    color: white;
+    border-color: var(--wr-green);
+}
+
+
+/* ============================================================
+   7 DAY NAVIGATION
+   ============================================================ */
+
+.wr-week-navigation {
+    background: white;
+    border: 1px solid var(--wr-border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 14px rgba(16,24,40,.035);
+}
+
+.wr-week-nav-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 13px;
+    flex-wrap: wrap;
+}
+
+.wr-week-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.wr-week-heading i {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wr-week-heading strong {
+    display: block;
+    font-size: 14px;
+}
+
+.wr-week-heading span {
+    display: block;
+    color: var(--wr-muted);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.wr-nav-buttons {
+    display: flex;
+    gap: 7px;
+}
+
+.wr-nav-btn {
+    height: 35px;
+    padding: 0 11px;
+    border-radius: 8px;
+    border: 1px solid var(--wr-border);
+    background: white;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.wr-nav-btn:hover {
+    background: #f8fafc;
+}
+
+.wr-week-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.wr-input-group label {
+    display: block;
+    color: var(--wr-muted);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.wr-input-group input {
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    border: 1px solid var(--wr-border);
+    border-radius: 8px;
+    padding: 0 10px;
+    font-size: 12px;
+    outline: none;
+    background: white;
+    color: var(--wr-text);
+}
+
+.wr-input-group input:focus {
+    border-color: #94a3b8;
+}
+
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.wr-filter {
+    background: white;
+    border: 1px solid var(--wr-border);
+    border-radius: 16px;
+    padding: 17px;
+    margin-bottom: 20px;
+}
+
+.wr-filter-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 13px;
+}
+
+.wr-filter-title strong {
+    font-size: 14px;
+}
+
+.wr-filter-title span {
+    color: var(--wr-muted);
+    font-size: 11px;
+}
+
+.wr-filter-grid {
+    display: grid;
+    grid-template-columns:
+        1fr
+        1fr
+        1fr
+        1fr
+        auto;
+    gap: 10px;
+}
+
+.wr-filter-group label {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--wr-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.wr-filter-group input,
+.wr-filter-group select {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--wr-border);
+    border-radius: 8px;
+    padding: 0 10px;
+    outline: none;
+    box-sizing: border-box;
+    font-size: 12px;
+    background: white;
+}
+
+.wr-filter-submit {
+    height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--wr-text);
+    color: white;
+    padding: 0 15px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.wr-kpis {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.wr-kpi {
+    background: white;
+    border: 1px solid var(--wr-border);
+    border-radius: 14px;
+    padding: 15px;
+    min-width: 0;
+    box-shadow: 0 3px 12px rgba(16,24,40,.025);
+}
+
+.wr-kpi-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wr-kpi-label {
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    color: var(--wr-muted);
+}
+
+.wr-kpi-icon {
+    width: 31px;
+    height: 31px;
+    border-radius: 8px;
+    background: #f5f7fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.wr-kpi-value {
+    margin-top: 10px;
+    font-size: 21px;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wr-kpi-meta {
+    color: var(--wr-muted);
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+.wr-income .wr-kpi-value {
+    color: var(--wr-green);
+}
+
+.wr-expense .wr-kpi-value {
+    color: var(--wr-red);
+}
+
+.wr-net .wr-kpi-value {
+    color: var(--wr-blue);
+}
+
+
+/* ============================================================
+   GENERAL CARD
+   ============================================================ */
+
+.wr-card {
+    background: white;
+    border: 1px solid var(--wr-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 3px 14px rgba(16,24,40,.03);
+}
+
+.wr-card-header {
+    min-height: 62px;
+    padding: 14px 17px;
+    border-bottom: 1px solid #edf0f4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.wr-card-header strong {
+    font-size: 14px;
+}
+
+.wr-card-header p {
+    margin: 4px 0 0;
+    color: var(--wr-muted);
+    font-size: 10px;
+}
+
+.wr-card-body {
+    padding: 17px;
+}
+
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.wr-chart-main {
+    margin-bottom: 20px;
+}
+
+.wr-chart-height {
+    height: 350px;
+    position: relative;
+}
+
+.wr-chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.wr-small-chart {
+    height: 270px;
+    position: relative;
+}
+
+
+/* ============================================================
+   PROGRESS SECTION
+   ============================================================ */
+
+.wr-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.wr-progress-box {
+    border: 1px solid #edf0f4;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.wr-progress-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.wr-progress-head span {
+    font-size: 11px;
+    color: var(--wr-muted);
+    font-weight: 750;
+}
+
+.wr-progress-head strong {
+    font-size: 12px;
+}
+
+.wr-progress-track {
+    height: 8px;
+    border-radius: 20px;
+    background: #edf1f5;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.wr-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+    transition: width .7s ease;
+}
+
+.wr-green {
+    background: var(--wr-green);
+}
+
+.wr-red {
+    background: var(--wr-red);
+}
+
+.wr-blue {
+    background: var(--wr-blue);
+}
+
+.wr-orange {
+    background: var(--wr-orange);
+}
+
+.wr-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    color: var(--wr-muted);
+    font-size: 9px;
+}
+
+
+/* ============================================================
+   DAILY CARDS
+   ============================================================ */
+
+.wr-days-card {
+    margin-bottom: 20px;
+}
+
+.wr-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 9px;
+}
+
+.wr-day {
+    border: 1px solid #e8ecf2;
+    border-radius: 12px;
+    padding: 12px 9px;
+    min-width: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+.wr-day.today {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 2px rgba(99,102,241,.08);
+}
+
+.wr-day-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wr-day-name {
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.wr-day-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.wr-day-date {
+    color: var(--wr-muted);
+    font-size: 9px;
+    margin-top: 3px;
+}
+
+.wr-day-values {
+    margin-top: 12px;
+    display: grid;
+    gap: 5px;
+}
+
+.wr-day-income {
+    color: var(--wr-green);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.wr-day-expense {
+    color: var(--wr-red);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.wr-day-net {
+    color: var(--wr-blue);
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.wr-day-bar {
+    margin-top: 9px;
+    height: 5px;
+    border-radius: 10px;
+    background: #edf1f5;
+    overflow: hidden;
+}
+
+.wr-day-bar-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: var(--wr-blue);
+}
+
+.wr-day-count {
+    color: var(--wr-muted);
+    font-size: 8px;
+    margin-top: 6px;
+}
+
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+
+.wr-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.wr-comparison {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.wr-compare {
+    border: 1px solid #edf0f4;
+    border-radius: 11px;
+    padding: 13px;
+}
+
+.wr-compare-label {
+    font-size: 9px;
+    color: var(--wr-muted);
+    text-transform: uppercase;
+    font-weight: 850;
+}
+
+.wr-compare-current {
+    margin-top: 7px;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.wr-compare-old {
+    margin-top: 3px;
+    color: var(--wr-muted);
+    font-size: 9px;
+}
+
+.wr-change {
+    margin-top: 8px;
+    display: inline-flex;
+    padding: 4px 7px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 850;
+}
+
+.wr-change-up {
+    color: #15803d;
+    background: #ecfdf3;
+}
+
+.wr-change-down {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.wr-change-neutral {
+    color: #667085;
+    background: #f2f4f7;
+}
+
+
+/* ============================================================
+   PERFORMANCE
+   ============================================================ */
+
+.wr-performance-list {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.wr-performance {
+    border: 1px solid #edf0f4;
+    border-radius: 11px;
+    padding: 11px;
+}
+
+.wr-performance-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.wr-performance-name {
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wr-performance-value {
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.wr-performance-track {
+    height: 6px;
+    margin-top: 8px;
+    background: #eef1f5;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.wr-performance-fill {
+    height: 100%;
+    border-radius: 20px;
+    background: var(--wr-blue);
+}
+
+.wr-performance-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    font-size: 8px;
+    color: var(--wr-muted);
+}
+
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.wr-table-card {
+    margin-bottom: 20px;
+}
+
+.wr-table-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.wr-search {
+    width: 220px;
+    height: 35px;
+    border: 1px solid var(--wr-border);
+    border-radius: 8px;
+    padding: 0 10px;
+    outline: none;
+    font-size: 11px;
+}
+
+.wr-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.wr-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.wr-table th {
+    background: #f8fafc;
+    padding: 11px 13px;
+    text-align: left;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    color: #697586;
+    font-weight: 850;
+    white-space: nowrap;
+    border-bottom: 1px solid #e8ecf2;
+}
+
+.wr-table td {
+    padding: 11px 13px;
+    font-size: 11px;
+    border-bottom: 1px solid #eef1f5;
+    color: #344054;
+}
+
+.wr-table tbody tr:hover {
+    background: #fafbfc;
+}
+
+.wr-income-text {
+    color: var(--wr-green) !important;
+    font-weight: 850;
+}
+
+.wr-expense-text {
+    color: var(--wr-red) !important;
+    font-weight: 850;
+}
+
+.wr-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 7px;
+    border-radius: 20px;
+    font-size: 8px;
+    font-weight: 850;
+}
+
+.wr-type-income {
+    color: #15803d;
+    background: #ecfdf3;
+}
+
+.wr-type-expense {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.wr-status {
+    display: inline-flex;
+    padding: 4px 7px;
+    border-radius: 20px;
+    font-size: 8px;
+    font-weight: 850;
+}
+
+.wr-status-completed {
+    color: #15803d;
+    background: #ecfdf3;
+}
+
+.wr-status-cancelled {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.wr-status-pending {
+    color: #b45309;
+    background: #fffbeb;
+}
+
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.wr-empty {
+    text-align: center;
+    padding: 45px 20px;
+    color: var(--wr-muted);
+}
+
+.wr-empty i {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.wr-empty strong {
+    display: block;
+    color: #475467;
+    font-size: 13px;
+}
+
+.wr-empty span {
+    display: block;
+    font-size: 10px;
+    margin-top: 4px;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.wr-footer {
+    text-align: center;
+    color: #98a2b3;
+    font-size: 9px;
+    padding: 8px 0 20px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+
+    .wr-kpis {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .wr-filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+@media (max-width: 1100px) {
+
+    .wr-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-days {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .wr-two-columns {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 750px) {
+
+    .weekly-page {
+        padding: 12px;
+    }
+
+    .wr-kpis {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .wr-days {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .wr-progress-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-comparison {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-week-inputs {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-actions {
+        width: 100%;
+    }
+
+    .wr-btn {
+        flex: 1;
+    }
+
+    .wr-title h1 {
+        font-size: 22px;
+    }
+
+}
+
+@media (max-width: 430px) {
+
+    .wr-kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-days {
+        grid-template-columns: 1fr;
+    }
+
+    .wr-table-tools {
+        width: 100%;
+    }
+
+    .wr-search {
+        width: 100%;
+    }
+
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    .weekly-page {
+        padding: 0;
+        background: white;
+    }
+
+    .wr-actions,
+    .wr-filter,
+    .wr-week-navigation,
+    .wr-search {
+        display: none !important;
+    }
+
+    .wr-card,
+    .wr-kpi {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .wr-table {
+        min-width: 0;
+    }
+
+}
+
+</style>
+
+
+<div class="weekly-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="wr-header">
+
+        <div class="wr-title-area">
+
+            <div class="wr-main-icon">
+                <i class="fas fa-calendar-week"></i>
+            </div>
+
+            <div class="wr-title">
+
+                <h1>
+                    Weekly Financial Report
+                </h1>
+
+                <p>
+                    Advanced 7-day income, expense and financial performance dashboard
+                </p>
+
+                <div class="wr-current-date">
+
+                    <i class="fas fa-clock"></i>
+
+                    Current Date:
+                    <span id="currentDateDisplay"></span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="wr-actions">
+
+            <button
+                type="button"
+                class="wr-btn"
+                onclick="goPreviousWeek()"
+            >
+                <i class="fas fa-chevron-left"></i>
+                Previous 7 Days
+            </button>
+
+            <button
+                type="button"
+                class="wr-btn success"
+                onclick="goCurrentWeek()"
+            >
+                <i class="fas fa-calendar-check"></i>
+                Current 7 Days
+            </button>
+
+            <button
+                type="button"
+                class="wr-btn"
+                onclick="goNextWeek()"
+            >
+                Next 7 Days
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+            <button
+                type="button"
+                class="wr-btn"
+                onclick="window.print()"
+            >
+                <i class="fas fa-print"></i>
+                Print
+            </button>
+
+            <button
+                type="button"
+                class="wr-btn primary"
+                onclick="exportWeeklyReport()"
+            >
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         7 DAY SELECTOR
+         ======================================================== -->
+
+    <div class="wr-week-navigation">
+
+        <div class="wr-week-nav-top">
+
+            <div class="wr-week-heading">
+
+                <i class="fas fa-calendar-alt"></i>
+
+                <div>
+
+                    <strong>
+                        7-Day Report Period
+                    </strong>
+
+                    <span>
+                        Select any date and the system will calculate the complete 7-day period
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="wr-nav-buttons">
+
+                <button
+                    type="button"
+                    class="wr-nav-btn"
+                    onclick="goPreviousWeek()"
+                >
+                    ← Previous
+                </button>
+
+                <button
+                    type="button"
+                    class="wr-nav-btn"
+                    onclick="goCurrentWeek()"
+                >
+                    Today
+                </button>
+
+                <button
+                    type="button"
+                    class="wr-nav-btn"
+                    onclick="goNextWeek()"
+                >
+                    Next →
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="wr-week-inputs">
+
+            <div class="wr-input-group">
+
+                <label>
+                    7 Days Start
+                </label>
+
+                <input
+                    type="date"
+                    id="weekStartInput"
+                    value="{{ week_start }}"
+                    onchange="changeWeekFromInput(this.value)"
+                >
+
+            </div>
+
+
+            <div class="wr-input-group">
+
+                <label>
+                    7 Days End
+                </label>
+
+                <input
+                    type="date"
+                    id="weekEndInput"
+                    value="{{ week_end }}"
+                    readonly
+                >
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="wr-filter">
+
+        <div class="wr-filter-title">
+
+            <strong>
+                <i class="fas fa-filter"></i>
+                Advanced Filters
+            </strong>
+
+            <span>
+                Current 7-day period
+            </span>
+
+        </div>
+
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_weekly') }}"
+        >
+
+            <input
+                type="hidden"
+                name="week_start"
+                id="formWeekStart"
+                value="{{ week_start }}"
+            >
+
+
+            <div class="wr-filter-grid">
+
+                <div class="wr-filter-group">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select name="category">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in category_options %}
+
+                            <option
+                                value="{{ category }}"
+                                {% if category_filter|lower == category|lower %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="wr-filter-group">
+
+                    <label>
+                        Account
+                    </label>
+
+                    <select name="account">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account in account_options %}
+
+                            <option
+                                value="{{ account }}"
+                                {% if account_filter|lower == account|lower %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ account }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="wr-filter-group">
+
+                    <label>
+                        Transaction Type
+                    </label>
+
+                    <select name="transaction_type">
+
+                        <option
+                            value=""
+                            {% if not transaction_type %}
+                                selected
+                            {% endif %}
+                        >
+                            All Transactions
+                        </option>
+
+                        <option
+                            value="income"
+                            {% if transaction_type == "income" %}
+                                selected
+                            {% endif %}
+                        >
+                            Income
+                        </option>
+
+                        <option
+                            value="expense"
+                            {% if transaction_type == "expense" %}
+                                selected
+                            {% endif %}
+                        >
+                            Expense
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="wr-filter-group">
+
+                    <label>
+                        Selected Week
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ week_start }} → {{ week_end }}"
+                        readonly
+                    >
+
+                </div>
+
+
+                <div>
+
+                    <button
+                        type="submit"
+                        class="wr-filter-submit"
+                    >
+                        <i class="fas fa-search"></i>
+                        Apply
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="wr-kpis">
+
+        <!-- Income -->
+
+        <div class="wr-kpi wr-income">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Total Income
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                ${{ "%.2f"|format(total_income|float) }}
+            </div>
+
+            <div class="wr-kpi-meta">
+                {{ income_count }} income transactions
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+
+        <div class="wr-kpi wr-expense">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Total Expense
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                ${{ "%.2f"|format(total_expense|float) }}
+            </div>
+
+            <div class="wr-kpi-meta">
+                {{ expense_count }} expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- Net -->
+
+        <div class="wr-kpi wr-net">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Net Profit
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                ${{ "%.2f"|format(net_profit|float) }}
+            </div>
+
+            <div class="wr-kpi-meta">
+                Income minus expense
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+
+        <div class="wr-kpi">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Transactions
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                {{ total_transactions }}
+            </div>
+
+            <div class="wr-kpi-meta">
+                Total 7-day activity
+            </div>
+
+        </div>
+
+
+        <!-- Average -->
+
+        <div class="wr-kpi">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Average
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                ${{ "%.2f"|format(average_transaction|float) }}
+            </div>
+
+            <div class="wr-kpi-meta">
+                Average transaction value
+            </div>
+
+        </div>
+
+
+        <!-- Margin -->
+
+        <div class="wr-kpi">
+
+            <div class="wr-kpi-head">
+
+                <span class="wr-kpi-label">
+                    Profit Margin
+                </span>
+
+                <div class="wr-kpi-icon">
+                    <i class="fas fa-percent"></i>
+                </div>
+
+            </div>
+
+            <div class="wr-kpi-value">
+                {{ "%.1f"|format(profit_margin|float) }}%
+            </div>
+
+            <div class="wr-kpi-meta">
+                Net profit / income
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN CHART
+         ======================================================== -->
+
+    <div class="wr-card wr-chart-main">
+
+        <div class="wr-card-header">
+
+            <div>
+
+                <strong>
+                    <i class="fas fa-chart-area"></i>
+                    7-Day Financial Performance
+                </strong>
+
+                <p>
+                    Daily income, expense and net profit movement
+                </p>
+
+            </div>
+
+            <span>
+                {{ week_start }} → {{ week_end }}
+            </span>
+
+        </div>
+
+        <div class="wr-card-body">
+
+            <div class="wr-chart-height">
+
+                <canvas id="weeklyMainChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PROGRESS METRICS
+         ======================================================== -->
+
+    <div class="wr-card wr-days-card">
+
+        <div class="wr-card-header">
+
+            <div>
+
+                <strong>
+                    <i class="fas fa-tachometer-alt"></i>
+                    Financial Progress
+                </strong>
+
+                <p>
+                    Current week financial health indicators
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="wr-card-body">
+
+            <div class="wr-progress-grid">
+
+
+                <!-- Expense Ratio -->
+
+                <div class="wr-progress-box">
+
+                    <div class="wr-progress-head">
+
+                        <span>
+                            Expense Ratio
+                        </span>
+
+                        <strong>
+                            {{ "%.1f"|format(expense_ratio|float) }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="wr-progress-track">
+
+                        <div
+                            class="wr-progress-fill wr-red"
+                            style="width: {{ [expense_ratio|float, 100]|min }}%;"
+                        ></div>
+
+                    </div>
+
+                    <div class="wr-progress-meta">
+
+                        <span>
+                            Expense
+                        </span>
+
+                        <span>
+                            Income
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Profit Margin -->
+
+                <div class="wr-progress-box">
+
+                    <div class="wr-progress-head">
+
+                        <span>
+                            Profit Margin
+                        </span>
+
+                        <strong>
+                            {{ "%.1f"|format(profit_margin|float) }}%
+                        </strong>
+
+                    </div>
+
+                    <div class="wr-progress-track">
+
+                        <div
+                            class="wr-progress-fill wr-green"
+                            style="width: {{ [profit_margin|float, 100]|min }}%;"
+                        ></div>
+
+                    </div>
+
+                    <div class="wr-progress-meta">
+
+                        <span>
+                            Net Profit
+                        </span>
+
+                        <span>
+                            Total Income
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Transaction Activity -->
+
+                <div class="wr-progress-box">
+
+                    <div class="wr-progress-head">
+
+                        <span>
+                            Transaction Activity
+                        </span>
+
+                        <strong>
+                            {{ total_transactions }}
+                        </strong>
+
+                    </div>
+
+                    <div class="wr-progress-track">
+
+                        {% set activity_width =
+                            [total_transactions * 5, 100]|min
+                        %}
+
+                        <div
+                            class="wr-progress-fill wr-blue"
+                            style="width: {{ activity_width }}%;"
+                        ></div>
+
+                    </div>
+
+                    <div class="wr-progress-meta">
+
+                        <span>
+                            0
+                        </span>
+
+                        <span>
+                            High activity
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DAILY 7 DAYS
+         ======================================================== -->
+
+    <div class="wr-card wr-days-card">
+
+        <div class="wr-card-header">
+
+            <div>
+
+                <strong>
+                    <i class="fas fa-calendar-day"></i>
+                    Daily 7-Day Breakdown
+                </strong>
+
+                <p>
+                    Each day from the selected 7-day period
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="wr-card-body">
+
+            <div class="wr-days">
+
+                {% for day in daily_data %}
+
+                    <div
+                        class="wr-day"
+                        data-date="{{ day.date }}"
+                    >
+
+                        <div class="wr-day-top">
+
+                            <div class="wr-day-name">
+                                {{ day.short_day }}
+                            </div>
+
+                            <div class="wr-day-number">
+                                {{ loop.index }}
+                            </div>
+
+                        </div>
+
+                        <div class="wr-day-date">
+                            {{ day.date }}
+                        </div>
+
+
+                        <div class="wr-day-values">
+
+                            <div class="wr-day-income">
+                                Income:
+                                ${{ "%.2f"|format(day.income|float) }}
+                            </div>
+
+                            <div class="wr-day-expense">
+                                Expense:
+                                ${{ "%.2f"|format(day.expense|float) }}
+                            </div>
+
+                            <div class="wr-day-net">
+                                Net:
+                                ${{ "%.2f"|format(day.net|float) }}
+                            </div>
+
+                        </div>
+
+
+                        {% set daily_total =
+                            day.income + day.expense
+                        %}
+
+                        {% set daily_width = 0 %}
+
+                        {% if total_income + total_expense > 0 %}
+
+                            {% set daily_width =
+                                (daily_total / (total_income + total_expense)) * 100
+                            %}
+
+                        {% endif %}
+
+
+                        <div class="wr-day-bar">
+
+                            <div
+                                class="wr-day-bar-fill"
+                                style="width: {{ [daily_width, 100]|min }}%;"
+                            ></div>
+
+                        </div>
+
+
+                        <div class="wr-day-count">
+
+                            {{ day.transactions }}
+                            transactions
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+
+    <div class="wr-chart-grid">
+
+
+        <!-- Income / Expense -->
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-chart-bar"></i>
+                        Income vs Expense
+                    </strong>
+
+                    <p>
+                        Daily comparison
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="wr-card-body">
+
+                <div class="wr-small-chart">
+
+                    <canvas id="incomeExpenseChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Net -->
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-chart-line"></i>
+                        Net Movement
+                    </strong>
+
+                    <p>
+                        Daily net result
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="wr-card-body">
+
+                <div class="wr-small-chart">
+
+                    <canvas id="netChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         WEEK COMPARISON + STATS
+         ======================================================== -->
+
+    <div class="wr-two-columns">
+
+
+        <!-- Comparison -->
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-balance-scale"></i>
+                        Previous Week Comparison
+                    </strong>
+
+                    <p>
+                        Current 7 days compared with previous 7 days
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="wr-card-body">
+
+                <div class="wr-comparison">
+
+
+                    <!-- Income -->
+
+                    <div class="wr-compare">
+
+                        <div class="wr-compare-label">
+                            Income
+                        </div>
+
+                        <div class="wr-compare-current">
+                            ${{ "%.2f"|format(total_income|float) }}
+                        </div>
+
+                        <div class="wr-compare-old">
+                            Previous:
+                            ${{ "%.2f"|format(previous_income|float) }}
+                        </div>
+
+                        <div class="
+                            wr-change
+                            {% if income_change > 0 %}
+                                wr-change-up
+                            {% elif income_change < 0 %}
+                                wr-change-down
+                            {% else %}
+                                wr-change-neutral
+                            {% endif %}
+                        ">
+
+                            {% if income_change > 0 %}
+                                ↑
+                            {% elif income_change < 0 %}
+                                ↓
+                            {% else %}
+                                →
+                            {% endif %}
+
+                            {{ "%.1f"|format(income_change|float) }}%
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Expense -->
+
+                    <div class="wr-compare">
+
+                        <div class="wr-compare-label">
+                            Expense
+                        </div>
+
+                        <div class="wr-compare-current">
+                            ${{ "%.2f"|format(total_expense|float) }}
+                        </div>
+
+                        <div class="wr-compare-old">
+                            Previous:
+                            ${{ "%.2f"|format(previous_expense|float) }}
+                        </div>
+
+                        <div class="
+                            wr-change
+                            {% if expense_change > 0 %}
+                                wr-change-down
+                            {% elif expense_change < 0 %}
+                                wr-change-up
+                            {% else %}
+                                wr-change-neutral
+                            {% endif %}
+                        ">
+
+                            {% if expense_change > 0 %}
+                                ↑
+                            {% elif expense_change < 0 %}
+                                ↓
+                            {% else %}
+                                →
+                            {% endif %}
+
+                            {{ "%.1f"|format(expense_change|float) }}%
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Net -->
+
+                    <div class="wr-compare">
+
+                        <div class="wr-compare-label">
+                            Net
+                        </div>
+
+                        <div class="wr-compare-current">
+                            ${{ "%.2f"|format(net_profit|float) }}
+                        </div>
+
+                        <div class="wr-compare-old">
+                            Previous:
+                            ${{ "%.2f"|format(previous_net|float) }}
+                        </div>
+
+                        <div class="
+                            wr-change
+                            {% if net_change > 0 %}
+                                wr-change-up
+                            {% elif net_change < 0 %}
+                                wr-change-down
+                            {% else %}
+                                wr-change-neutral
+                            {% endif %}
+                        ">
+
+                            {% if net_change > 0 %}
+                                ↑
+                            {% elif net_change < 0 %}
+                                ↓
+                            {% else %}
+                                →
+                            {% endif %}
+
+                            {{ "%.1f"|format(net_change|float) }}%
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Statistics -->
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-chart-pie"></i>
+                        Weekly Statistics
+                    </strong>
+
+                    <p>
+                        Detailed financial indicators
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="wr-card-body">
+
+                <div class="wr-progress-grid">
+
+                    <div class="wr-progress-box">
+
+                        <div class="wr-progress-head">
+                            <span>Highest</span>
+                            <strong>
+                                ${{ "%.2f"|format(highest_transaction|float) }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="wr-progress-box">
+
+                        <div class="wr-progress-head">
+                            <span>Lowest</span>
+                            <strong>
+                                ${{ "%.2f"|format(lowest_transaction|float) }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+
+                    <div class="wr-progress-box">
+
+                        <div class="wr-progress-head">
+                            <span>Expense Ratio</span>
+                            <strong>
+                                {{ "%.1f"|format(expense_ratio|float) }}%
+                            </strong>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY PERFORMANCE
+         ======================================================== -->
+
+    <div class="wr-two-columns">
+
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-layer-group"></i>
+                        Category Performance
+                    </strong>
+
+                    <p>
+                        Income and expense by category
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="wr-card-body">
+
+                {% if categories %}
+
+                    {% set category_total_all =
+                        categories
+                        |map(attribute='income')
+                        |sum
+                    %}
+
+                    {% set category_expense_all =
+                        categories
+                        |map(attribute='expense')
+                        |sum
+                    %}
+
+                    {% set max_category =
+                        category_total_all + category_expense_all
+                    %}
+
+
+                    <div class="wr-performance-list">
+
+                        {% for category in categories[:10] %}
+
+                            {% set category_total =
+                                category.income + category.expense
+                            %}
+
+                            {% if max_category > 0 %}
+
+                                {% set category_width =
+                                    (category_total / max_category) * 100
+                                %}
+
+                            {% else %}
+
+                                {% set category_width = 0 %}
+
+                            {% endif %}
+
+
+                            <div class="wr-performance">
+
+                                <div class="wr-performance-head">
+
+                                    <div class="wr-performance-name">
+                                        {{ category.name }}
+                                    </div>
+
+                                    <div class="wr-performance-value">
+                                        ${{ "%.2f"|format(category_total|float) }}
+                                    </div>
+
+                                </div>
+
+
+                                <div class="wr-performance-track">
+
+                                    <div
+                                        class="wr-performance-fill"
+                                        style="width: {{ category_width }}%;"
+                                    ></div>
+
+                                </div>
+
+
+                                <div class="wr-performance-meta">
+
+                                    <span>
+                                        Income:
+                                        ${{ "%.2f"|format(category.income|float) }}
+                                    </span>
+
+                                    <span>
+                                        Expense:
+                                        ${{ "%.2f"|format(category.expense|float) }}
+                                    </span>
+
+                                    <span>
+                                        {{ category.transaction_count }}
+                                        tx
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="wr-empty">
+
+                        <i class="fas fa-layer-group"></i>
+
+                        <strong>
+                            No category data
+                        </strong>
+
+                        <span>
+                            No category transactions found.
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Account -->
+
+        <div class="wr-card">
+
+            <div class="wr-card-header">
+
+                <div>
+
+                    <strong>
+                        <i class="fas fa-wallet"></i>
+                        Account Performance
+                    </strong>
+
+                    <p>
+                        Account activity during the 7 days
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="wr-card-body">
+
+                {% if accounts %}
+
+                    {% set account_income =
+                        accounts
+                        |map(attribute='income')
+                        |sum
+                    %}
+
+                    {% set account_expense =
+                        accounts
+                        |map(attribute='expense')
+                        |sum
+                    %}
+
+                    {% set max_account =
+                        account_income + account_expense
+                    %}
+
+
+                    <div class="wr-performance-list">
+
+                        {% for account in accounts[:10] %}
+
+                            {% set account_total =
+                                account.income + account.expense
+                            %}
+
+                            {% if max_account > 0 %}
+
+                                {% set account_width =
+                                    (account_total / max_account) * 100
+                                %}
+
+                            {% else %}
+
+                                {% set account_width = 0 %}
+
+                            {% endif %}
+
+
+                            <div class="wr-performance">
+
+                                <div class="wr-performance-head">
+
+                                    <div class="wr-performance-name">
+                                        {{ account.name }}
+                                    </div>
+
+                                    <div class="wr-performance-value">
+                                        ${{ "%.2f"|format(account_total|float) }}
+                                    </div>
+
+                                </div>
+
+
+                                <div class="wr-performance-track">
+
+                                    <div
+                                        class="wr-performance-fill"
+                                        style="width: {{ account_width }}%;"
+                                    ></div>
+
+                                </div>
+
+
+                                <div class="wr-performance-meta">
+
+                                    <span>
+                                        Income:
+                                        ${{ "%.2f"|format(account.income|float) }}
+                                    </span>
+
+                                    <span>
+                                        Expense:
+                                        ${{ "%.2f"|format(account.expense|float) }}
+                                    </span>
+
+                                    <span>
+                                        {{ account.transaction_count }}
+                                        tx
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="wr-empty">
+
+                        <i class="fas fa-wallet"></i>
+
+                        <strong>
+                            No account data
+                        </strong>
+
+                        <span>
+                            No account transactions found.
+                        </span>
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ITEM PERFORMANCE
+         ======================================================== -->
+
+    <div class="wr-card wr-table-card">
+
+        <div class="wr-card-header">
+
+            <div>
+
+                <strong>
+                    <i class="fas fa-list"></i>
+                    Item Performance
+                </strong>
+
+                <p>
+                    Detailed item-level financial activity
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="wr-table-scroll">
+
+            {% if items %}
+
+                <table class="wr-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Category</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Transactions</th>
+                            <th>Average</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for item in items %}
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ item.name }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ item.category }}
+                                </td>
+
+                                <td class="wr-income-text">
+                                    ${{ "%.2f"|format(item.income|float) }}
+                                </td>
+
+                                <td class="wr-expense-text">
+                                    ${{ "%.2f"|format(item.expense|float) }}
+                                </td>
+
+                                <td>
+
+                                    {% if item.net >= 0 %}
+
+                                        <span class="wr-income-text">
+                                            +${{ "%.2f"|format(item.net|float) }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="wr-expense-text">
+                                            -${{ "%.2f"|format(item.net|float|abs) }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ item.transaction_count }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(item.average|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <div class="wr-empty">
+
+                    <i class="fas fa-list"></i>
+
+                    <strong>
+                        No items found
+                    </strong>
+
+                    <span>
+                        No item-level activity exists for this period.
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTIONS
+         ======================================================== -->
+
+    <div class="wr-card wr-table-card">
+
+        <div class="wr-card-header">
+
+            <div>
+
+                <strong>
+                    <i class="fas fa-receipt"></i>
+                    7-Day Transactions
+                </strong>
+
+                <p>
+                    Complete income and expense transaction history
+                </p>
+
+            </div>
+
+
+            <div class="wr-table-tools">
+
+                <input
+                    type="search"
+                    id="transactionSearch"
+                    class="wr-search"
+                    placeholder="Search transactions..."
+                >
+
+            </div>
+
+        </div>
+
+
+        <div class="wr-table-scroll">
+
+            {% if daily_transactions %}
+
+                <table
+                    class="wr-table"
+                    id="weeklyTransactionTable"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Day</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for transaction in daily_transactions %}
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.date }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.day }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.account }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.category }}
+                                </td>
+
+                                <td>
+                                    {{ transaction.item }}
+                                </td>
+
+                                <td>
+
+                                    {% if transaction.transaction_type|lower == "income" %}
+
+                                        <span class="wr-type wr-type-income">
+
+                                            <i class="fas fa-arrow-down"></i>
+
+                                            Income
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="wr-type wr-type-expense">
+
+                                            <i class="fas fa-arrow-up"></i>
+
+                                            Expense
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if transaction.transaction_type|lower == "income" %}
+
+                                        <span class="wr-income-text">
+                                            +${{ "%.2f"|format(transaction.amount|float) }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="wr-expense-text">
+                                            -${{ "%.2f"|format(transaction.amount|float) }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% set status =
+                                        transaction.status|lower
+                                    %}
+
+                                    {% if status == "completed" %}
+
+                                        <span class="wr-status wr-status-completed">
+                                            Completed
+                                        </span>
+
+                                    {% elif status == "cancelled" %}
+
+                                        <span class="wr-status wr-status-cancelled">
+                                            Cancelled
+                                        </span>
+
+                                    {% elif status == "pending" %}
+
+                                        <span class="wr-status wr-status-pending">
+                                            Pending
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="wr-status">
+                                            {{ transaction.status }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <div class="wr-empty">
+
+                    <i class="fas fa-receipt"></i>
+
+                    <strong>
+                        No transactions found
+                    </strong>
+
+                    <span>
+                        No income or expense transactions match the selected period.
+                    </span>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="wr-footer">
+
+        Weekly Financial Report
+
+        ·
+
+        {{ week_start }}
+
+        →
+
+        {{ week_end }}
+
+        ·
+
+        Generated on
+
+        <span id="footerDate"></span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CHART.JS
+     ============================================================ -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+
+/* ============================================================
+   SERVER DATA
+   ============================================================ */
+
+const weeklyDailyData =
+    {{ daily_data | tojson | safe }};
+
+const weeklyCategories =
+    {{ categories | tojson | safe }};
+
+const weeklyAccounts =
+    {{ accounts | tojson | safe }};
+
+const weeklyItems =
+    {{ items | tojson | safe }};
+
+const weeklyTransactions =
+    {{ daily_transactions | tojson | safe }};
+
+
+/* ============================================================
+   CURRENT DATE
+   ============================================================ */
+
+function updateCurrentDate() {
+
+    const now = new Date();
+
+    const formatted =
+        now.toLocaleDateString(
+            undefined,
+            {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            }
+        );
+
+    const current =
+        document.getElementById(
+            "currentDateDisplay"
+        );
+
+    if (current) {
+        current.textContent = formatted;
+    }
+
+
+    const footer =
+        document.getElementById(
+            "footerDate"
+        );
+
+    if (footer) {
+        footer.textContent = formatted;
+    }
+
+}
+
+updateCurrentDate();
+
+
+/* ============================================================
+   DATE HELPERS
+   ============================================================ */
+
+function parseLocalDate(dateString) {
+
+    const parts =
+        dateString.split("-").map(Number);
+
+    return new Date(
+        parts[0],
+        parts[1] - 1,
+        parts[2]
+    );
+
+}
+
+
+function formatDateInput(date) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+
+}
+
+
+/* ============================================================
+   UPDATE END DATE
+   ============================================================ */
+
+function updateWeekEnd(startValue) {
+
+    if (!startValue) {
+        return;
+    }
+
+    const start =
+        parseLocalDate(startValue);
+
+    const end =
+        new Date(start);
+
+    end.setDate(
+        end.getDate() + 6
+    );
+
+    const endValue =
+        formatDateInput(end);
+
+    const endInput =
+        document.getElementById(
+            "weekEndInput"
+        );
+
+    const formStart =
+        document.getElementById(
+            "formWeekStart"
+        );
+
+    if (endInput) {
+        endInput.value = endValue;
+    }
+
+    if (formStart) {
+        formStart.value = startValue;
+    }
+
+}
+
+
+/* ============================================================
+   CHANGE WEEK FROM INPUT
+   ============================================================ */
+
+function changeWeekFromInput(value) {
+
+    if (!value) {
+        return;
+    }
+
+    updateWeekEnd(value);
+
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.set(
+        "week_start",
+        value
+    );
+
+    window.location.href =
+        url.toString();
+
+}
+
+
+/* ============================================================
+   CURRENT 7 DAYS
+   ============================================================ */
+
+function goCurrentWeek() {
+
+    const today =
+        new Date();
+
+    const start =
+        new Date(today);
+
+    /*
+       Current 7 days:
+       Today + previous 6 days
+    */
+
+    start.setDate(
+        today.getDate() - 6
+    );
+
+    const value =
+        formatDateInput(start);
+
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.set(
+        "week_start",
+        value
+    );
+
+    window.location.href =
+        url.toString();
+
+}
+
+
+/* ============================================================
+   PREVIOUS 7 DAYS
+   ============================================================ */
+
+function goPreviousWeek() {
+
+    const current =
+        document.getElementById(
+            "weekStartInput"
+        );
+
+    if (!current || !current.value) {
+        return;
+    }
+
+    const start =
+        parseLocalDate(
+            current.value
+        );
+
+    start.setDate(
+        start.getDate() - 7
+    );
+
+    const value =
+        formatDateInput(start);
+
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.set(
+        "week_start",
+        value
+    );
+
+    window.location.href =
+        url.toString();
+
+}
+
+
+/* ============================================================
+   NEXT 7 DAYS
+   ============================================================ */
+
+function goNextWeek() {
+
+    const current =
+        document.getElementById(
+            "weekStartInput"
+        );
+
+    if (!current || !current.value) {
+        return;
+    }
+
+    const start =
+        parseLocalDate(
+            current.value
+        );
+
+    start.setDate(
+        start.getDate() + 7
+    );
+
+    const value =
+        formatDateInput(start);
+
+    const url =
+        new URL(
+            window.location.href
+        );
+
+    url.searchParams.set(
+        "week_start",
+        value
+    );
+
+    window.location.href =
+        url.toString();
+
+}
+
+
+/* ============================================================
+   INITIALIZE DATE INPUT
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const startInput =
+            document.getElementById(
+                "weekStartInput"
+            );
+
+        if (startInput) {
+
+            updateWeekEnd(
+                startInput.value
+            );
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   CHART DATA
+   ============================================================ */
+
+const chartLabels =
+    weeklyDailyData.map(
+        item => item.short_day
+    );
+
+const incomeValues =
+    weeklyDailyData.map(
+        item => Number(item.income || 0)
+    );
+
+const expenseValues =
+    weeklyDailyData.map(
+        item => Number(item.expense || 0)
+    );
+
+const netValues =
+    weeklyDailyData.map(
+        item => Number(item.net || 0)
+    );
+
+
+/* ============================================================
+   MAIN LINE CHART
+   ============================================================ */
+
+const mainChartElement =
+    document.getElementById(
+        "weeklyMainChart"
+    );
+
+if (mainChartElement) {
+
+    new Chart(
+        mainChartElement,
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: chartLabels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: incomeValues,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expenseValues,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Net",
+                        data: netValues,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    legend: {
+                        position: "top"
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return (
+                                    context.dataset.label +
+                                    ": $" +
+                                    Number(
+                                        context.raw || 0
+                                    ).toLocaleString(
+                                        undefined,
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }
+                                    )
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    Number(value).toLocaleString();
+
+                            }
+
+                        }
+
+                    },
+
+                    x: {
+
+                        grid: {
+                            display: false
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   INCOME / EXPENSE BAR CHART
+   ============================================================ */
+
+const incomeExpenseElement =
+    document.getElementById(
+        "incomeExpenseChart"
+    );
+
+if (incomeExpenseElement) {
+
+    new Chart(
+        incomeExpenseElement,
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: chartLabels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: incomeValues,
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expenseValues,
+                        borderWidth: 1
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+                        position: "top"
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true
+                    },
+
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   NET CHART
+   ============================================================ */
+
+const netChartElement =
+    document.getElementById(
+        "netChart"
+    );
+
+if (netChartElement) {
+
+    new Chart(
+        netChartElement,
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: chartLabels,
+
+                datasets: [
+
+                    {
+                        label: "Net",
+                        data: netValues,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: true
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+                        beginAtZero: true
+                    },
+
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   MARK TODAY
+   ============================================================ */
+
+function markToday() {
+
+    const today =
+        formatDateInput(
+            new Date()
+        );
+
+    const dayCards =
+        document.querySelectorAll(
+            ".wr-day"
+        );
+
+    dayCards.forEach(
+        function(card) {
+
+            if (
+                card.dataset.date === today
+            ) {
+
+                card.classList.add(
+                    "today"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+markToday();
+
+
+/* ============================================================
+   TRANSACTION SEARCH
+   ============================================================ */
+
+const transactionSearch =
+    document.getElementById(
+        "transactionSearch"
+    );
+
+const transactionTable =
+    document.getElementById(
+        "weeklyTransactionTable"
+    );
+
+if (
+    transactionSearch &&
+    transactionTable
+) {
+
+    transactionSearch.addEventListener(
+        "input",
+        function() {
+
+            const query =
+                this.value
+                    .toLowerCase()
+                    .trim();
+
+            const rows =
+                transactionTable.querySelectorAll(
+                    "tbody tr"
+                );
+
+            rows.forEach(
+                function(row) {
+
+                    const text =
+                        row.textContent
+                            .toLowerCase();
+
+                    row.style.display =
+                        text.includes(query)
+                            ? ""
+                            : "none";
+
+                }
+            );
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   EXPORT JSON
+   ============================================================ */
+
+function exportWeeklyReport() {
+
+    const report = {
+
+        report: "Weekly Financial Report",
+
+        period: {
+
+            start:
+                "{{ week_start }}",
+
+            end:
+                "{{ week_end }}"
+
+        },
+
+        current_date:
+            new Date().toISOString(),
+
+        filters: {
+
+            category:
+                {{ category_filter|tojson|safe }},
+
+            account:
+                {{ account_filter|tojson|safe }},
+
+            transaction_type:
+                {{ transaction_type|tojson|safe }}
+
+        },
+
+        summary: {
+
+            total_income:
+                Number(
+                    {{ total_income|default(0)|float }}
+                ),
+
+            total_expense:
+                Number(
+                    {{ total_expense|default(0)|float }}
+                ),
+
+            net_profit:
+                Number(
+                    {{ net_profit|default(0)|float }}
+                ),
+
+            total_transactions:
+                Number(
+                    {{ total_transactions|default(0)|int }}
+                ),
+
+            income_count:
+                Number(
+                    {{ income_count|default(0)|int }}
+                ),
+
+            expense_count:
+                Number(
+                    {{ expense_count|default(0)|int }}
+                ),
+
+            average_transaction:
+                Number(
+                    {{ average_transaction|default(0)|float }}
+                ),
+
+            highest_transaction:
+                Number(
+                    {{ highest_transaction|default(0)|float }}
+                ),
+
+            lowest_transaction:
+                Number(
+                    {{ lowest_transaction|default(0)|float }}
+                ),
+
+            profit_margin:
+                Number(
+                    {{ profit_margin|default(0)|float }}
+                ),
+
+            expense_ratio:
+                Number(
+                    {{ expense_ratio|default(0)|float }}
+                )
+
+        },
+
+        comparison: {
+
+            previous_income:
+                Number(
+                    {{ previous_income|default(0)|float }}
+                ),
+
+            previous_expense:
+                Number(
+                    {{ previous_expense|default(0)|float }}
+                ),
+
+            previous_net:
+                Number(
+                    {{ previous_net|default(0)|float }}
+                ),
+
+            income_change:
+                Number(
+                    {{ income_change|default(0)|float }}
+                ),
+
+            expense_change:
+                Number(
+                    {{ expense_change|default(0)|float }}
+                ),
+
+            net_change:
+                Number(
+                    {{ net_change|default(0)|float }}
+                )
+
+        },
+
+        daily:
+            weeklyDailyData,
+
+        categories:
+            weeklyCategories,
+
+        accounts:
+            weeklyAccounts,
+
+        items:
+            weeklyItems,
+
+        transactions:
+            weeklyTransactions
+
+    };
+
+
+    const blob =
+        new Blob(
+            [
+                JSON.stringify(
+                    report,
+                    null,
+                    2
+                )
+            ],
+            {
+                type: "application/json"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+    link.href = url;
+
+    link.download =
+        "weekly-report-" +
+        "{{ week_start }}" +
+        "-to-" +
+        "{{ week_end }}" +
+        ".json";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,2184 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Daily Financial Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   DAILY REPORT
+   ============================================================ */
+
+.daily-report-page {
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+    background: #f5f7fb;
+    min-height: 100vh;
+    color: #172033;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.daily-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.daily-title-area {
+    flex: 1;
+    min-width: 260px;
+}
+
+.daily-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #162033;
+}
+
+.daily-subtitle {
+    margin: 7px 0 0;
+    color: #718096;
+    font-size: 14px;
+}
+
+.daily-date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px 13px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #e5e9f2;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.daily-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.daily-btn {
+    border: 1px solid #dfe4ec;
+    background: #ffffff;
+    color: #263247;
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.daily-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(0,0,0,.06);
+}
+
+.daily-btn.primary {
+    background: #162a52;
+    color: #ffffff;
+    border-color: #162a52;
+}
+
+.daily-btn.success {
+    background: #18864b;
+    color: #ffffff;
+    border-color: #18864b;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.daily-filter-card {
+    background: #ffffff;
+    border: 1px solid #e4e8f0;
+    border-radius: 14px;
+    padding: 17px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
+}
+
+.daily-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(150px, 1fr)
+        minmax(170px, 1fr)
+        minmax(170px, 1fr)
+        minmax(170px, 1fr)
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.daily-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.daily-field label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #5c677b;
+}
+
+.daily-field input,
+.daily-field select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid #dce2eb;
+    border-radius: 9px;
+    padding: 0 12px;
+    outline: none;
+    background: #ffffff;
+    color: #202b3d;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.daily-field input:focus,
+.daily-field select:focus {
+    border-color: #526d9f;
+    box-shadow: 0 0 0 3px rgba(82,109,159,.10);
+}
+
+.filter-submit {
+    height: 42px;
+    padding: 0 18px;
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.daily-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 13px;
+    margin-bottom: 20px;
+}
+
+.daily-kpi {
+    background: #ffffff;
+    border: 1px solid #e4e8f0;
+    border-radius: 14px;
+    padding: 17px;
+    min-width: 0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
+}
+
+.daily-kpi-label {
+    color: #788398;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.daily-kpi-value {
+    font-size: 23px;
+    line-height: 1.15;
+    font-weight: 850;
+    color: #172033;
+    word-break: break-word;
+}
+
+.daily-kpi-meta {
+    margin-top: 7px;
+    color: #8a94a6;
+    font-size: 11px;
+}
+
+.kpi-income .daily-kpi-value {
+    color: #16834a;
+}
+
+.kpi-expense .daily-kpi-value {
+    color: #c24141;
+}
+
+.kpi-profit .daily-kpi-value {
+    color: #2457a6;
+}
+
+.kpi-negative .daily-kpi-value {
+    color: #c24141;
+}
+
+/* ============================================================
+   CONTENT GRID
+   ============================================================ */
+
+.daily-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, .85fr);
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.daily-card {
+    background: #ffffff;
+    border: 1px solid #e4e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
+}
+
+.daily-card-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.daily-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #202b3d;
+}
+
+.daily-card-subtitle {
+    margin: 3px 0 0;
+    color: #8993a5;
+    font-size: 11px;
+}
+
+.daily-card-body {
+    padding: 18px;
+}
+
+/* ============================================================
+   PERFORMANCE
+   ============================================================ */
+
+.performance-box {
+    margin-bottom: 18px;
+}
+
+.performance-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.performance-name {
+    font-size: 12px;
+    font-weight: 750;
+    color: #49556a;
+}
+
+.performance-value {
+    font-size: 12px;
+    font-weight: 850;
+    color: #1e293b;
+}
+
+.performance-track {
+    height: 9px;
+    border-radius: 999px;
+    background: #edf0f5;
+    overflow: hidden;
+}
+
+.performance-fill {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    transition: width .7s ease;
+}
+
+.income-fill {
+    background: #238653;
+}
+
+.expense-fill {
+    background: #d15454;
+}
+
+.net-fill {
+    background: #486ca8;
+}
+
+/* ============================================================
+   SUMMARY STAT GRID
+   ============================================================ */
+
+.mini-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.mini-stat {
+    border: 1px solid #edf0f5;
+    border-radius: 10px;
+    padding: 12px;
+    background: #fafbfd;
+}
+
+.mini-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    color: #8a94a6;
+    font-weight: 800;
+}
+
+.mini-stat-value {
+    margin-top: 5px;
+    font-size: 17px;
+    font-weight: 850;
+    color: #202b3d;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.daily-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.daily-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+.daily-table th {
+    background: #f8f9fc;
+    color: #727d91;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    font-weight: 850;
+    padding: 12px 13px;
+    border-bottom: 1px solid #e8ebf1;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.daily-table td {
+    padding: 12px 13px;
+    border-bottom: 1px solid #edf0f4;
+    color: #344054;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.daily-table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.amount {
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.amount.income {
+    color: #18864b;
+}
+
+.amount.expense {
+    color: #c24141;
+}
+
+.type-badge,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 67px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.type-income {
+    color: #167347;
+    background: #e8f7ef;
+}
+
+.type-expense {
+    color: #a93535;
+    background: #fdecec;
+}
+
+.status-completed {
+    color: #176b44;
+    background: #e9f8f0;
+}
+
+.status-pending {
+    color: #8a6410;
+    background: #fff7df;
+}
+
+.status-cancelled {
+    color: #a83b3b;
+    background: #fdecec;
+}
+
+.status-other {
+    color: #586174;
+    background: #eef1f5;
+}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+.table-search {
+    width: 220px;
+    max-width: 100%;
+    height: 36px;
+    border: 1px solid #dce2eb;
+    border-radius: 8px;
+    padding: 0 10px;
+    outline: none;
+    font-size: 12px;
+}
+
+.table-search:focus {
+    border-color: #536d9f;
+}
+
+/* ============================================================
+   CATEGORY / ACCOUNT CARDS
+   ============================================================ */
+
+.summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.summary-item {
+    border: 1px solid #edf0f5;
+    border-radius: 10px;
+    padding: 12px;
+    background: #ffffff;
+}
+
+.summary-item-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+}
+
+.summary-item-name {
+    font-size: 12px;
+    font-weight: 800;
+    color: #273449;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.summary-item-total {
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.summary-item-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 7px;
+    color: #8993a5;
+    font-size: 10px;
+}
+
+.empty-summary {
+    padding: 25px 10px;
+    text-align: center;
+    color: #8a94a6;
+    font-size: 12px;
+}
+
+/* ============================================================
+   FULL WIDTH SECTIONS
+   ============================================================ */
+
+.daily-section {
+    margin-bottom: 20px;
+}
+
+.two-column {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+/* ============================================================
+   TOP CATEGORY TABLE
+   ============================================================ */
+
+.simple-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.simple-table th,
+.simple-table td {
+    padding: 11px 12px;
+    border-bottom: 1px solid #edf0f4;
+    text-align: left;
+}
+
+.simple-table th {
+    color: #7c8799;
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 850;
+}
+
+.simple-table td {
+    color: #364154;
+    font-size: 12px;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.daily-empty {
+    padding: 55px 20px;
+    text-align: center;
+    color: #7b8598;
+}
+
+.daily-empty-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: #f0f3f8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 22px;
+}
+
+.daily-empty-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+    color: #3d4759;
+}
+
+.daily-empty-text {
+    margin: 7px 0 0;
+    font-size: 12px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.daily-footer {
+    text-align: center;
+    color: #9aa3b2;
+    font-size: 10px;
+    padding: 15px 0 5px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .daily-kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .daily-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 950px) {
+    .daily-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .two-column {
+        grid-template-columns: 1fr;
+    }
+
+    .daily-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .daily-report-page {
+        padding: 12px;
+    }
+
+    .daily-title {
+        font-size: 22px;
+    }
+
+    .daily-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .daily-kpi {
+        padding: 13px;
+    }
+
+    .daily-kpi-value {
+        font-size: 18px;
+    }
+
+    .daily-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .daily-actions {
+        width: 100%;
+    }
+
+    .daily-btn {
+        flex: 1;
+    }
+
+    .daily-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .table-search {
+        width: 100%;
+    }
+}
+
+@media (max-width: 430px) {
+    .daily-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .daily-kpi-label {
+        font-size: 9px;
+    }
+
+    .daily-kpi-value {
+        font-size: 16px;
+    }
+
+    .mini-stat-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .daily-report-page {
+        padding: 0;
+        background: #ffffff;
+    }
+
+    .daily-actions,
+    .daily-filter-card,
+    .table-search,
+    .no-print {
+        display: none !important;
+    }
+
+    .daily-card,
+    .daily-kpi {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .daily-main-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .daily-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .daily-table {
+        min-width: 0;
+    }
+
+    .daily-footer {
+        display: block;
+    }
+}
+</style>
+
+
+<div class="daily-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="daily-header">
+
+        <div class="daily-title-area">
+
+            <h1 class="daily-title">
+                Daily Financial Report
+            </h1>
+
+            <p class="daily-subtitle">
+                Detailed financial activity for the selected day.
+            </p>
+
+            <div class="daily-date-badge">
+                <span>📅</span>
+                <span>
+                    {{ report_date if report_date else
+                       (selected_date if selected_date else
+                       (start_date if start_date else "Today")) }}
+                </span>
+            </div>
+
+        </div>
+
+
+        <div class="daily-actions">
+
+            <button
+                type="button"
+                class="daily-btn"
+                onclick="window.location.reload();">
+                ↻ Refresh
+            </button>
+
+            <button
+                type="button"
+                class="daily-btn"
+                onclick="printDailyReport();">
+                🖨 Print
+            </button>
+
+            <button
+                type="button"
+                class="daily-btn success"
+                onclick="exportDailyJSON();">
+                ↓ Export JSON
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <form
+        method="GET"
+        action="{{ url_for('main.report_daily') }}"
+        class="daily-filter-card">
+
+        <div class="daily-filter-grid">
+
+            <!-- DATE -->
+
+            <div class="daily-field">
+
+                <label for="date">
+                    Report Date
+                </label>
+
+                <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    value="{{ report_date or selected_date or request.args.get('date', '') }}">
+
+            </div>
+
+
+            <!-- CATEGORY -->
+
+            <div class="daily-field">
+
+                <label for="category">
+                    Category
+                </label>
+
+                <select id="category" name="category">
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in category_options|default([]) %}
+
+                        <option
+                            value="{{ category }}"
+                            {% if category_filter|default('') == category %}
+                                selected
+                            {% endif %}>
+
+                            {{ category }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- ACCOUNT -->
+
+            <div class="daily-field">
+
+                <label for="account">
+                    Account
+                </label>
+
+                <select id="account" name="account">
+
+                    <option value="">
+                        All Accounts
+                    </option>
+
+                    {% for account in account_options|default([]) %}
+
+                        <option
+                            value="{{ account }}"
+                            {% if account_filter|default('') == account %}
+                                selected
+                            {% endif %}>
+
+                            {{ account }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- TYPE -->
+
+            <div class="daily-field">
+
+                <label for="transaction_type">
+                    Transaction Type
+                </label>
+
+                <select
+                    id="transaction_type"
+                    name="transaction_type">
+
+                    <option value="">
+                        Income + Expense
+                    </option>
+
+                    <option
+                        value="income"
+                        {% if transaction_type|default('')|lower == 'income' %}
+                            selected
+                        {% endif %}>
+                        Income Only
+                    </option>
+
+                    <option
+                        value="expense"
+                        {% if transaction_type|default('')|lower == 'expense' %}
+                            selected
+                        {% endif %}>
+                        Expense Only
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="daily-btn primary filter-submit">
+
+                Apply Filter
+
+            </button>
+
+        </div>
+
+    </form>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="daily-kpi-grid">
+
+        <!-- INCOME -->
+
+        <div class="daily-kpi kpi-income">
+
+            <div class="daily-kpi-label">
+                Total Income
+            </div>
+
+            <div class="daily-kpi-value">
+                ${{ "%.2f"|format(total_income|default(0)|float) }}
+            </div>
+
+            <div class="daily-kpi-meta">
+                {{ income_count|default(0) }} income transaction(s)
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE -->
+
+        <div class="daily-kpi kpi-expense">
+
+            <div class="daily-kpi-label">
+                Total Expense
+            </div>
+
+            <div class="daily-kpi-value">
+                ${{ "%.2f"|format(total_expense|default(0)|float) }}
+            </div>
+
+            <div class="daily-kpi-meta">
+                {{ expense_count|default(0) }} expense transaction(s)
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+
+        <div class="daily-kpi kpi-profit">
+
+            <div class="daily-kpi-label">
+                Net Result
+            </div>
+
+            <div
+                class="daily-kpi-value"
+                id="netResultValue">
+
+                ${{ "%.2f"|format(net_profit|default(0)|float) }}
+
+            </div>
+
+            <div class="daily-kpi-meta">
+                Income − Expense
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="daily-kpi">
+
+            <div class="daily-kpi-label">
+                Transactions
+            </div>
+
+            <div class="daily-kpi-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="daily-kpi-meta">
+                Total daily activity
+            </div>
+
+        </div>
+
+
+        <!-- AVERAGE -->
+
+        <div class="daily-kpi">
+
+            <div class="daily-kpi-label">
+                Average Transaction
+            </div>
+
+            <div class="daily-kpi-value">
+                ${{ "%.2f"|format(average_transaction|default(0)|float) }}
+            </div>
+
+            <div class="daily-kpi-meta">
+                Average transaction value
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE RATIO -->
+
+        <div class="daily-kpi">
+
+            <div class="daily-kpi-label">
+                Expense Ratio
+            </div>
+
+            <div class="daily-kpi-value">
+                {{ "%.1f"|format(expense_ratio|default(0)|float) }}%
+            </div>
+
+            <div class="daily-kpi-meta">
+                Expense ÷ Income
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PERFORMANCE + DAILY STATS
+         ======================================================== -->
+
+    <div class="daily-main-grid">
+
+        <!-- PERFORMANCE -->
+
+        <div class="daily-card">
+
+            <div class="daily-card-header">
+
+                <div>
+                    <h2 class="daily-card-title">
+                        Daily Performance
+                    </h2>
+
+                    <p class="daily-card-subtitle">
+                        Income, expenses and net financial position
+                    </p>
+                </div>
+
+            </div>
+
+
+            <div class="daily-card-body">
+
+                {% set income_value = total_income|default(0)|float %}
+                {% set expense_value = total_expense|default(0)|float %}
+                {% set total_flow = income_value + expense_value %}
+
+                {% if total_flow > 0 %}
+                    {% set income_percent = (income_value / total_flow * 100) %}
+                    {% set expense_percent = (expense_value / total_flow * 100) %}
+                {% else %}
+                    {% set income_percent = 0 %}
+                    {% set expense_percent = 0 %}
+                {% endif %}
+
+
+                <div class="performance-box">
+
+                    <div class="performance-row">
+
+                        <span class="performance-name">
+                            Income
+                        </span>
+
+                        <span class="performance-value">
+                            ${{ "%.2f"|format(income_value) }}
+                        </span>
+
+                    </div>
+
+                    <div class="performance-track">
+
+                        <div
+                            class="performance-fill income-fill"
+                            style="width: {{ income_percent }}%;">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="performance-box">
+
+                    <div class="performance-row">
+
+                        <span class="performance-name">
+                            Expense
+                        </span>
+
+                        <span class="performance-value">
+                            ${{ "%.2f"|format(expense_value) }}
+                        </span>
+
+                    </div>
+
+                    <div class="performance-track">
+
+                        <div
+                            class="performance-fill expense-fill"
+                            style="width: {{ expense_percent }}%;">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                {% set net_value = net_profit|default(0)|float %}
+
+                {% if income_value > 0 %}
+                    {% set net_percent = ((net_value / income_value) * 100) %}
+                {% else %}
+                    {% set net_percent = 0 %}
+                {% endif %}
+
+                {% if net_percent < 0 %}
+                    {% set net_width = 100 %}
+                {% elif net_percent > 100 %}
+                    {% set net_width = 100 %}
+                {% else %}
+                    {% set net_width = net_percent %}
+                {% endif %}
+
+
+                <div class="performance-box">
+
+                    <div class="performance-row">
+
+                        <span class="performance-name">
+                            Profit Margin
+                        </span>
+
+                        <span class="performance-value">
+                            {{ "%.1f"|format(profit_margin|default(net_percent)|float) }}%
+                        </span>
+
+                    </div>
+
+                    <div class="performance-track">
+
+                        <div
+                            class="performance-fill net-fill"
+                            style="width: {{ net_width }}%;">
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="mini-stat-grid">
+
+                    <div class="mini-stat">
+
+                        <div class="mini-stat-label">
+                            Highest Transaction
+                        </div>
+
+                        <div class="mini-stat-value">
+                            ${{ "%.2f"|format(highest_transaction|default(0)|float) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-stat">
+
+                        <div class="mini-stat-label">
+                            Lowest Transaction
+                        </div>
+
+                        <div class="mini-stat-value">
+                            ${{ "%.2f"|format(lowest_transaction|default(0)|float) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-stat">
+
+                        <div class="mini-stat-label">
+                            Income Count
+                        </div>
+
+                        <div class="mini-stat-value">
+                            {{ income_count|default(0) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="mini-stat">
+
+                        <div class="mini-stat-label">
+                            Expense Count
+                        </div>
+
+                        <div class="mini-stat-value">
+                            {{ expense_count|default(0) }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- QUICK SUMMARY -->
+
+        <div class="daily-card">
+
+            <div class="daily-card-header">
+
+                <div>
+
+                    <h2 class="daily-card-title">
+                        Daily Summary
+                    </h2>
+
+                    <p class="daily-card-subtitle">
+                        Key financial indicators
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="daily-card-body">
+
+                <div class="summary-list">
+
+                    <div class="summary-item">
+
+                        <div class="summary-item-top">
+
+                            <span class="summary-item-name">
+                                Net Position
+                            </span>
+
+                            <span
+                                class="summary-item-total"
+                                id="summaryNet">
+
+                                ${{ "%.2f"|format(net_profit|default(0)|float) }}
+
+                            </span>
+
+                        </div>
+
+                        <div class="summary-item-meta">
+
+                            <span>
+                                Income − Expense
+                            </span>
+
+                            <span>
+                                {{ "%.1f"|format(profit_margin|default(0)|float) }}%
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-item">
+
+                        <div class="summary-item-top">
+
+                            <span class="summary-item-name">
+                                Total Money Flow
+                            </span>
+
+                            <span class="summary-item-total">
+                                ${{ "%.2f"|format(
+                                    (total_income|default(0)|float) +
+                                    (total_expense|default(0)|float)
+                                ) }}
+                            </span>
+
+                        </div>
+
+                        <div class="summary-item-meta">
+
+                            <span>
+                                Income + Expense
+                            </span>
+
+                            <span>
+                                {{ total_transactions|default(0) }} TX
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-item">
+
+                        <div class="summary-item-top">
+
+                            <span class="summary-item-name">
+                                Expense Ratio
+                            </span>
+
+                            <span class="summary-item-total">
+                                {{ "%.1f"|format(expense_ratio|default(0)|float) }}%
+                            </span>
+
+                        </div>
+
+                        <div class="summary-item-meta">
+
+                            <span>
+                                Daily spending level
+                            </span>
+
+                            {% if expense_ratio|default(0)|float >= 80 %}
+                                <span>High</span>
+                            {% elif expense_ratio|default(0)|float >= 50 %}
+                                <span>Moderate</span>
+                            {% else %}
+                                <span>Healthy</span>
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="summary-item">
+
+                        <div class="summary-item-top">
+
+                            <span class="summary-item-name">
+                                Average Transaction
+                            </span>
+
+                            <span class="summary-item-total">
+                                ${{ "%.2f"|format(average_transaction|default(0)|float) }}
+                            </span>
+
+                        </div>
+
+                        <div class="summary-item-meta">
+
+                            <span>
+                                Per transaction
+                            </span>
+
+                            <span>
+                                {{ total_transactions|default(0) }} total
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY + ACCOUNT SUMMARY
+         ======================================================== -->
+
+    <div class="two-column daily-section">
+
+        <!-- CATEGORY -->
+
+        <div class="daily-card">
+
+            <div class="daily-card-header">
+
+                <div>
+
+                    <h2 class="daily-card-title">
+                        Category Performance
+                    </h2>
+
+                    <p class="daily-card-subtitle">
+                        Daily income and expense by category
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="daily-card-body">
+
+                {% if categories|default([]) %}
+
+                    <div class="daily-table-wrap">
+
+                        <table class="simple-table">
+
+                            <thead>
+
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Transactions</th>
+                                    <th>Income</th>
+                                    <th>Expense</th>
+                                    <th>Net</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                {% for category in categories %}
+
+                                    {% set category_income =
+                                        category["income"]|default(0)|float %}
+
+                                    {% set category_expense =
+                                        category["expense"]|default(0)|float %}
+
+                                    {% set category_net =
+                                        category["net"]|default(
+                                            category_income - category_expense
+                                        )|float %}
+
+                                    <tr>
+
+                                        <td>
+                                            <strong>
+                                                {{ category["name"]|default("Uncategorized") }}
+                                            </strong>
+                                        </td>
+
+                                        <td>
+                                            {{ category["transaction_count"]|default(
+                                                category["transactions"]|default(0)
+                                            ) }}
+                                        </td>
+
+                                        <td class="amount income">
+                                            ${{ "%.2f"|format(category_income) }}
+                                        </td>
+
+                                        <td class="amount expense">
+                                            ${{ "%.2f"|format(category_expense) }}
+                                        </td>
+
+                                        <td
+                                            class="amount
+                                            {% if category_net < 0 %}
+                                                expense
+                                            {% else %}
+                                                income
+                                            {% endif %}">
+
+                                            ${{ "%.2f"|format(category_net) }}
+
+                                        </td>
+
+                                    </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-summary">
+                        No category data available for this day.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNT -->
+
+        <div class="daily-card">
+
+            <div class="daily-card-header">
+
+                <div>
+
+                    <h2 class="daily-card-title">
+                        Account Performance
+                    </h2>
+
+                    <p class="daily-card-subtitle">
+                        Daily activity by financial account
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="daily-card-body">
+
+                {% if accounts|default([]) %}
+
+                    <div class="summary-list">
+
+                        {% for account in accounts %}
+
+                            {% set account_income =
+                                account["income"]|default(0)|float %}
+
+                            {% set account_expense =
+                                account["expense"]|default(0)|float %}
+
+                            {% set account_net =
+                                account["net"]|default(
+                                    account_income - account_expense
+                                )|float %}
+
+                            <div class="summary-item">
+
+                                <div class="summary-item-top">
+
+                                    <span class="summary-item-name">
+                                        {{ account["name"]|default(
+                                            account["account"]|default("Unknown Account")
+                                        ) }}
+                                    </span>
+
+                                    <span
+                                        class="summary-item-total
+                                        {% if account_net < 0 %}
+                                            amount expense
+                                        {% else %}
+                                            amount income
+                                        {% endif %}">
+
+                                        ${{ "%.2f"|format(account_net) }}
+
+                                    </span>
+
+                                </div>
+
+                                <div class="summary-item-meta">
+
+                                    <span>
+                                        {{ account["transaction_count"]|default(
+                                            account["transactions"]|default(0)
+                                        ) }} transactions
+                                    </span>
+
+                                    <span>
+                                        In ${{ "%.2f"|format(account_income) }}
+                                        /
+                                        Out ${{ "%.2f"|format(account_expense) }}
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% else %}
+
+                    <div class="empty-summary">
+                        No account data available for this day.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ITEM PERFORMANCE
+         ======================================================== -->
+
+    <div class="daily-card daily-section">
+
+        <div class="daily-card-header">
+
+            <div>
+
+                <h2 class="daily-card-title">
+                    Item Performance
+                </h2>
+
+                <p class="daily-card-subtitle">
+                    Daily transaction activity grouped by item
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="daily-card-body">
+
+            {% if items|default([]) %}
+
+                <div class="daily-table-wrap">
+
+                    <table class="simple-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>#</th>
+                                <th>Item</th>
+                                <th>Category</th>
+                                <th>Transactions</th>
+                                <th>Income</th>
+                                <th>Expense</th>
+                                <th>Net</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for item in items %}
+
+                                {% set item_income =
+                                    item["income"]|default(0)|float %}
+
+                                {% set item_expense =
+                                    item["expense"]|default(0)|float %}
+
+                                {% set item_net =
+                                    item["net"]|default(
+                                        item_income - item_expense
+                                    )|float %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ loop.index }}
+                                    </td>
+
+                                    <td>
+                                        <strong>
+                                            {{ item["name"]|default(
+                                                item["item"]|default("No Item")
+                                            ) }}
+                                        </strong>
+                                    </td>
+
+                                    <td>
+                                        {{ item["category"]|default(
+                                            item["category_name"]|default("-")
+                                        ) }}
+                                    </td>
+
+                                    <td>
+                                        {{ item["transaction_count"]|default(
+                                            item["transactions_count"]|default(0)
+                                        ) }}
+                                    </td>
+
+                                    <td class="amount income">
+                                        ${{ "%.2f"|format(item_income) }}
+                                    </td>
+
+                                    <td class="amount expense">
+                                        ${{ "%.2f"|format(item_expense) }}
+                                    </td>
+
+                                    <td
+                                        class="amount
+                                        {% if item_net < 0 %}
+                                            expense
+                                        {% else %}
+                                            income
+                                        {% endif %}">
+
+                                        ${{ "%.2f"|format(item_net) }}
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="empty-summary">
+                    No item performance data available.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DAILY TRANSACTIONS
+         ======================================================== -->
+
+    <div class="daily-card daily-section">
+
+        <div class="daily-card-header">
+
+            <div>
+
+                <h2 class="daily-card-title">
+                    Daily Transactions
+                </h2>
+
+                <p class="daily-card-subtitle">
+                    All income and expense transactions for the selected day
+                </p>
+
+            </div>
+
+
+            <input
+                type="search"
+                id="transactionSearch"
+                class="table-search"
+                placeholder="Search transactions...">
+
+        </div>
+
+
+        <div class="daily-table-wrap">
+
+            {% if daily_transactions|default([]) %}
+
+                <table
+                    class="daily-table"
+                    id="dailyTransactionsTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for transaction in daily_transactions %}
+
+                            {% set tx_type =
+                                transaction["transaction_type"]|default(
+                                    transaction["type"]|default("")
+                                )|lower %}
+
+                            {% set tx_amount =
+                                transaction["amount"]|default(0)|float %}
+
+                            {% set tx_status =
+                                transaction["status"]|default("Completed") %}
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+                                <td>
+                                    {{ transaction["date"]|default("-") }}
+                                </td>
+
+                                <td>
+                                    {{ transaction["account"]|default(
+                                        transaction["account_name"]|default("-")
+                                    ) }}
+                                </td>
+
+                                <td>
+                                    {{ transaction["category"]|default("-") }}
+                                </td>
+
+                                <td>
+                                    {{ transaction["item"]|default("-") }}
+                                </td>
+
+                                <td>
+
+                                    {% if tx_type == "income" %}
+
+                                        <span class="type-badge type-income">
+                                            Income
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="type-badge type-expense">
+                                            Expense
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td
+                                    class="amount
+                                    {% if tx_type == 'income' %}
+                                        income
+                                    {% else %}
+                                        expense
+                                    {% endif %}">
+
+                                    {% if tx_type == "income" %}
+                                        +
+                                    {% else %}
+                                        -
+                                    {% endif %}
+
+                                    ${{ "%.2f"|format(tx_amount) }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if tx_status in [true, "true", "True", "completed", "Completed"] %}
+
+                                        <span class="status-badge status-completed">
+                                            Completed
+                                        </span>
+
+                                    {% elif tx_status in ["pending", "Pending"] %}
+
+                                        <span class="status-badge status-pending">
+                                            Pending
+                                        </span>
+
+                                    {% elif tx_status in [false, "false", "False", "cancelled", "Cancelled"] %}
+
+                                        <span class="status-badge status-cancelled">
+                                            Cancelled
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge status-other">
+                                            {{ tx_status }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% else %}
+
+                <div class="daily-empty">
+
+                    <div class="daily-empty-icon">
+                        📊
+                    </div>
+
+                    <h3 class="daily-empty-title">
+                        No Transactions Found
+                    </h3>
+
+                    <p class="daily-empty-text">
+                        There are no income or expense transactions for this selected day.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DAILY FOOTER
+         ======================================================== -->
+
+    <div class="daily-footer">
+        Daily Financial Report • Generated from transaction records
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+(function () {
+
+    "use strict";
+
+
+    /* ============================================================
+       TRANSACTION SEARCH
+       ============================================================ */
+
+    const searchInput = document.getElementById("transactionSearch");
+    const table = document.getElementById("dailyTransactionsTable");
+
+    if (searchInput && table) {
+
+        searchInput.addEventListener("input", function () {
+
+            const searchValue = this.value
+                .toLowerCase()
+                .trim();
+
+            const rows = table.querySelectorAll("tbody tr");
+
+            rows.forEach(function (row) {
+
+                const text = row.textContent
+                    .toLowerCase();
+
+                if (!searchValue || text.includes(searchValue)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+
+            });
+
+        });
+
+    }
+
+
+    /* ============================================================
+       NEGATIVE NET COLOR
+       ============================================================ */
+
+    const netValue =
+        parseFloat(
+            "{{ net_profit|default(0)|float }}"
+        );
+
+    const netElements = [
+        document.getElementById("netResultValue"),
+        document.getElementById("summaryNet")
+    ];
+
+    netElements.forEach(function (element) {
+
+        if (!element) {
+            return;
+        }
+
+        if (netValue < 0) {
+            element.style.color = "#c24141";
+        } else if (netValue > 0) {
+            element.style.color = "#18864b";
+        }
+
+    });
+
+
+    /* ============================================================
+       EXPORT JSON
+       ============================================================ */
+
+    window.exportDailyJSON = function () {
+
+        const report = {
+            report: "Daily Financial Report",
+
+            date:
+                "{{ report_date|default(
+                    selected_date|default(
+                    start_date|default('')
+                    )
+                ) }}",
+
+            summary: {
+                total_income:
+                    {{ total_income|default(0)|float }},
+
+                total_expense:
+                    {{ total_expense|default(0)|float }},
+
+                net_profit:
+                    {{ net_profit|default(0)|float }},
+
+                total_transactions:
+                    {{ total_transactions|default(0) }},
+
+                income_count:
+                    {{ income_count|default(0) }},
+
+                expense_count:
+                    {{ expense_count|default(0) }},
+
+                average_transaction:
+                    {{ average_transaction|default(0)|float }},
+
+                highest_transaction:
+                    {{ highest_transaction|default(0)|float }},
+
+                lowest_transaction:
+                    {{ lowest_transaction|default(0)|float }},
+
+                profit_margin:
+                    {{ profit_margin|default(0)|float }},
+
+                expense_ratio:
+                    {{ expense_ratio|default(0)|float }}
+            },
+
+            categories:
+                {{ categories|default([])|tojson|safe }},
+
+            items:
+                {{ items|default([])|tojson|safe }},
+
+            accounts:
+                {{ accounts|default([])|tojson|safe }},
+
+            transactions:
+                {{ daily_transactions|default([])|tojson|safe }}
+        };
+
+
+        const jsonString =
+            JSON.stringify(report, null, 2);
+
+        const blob =
+            new Blob(
+                [jsonString],
+                {
+                    type: "application/json"
+                }
+            );
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = url;
+
+        link.download =
+            "daily-report-" +
+            "{{ report_date|default(
+                selected_date|default(
+                start_date|default('report')
+                )
+            ) }}" +
+            ".json";
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        document.body.removeChild(link);
+
+        URL.revokeObjectURL(url);
+
+    };
+
+
+    /* ============================================================
+       PRINT
+       ============================================================ */
+
+    window.printDailyReport = function () {
+
+        window.print();
+
+    };
+
+
+})();
+</script>
+
+{% endblock %}

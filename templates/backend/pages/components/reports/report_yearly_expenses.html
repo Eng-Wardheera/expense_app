@@ -1,0 +1,3735 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Yearly Expenses Report{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================
+     YEARLY EXPENSES REPORT
+     FULL DATATABLE VERSION
+     NO BOOTSTRAP MODAL
+     ============================================================ -->
+
+<style>
+
+/* ============================================================
+   ROOT
+   ============================================================ */
+
+.yearly-expense-page {
+    --ye-primary: #0d6efd;
+    --ye-primary-dark: #084298;
+    --ye-danger: #dc3545;
+    --ye-danger-dark: #b02a37;
+    --ye-success: #198754;
+    --ye-warning: #ffc107;
+    --ye-info: #0dcaf0;
+    --ye-dark: #172033;
+    --ye-text: #3d4657;
+    --ye-muted: #6c757d;
+    --ye-border: #e4e8ef;
+    --ye-light: #f6f8fb;
+    --ye-white: #ffffff;
+    --ye-shadow: 0 8px 28px rgba(20, 35, 60, .08);
+
+    width: 100%;
+    padding: 10px 0 45px;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.ye-header {
+    background: #fff;
+    border: 1px solid var(--ye-border);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--ye-shadow);
+}
+
+.ye-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.ye-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.ye-title-icon {
+    width: 53px;
+    height: 53px;
+    border-radius: 14px;
+    background: rgba(220, 53, 69, .10);
+    color: var(--ye-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ye-title-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.ye-title {
+    margin: 0;
+    color: var(--ye-dark);
+    font-size: 25px;
+    font-weight: 900;
+}
+
+.ye-subtitle {
+    margin: 5px 0 0;
+    color: var(--ye-muted);
+    font-size: 13px;
+}
+
+.ye-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.ye-btn {
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 0;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    transition: .2s ease;
+    text-decoration: none;
+}
+
+.ye-btn:hover {
+    transform: translateY(-1px);
+}
+
+.ye-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.ye-btn-primary {
+    background: var(--ye-primary);
+    color: #fff;
+}
+
+.ye-btn-primary:hover {
+    background: var(--ye-primary-dark);
+    color: #fff;
+}
+
+.ye-btn-secondary {
+    background: #eef1f5;
+    color: var(--ye-dark);
+}
+
+.ye-btn-danger {
+    background: var(--ye-danger);
+    color: #fff;
+}
+
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.ye-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.ye-summary-card {
+    background: #fff;
+    border: 1px solid var(--ye-border);
+    border-radius: 15px;
+    padding: 17px;
+    box-shadow: var(--ye-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.ye-summary-card::after {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    right: -25px;
+    bottom: -30px;
+    border-radius: 50%;
+    background: rgba(13, 110, 253, .05);
+}
+
+.ye-summary-card.expense::after {
+    background: rgba(220, 53, 69, .06);
+}
+
+.ye-summary-card.year::after {
+    background: rgba(25, 135, 84, .06);
+}
+
+.ye-summary-card.average::after {
+    background: rgba(13, 202, 240, .06);
+}
+
+.ye-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ye-summary-label {
+    color: var(--ye-muted);
+    font-size: 11px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.ye-summary-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ye-summary-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.ye-summary-icon.expense {
+    background: rgba(220, 53, 69, .10);
+    color: var(--ye-danger);
+}
+
+.ye-summary-icon.transaction {
+    background: rgba(13, 110, 253, .10);
+    color: var(--ye-primary);
+}
+
+.ye-summary-icon.year {
+    background: rgba(25, 135, 84, .10);
+    color: var(--ye-success);
+}
+
+.ye-summary-icon.average {
+    background: rgba(13, 202, 240, .10);
+    color: #087990;
+}
+
+.ye-summary-value {
+    margin-top: 11px;
+    color: var(--ye-dark);
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.ye-summary-description {
+    margin-top: 3px;
+    color: var(--ye-muted);
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.ye-section {
+    background: #fff;
+    border: 1px solid var(--ye-border);
+    border-radius: 16px;
+    box-shadow: var(--ye-shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.ye-section-header {
+    padding: 16px 19px;
+    border-bottom: 1px solid var(--ye-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.ye-section-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ye-dark);
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.ye-section-title svg {
+    width: 18px;
+    height: 18px;
+    color: var(--ye-primary);
+}
+
+.ye-section-body {
+    padding: 18px;
+}
+
+.ye-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.ye-insight {
+    border: 1px solid var(--ye-border);
+    border-radius: 12px;
+    padding: 14px;
+    background: #fbfcfe;
+}
+
+.ye-insight-label {
+    color: #8992a1;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+}
+
+.ye-insight-value {
+    margin-top: 7px;
+    color: var(--ye-dark);
+    font-size: 14px;
+    font-weight: 850;
+    word-break: break-word;
+}
+
+.ye-insight-amount {
+    margin-top: 4px;
+    color: var(--ye-danger);
+    font-size: 13px;
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   BREAKDOWN
+   ============================================================ */
+
+.ye-breakdown {
+    background: #fff;
+    border: 1px solid var(--ye-border);
+    border-radius: 16px;
+    box-shadow: var(--ye-shadow);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.ye-breakdown-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid var(--ye-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.ye-breakdown-title {
+    margin: 0;
+    color: var(--ye-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.ye-breakdown-subtitle {
+    margin-top: 4px;
+    color: var(--ye-muted);
+    font-size: 11px;
+}
+
+.ye-year {
+    border-bottom: 1px solid var(--ye-border);
+}
+
+.ye-year:last-child {
+    border-bottom: 0;
+}
+
+.ye-year-header {
+    padding: 16px 19px;
+    background: #f8faff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    cursor: pointer;
+    flex-wrap: wrap;
+}
+
+.ye-year-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ye-year-arrow {
+    width: 29px;
+    height: 29px;
+    border-radius: 8px;
+    background: rgba(13, 110, 253, .09);
+    color: var(--ye-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ye-year-arrow svg {
+    width: 16px;
+    height: 16px;
+    transition: transform .2s ease;
+}
+
+.ye-year.open .ye-year-arrow svg {
+    transform: rotate(90deg);
+}
+
+.ye-year-name {
+    color: var(--ye-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.ye-year-count {
+    margin-top: 2px;
+    color: var(--ye-muted);
+    font-size: 10px;
+}
+
+.ye-year-total {
+    color: var(--ye-danger);
+    font-size: 18px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ye-year-body {
+    display: none;
+    padding: 14px 18px 18px;
+}
+
+.ye-year.open .ye-year-body {
+    display: block;
+}
+
+
+/* ============================================================
+   ACCOUNT
+   ============================================================ */
+
+.ye-account {
+    border: 1px solid #edf0f4;
+    border-radius: 11px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.ye-account:last-child {
+    margin-bottom: 0;
+}
+
+.ye-account-header {
+    padding: 12px 14px;
+    background: #fcfcfd;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.ye-account-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.ye-account-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(13, 110, 253, .09);
+    color: var(--ye-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ye-account-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.ye-account-name {
+    color: var(--ye-dark);
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.ye-account-count {
+    margin-top: 2px;
+    color: var(--ye-muted);
+    font-size: 10px;
+}
+
+.ye-account-total {
+    color: var(--ye-danger);
+    font-size: 14px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.ye-account-body {
+    display: none;
+    padding: 9px 12px;
+}
+
+.ye-account.open .ye-account-body {
+    display: block;
+}
+
+
+/* ============================================================
+   CATEGORY
+   ============================================================ */
+
+.ye-category {
+    border-bottom: 1px dashed #e6eaf0;
+}
+
+.ye-category:last-child {
+    border-bottom: 0;
+}
+
+.ye-category-header {
+    padding: 10px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ye-category-name {
+    color: #3e4758;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.ye-category-total {
+    color: var(--ye-danger);
+    font-size: 12px;
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   ITEM
+   ============================================================ */
+
+.ye-items {
+    padding: 0 0 7px 15px;
+}
+
+.ye-item {
+    padding: 7px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ye-item-name {
+    color: #697386;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.ye-item-right {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.ye-item-amount {
+    color: var(--ye-danger);
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.ye-item-count {
+    margin-top: 2px;
+    color: #8b94a2;
+    font-size: 9px;
+}
+
+
+/* ============================================================
+   DATATABLE CONTAINER
+   ============================================================ */
+
+.ye-table-card {
+    background: #fff;
+    border: 1px solid var(--ye-border);
+    border-radius: 16px;
+    box-shadow: var(--ye-shadow);
+    overflow: hidden;
+}
+
+.ye-table-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid var(--ye-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.ye-table-title {
+    margin: 0;
+    color: var(--ye-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.ye-table-description {
+    margin-top: 4px;
+    color: var(--ye-muted);
+    font-size: 11px;
+}
+
+.ye-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 14px 15px;
+}
+
+
+/* ============================================================
+   DATATABLE CUSTOMIZATION
+   ============================================================ */
+
+#yearlyExpenseTable {
+    width: 100% !important;
+    min-width: 1150px;
+    border-collapse: collapse !important;
+}
+
+#yearlyExpenseTable thead th {
+    background: #f7f9fc;
+    color: #596477;
+    border-bottom: 1px solid var(--ye-border) !important;
+    padding: 12px 10px !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    white-space: nowrap;
+}
+
+#yearlyExpenseTable tbody td {
+    padding: 11px 10px !important;
+    border-bottom: 1px solid #edf0f4 !important;
+    color: var(--ye-text);
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+#yearlyExpenseTable tbody tr:hover {
+    background: #fafcff;
+}
+
+#yearlyExpenseTable tbody tr.selected-row {
+    background: #f1f6ff;
+}
+
+.ye-date {
+    color: #596477;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ye-year-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 7px;
+    background: rgba(13, 110, 253, .08);
+    color: var(--ye-primary);
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.ye-account-cell {
+    color: var(--ye-dark) !important;
+    font-weight: 850;
+}
+
+.ye-category-cell {
+    font-weight: 700;
+}
+
+.ye-item-cell {
+    color: #697386 !important;
+}
+
+.ye-description-cell {
+    max-width: 230px;
+}
+
+.ye-description-text {
+    max-width: 230px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ye-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 900;
+    background: #eef1f5;
+    color: #596477;
+}
+
+.ye-status.completed,
+.ye-status.paid,
+.ye-status.success {
+    background: rgba(25, 135, 84, .10);
+    color: #137346;
+}
+
+.ye-status.pending {
+    background: rgba(255, 193, 7, .14);
+    color: #8a6800;
+}
+
+.ye-status.cancelled,
+.ye-status.failed {
+    background: rgba(220, 53, 69, .10);
+    color: var(--ye-danger-dark);
+}
+
+.ye-amount {
+    color: var(--ye-danger) !important;
+    font-weight: 900;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.ye-view-btn {
+    width: 33px;
+    height: 33px;
+    border: 1px solid #dfe4eb;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ye-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.ye-view-btn:hover {
+    background: #f1f6ff;
+}
+
+.ye-view-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+
+/* ============================================================
+   DATATABLE FILTER / PAGINATION
+   ============================================================ */
+
+.dataTables_wrapper {
+    padding-top: 14px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: #5c6676;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    height: 36px;
+    border: 1px solid #dfe4eb;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ye-dark);
+    padding: 0 9px;
+    outline: none;
+    font-size: 11px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    min-width: 220px;
+    margin-left: 6px;
+}
+
+.dataTables_wrapper .dataTables_length select:focus,
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--ye-primary);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, .08);
+}
+
+.dataTables_wrapper .dataTables_info {
+    color: #737d8d;
+    font-size: 10px;
+    padding-top: 14px;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: 10px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    min-width: 32px;
+    height: 32px;
+    margin-left: 3px;
+    padding: 7px 9px !important;
+    border: 1px solid #e0e5ec !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    color: #4d5768 !important;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: #f1f6ff !important;
+    border-color: #cdd9ef !important;
+    color: var(--ye-primary) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--ye-primary) !important;
+    border-color: var(--ye-primary) !important;
+    color: #fff !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    opacity: .45;
+}
+
+
+/* ============================================================
+   DATATABLE BUTTONS
+   ============================================================ */
+
+.dt-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.dt-button {
+    border: 1px solid #dfe4eb !important;
+    border-radius: 7px !important;
+    background: #fff !important;
+    color: #4d5768 !important;
+    padding: 6px 9px !important;
+    font-size: 10px !important;
+    font-weight: 800 !important;
+}
+
+.dt-button:hover {
+    background: #f1f6ff !important;
+    color: var(--ye-primary) !important;
+}
+
+
+/* ============================================================
+   CUSTOM MODAL
+   ============================================================ */
+
+.ye-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, .72);
+    backdrop-filter: blur(4px);
+}
+
+.ye-modal-overlay.show {
+    display: flex;
+}
+
+.ye-modal {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 36px);
+    background: #fff;
+    border-radius: 17px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.28);
+    animation: yeModalOpen .18s ease-out;
+}
+
+@keyframes yeModalOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+.ye-modal-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid #e7ebf0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.ye-modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ye-modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(220, 53, 69, .10);
+    color: var(--ye-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ye-modal-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.ye-modal-title {
+    margin: 0;
+    color: var(--ye-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.ye-modal-close {
+    width: 35px;
+    height: 35px;
+    border: 0;
+    border-radius: 9px;
+    background: #f0f2f5;
+    color: #5d6676;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ye-modal-close:hover {
+    background: #e6e9ee;
+}
+
+.ye-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.ye-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 170px);
+}
+
+.ye-modal-amount {
+    padding: 17px;
+    border: 1px solid #f4d8dc;
+    border-radius: 13px;
+    background: #fff6f7;
+    text-align: center;
+    margin-bottom: 17px;
+}
+
+.ye-modal-amount-label {
+    color: #906b73;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.ye-modal-amount-value {
+    margin-top: 5px;
+    color: var(--ye-danger);
+    font-size: 29px;
+    font-weight: 950;
+}
+
+.ye-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+}
+
+.ye-info {
+    border: 1px solid #e7ebf0;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.ye-info-label {
+    color: #8a93a1;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.ye-info-value {
+    margin-top: 5px;
+    color: #293345;
+    font-size: 12px;
+    font-weight: 750;
+    word-break: break-word;
+}
+
+.ye-note {
+    margin-top: 11px;
+    border: 1px solid #e7ebf0;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.ye-note-text {
+    margin-top: 5px;
+    color: #5c6676;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.ye-modal-footer {
+    padding: 14px 19px;
+    border-top: 1px solid #e7ebf0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .ye-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ye-insight-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .yearly-expense-page {
+        padding: 5px 0 30px;
+    }
+
+    .ye-header {
+        padding: 15px;
+    }
+
+    .ye-title {
+        font-size: 20px;
+    }
+
+    .ye-header-actions {
+        width: 100%;
+    }
+
+    .ye-header-actions .ye-btn {
+        flex: 1;
+    }
+
+    .ye-summary-grid,
+    .ye-insight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ye-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100%;
+        min-width: 0;
+        margin-left: 0;
+        margin-top: 5px;
+    }
+
+    .dataTables_wrapper .dataTables_filter {
+        float: none !important;
+        text-align: left !important;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+        float: none !important;
+    }
+
+}
+
+@media print {
+
+    .ye-header-actions,
+    .ye-modal-overlay,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate,
+    .dt-buttons,
+    .ye-view-btn {
+        display: none !important;
+    }
+
+    .yearly-expense-page {
+        padding: 0;
+    }
+
+    .ye-summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .ye-insight-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .ye-year-body,
+    .ye-account-body {
+        display: block !important;
+    }
+
+    .ye-breakdown,
+    .ye-table-card,
+    .ye-summary-card,
+    .ye-section {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+}
+
+</style>
+
+
+<div class="yearly-expense-page">
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="ye-header">
+
+        <div class="ye-header-row">
+
+            <div class="ye-title-wrap">
+
+                <div class="ye-title-icon">
+                    <i data-feather="calendar"></i>
+                </div>
+
+                <div>
+
+                    <h1 class="ye-title">
+                        Yearly Expenses Report
+                    </h1>
+
+                    <p class="ye-subtitle">
+                        Annual expense analysis by year, account,
+                        category and item.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="ye-header-actions">
+
+                <button
+                    type="button"
+                    class="ye-btn ye-btn-secondary"
+                    onclick="resetYearlyExpenseTableFilters()"
+                >
+                    <i data-feather="rotate-ccw"></i>
+                    Reset
+                </button>
+
+                <button
+                    type="button"
+                    class="ye-btn ye-btn-primary"
+                    onclick="printYearlyExpenseReport()"
+                >
+                    <i data-feather="printer"></i>
+                    Print Report
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="ye-summary-grid">
+
+
+        <div class="ye-summary-card expense">
+
+            <div class="ye-summary-top">
+
+                <div class="ye-summary-label">
+                    Total Expenses
+                </div>
+
+                <div class="ye-summary-icon expense">
+                    <i data-feather="trending-down"></i>
+                </div>
+
+            </div>
+
+            <div class="ye-summary-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(total_expense|default(0)|float) }}
+            </div>
+
+            <div class="ye-summary-description">
+                Total recorded expenses
+            </div>
+
+        </div>
+
+
+        <div class="ye-summary-card">
+
+            <div class="ye-summary-top">
+
+                <div class="ye-summary-label">
+                    Transactions
+                </div>
+
+                <div class="ye-summary-icon transaction">
+                    <i data-feather="list"></i>
+                </div>
+
+            </div>
+
+            <div class="ye-summary-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="ye-summary-description">
+                Expense transactions
+            </div>
+
+        </div>
+
+
+        <div class="ye-summary-card year">
+
+            <div class="ye-summary-top">
+
+                <div class="ye-summary-label">
+                    Years
+                </div>
+
+                <div class="ye-summary-icon year">
+                    <i data-feather="calendar"></i>
+                </div>
+
+            </div>
+
+            <div class="ye-summary-value">
+                {{ year_count|default(0) }}
+            </div>
+
+            <div class="ye-summary-description">
+                Years with expenses
+            </div>
+
+        </div>
+
+
+        <div class="ye-summary-card average">
+
+            <div class="ye-summary-top">
+
+                <div class="ye-summary-label">
+                    Average Expense
+                </div>
+
+                <div class="ye-summary-icon average">
+                    <i data-feather="bar-chart-2"></i>
+                </div>
+
+            </div>
+
+            <div class="ye-summary-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(average_expense|default(0)|float) }}
+            </div>
+
+            <div class="ye-summary-description">
+                Average per transaction
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <div class="ye-section">
+
+        <div class="ye-section-header">
+
+            <h2 class="ye-section-title">
+
+                <i data-feather="activity"></i>
+
+                Expense Insights
+
+            </h2>
+
+        </div>
+
+
+        <div class="ye-section-body">
+
+            <div class="ye-insight-grid">
+
+
+                <div class="ye-insight">
+
+                    <div class="ye-insight-label">
+                        Highest Expense Year
+                    </div>
+
+                    <div class="ye-insight-value">
+                        {{ highest_expense_year|default('—') }}
+                    </div>
+
+                    <div class="ye-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_year_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <div class="ye-insight">
+
+                    <div class="ye-insight-label">
+                        Highest Expense Account
+                    </div>
+
+                    <div class="ye-insight-value">
+                        {{ highest_expense_account|default('—') }}
+                    </div>
+
+                    <div class="ye-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_account_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <div class="ye-insight">
+
+                    <div class="ye-insight-label">
+                        Highest Expense Category
+                    </div>
+
+                    <div class="ye-insight-value">
+                        {{ highest_expense_category|default('—') }}
+                    </div>
+
+                    <div class="ye-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_category_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <div class="ye-insight">
+
+                    <div class="ye-insight-label">
+                        Largest Expense Item
+                    </div>
+
+                    <div class="ye-insight-value">
+                        {{ largest_expense_item|default('—') }}
+                    </div>
+
+                    <div class="ye-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(largest_expense_item_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         YEAR → ACCOUNT → CATEGORY → ITEM
+         ======================================================== -->
+
+    <div class="ye-breakdown">
+
+        <div class="ye-breakdown-header">
+
+            <div>
+
+                <h2 class="ye-breakdown-title">
+                    Yearly Expense Breakdown
+                </h2>
+
+                <div class="ye-breakdown-subtitle">
+                    Year → Account → Category → Item
+                </div>
+
+            </div>
+
+            <div class="ye-breakdown-subtitle">
+                Expense Only
+            </div>
+
+        </div>
+
+
+        {% if yearly_expenses|default({})|length > 0 %}
+
+
+            {% for year, year_data in yearly_expenses.items() %}
+
+                <div
+                    class="ye-year"
+                    data-year="{{ year }}"
+                >
+
+
+                    <!-- YEAR HEADER -->
+
+                    <div
+                        class="ye-year-header"
+                        onclick="toggleYear(this)"
+                    >
+
+                        <div class="ye-year-left">
+
+                            <div class="ye-year-arrow">
+                                <i data-feather="chevron-right"></i>
+                            </div>
+
+                            <div>
+
+                                <div class="ye-year-name">
+                                    {{ year_data["year_label"]|default(year) }}
+                                </div>
+
+                                <div class="ye-year-count">
+                                    {{ year_data["transaction_count"]|default(0) }}
+                                    transactions
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="ye-year-total">
+
+                            {{ currency|default('USD') }}
+                            {{ "{:,.2f}".format(year_data["total"]|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- YEAR BODY -->
+
+                    <div class="ye-year-body">
+
+                        {% set accounts = year_data["accounts"]|default({}) %}
+
+
+                        {% if accounts|length > 0 %}
+
+
+                            {% for account_name, account_data in accounts.items() %}
+
+                                <div class="ye-account">
+
+
+                                    <!-- ACCOUNT HEADER -->
+
+                                    <div
+                                        class="ye-account-header"
+                                        onclick="toggleAccount(this)"
+                                    >
+
+                                        <div class="ye-account-left">
+
+                                            <div class="ye-account-icon">
+                                                <i data-feather="credit-card"></i>
+                                            </div>
+
+                                            <div>
+
+                                                <div class="ye-account-name">
+                                                    {{ account_name }}
+                                                </div>
+
+                                                <div class="ye-account-count">
+                                                    {{ account_data["transaction_count"]|default(0) }}
+                                                    transactions
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div class="ye-account-total">
+
+                                            {{ currency|default('USD') }}
+                                            {{ "{:,.2f}".format(account_data["total"]|default(0)|float) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- ACCOUNT BODY -->
+
+                                    <div class="ye-account-body">
+
+                                        {% set categories = account_data["categories"]|default({}) %}
+
+
+                                        {% if categories|length > 0 %}
+
+
+                                            {% for category_name, category_data in categories.items() %}
+
+                                                <div class="ye-category">
+
+
+                                                    <div class="ye-category-header">
+
+                                                        <div class="ye-category-name">
+                                                            {{ category_name }}
+                                                        </div>
+
+                                                        <div class="ye-category-total">
+
+                                                            {{ currency|default('USD') }}
+                                                            {{ "{:,.2f}".format(category_data["total"]|default(0)|float) }}
+
+                                                        </div>
+
+                                                    </div>
+
+
+                                                    {% set items = category_data["items"]|default({}) %}
+
+
+                                                    {% if items|length > 0 %}
+
+                                                        <div class="ye-items">
+
+
+                                                            {% for item_name, item_data in items.items() %}
+
+                                                                <div class="ye-item">
+
+                                                                    <div class="ye-item-name">
+                                                                        {{ item_name }}
+                                                                    </div>
+
+                                                                    <div class="ye-item-right">
+
+                                                                        <div class="ye-item-amount">
+
+                                                                            {{ currency|default('USD') }}
+                                                                            {{ "{:,.2f}".format(item_data["total"]|default(0)|float) }}
+
+                                                                        </div>
+
+                                                                        <div class="ye-item-count">
+
+                                                                            {{ item_data["transaction_count"]|default(0) }}
+                                                                            transactions
+
+                                                                        </div>
+
+                                                                    </div>
+
+                                                                </div>
+
+                                                            {% endfor %}
+
+
+                                                        </div>
+
+                                                    {% endif %}
+
+
+                                                </div>
+
+                                            {% endfor %}
+
+
+                                        {% else %}
+
+                                            <div class="ye-item-name">
+                                                No categories found.
+                                            </div>
+
+                                        {% endif %}
+
+                                    </div>
+
+
+                                </div>
+
+                            {% endfor %}
+
+
+                        {% else %}
+
+                            <div class="ye-item-name">
+                                No accounts found.
+                            </div>
+
+                        {% endif %}
+
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div style="padding:50px;text-align:center;">
+
+                <div style="color:#8791a2;margin-bottom:10px;">
+                    <i data-feather="file-text"
+                       style="width:30px;height:30px;">
+                    </i>
+                </div>
+
+                <div style="font-weight:800;color:#172033;">
+                    No yearly expenses found
+                </div>
+
+                <div style="font-size:12px;color:#6c757d;margin-top:5px;">
+                    There are no expense transactions available.
+                </div>
+
+            </div>
+
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTION TABLE
+         DATATABLE
+         ======================================================== -->
+
+    <div class="ye-table-card">
+
+        <div class="ye-table-header">
+
+            <div>
+
+                <h2 class="ye-table-title">
+                    Expense Transactions
+                </h2>
+
+                <div class="ye-table-description">
+                    Search, filter, sort, paginate and export yearly
+                    expense transactions.
+                </div>
+
+            </div>
+
+
+            <div style="font-size:11px;color:#6c757d;font-weight:700;">
+
+                {{ total_transactions|default(0) }}
+                total records
+
+            </div>
+
+        </div>
+
+
+        <div class="ye-table-wrapper">
+
+            <table
+                id="yearlyExpenseTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Year</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Item</th>
+
+                        <th>Description</th>
+
+                        <th>Status</th>
+
+                        <th>Amount</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    {% for transaction in transactions|default([]) %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+
+                            <td class="ye-date">
+
+                                {{ transaction["date"]|default('—') }}
+
+                            </td>
+
+
+                            <td
+                                data-search="{{ transaction['year']|default('') }}"
+                                data-order="{{ transaction['year']|default('') }}"
+                            >
+
+                                <span class="ye-year-badge">
+
+                                    {{ transaction["year_label"]|default(transaction["year"]|default('—')) }}
+
+                                </span>
+
+                            </td>
+
+
+                            <td class="ye-account-cell">
+
+                                {{ transaction["account"]|default('Unknown Account') }}
+
+                            </td>
+
+
+                            <td class="ye-category-cell">
+
+                                {{ transaction["category"]|default('Uncategorized') }}
+
+                            </td>
+
+
+                            <td class="ye-item-cell">
+
+                                {{ transaction["item"]|default('—') }}
+
+                            </td>
+
+
+                            <td class="ye-description-cell">
+
+                                {% set description =
+                                    transaction["description"]
+                                    |default('')
+                                %}
+
+                                {% set note =
+                                    transaction["note"]
+                                    |default('')
+                                %}
+
+                                {% set reference =
+                                    transaction["reference"]
+                                    |default('')
+                                %}
+
+
+                                <div
+                                    class="ye-description-text"
+                                    title="{{ description or note or reference or '—' }}"
+                                >
+
+                                    {{ description or note or reference or '—' }}
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                {% set status =
+                                    transaction["status"]
+                                    |default('Completed')
+                                %}
+
+                                {% set status_class =
+                                    status|lower|replace(' ', '-')
+                                %}
+
+                                <span
+                                    class="ye-status {{ status_class }}"
+                                >
+
+                                    {{ status }}
+
+                                </span>
+
+                            </td>
+
+
+                            <td
+                                class="ye-amount"
+                                data-order="{{ transaction['amount']|default(0) }}"
+                            >
+
+                                {{ transaction["currency"]|default(currency|default('USD')) }}
+                                {{ "{:,.2f}".format(transaction["amount"]|default(0)|float) }}
+
+                            </td>
+
+
+                            <td>
+
+                                <button
+                                    type="button"
+                                    class="ye-view-btn"
+                                    title="View Transaction"
+                                    onclick='viewYearlyExpenseTransaction({{ transaction|tojson|safe }})'
+                                >
+
+                                    <i data-feather="eye"></i>
+
+                                </button>
+
+                            </td>
+
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM TRANSACTION MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    class="ye-modal-overlay"
+    id="yearlyExpenseModal"
+>
+
+    <div class="ye-modal">
+
+
+        <div class="ye-modal-header">
+
+            <div class="ye-modal-title-wrap">
+
+                <div class="ye-modal-icon">
+                    <i data-feather="file-text"></i>
+                </div>
+
+                <h3 class="ye-modal-title">
+                    Expense Transaction
+                </h3>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="ye-modal-close"
+                onclick="closeYearlyExpenseModal()"
+            >
+
+                <i data-feather="x"></i>
+
+            </button>
+
+        </div>
+
+
+        <div class="ye-modal-body">
+
+
+            <div class="ye-modal-amount">
+
+                <div class="ye-modal-amount-label">
+                    Expense Amount
+                </div>
+
+                <div
+                    class="ye-modal-amount-value"
+                    id="yeModalAmount"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="ye-info-grid">
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Date
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalDate"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Year
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalYear"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Account
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalAccount"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Category
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalCategory"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Item
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalItem"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Status
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalStatus"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Reference
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalReference"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="ye-info">
+
+                    <div class="ye-info-label">
+                        Transaction ID
+                    </div>
+
+                    <div
+                        class="ye-info-value"
+                        id="yeModalId"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="ye-note">
+
+                <div class="ye-info-label">
+                    Description
+                </div>
+
+                <div
+                    class="ye-note-text"
+                    id="yeModalDescription"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="ye-note">
+
+                <div class="ye-info-label">
+                    Note
+                </div>
+
+                <div
+                    class="ye-note-text"
+                    id="yeModalNote"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="ye-modal-footer">
+
+            <button
+                type="button"
+                class="ye-btn ye-btn-secondary"
+                onclick="closeYearlyExpenseModal()"
+            >
+                Close
+            </button>
+
+
+            <button
+                type="button"
+                class="ye-btn ye-btn-primary"
+                onclick="printSelectedYearlyExpense()"
+            >
+
+                <i data-feather="printer"></i>
+
+                Print Transaction
+
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     DATATABLE DEPENDENCIES
+     ============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"
+>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+
+<script>
+
+/* ============================================================
+   YEARLY EXPENSE DATATABLE
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    let yearlyExpenseDataTable = null;
+
+    let selectedYearlyExpense = null;
+
+
+    /* ========================================================
+       INITIALIZE DATATABLE
+       ======================================================== */
+
+    function initializeYearlyExpenseDataTable() {
+
+        if (
+            typeof jQuery === "undefined" ||
+            typeof jQuery.fn.DataTable === "undefined"
+        ) {
+
+            console.error(
+                "DataTables library was not loaded."
+            );
+
+            return;
+
+        }
+
+
+        const table =
+            document.getElementById(
+                "yearlyExpenseTable"
+            );
+
+
+        if (!table) {
+
+            return;
+
+        }
+
+
+        if (
+            jQuery.fn.DataTable.isDataTable(
+                "#yearlyExpenseTable"
+            )
+        ) {
+
+            yearlyExpenseDataTable =
+                jQuery("#yearlyExpenseTable")
+                    .DataTable();
+
+            return;
+
+        }
+
+
+        yearlyExpenseDataTable =
+            jQuery("#yearlyExpenseTable").DataTable({
+
+                responsive: false,
+
+                autoWidth: false,
+
+                pageLength: 25,
+
+                lengthMenu: [
+                    [10, 25, 50, 100, -1],
+                    [10, 25, 50, 100, "All"]
+                ],
+
+                order: [
+                    [1, "desc"]
+                ],
+
+                columnDefs: [
+
+                    {
+                        targets: 0,
+                        orderable: false,
+                        searchable: false
+                    },
+
+                    {
+                        targets: 9,
+                        orderable: false,
+                        searchable: false
+                    }
+
+                ],
+
+
+                dom:
+                    "<'row'<'col-sm-6'B><'col-sm-6'f>>" +
+                    "<'row'<'col-sm-6'l><'col-sm-6'>>" +
+                    "rt" +
+                    "<'row'<'col-sm-6'i><'col-sm-6'p>>",
+
+
+                buttons: [
+
+                    {
+                        extend: "copyHtml5",
+                        text: "Copy",
+                        title: "Yearly Expenses Report",
+                        exportOptions: {
+                            columns: [0,1,2,3,4,5,6,7,8]
+                        }
+                    },
+
+                    {
+                        extend: "csvHtml5",
+                        text: "CSV",
+                        title: "Yearly Expenses Report",
+                        exportOptions: {
+                            columns: [0,1,2,3,4,5,6,7,8]
+                        }
+                    },
+
+                    {
+                        extend: "excelHtml5",
+                        text: "Excel",
+                        title: "Yearly Expenses Report",
+                        exportOptions: {
+                            columns: [0,1,2,3,4,5,6,7,8]
+                        }
+                    },
+
+                    {
+                        extend: "pdfHtml5",
+                        text: "PDF",
+                        title: "Yearly Expenses Report",
+                        orientation: "landscape",
+                        pageSize: "A4",
+                        exportOptions: {
+                            columns: [0,1,2,3,4,5,6,7,8]
+                        }
+                    },
+
+                    {
+                        extend: "print",
+                        text: "Print Table",
+                        title: "Yearly Expenses Report",
+                        exportOptions: {
+                            columns: [0,1,2,3,4,5,6,7,8]
+                        }
+                    }
+
+                ],
+
+
+                language: {
+
+                    search: "Search:",
+
+                    searchPlaceholder:
+                        "Search expenses...",
+
+                    lengthMenu:
+                        "Show _MENU_ entries",
+
+                    info:
+                        "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                    infoEmpty:
+                        "Showing 0 to 0 of 0 transactions",
+
+                    zeroRecords:
+                        "No matching expense transactions found",
+
+                    emptyTable:
+                        "No expense transactions available",
+
+                    paginate: {
+
+                        first: "First",
+
+                        last: "Last",
+
+                        next: "›",
+
+                        previous: "‹"
+
+                    }
+
+                }
+
+            });
+
+
+        /* ====================================================
+           YEAR COLUMN SEARCH
+           Column 2 = Year
+           ==================================================== */
+
+        const yearSelect =
+            document.getElementById(
+                "yearFilter"
+            );
+
+
+        if (yearSelect) {
+
+            yearSelect.addEventListener(
+                "change",
+                function () {
+
+                    yearlyExpenseDataTable
+                        .column(2)
+                        .search(
+                            this.value
+                        )
+                        .draw();
+
+                }
+            );
+
+        }
+
+
+        /* ====================================================
+           ACCOUNT FILTER
+           Column 3 = Account
+           ==================================================== */
+
+        const accountSelect =
+            document.getElementById(
+                "yearlyAccountFilter"
+            );
+
+
+        if (accountSelect) {
+
+            accountSelect.addEventListener(
+                "change",
+                function () {
+
+                    yearlyExpenseDataTable
+                        .column(3)
+                        .search(
+                            this.value
+                        )
+                        .draw();
+
+                }
+            );
+
+        }
+
+
+        /* ====================================================
+           CATEGORY FILTER
+           Column 4 = Category
+           ==================================================== */
+
+        const categorySelect =
+            document.getElementById(
+                "yearlyCategoryFilter"
+            );
+
+
+        if (categorySelect) {
+
+            categorySelect.addEventListener(
+                "change",
+                function () {
+
+                    yearlyExpenseDataTable
+                        .column(4)
+                        .search(
+                            this.value
+                        )
+                        .draw();
+
+                }
+            );
+
+        }
+
+
+        /* ====================================================
+           STATUS FILTER
+           Column 7 = Status
+           ==================================================== */
+
+        const statusSelect =
+            document.getElementById(
+                "yearlyStatusFilter"
+            );
+
+
+        if (statusSelect) {
+
+            statusSelect.addEventListener(
+                "change",
+                function () {
+
+                    yearlyExpenseDataTable
+                        .column(7)
+                        .search(
+                            this.value
+                        )
+                        .draw();
+
+                }
+            );
+
+        }
+
+
+        /* ====================================================
+           UPDATE ROW NUMBERING
+           ==================================================== */
+
+        yearlyExpenseDataTable.on(
+            "order.dt search.dt page.dt",
+            function () {
+
+                yearlyExpenseDataTable
+                    .column(0, {
+                        search: "applied",
+                        order: "applied"
+                    })
+                    .nodes()
+                    .each(function (cell, i) {
+
+                        cell.innerHTML =
+                            i + 1;
+
+                    });
+
+            }
+        );
+
+
+        /* ====================================================
+           INITIAL NUMBERING
+           ==================================================== */
+
+        yearlyExpenseDataTable
+            .draw();
+
+    }
+
+
+    /* ========================================================
+       RESET DATATABLE FILTERS
+       ======================================================== */
+
+    window.resetYearlyExpenseTableFilters =
+        function () {
+
+            if (
+                yearlyExpenseDataTable
+            ) {
+
+                yearlyExpenseDataTable
+                    .search("")
+                    .columns()
+                    .search("")
+                    .draw();
+
+            }
+
+
+            const year =
+                document.getElementById(
+                    "yearFilter"
+                );
+
+            const account =
+                document.getElementById(
+                    "yearlyAccountFilter"
+                );
+
+            const category =
+                document.getElementById(
+                    "yearlyCategoryFilter"
+                );
+
+            const status =
+                document.getElementById(
+                    "yearlyStatusFilter"
+                );
+
+
+            if (year) {
+                year.value = "";
+            }
+
+            if (account) {
+                account.value = "";
+            }
+
+            if (category) {
+                category.value = "";
+            }
+
+            if (status) {
+                status.value = "";
+            }
+
+
+            const searchInput =
+                document.querySelector(
+                    "#yearlyExpenseTable_filter input"
+                );
+
+
+            if (searchInput) {
+                searchInput.value = "";
+            }
+
+        };
+
+
+    /* ========================================================
+       YEAR COLLAPSE
+       ======================================================== */
+
+    window.toggleYear =
+        function (header) {
+
+            const year =
+                header.closest(
+                    ".ye-year"
+                );
+
+
+            if (!year) {
+                return;
+            }
+
+
+            year.classList.toggle(
+                "open"
+            );
+
+        };
+
+
+    /* ========================================================
+       ACCOUNT COLLAPSE
+       ======================================================== */
+
+    window.toggleAccount =
+        function (header) {
+
+            const account =
+                header.closest(
+                    ".ye-account"
+                );
+
+
+            if (!account) {
+                return;
+            }
+
+
+            account.classList.toggle(
+                "open"
+            );
+
+        };
+
+
+    /* ========================================================
+       VIEW TRANSACTION
+       ======================================================== */
+
+    window.viewYearlyExpenseTransaction =
+        function (transaction) {
+
+            selectedYearlyExpense =
+                transaction || {};
+
+
+            const currency =
+                transaction.currency ||
+                "USD";
+
+
+            document.getElementById(
+                "yeModalAmount"
+            ).textContent =
+                formatAmount(
+                    transaction.amount,
+                    currency
+                );
+
+
+            document.getElementById(
+                "yeModalDate"
+            ).textContent =
+                transaction.date ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalYear"
+            ).textContent =
+                transaction.year_label ||
+                transaction.year ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalAccount"
+            ).textContent =
+                transaction.account ||
+                "Unknown Account";
+
+
+            document.getElementById(
+                "yeModalCategory"
+            ).textContent =
+                transaction.category ||
+                "Uncategorized";
+
+
+            document.getElementById(
+                "yeModalItem"
+            ).textContent =
+                transaction.item ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalStatus"
+            ).textContent =
+                transaction.status ||
+                "Completed";
+
+
+            document.getElementById(
+                "yeModalReference"
+            ).textContent =
+                transaction.reference ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalId"
+            ).textContent =
+                transaction.id ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalDescription"
+            ).textContent =
+                transaction.description ||
+                "—";
+
+
+            document.getElementById(
+                "yeModalNote"
+            ).textContent =
+                transaction.note ||
+                "—";
+
+
+            const modal =
+                document.getElementById(
+                    "yearlyExpenseModal"
+                );
+
+
+            if (modal) {
+
+                modal.classList.add(
+                    "show"
+                );
+
+                document.body.style.overflow =
+                    "hidden";
+
+            }
+
+
+            refreshFeather();
+
+        };
+
+
+    /* ========================================================
+       CLOSE MODAL
+       ======================================================== */
+
+    window.closeYearlyExpenseModal =
+        function () {
+
+            const modal =
+                document.getElementById(
+                    "yearlyExpenseModal"
+                );
+
+
+            if (modal) {
+
+                modal.classList.remove(
+                    "show"
+                );
+
+            }
+
+
+            document.body.style.overflow =
+                "";
+
+
+            selectedYearlyExpense =
+                null;
+
+        };
+
+
+    /* ========================================================
+       MODAL OUTSIDE CLICK
+       ======================================================== */
+
+    const modal =
+        document.getElementById(
+            "yearlyExpenseModal"
+        );
+
+
+    if (modal) {
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    closeYearlyExpenseModal();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       ESC CLOSE
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape"
+            ) {
+
+                const modal =
+                    document.getElementById(
+                        "yearlyExpenseModal"
+                    );
+
+
+                if (
+                    modal &&
+                    modal.classList.contains(
+                        "show"
+                    )
+                ) {
+
+                    closeYearlyExpenseModal();
+
+                }
+
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       FORMAT AMOUNT
+       ======================================================== */
+
+    function formatAmount(
+        amount,
+        currency
+    ) {
+
+        const number =
+            Number(amount || 0);
+
+
+        return (
+            currency || "USD"
+        ) +
+        " " +
+        number.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT SELECTED TRANSACTION
+       ======================================================== */
+
+    window.printSelectedYearlyExpense =
+        function () {
+
+            if (
+                !selectedYearlyExpense
+            ) {
+
+                return;
+
+            }
+
+
+            const transaction =
+                selectedYearlyExpense;
+
+
+            const currency =
+                transaction.currency ||
+                "USD";
+
+
+            const amount =
+                formatAmount(
+                    transaction.amount,
+                    currency
+                );
+
+
+            const description =
+                transaction.description ||
+                transaction.note ||
+                transaction.reference ||
+                "—";
+
+
+            const printWindow =
+                window.open(
+                    "",
+                    "_blank",
+                    "width=850,height=700"
+                );
+
+
+            if (!printWindow) {
+
+                alert(
+                    "Please allow pop-ups to print."
+                );
+
+                return;
+
+            }
+
+
+            const safe =
+                function (value) {
+
+                    return String(
+                        value ?? "—"
+                    )
+                    .replace(
+                        /&/g,
+                        "&amp;"
+                    )
+                    .replace(
+                        /</g,
+                        "&lt;"
+                    )
+                    .replace(
+                        />/g,
+                        "&gt;"
+                    )
+                    .replace(
+                        /"/g,
+                        "&quot;"
+                    )
+                    .replace(
+                        /'/g,
+                        "&#039;"
+                    );
+
+                };
+
+
+            printWindow.document.write(`
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>Expense Transaction</title>
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    padding: 35px;
+    color: #172033;
+}
+
+.invoice {
+    max-width: 760px;
+    margin: auto;
+    border: 1px solid #ddd;
+}
+
+.header {
+    padding: 25px;
+    background: #0d6efd;
+    color: #fff;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.header p {
+    margin: 6px 0 0;
+    font-size: 12px;
+}
+
+.amount {
+    padding: 25px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+}
+
+.amount-label {
+    color: #777;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.amount-value {
+    margin-top: 6px;
+    color: #dc3545;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+.detail {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.label {
+    color: #888;
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.value {
+    margin-top: 5px;
+    font-size: 12px;
+    font-weight: bold;
+    word-break: break-word;
+}
+
+.footer {
+    padding: 15px;
+    text-align: center;
+    color: #888;
+    font-size: 10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="invoice">
+
+    <div class="header">
+
+        <h1>
+            Expense Transaction
+        </h1>
+
+        <p>
+            Yearly Expenses Report
+        </p>
+
+    </div>
+
+
+    <div class="amount">
+
+        <div class="amount-label">
+            Expense Amount
+        </div>
+
+        <div class="amount-value">
+            ${safe(amount)}
+        </div>
+
+    </div>
+
+
+    <div class="grid">
+
+        <div class="detail">
+            <div class="label">Date</div>
+            <div class="value">
+                ${safe(transaction.date)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Year</div>
+            <div class="value">
+                ${safe(
+                    transaction.year_label ||
+                    transaction.year
+                )}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Account</div>
+            <div class="value">
+                ${safe(transaction.account)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Category</div>
+            <div class="value">
+                ${safe(transaction.category)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Item</div>
+            <div class="value">
+                ${safe(transaction.item)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Status</div>
+            <div class="value">
+                ${safe(transaction.status)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Reference</div>
+            <div class="value">
+                ${safe(transaction.reference)}
+            </div>
+        </div>
+
+
+        <div class="detail">
+            <div class="label">Transaction ID</div>
+            <div class="value">
+                ${safe(transaction.id)}
+            </div>
+        </div>
+
+
+        <div
+            class="detail"
+            style="grid-column:1/-1;"
+        >
+            <div class="label">
+                Description
+            </div>
+
+            <div class="value">
+                ${safe(description)}
+            </div>
+        </div>
+
+
+        <div
+            class="detail"
+            style="grid-column:1/-1;"
+        >
+            <div class="label">
+                Note
+            </div>
+
+            <div class="value">
+                ${safe(transaction.note)}
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="footer">
+        Generated from Yearly Expenses Report
+    </div>
+
+</div>
+
+
+<script>
+
+window.onload = function () {
+
+    window.print();
+
+};
+
+<\/script>
+
+</body>
+
+</html>
+
+            `);
+
+
+            printWindow.document.close();
+
+        };
+
+
+    /* ========================================================
+       PRINT FULL REPORT
+       ======================================================== */
+
+    window.printYearlyExpenseReport =
+        function () {
+
+            document
+                .querySelectorAll(
+                    ".ye-year"
+                )
+                .forEach(
+                    function (year) {
+
+                        year.classList.add(
+                            "open"
+                        );
+
+                    }
+                );
+
+
+            document
+                .querySelectorAll(
+                    ".ye-account"
+                )
+                .forEach(
+                    function (account) {
+
+                        account.classList.add(
+                            "open"
+                        );
+
+                    }
+                );
+
+
+            setTimeout(
+                function () {
+
+                    window.print();
+
+                },
+                150
+            );
+
+        };
+
+
+    /* ========================================================
+       FEATHER
+       ======================================================== */
+
+    function refreshFeather() {
+
+        if (
+            typeof feather !== "undefined" &&
+            typeof feather.replace === "function"
+        ) {
+
+            feather.replace();
+
+        }
+
+    }
+
+
+    /* ========================================================
+       INITIALIZE
+       ======================================================== */
+
+    function startReport() {
+
+        initializeYearlyExpenseDataTable();
+
+        refreshFeather();
+
+    }
+
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            startReport
+        );
+
+    } else {
+
+        startReport();
+
+    }
+
+
+})();
+
+</script>
+
+
+<!-- ============================================================
+     FILTER SELECTS
+     
+     These are hidden/optional controls that can be added above
+     the DataTable if you want dropdown filtering.
+     
+     They are intentionally created here so the JS works.
+     ============================================================ -->
+
+<script>
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        /*
+         * Create the custom filter row automatically
+         * above the DataTable search.
+         */
+
+        const wrapper =
+            document.querySelector(
+                "#yearlyExpenseTable_wrapper"
+            );
+
+
+        if (!wrapper) {
+            return;
+        }
+
+
+        if (
+            document.getElementById(
+                "yearlyExpenseCustomFilters"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        const filterBox =
+            document.createElement(
+                "div"
+            );
+
+
+        filterBox.id =
+            "yearlyExpenseCustomFilters";
+
+
+        filterBox.style.cssText = `
+            display:grid;
+            grid-template-columns:repeat(4,minmax(0,1fr));
+            gap:8px;
+            margin-bottom:12px;
+            padding:12px;
+            background:#f8fafc;
+            border:1px solid #e4e8ef;
+            border-radius:10px;
+        `;
+
+
+        const years =
+            {{ report_years|default([])|tojson|safe }};
+
+
+        const accounts =
+            {{ report_accounts|default([])|tojson|safe }};
+
+
+        const categories =
+            {{ report_categories|default([])|tojson|safe }};
+
+
+        function createSelect(
+            id,
+            placeholder,
+            values
+        ) {
+
+            const select =
+                document.createElement(
+                    "select"
+                );
+
+
+            select.id = id;
+
+
+            select.style.cssText = `
+                width:100%;
+                height:38px;
+                border:1px solid #dfe4eb;
+                border-radius:8px;
+                background:#fff;
+                color:#293345;
+                padding:0 9px;
+                font-size:11px;
+                outline:none;
+            `;
+
+
+            const first =
+                document.createElement(
+                    "option"
+                );
+
+
+            first.value = "";
+
+            first.textContent =
+                placeholder;
+
+
+            select.appendChild(
+                first
+            );
+
+
+            values.forEach(
+                function (value) {
+
+                    const option =
+                        document.createElement(
+                            "option"
+                        );
+
+
+                    option.value =
+                        value;
+
+
+                    option.textContent =
+                        value;
+
+
+                    select.appendChild(
+                        option
+                    );
+
+                }
+            );
+
+
+            return select;
+
+        }
+
+
+        const year =
+            createSelect(
+                "yearFilter",
+                "All Years",
+                years
+            );
+
+
+        const account =
+            createSelect(
+                "yearlyAccountFilter",
+                "All Accounts",
+                accounts
+            );
+
+
+        const category =
+            createSelect(
+                "yearlyCategoryFilter",
+                "All Categories",
+                categories
+            );
+
+
+        const status =
+            createSelect(
+                "yearlyStatusFilter",
+                "All Status",
+                [
+                    "Completed",
+                    "Paid",
+                    "Success",
+                    "Pending",
+                    "Cancelled",
+                    "Failed"
+                ]
+            );
+
+
+        filterBox.appendChild(
+            year
+        );
+
+        filterBox.appendChild(
+            account
+        );
+
+        filterBox.appendChild(
+            category
+        );
+
+        filterBox.appendChild(
+            status
+        );
+
+
+        wrapper.insertBefore(
+            filterBox,
+            wrapper.firstChild
+        );
+
+
+        /*
+         * IMPORTANT:
+         * The DataTable was initialized before these selects
+         * were created. Rebind their events here.
+         */
+
+        const dt =
+            jQuery(
+                "#yearlyExpenseTable"
+            ).DataTable();
+
+
+        year.addEventListener(
+            "change",
+            function () {
+
+                dt
+                    .column(2)
+                    .search(
+                        this.value
+                    )
+                    .draw();
+
+            }
+        );
+
+
+        account.addEventListener(
+            "change",
+            function () {
+
+                dt
+                    .column(3)
+                    .search(
+                        this.value
+                    )
+                    .draw();
+
+            }
+        );
+
+
+        category.addEventListener(
+            "change",
+            function () {
+
+                dt
+                    .column(4)
+                    .search(
+                        this.value
+                    )
+                    .draw();
+
+            }
+        );
+
+
+        status.addEventListener(
+            "change",
+            function () {
+
+                dt
+                    .column(7)
+                    .search(
+                        this.value
+                    )
+                    .draw();
+
+            }
+        );
+
+
+        /*
+         * Make header filter row responsive.
+         */
+
+        function resizeFilters() {
+
+            if (
+                window.innerWidth <= 768
+            ) {
+
+                filterBox.style.gridTemplateColumns =
+                    "1fr";
+
+            } else if (
+                window.innerWidth <= 1100
+            ) {
+
+                filterBox.style.gridTemplateColumns =
+                    "repeat(2,minmax(0,1fr))";
+
+            } else {
+
+                filterBox.style.gridTemplateColumns =
+                    "repeat(4,minmax(0,1fr))";
+
+            }
+
+        }
+
+
+        resizeFilters();
+
+
+        window.addEventListener(
+            "resize",
+            resizeFilters
+        );
+
+
+    }
+);
+
+</script>
+
+
+{% endblock %}
+

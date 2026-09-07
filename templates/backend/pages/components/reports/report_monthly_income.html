@@ -1,0 +1,2402 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Monthly Income Report{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   MONTHLY INCOME REPORT — INCOME ONLY
+   ============================================================ */
+
+.monthly-report-wrapper {
+    padding: 20px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    background: linear-gradient(135deg, #06245f, #0b3d91);
+    color: #fff;
+    border-radius: 18px;
+    padding: 28px;
+    margin-bottom: 22px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .10);
+}
+
+.report-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.report-header h2 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.report-header p {
+    margin: 7px 0 0;
+    opacity: .85;
+    font-size: 14px;
+}
+
+.report-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.report-actions .btn {
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 10px 16px;
+}
+
+
+/* ============================================================
+   SUMMARY GRID
+   ============================================================ */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.summary-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e8edf5;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, .06);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    right: -25px;
+    bottom: -30px;
+    background: rgba(6, 36, 95, .05);
+}
+
+.summary-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 20px;
+}
+
+.summary-income .summary-icon {
+    background: rgba(25, 135, 84, .12);
+    color: #198754;
+}
+
+.summary-month .summary-icon {
+    background: rgba(111, 66, 193, .12);
+    color: #6f42c1;
+}
+
+.summary-account .summary-icon {
+    background: rgba(13, 110, 253, .12);
+    color: #0d6efd;
+}
+
+.summary-category .summary-icon {
+    background: rgba(255, 193, 7, .14);
+    color: #b58100;
+}
+
+.summary-label {
+    color: #6c757d;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.summary-value {
+    font-size: 25px;
+    font-weight: 800;
+    color: #172033;
+    margin-top: 5px;
+}
+
+
+/* ============================================================
+   STAT GRID
+   ============================================================ */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 14px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #f1f5fb;
+    color: #06245f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-title {
+    color: #737b89;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.stat-number {
+    font-size: 20px;
+    font-weight: 800;
+    color: #172033;
+}
+
+
+/* ============================================================
+   BEST MONTH
+   ============================================================ */
+
+.highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.highlight-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e8edf5;
+    padding: 20px;
+    box-shadow: 0 7px 22px rgba(0, 0, 0, .05);
+}
+
+.highlight-title {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 10px;
+    color: #495057;
+}
+
+.highlight-month {
+    font-size: 20px;
+    font-weight: 800;
+    color: #172033;
+}
+
+.highlight-amount {
+    font-size: 25px;
+    font-weight: 900;
+    color: #198754;
+    margin-top: 5px;
+}
+
+
+/* ============================================================
+   REPORT SECTION
+   ============================================================ */
+
+.report-section {
+    background: #fff;
+    border: 1px solid #e8edf5;
+    border-radius: 18px;
+    margin-bottom: 25px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, .05);
+}
+
+.section-header {
+    padding: 20px 22px;
+    border-bottom: 1px solid #edf0f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.section-header h4 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 800;
+    color: #172033;
+}
+
+.section-header small {
+    color: #7a8494;
+}
+
+
+/* ============================================================
+   MONTH CARD
+   ============================================================ */
+
+.month-card {
+    margin: 20px;
+    border: 1px solid #e5eaf2;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.month-header {
+    background: #f7f9fc;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e5eaf2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.month-title {
+    font-size: 20px;
+    font-weight: 850;
+    color: #06245f;
+}
+
+.month-subtitle {
+    color: #778091;
+    font-size: 13px;
+    margin-top: 3px;
+}
+
+.month-total {
+    text-align: right;
+}
+
+.month-total-label {
+    color: #7a8494;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.month-total-value {
+    color: #198754;
+    font-size: 23px;
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.report-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+}
+
+.report-table th {
+    background: #f8f9fb;
+    color: #596273;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    font-weight: 800;
+    padding: 13px 14px;
+    border-bottom: 1px solid #e8edf5;
+    white-space: nowrap;
+}
+
+.report-table td {
+    padding: 13px 14px;
+    border-bottom: 1px solid #eef1f5;
+    vertical-align: middle;
+    font-size: 13px;
+}
+
+.report-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.amount-income {
+    color: #198754;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   ACCOUNT
+   ============================================================ */
+
+.account-block {
+    margin: 18px;
+    border: 1px solid #e3e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.account-header {
+    background: #06245f;
+    color: #fff;
+    padding: 15px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.account-name {
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.account-total {
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.account-summary {
+    padding: 15px;
+    background: #fbfcfe;
+}
+
+
+/* ============================================================
+   CATEGORY
+   ============================================================ */
+
+.category-block {
+    margin: 15px;
+    border: 1px solid #e5e9f0;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.category-header {
+    background: #f5f7fb;
+    padding: 13px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.category-name {
+    font-weight: 800;
+    color: #343a40;
+}
+
+.category-total {
+    font-weight: 850;
+    color: #198754;
+}
+
+
+/* ============================================================
+   ITEM TABLE
+   ============================================================ */
+
+.item-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.item-table th {
+    background: #fafbfc;
+    color: #7b8492;
+    font-size: 11px;
+    text-transform: uppercase;
+    padding: 10px 13px;
+}
+
+.item-table td {
+    padding: 10px 13px;
+    border-top: 1px solid #edf0f4;
+    font-size: 12px;
+}
+
+.item-name {
+    font-weight: 700;
+    color: #495057;
+}
+
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.income-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: #198754;
+    background: rgba(25, 135, 84, .10);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.status-badge {
+    padding: 5px 9px;
+    border-radius: 20px;
+    background: #eef2f7;
+    color: #586273;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   TRANSACTIONS
+   ============================================================ */
+
+.transactions-section {
+    margin-top: 28px;
+}
+
+.transaction-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.transaction-title i {
+    color: #06245f;
+}
+
+.dataTables_wrapper {
+    padding: 0;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    padding: 15px 18px;
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    padding: 15px 18px;
+}
+
+.dataTables_filter input,
+.dataTables_length select {
+    border: 1px solid #dce2ea !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+}
+
+
+/* ============================================================
+   INVOICE MODAL
+   ============================================================ */
+
+.invoice-modal .modal-content {
+    border: 0;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.invoice-header {
+    background: linear-gradient(135deg, #06245f, #0b3d91);
+    color: #fff;
+    padding: 22px;
+}
+
+.invoice-header h5 {
+    margin: 0;
+    font-weight: 800;
+}
+
+.invoice-body {
+    padding: 22px;
+}
+
+.invoice-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 11px 0;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.invoice-label {
+    color: #7a8494;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.invoice-value {
+    color: #172033;
+    font-weight: 700;
+    text-align: right;
+}
+
+.invoice-amount {
+    color: #198754;
+    font-size: 24px;
+    font-weight: 900;
+}
+
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: #7b8492;
+}
+
+.empty-state i {
+    font-size: 42px;
+    margin-bottom: 15px;
+    opacity: .45;
+}
+
+.empty-state h5 {
+    font-weight: 800;
+    color: #495057;
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .monthly-report-wrapper {
+        padding: 0 !important;
+    }
+
+    .report-actions,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate,
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+
+    .report-header {
+        background: #fff !important;
+        color: #000 !important;
+        border: 2px solid #000;
+        box-shadow: none !important;
+    }
+
+    .report-section,
+    .summary-card,
+    .stat-card,
+    .highlight-card,
+    .month-card,
+    .account-block,
+    .category-block {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .report-section {
+        border: 1px solid #999 !important;
+    }
+
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    .report-table,
+    .item-table {
+        font-size: 10px !important;
+    }
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+
+    .summary-grid,
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+
+    .monthly-report-wrapper {
+        padding: 12px;
+    }
+
+    .report-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .summary-grid,
+    .stats-grid,
+    .highlight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .month-header,
+    .account-header,
+    .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .month-total {
+        text-align: left;
+    }
+
+    .report-header h2 {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .report-actions {
+        width: 100%;
+    }
+
+    .report-actions .btn {
+        width: 100%;
+    }
+
+    .summary-value {
+        font-size: 21px;
+    }
+
+    .month-title {
+        font-size: 17px;
+    }
+}
+
+</style>
+
+
+<div class="monthly-report-wrapper">
+
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-header-content">
+
+            <div>
+
+                <h2>
+                    <i data-feather="calendar"></i>
+                    Monthly Income Report
+                </h2>
+
+                <p>
+                    Income transactions grouped by
+                    month, account, category and item.
+                </p>
+
+            </div>
+
+
+            <div class="report-actions">
+
+                <button
+                    type="button"
+                    class="btn btn-light"
+                    onclick="printMonthlyReport()"
+                >
+                    <i data-feather="printer"></i>
+                    Print Report
+                </button>
+
+
+                <a
+                    href="{{ url_for('main.dashboard') }}"
+                    class="btn btn-outline-light"
+                >
+                    <i data-feather="arrow-left"></i>
+                    Back
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY CARDS
+         ======================================================== -->
+
+    <div class="summary-grid">
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="summary-card summary-income">
+
+            <div class="summary-icon">
+                <i data-feather="trending-up"></i>
+            </div>
+
+            <div class="summary-label">
+                Total Income
+            </div>
+
+            <div class="summary-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(
+                    total_income|default(0)|float
+                ) }}
+            </div>
+
+        </div>
+
+
+        <!-- MONTHS -->
+
+        <div class="summary-card summary-month">
+
+            <div class="summary-icon">
+                <i data-feather="calendar"></i>
+            </div>
+
+            <div class="summary-label">
+                Income Months
+            </div>
+
+            <div class="summary-value">
+                {{ month_count|default(0) }}
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNTS -->
+
+        <div class="summary-card summary-account">
+
+            <div class="summary-icon">
+                <i data-feather="briefcase"></i>
+            </div>
+
+            <div class="summary-label">
+                Accounts
+            </div>
+
+            <div class="summary-value">
+                {{ account_count|default(0) }}
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORIES -->
+
+        <div class="summary-card summary-category">
+
+            <div class="summary-icon">
+                <i data-feather="folder"></i>
+            </div>
+
+            <div class="summary-label">
+                Categories
+            </div>
+
+            <div class="summary-value">
+                {{ category_count|default(0) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         STATISTICS
+         ======================================================== -->
+
+    <div class="stats-grid">
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                <i data-feather="repeat"></i>
+            </div>
+
+            <div>
+
+                <div class="stat-title">
+                    Income Transactions
+                </div>
+
+                <div class="stat-number">
+                    {{ total_transactions|default(0) }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ITEMS -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                <i data-feather="package"></i>
+            </div>
+
+            <div>
+
+                <div class="stat-title">
+                    Items
+                </div>
+
+                <div class="stat-number">
+                    {{ item_count|default(0) }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- AVERAGE -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                <i data-feather="activity"></i>
+            </div>
+
+            <div>
+
+                <div class="stat-title">
+                    Average Income
+                </div>
+
+                <div class="stat-number">
+
+                    {{ currency|default('USD') }}
+
+                    {{ "{:,.2f}".format(
+                        average_income|default(0)|float
+                    ) }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- LATEST MONTH -->
+
+        <div class="stat-card">
+
+            <div class="stat-icon">
+                <i data-feather="clock"></i>
+            </div>
+
+            <div>
+
+                <div class="stat-title">
+                    Latest Income Month
+                </div>
+
+                <div class="stat-number">
+
+                    {{ latest_month|default('—') }}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         BEST MONTH
+         ======================================================== -->
+
+    <div class="highlight-grid">
+
+        <div class="highlight-card">
+
+            <div class="highlight-title">
+
+                <i data-feather="award"></i>
+
+                Highest Income Month
+
+            </div>
+
+            <div class="highlight-month">
+
+                {{ best_income_month|default('—') }}
+
+            </div>
+
+            <div class="highlight-amount">
+
+                {{ currency|default('USD') }}
+
+                {{ "{:,.2f}".format(
+                    best_income_amount|default(0)|float
+                ) }}
+
+            </div>
+
+        </div>
+
+
+        <div class="highlight-card">
+
+            <div class="highlight-title">
+
+                <i data-feather="clock"></i>
+
+                Latest Month
+
+            </div>
+
+            <div class="highlight-month">
+
+                {{ latest_month|default('—') }}
+
+            </div>
+
+            <div class="highlight-amount">
+
+                {{ currency|default('USD') }}
+
+                {{ "{:,.2f}".format(
+                    latest_month_data["income"]
+                    if latest_month_data
+                    else 0
+                ) }}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MONTHLY INCOME BREAKDOWN
+         ======================================================== -->
+
+    <div class="report-section">
+
+
+        <div class="section-header">
+
+            <div>
+
+                <h4>
+
+                    <i data-feather="calendar"></i>
+
+                    Monthly Income Breakdown
+
+                </h4>
+
+                <small>
+                    Month → Account → Category → Item
+                </small>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+
+                    {{ month_count|default(0) }}
+
+                    Months
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        {% if monthly_income|default({})|length > 0 %}
+
+
+            {% for month_key, data in monthly_income.items() %}
+
+
+            <!-- ==================================================
+                 MONTH CARD
+                 ================================================== -->
+
+            <div class="month-card">
+
+
+                <!-- MONTH HEADER -->
+
+                <div class="month-header">
+
+                    <div>
+
+                        <div class="month-title">
+
+                            {{ data["month_label"]|default(month_key) }}
+
+                        </div>
+
+
+                        <div class="month-subtitle">
+
+                            {{ data["transaction_count"]|default(0) }}
+
+                            Income Transactions
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="month-total">
+
+                        <div class="month-total-label">
+                            Monthly Income
+                        </div>
+
+                        <div class="month-total-value">
+
+                            {{ currency|default('USD') }}
+
+                            {{ "{:,.2f}".format(
+                                data["income"]|default(0)|float
+                            ) }}
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==================================================
+                     MONTH SUMMARY
+                     ================================================== -->
+
+                <div class="table-responsive">
+
+                    <table class="report-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Total Income
+                                </th>
+
+                                <th>
+                                    Transactions
+                                </th>
+
+                                <th>
+                                    Accounts
+                                </th>
+
+                                <th>
+                                    Categories
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            <tr>
+
+                                <td class="amount-income">
+
+                                    {{ currency|default('USD') }}
+
+                                    {{ "{:,.2f}".format(
+                                        data["income"]|default(0)|float
+                                    ) }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ data["transaction_count"]|default(0) }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {{ data["accounts"]|default({})|length }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% set month_category_count = 0 %}
+
+                                    {% for month_account_name,
+                                          month_account_data
+                                          in data["accounts"].items() %}
+
+                                        {% set month_category_count =
+                                            month_category_count
+                                            + (
+                                                month_account_data["categories"]
+                                                |default({})
+                                                |length
+                                            )
+                                        %}
+
+                                    {% endfor %}
+
+                                    {{ month_category_count }}
+
+                                </td>
+
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
+                <!-- ==================================================
+                     ACCOUNT BREAKDOWN
+                     ================================================== -->
+
+                {% set accounts = data["accounts"]|default({}) %}
+
+
+                {% if accounts|length > 0 %}
+
+
+                    {% for account_name, account_data
+                          in accounts.items() %}
+
+
+                    <div class="account-block">
+
+
+                        <!-- ACCOUNT HEADER -->
+
+                        <div class="account-header">
+
+                            <div class="account-name">
+
+                                <i data-feather="briefcase"></i>
+
+                                {{ account_name }}
+
+                            </div>
+
+
+                            <div class="account-total">
+
+                                {{ currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(
+                                    account_data["income"]
+                                    |default(0)
+                                    |float
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ACCOUNT SUMMARY -->
+
+                        <div class="account-summary">
+
+                            <div class="table-responsive">
+
+                                <table class="report-table">
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th>
+                                                Total Income
+                                            </th>
+
+                                            <th>
+                                                Transactions
+                                            </th>
+
+                                            <th>
+                                                Categories
+                                            </th>
+
+                                            <th>
+                                                Items
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+                                        <tr>
+
+                                            <td class="amount-income">
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    account_data["income"]
+                                                    |default(0)
+                                                    |float
+                                                ) }}
+
+                                            </td>
+
+
+                                            <td>
+
+                                                {{ account_data[
+                                                    "transaction_count"
+                                                ]|default(0) }}
+
+                                            </td>
+
+
+                                            <td>
+
+                                                {{ account_data[
+                                                    "categories"
+                                                ]|default({})|length }}
+
+                                            </td>
+
+
+                                            <td>
+
+                                                {% set account_item_count = 0 %}
+
+                                                {% for category_name,
+                                                      category_data
+                                                      in account_data[
+                                                          "categories"
+                                                      ].items() %}
+
+                                                    {% set account_item_count =
+                                                        account_item_count
+                                                        + (
+                                                            category_data[
+                                                                "items"
+                                                            ]|default({})
+                                                            |length
+                                                        )
+                                                    %}
+
+                                                {% endfor %}
+
+                                                {{ account_item_count }}
+
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ==================================================
+                             CATEGORY BREAKDOWN
+                             ================================================== -->
+
+                        {% set categories =
+                            account_data["categories"]|default({})
+                        %}
+
+
+                        {% if categories|length > 0 %}
+
+
+                            {% for category_name, category_data
+                                  in categories.items() %}
+
+
+                            <div class="category-block">
+
+
+                                <!-- CATEGORY HEADER -->
+
+                                <div class="category-header">
+
+                                    <div class="category-name">
+
+                                        <i data-feather="folder"></i>
+
+                                        {{ category_name }}
+
+                                    </div>
+
+
+                                    <div class="category-total">
+
+                                        {{ currency|default('USD') }}
+
+                                        {{ "{:,.2f}".format(
+                                            category_data["income"]
+                                            |default(0)
+                                            |float
+                                        ) }}
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- CATEGORY SUMMARY -->
+
+                                <div class="table-responsive">
+
+                                    <table class="report-table">
+
+                                        <thead>
+
+                                            <tr>
+
+                                                <th>
+                                                    Total Income
+                                                </th>
+
+                                                <th>
+                                                    Transactions
+                                                </th>
+
+                                                <th>
+                                                    Items
+                                                </th>
+
+                                            </tr>
+
+                                        </thead>
+
+
+                                        <tbody>
+
+                                            <tr>
+
+                                                <td class="amount-income">
+
+                                                    {{ currency|default('USD') }}
+
+                                                    {{ "{:,.2f}".format(
+                                                        category_data[
+                                                            "income"
+                                                        ]|default(0)|float
+                                                    ) }}
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    {{ category_data[
+                                                        "transaction_count"
+                                                    ]|default(0) }}
+
+                                                </td>
+
+
+                                                <td>
+
+                                                    {{ category_data[
+                                                        "items"
+                                                    ]|default({})|length }}
+
+                                                </td>
+
+                                            </tr>
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+
+                                <!-- ==================================================
+                                     ITEM BREAKDOWN
+                                     ================================================== -->
+
+                                {% set items =
+                                    category_data["items"]|default({})
+                                %}
+
+
+                                {% if items|length > 0 %}
+
+
+                                    <div class="table-responsive">
+
+                                        <table class="item-table">
+
+                                            <thead>
+
+                                                <tr>
+
+                                                    <th>
+                                                        Item
+                                                    </th>
+
+                                                    <th>
+                                                        Total Income
+                                                    </th>
+
+                                                    <th>
+                                                        Transactions
+                                                    </th>
+
+                                                </tr>
+
+                                            </thead>
+
+
+                                            <tbody>
+
+
+                                                {% for item_name, item_data
+                                                      in items.items() %}
+
+
+                                                <tr>
+
+                                                    <td class="item-name">
+
+                                                        {{ item_name }}
+
+                                                    </td>
+
+
+                                                    <td class="amount-income">
+
+                                                        {{ currency|default('USD') }}
+
+                                                        {{ "{:,.2f}".format(
+                                                            item_data[
+                                                                "income"
+                                                            ]|default(0)|float
+                                                        ) }}
+
+                                                    </td>
+
+
+                                                    <td>
+
+                                                        {{ item_data[
+                                                            "transaction_count"
+                                                        ]|default(0) }}
+
+                                                    </td>
+
+                                                </tr>
+
+
+                                                {% endfor %}
+
+
+                                            </tbody>
+
+                                        </table>
+
+                                    </div>
+
+
+                                {% else %}
+
+
+                                    <div class="empty-state">
+
+                                        <i data-feather="package"></i>
+
+                                        <h5>
+                                            No Items
+                                        </h5>
+
+                                        <p>
+                                            No item breakdown available.
+                                        </p>
+
+                                    </div>
+
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                            {% endfor %}
+
+
+                        {% else %}
+
+
+                            <div class="empty-state">
+
+                                <i data-feather="folder"></i>
+
+                                <h5>
+                                    No Categories
+                                </h5>
+
+                                <p>
+                                    No category breakdown available.
+                                </p>
+
+                            </div>
+
+
+                        {% endif %}
+
+
+                    </div>
+
+
+                    {% endfor %}
+
+
+                {% else %}
+
+
+                    <div class="empty-state">
+
+                        <i data-feather="briefcase"></i>
+
+                        <h5>
+                            No Accounts
+                        </h5>
+
+                        <p>
+                            No account breakdown is available
+                            for this month.
+                        </p>
+
+                    </div>
+
+
+                {% endif %}
+
+
+            </div>
+
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="empty-state">
+
+                <i data-feather="calendar"></i>
+
+                <h5>
+                    No Monthly Income
+                </h5>
+
+                <p>
+                    No income transactions were found.
+                </p>
+
+            </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+    <!-- ========================================================
+         ALL INCOME TRANSACTIONS
+         ======================================================== -->
+
+    <div class="report-section transactions-section">
+
+
+        <div class="section-header">
+
+            <div>
+
+                <h4 class="transaction-title">
+
+                    <i data-feather="list"></i>
+
+                    All Income Transactions
+
+                </h4>
+
+                <small>
+                    Complete income transaction list
+                </small>
+
+            </div>
+
+
+            <div>
+
+                <strong>
+
+                    {{ total_transactions|default(0) }}
+
+                    Records
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        {% if transactions|default([])|length > 0 %}
+
+
+        <div class="table-responsive">
+
+            <table
+                id="monthlyIncomeTransactionsTable"
+                class="report-table display nowrap"
+                style="width:100%;"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Month</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Item</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Description</th>
+
+                        <th>Status</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+
+                    {% for transaction in transactions %}
+
+
+                    <tr>
+
+
+                        <td>
+
+                            {{ loop.index }}
+
+                        </td>
+
+
+                        <td
+                            data-order="{{ transaction['date']|default('') }}"
+                        >
+
+                            {{ transaction["date"]|default('—') }}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ transaction["month_label"]|default('—') }}
+
+                        </td>
+
+
+                        <td>
+
+                            <strong>
+
+                                {{ transaction[
+                                    "account_name"
+                                ]|default("Unknown Account") }}
+
+                            </strong>
+
+                        </td>
+
+
+                        <td>
+
+                            {{ transaction[
+                                "category"
+                            ]|default("Uncategorized") }}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ transaction["item"]|default("—") }}
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="income-badge">
+
+                                <i
+                                    data-feather="trending-up"
+                                    style="width:12px;height:12px;"
+                                ></i>
+
+                                Income
+
+                            </span>
+
+                        </td>
+
+
+                        <td
+                            data-order="{{ transaction['amount']|default(0) }}"
+                            class="amount-income"
+                        >
+
+                            {{ currency|default(
+                                transaction["currency"]|default("USD")
+                            ) }}
+
+                            {{ "{:,.2f}".format(
+                                transaction["amount"]
+                                |default(0)
+                                |float
+                            ) }}
+
+                        </td>
+
+
+                        <td>
+
+                            {{ transaction[
+                                "description"
+                            ]|default(
+                                transaction["note"]|default("—")
+                            ) }}
+
+                        </td>
+
+
+                        <td>
+
+                            <span class="status-badge">
+
+                                {{ transaction[
+                                    "status"
+                                ]|default("Completed") }}
+
+                            </span>
+
+                        </td>
+
+
+                        <td>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-primary"
+                                onclick='showMonthlyIncomeInvoice(
+                                    {{ transaction|tojson|safe }}
+                                )'
+                                title="View Transaction"
+                            >
+
+                                <i data-feather="eye"></i>
+
+                            </button>
+
+                        </td>
+
+
+                    </tr>
+
+
+                    {% endfor %}
+
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        {% else %}
+
+
+        <div class="empty-state">
+
+            <i data-feather="file-text"></i>
+
+            <h5>
+                No Income Transactions
+            </h5>
+
+            <p>
+                No income transactions were found.
+            </p>
+
+        </div>
+
+
+        {% endif %}
+
+
+    </div>
+
+
+</div>
+
+
+<!-- ============================================================
+     INVOICE MODAL
+     ============================================================ -->
+
+<div
+    class="modal fade invoice-modal"
+    id="monthlyIncomeInvoiceModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+
+            <div class="invoice-header">
+
+                <div
+                    class="d-flex justify-content-between align-items-center"
+                >
+
+                    <h5>
+
+                        <i data-feather="file-text"></i>
+
+                        Income Transaction
+
+                    </h5>
+
+
+                    <button
+                        type="button"
+                        class="btn-close btn-close-white"
+                        data-bs-dismiss="modal"
+                    ></button>
+
+                </div>
+
+            </div>
+
+
+            <div class="invoice-body">
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Date
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceDate"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Month
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceMonth"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Account
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceAccount"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Category
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceCategory"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Item
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceItem"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Type
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceType"
+                    >
+                        Income
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Description
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceDescription"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Status
+                    </span>
+
+                    <span
+                        class="invoice-value"
+                        id="incomeInvoiceStatus"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+                <div class="invoice-row">
+
+                    <span class="invoice-label">
+                        Amount
+                    </span>
+
+                    <span
+                        class="invoice-value invoice-amount"
+                        id="incomeInvoiceAmount"
+                    >
+                        —
+                    </span>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+/* ============================================================
+   PAGE LOAD
+   ============================================================ */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+
+    /* ========================================================
+       FEATHER
+       ======================================================== */
+
+    if (typeof feather !== "undefined") {
+
+        feather.replace();
+
+    }
+
+
+    /* ========================================================
+       DATATABLE
+       ======================================================== */
+
+    if (
+        typeof $ !== "undefined" &&
+        $.fn.DataTable &&
+        document.getElementById(
+            "monthlyIncomeTransactionsTable"
+        )
+    ) {
+
+
+        $("#monthlyIncomeTransactionsTable").DataTable({
+
+            responsive: true,
+
+            pageLength: 25,
+
+            lengthMenu: [
+
+                [10, 25, 50, 100, -1],
+
+                [10, 25, 50, 100, "All"]
+
+            ],
+
+            order: [
+
+                [1, "desc"]
+
+            ],
+
+            columnDefs: [
+
+                {
+                    targets: 0,
+                    searchable: false,
+                    orderable: false
+                },
+
+                {
+                    targets: 10,
+                    searchable: false,
+                    orderable: false
+                }
+
+            ],
+
+            language: {
+
+                search: "Search:",
+
+                lengthMenu: "Show _MENU_ entries",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ income transactions",
+
+                infoEmpty:
+                    "No income transactions available",
+
+                zeroRecords:
+                    "No matching income transactions found",
+
+                paginate: {
+
+                    first: "First",
+
+                    last: "Last",
+
+                    next: "Next",
+
+                    previous: "Previous"
+
+                }
+
+            }
+
+        });
+
+    }
+
+});
+
+
+/* ============================================================
+   INCOME INVOICE
+   ============================================================ */
+
+function showMonthlyIncomeInvoice(transaction) {
+
+
+    transaction = transaction || {};
+
+
+    const date =
+        transaction.date || "—";
+
+
+    const month =
+        transaction.month_label ||
+        transaction.month ||
+        "—";
+
+
+    const account =
+        transaction.account_name ||
+        "Unknown Account";
+
+
+    const category =
+        transaction.category ||
+        "Uncategorized";
+
+
+    const item =
+        transaction.item ||
+        "—";
+
+
+    const description =
+        transaction.description ||
+        transaction.note ||
+        "—";
+
+
+    const status =
+        transaction.status ||
+        "Completed";
+
+
+    const amount =
+        parseFloat(
+            transaction.amount || 0
+        );
+
+
+    const currency =
+        transaction.currency ||
+        "{{ currency|default('USD') }}";
+
+
+    document.getElementById(
+        "incomeInvoiceDate"
+    ).textContent = date;
+
+
+    document.getElementById(
+        "incomeInvoiceMonth"
+    ).textContent = month;
+
+
+    document.getElementById(
+        "incomeInvoiceAccount"
+    ).textContent = account;
+
+
+    document.getElementById(
+        "incomeInvoiceCategory"
+    ).textContent = category;
+
+
+    document.getElementById(
+        "incomeInvoiceItem"
+    ).textContent = item;
+
+
+    document.getElementById(
+        "incomeInvoiceType"
+    ).textContent = "Income";
+
+
+    document.getElementById(
+        "incomeInvoiceDescription"
+    ).textContent = description;
+
+
+    document.getElementById(
+        "incomeInvoiceStatus"
+    ).textContent = status;
+
+
+    document.getElementById(
+        "incomeInvoiceAmount"
+    ).textContent =
+
+        currency +
+        " " +
+
+        amount.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+
+    const modalElement =
+        document.getElementById(
+            "monthlyIncomeInvoiceModal"
+        );
+
+
+    if (typeof bootstrap !== "undefined") {
+
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+
+        modal.show();
+
+    }
+
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+function printMonthlyReport() {
+
+    window.print();
+
+}
+
+</script>
+
+{% endblock %}
+

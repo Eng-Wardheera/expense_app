@@ -1,0 +1,3385 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Person Balances Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   PERSON BALANCES REPORT
+   ============================================================ */
+
+.person-balance-report {
+    --primary: #0b3d91;
+    --primary-dark: #082d6b;
+    --primary-light: #eaf2ff;
+
+    --success: #16803c;
+    --success-light: #eaf8ef;
+
+    --danger: #c62828;
+    --danger-light: #fff0f0;
+
+    --warning: #b77900;
+    --warning-light: #fff8e6;
+
+    --info: #087ea4;
+    --info-light: #eaf9fd;
+
+    --dark: #172033;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --background: #f6f8fb;
+    --white: #ffffff;
+
+    font-family:
+        Inter,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+
+    color: var(--dark);
+    background: var(--background);
+    min-height: 100vh;
+    padding: 22px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.pbr-header {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.05);
+}
+
+.pbr-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.pbr-title-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pbr-title-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 15px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.pbr-title-icon i {
+    width: 27px;
+    height: 27px;
+}
+
+.pbr-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+
+.pbr-subtitle {
+    margin: 5px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.pbr-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.pbr-btn {
+    border: 1px solid var(--border);
+    background: var(--white);
+    color: var(--dark);
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.pbr-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(15, 23, 42, .08);
+}
+
+.pbr-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.pbr-btn-primary {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.pbr-btn-primary:hover {
+    background: var(--primary-dark);
+    color: white;
+}
+
+.pbr-btn-success {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+
+/* ============================================================
+   BREADCRUMB
+   ============================================================ */
+
+.pbr-breadcrumb {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.pbr-breadcrumb a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.pbr-breadcrumb i {
+    width: 13px;
+    height: 13px;
+}
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.pbr-status {
+    margin-top: 15px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: var(--success-light);
+    border: 1px solid #ccebd7;
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pbr-status i {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.pbr-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.pbr-kpi {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .04);
+    position: relative;
+    overflow: hidden;
+}
+
+.pbr-kpi::after {
+    content: "";
+    position: absolute;
+    right: -25px;
+    top: -25px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(11, 61, 145, .04);
+}
+
+.pbr-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.pbr-kpi-label {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pbr-kpi-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbr-kpi-icon i {
+    width: 18px;
+    height: 18px;
+}
+
+.pbr-kpi-value {
+    margin-top: 12px;
+    font-size: 25px;
+    font-weight: 850;
+    letter-spacing: -0.5px;
+}
+
+.pbr-kpi-note {
+    margin-top: 5px;
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.pbr-kpi-blue .pbr-kpi-icon {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.pbr-kpi-green .pbr-kpi-icon {
+    color: var(--success);
+    background: var(--success-light);
+}
+
+.pbr-kpi-red .pbr-kpi-icon {
+    color: var(--danger);
+    background: var(--danger-light);
+}
+
+.pbr-kpi-warning .pbr-kpi-icon {
+    color: var(--warning);
+    background: var(--warning-light);
+}
+
+.pbr-kpi-info .pbr-kpi-icon {
+    color: var(--info);
+    background: var(--info-light);
+}
+
+/* ============================================================
+   GENERAL CARD
+   ============================================================ */
+
+.pbr-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 17px;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, .04);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.pbr-card-header {
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.pbr-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.pbr-card-title i {
+    width: 18px;
+    height: 18px;
+    color: var(--primary);
+}
+
+.pbr-card-body {
+    padding: 20px;
+}
+
+/* ============================================================
+   OVERVIEW GRID
+   ============================================================ */
+
+.pbr-overview-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.pbr-balance-overview {
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.pbr-circle {
+    width: 155px;
+    height: 155px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        conic-gradient(
+            var(--success) 0deg,
+            var(--success) calc(var(--positive-percent) * 3.6deg),
+            var(--danger) calc(var(--positive-percent) * 3.6deg),
+            var(--danger) calc((var(--positive-percent) + var(--negative-percent)) * 3.6deg),
+            #e8edf3 calc((var(--positive-percent) + var(--negative-percent)) * 3.6deg),
+            #e8edf3 360deg
+        );
+    position: relative;
+}
+
+.pbr-circle::before {
+    content: "";
+    position: absolute;
+    width: 113px;
+    height: 113px;
+    border-radius: 50%;
+    background: white;
+}
+
+.pbr-circle-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+}
+
+.pbr-circle-value {
+    font-size: 25px;
+    font-weight: 850;
+}
+
+.pbr-circle-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.pbr-legend {
+    display: flex;
+    gap: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 17px;
+}
+
+.pbr-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+}
+
+.pbr-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+}
+
+.pbr-dot-green {
+    background: var(--success);
+}
+
+.pbr-dot-red {
+    background: var(--danger);
+}
+
+.pbr-dot-gray {
+    background: #b7c0cb;
+}
+
+/* ============================================================
+   SUMMARY STATISTICS
+   ============================================================ */
+
+.pbr-stat-list {
+    display: grid;
+    gap: 12px;
+}
+
+.pbr-stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    background: #fbfcfe;
+}
+
+.pbr-stat-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.pbr-stat-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbr-stat-icon i {
+    width: 16px;
+    height: 16px;
+}
+
+.pbr-stat-name {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.pbr-stat-small {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.pbr-stat-value {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   FEATURE PERSON
+   ============================================================ */
+
+.pbr-feature {
+    min-height: 250px;
+}
+
+.pbr-feature-person {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin-bottom: 17px;
+}
+
+.pbr-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 850;
+    flex-shrink: 0;
+}
+
+.pbr-person-name {
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.pbr-person-meta {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.pbr-feature-amount {
+    font-size: 27px;
+    font-weight: 900;
+    color: var(--success);
+    margin-bottom: 12px;
+}
+
+.pbr-feature-negative {
+    color: var(--danger);
+}
+
+.pbr-feature-info {
+    display: grid;
+    gap: 8px;
+}
+
+.pbr-feature-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.pbr-feature-line span:first-child {
+    color: var(--muted);
+}
+
+.pbr-feature-line strong {
+    font-weight: 800;
+}
+
+/* ============================================================
+   TOP 5 GRID
+   ============================================================ */
+
+.pbr-top-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.pbr-ranking {
+    display: grid;
+    gap: 9px;
+}
+
+.pbr-ranking-item {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    transition: .2s ease;
+}
+
+.pbr-ranking-item:hover {
+    border-color: #cbd5e1;
+    background: #fbfcfe;
+}
+
+.pbr-rank {
+    width: 29px;
+    height: 29px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.pbr-ranking-name {
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pbr-ranking-count {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.pbr-ranking-value {
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.pbr-positive {
+    color: var(--success);
+}
+
+.pbr-negative {
+    color: var(--danger);
+}
+
+.pbr-neutral {
+    color: var(--muted);
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.pbr-filter-card {
+    margin-bottom: 20px;
+}
+
+.pbr-filters {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr auto;
+    gap: 10px;
+}
+
+.pbr-field {
+    position: relative;
+}
+
+.pbr-field label {
+    display: block;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 800;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.pbr-input,
+.pbr-select {
+    width: 100%;
+    height: 41px;
+    border: 1px solid var(--border);
+    background: white;
+    border-radius: 9px;
+    padding: 0 11px;
+    outline: none;
+    font-size: 12px;
+    color: var(--dark);
+    box-sizing: border-box;
+}
+
+.pbr-input:focus,
+.pbr-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(11,61,145,.08);
+}
+
+.pbr-filter-actions {
+    display: flex;
+    align-items: flex-end;
+}
+
+.pbr-reset {
+    height: 41px;
+    width: 100%;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.pbr-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.pbr-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+}
+
+.pbr-table th {
+    padding: 12px 13px;
+    text-align: left;
+    background: #f8fafc;
+    color: #667085;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    white-space: nowrap;
+}
+
+.pbr-table td {
+    padding: 13px;
+    border-bottom: 1px solid #edf0f4;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.pbr-table tbody tr:hover {
+    background: #fbfdff;
+}
+
+.pbr-rank-cell {
+    width: 45px;
+    text-align: center;
+    font-weight: 850;
+    color: var(--muted);
+}
+
+.pbr-person-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 180px;
+}
+
+.pbr-small-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 850;
+    flex-shrink: 0;
+}
+
+.pbr-person-cell-name {
+    font-weight: 800;
+}
+
+.pbr-person-cell-sub {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.pbr-money {
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.pbr-balance {
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.pbr-balance-positive {
+    color: var(--success);
+}
+
+.pbr-balance-negative {
+    color: var(--danger);
+}
+
+.pbr-balance-zero {
+    color: var(--muted);
+}
+
+.pbr-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.pbr-badge-positive {
+    color: var(--success);
+    background: var(--success-light);
+}
+
+.pbr-badge-negative {
+    color: var(--danger);
+    background: var(--danger-light);
+}
+
+.pbr-badge-zero {
+    color: var(--muted);
+    background: #f1f3f5;
+}
+
+.pbr-mini-stats {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.pbr-mini-stat {
+    padding: 4px 7px;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.pbr-income-mini {
+    color: var(--success);
+    background: var(--success-light);
+}
+
+.pbr-expense-mini {
+    color: var(--danger);
+    background: var(--danger-light);
+}
+
+.pbr-neutral-mini {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.pbr-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 32px;
+    padding: 0 9px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--primary);
+    background: white;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.pbr-link:hover {
+    background: var(--primary-light);
+}
+
+.pbr-link i {
+    width: 13px;
+    height: 13px;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.pbr-empty {
+    text-align: center;
+    padding: 55px 20px;
+    color: var(--muted);
+}
+
+.pbr-empty-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: #f1f4f8;
+    margin: 0 auto 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbr-empty-icon i {
+    width: 28px;
+    height: 28px;
+}
+
+.pbr-empty-title {
+    font-size: 15px;
+    font-weight: 850;
+    color: var(--dark);
+}
+
+.pbr-empty-text {
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+/* ============================================================
+   DETAILS
+   ============================================================ */
+
+.pbr-details-row {
+    display: none;
+    background: #fafcff;
+}
+
+.pbr-details-row.show {
+    display: table-row;
+}
+
+.pbr-details-box {
+    padding: 15px;
+    border-top: 1px dashed var(--border);
+}
+
+.pbr-details-title {
+    font-size: 11px;
+    font-weight: 850;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.pbr-transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.pbr-transaction-table th {
+    background: #f4f7fb;
+    padding: 8px;
+    font-size: 9px;
+    color: var(--muted);
+    text-align: left;
+}
+
+.pbr-transaction-table td {
+    padding: 8px;
+    border-bottom: 1px solid #edf0f4;
+    font-size: 10px;
+}
+
+.pbr-expand-btn {
+    border: 0;
+    background: var(--primary-light);
+    color: var(--primary);
+    width: 31px;
+    height: 31px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbr-expand-btn i {
+    width: 15px;
+    height: 15px;
+}
+
+/* ============================================================
+   PERIOD
+   ============================================================ */
+
+.pbr-period {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.pbr-period-item {
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 13px;
+    background: #fbfcfe;
+}
+
+.pbr-period-label {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.pbr-period-value {
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.pbr-footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 10px;
+    padding: 8px 0 20px;
+}
+
+/* ============================================================
+   NO RESULTS
+   ============================================================ */
+
+.pbr-no-results {
+    display: none;
+}
+
+.pbr-no-results.show {
+    display: table-row;
+}
+
+.pbr-no-results td {
+    text-align: center;
+    padding: 45px 20px;
+    color: var(--muted);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .pbr-kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .pbr-overview-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pbr-overview-grid > :last-child {
+        grid-column: 1 / -1;
+    }
+
+    .pbr-top-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pbr-top-grid > :last-child {
+        grid-column: 1 / -1;
+    }
+
+    .pbr-filters {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .pbr-filter-actions {
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 850px) {
+    .person-balance-report {
+        padding: 12px;
+    }
+
+    .pbr-header-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .pbr-actions {
+        width: 100%;
+    }
+
+    .pbr-actions .pbr-btn {
+        flex: 1;
+    }
+
+    .pbr-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pbr-overview-grid,
+    .pbr-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pbr-overview-grid > :last-child,
+    .pbr-top-grid > :last-child {
+        grid-column: auto;
+    }
+
+    .pbr-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pbr-period {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+    .pbr-title {
+        font-size: 20px;
+    }
+
+    .pbr-title-icon {
+        width: 45px;
+        height: 45px;
+    }
+
+    .pbr-kpis {
+        grid-template-columns: 1fr;
+    }
+
+    .pbr-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .pbr-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .pbr-actions .pbr-btn {
+        width: 100%;
+    }
+
+    .pbr-card-body {
+        padding: 14px;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: white !important;
+    }
+
+    .person-balance-report {
+        padding: 0;
+        background: white;
+    }
+
+    .pbr-actions,
+    .pbr-filter-card,
+    .pbr-expand-btn,
+    .pbr-footer {
+        display: none !important;
+    }
+
+    .pbr-card,
+    .pbr-header,
+    .pbr-kpi {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .pbr-table {
+        min-width: 0;
+    }
+
+    .pbr-table th,
+    .pbr-table td {
+        font-size: 8px;
+        padding: 6px;
+    }
+
+    .pbr-details-row {
+        display: table-row !important;
+    }
+
+    .pbr-overview-grid,
+    .pbr-top-grid {
+        break-inside: avoid;
+    }
+}
+</style>
+
+<div class="person-balance-report">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="pbr-header">
+
+        <div class="pbr-header-top">
+
+            <div class="pbr-title-area">
+
+                <div class="pbr-title-icon">
+                    <i data-feather="users"></i>
+                </div>
+
+                <div>
+                    <h1 class="pbr-title">
+                        Person Balances Report
+                    </h1>
+
+                    <p class="pbr-subtitle">
+                        Complete income, expense and balance summary for all persons
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="pbr-actions">
+
+                <button
+                    type="button"
+                    class="pbr-btn"
+                    onclick="history.back()">
+                    <i data-feather="arrow-left"></i>
+                    Back
+                </button>
+
+                <button
+                    type="button"
+                    class="pbr-btn"
+                    onclick="window.print()">
+                    <i data-feather="printer"></i>
+                    Print
+                </button>
+
+                <button
+                    type="button"
+                    class="pbr-btn pbr-btn-success"
+                    onclick="exportPersonBalancesCSV()">
+                    <i data-feather="download"></i>
+                    Export CSV
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="pbr-breadcrumb">
+            <a href="{{ url_for('main.dashboard') }}">
+                Dashboard
+            </a>
+
+            <i data-feather="chevron-right"></i>
+
+            <span>Reports</span>
+
+            <i data-feather="chevron-right"></i>
+
+            <strong>Person Balances</strong>
+        </div>
+
+        <div class="pbr-status">
+
+            <i data-feather="check-circle"></i>
+
+            <span>
+                Person balance report generated successfully.
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="pbr-kpis">
+
+        <!-- Total Persons -->
+        <div class="pbr-kpi pbr-kpi-blue">
+
+            <div class="pbr-kpi-top">
+
+                <span class="pbr-kpi-label">
+                    Total Persons
+                </span>
+
+                <div class="pbr-kpi-icon">
+                    <i data-feather="users"></i>
+                </div>
+
+            </div>
+
+            <div class="pbr-kpi-value">
+                {{ total_persons|default(0) }}
+            </div>
+
+            <div class="pbr-kpi-note">
+                Persons included in this report
+            </div>
+
+        </div>
+
+
+        <!-- Total Income -->
+        <div class="pbr-kpi pbr-kpi-green">
+
+            <div class="pbr-kpi-top">
+
+                <span class="pbr-kpi-label">
+                    Total Income
+                </span>
+
+                <div class="pbr-kpi-icon">
+                    <i data-feather="trending-up"></i>
+                </div>
+
+            </div>
+
+            <div class="pbr-kpi-value">
+                ${{ "%.2f"|format(total_income|default(0)|float) }}
+            </div>
+
+            <div class="pbr-kpi-note">
+                Money received from persons
+            </div>
+
+        </div>
+
+
+        <!-- Total Expense -->
+        <div class="pbr-kpi pbr-kpi-red">
+
+            <div class="pbr-kpi-top">
+
+                <span class="pbr-kpi-label">
+                    Total Expense
+                </span>
+
+                <div class="pbr-kpi-icon">
+                    <i data-feather="trending-down"></i>
+                </div>
+
+            </div>
+
+            <div class="pbr-kpi-value">
+                ${{ "%.2f"|format(total_expense|default(0)|float) }}
+            </div>
+
+            <div class="pbr-kpi-note">
+                Money paid to persons
+            </div>
+
+        </div>
+
+
+        <!-- Total Balance -->
+        <div class="pbr-kpi {% if total_balance|default(0)|float >= 0 %}pbr-kpi-green{% else %}pbr-kpi-red{% endif %}">
+
+            <div class="pbr-kpi-top">
+
+                <span class="pbr-kpi-label">
+                    Net Balance
+                </span>
+
+                <div class="pbr-kpi-icon">
+                    <i data-feather="scale"></i>
+                </div>
+
+            </div>
+
+            <div class="pbr-kpi-value
+                {% if total_balance|default(0)|float < 0 %}
+                    pbr-negative
+                {% else %}
+                    pbr-positive
+                {% endif %}
+            ">
+                ${{ "%.2f"|format(total_balance|default(0)|float) }}
+            </div>
+
+            <div class="pbr-kpi-note">
+                Income minus expense
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+        <div class="pbr-kpi pbr-kpi-info">
+
+            <div class="pbr-kpi-top">
+
+                <span class="pbr-kpi-label">
+                    Transactions
+                </span>
+
+                <div class="pbr-kpi-icon">
+                    <i data-feather="activity"></i>
+                </div>
+
+            </div>
+
+            <div class="pbr-kpi-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="pbr-kpi-note">
+                Total person transactions
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         OVERVIEW
+         ======================================================== -->
+
+    <section class="pbr-overview-grid">
+
+        <!-- Balance Distribution -->
+        <div class="pbr-card">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="pie-chart"></i>
+                    Balance Distribution
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body pbr-balance-overview">
+
+                <div
+                    class="pbr-circle"
+                    style="
+                        --positive-percent: {{ positive_balance_percentage|default(0)|float }};
+                        --negative-percent: {{ negative_balance_percentage|default(0)|float }};
+                    "
+                >
+
+                    <div class="pbr-circle-content">
+
+                        <div class="pbr-circle-value">
+                            {{ total_persons|default(0) }}
+                        </div>
+
+                        <div class="pbr-circle-label">
+                            PERSONS
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="pbr-legend">
+
+                    <div class="pbr-legend-item">
+                        <span class="pbr-dot pbr-dot-green"></span>
+                        Positive
+                        {{ positive_balance_count|default(0) }}
+                    </div>
+
+                    <div class="pbr-legend-item">
+                        <span class="pbr-dot pbr-dot-red"></span>
+                        Negative
+                        {{ negative_balance_count|default(0) }}
+                    </div>
+
+                    <div class="pbr-legend-item">
+                        <span class="pbr-dot pbr-dot-gray"></span>
+                        Zero
+                        {{ zero_balance_count|default(0) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Income / Expense -->
+        <div class="pbr-card">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="bar-chart-2"></i>
+                    Money Movement
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                <div class="pbr-stat-list">
+
+                    <div class="pbr-stat-row">
+
+                        <div class="pbr-stat-left">
+
+                            <div
+                                class="pbr-stat-icon"
+                                style="background:#eaf8ef;color:#16803c;">
+                                <i data-feather="arrow-down-left"></i>
+                            </div>
+
+                            <div>
+                                <div class="pbr-stat-name">
+                                    Income Transactions
+                                </div>
+
+                                <div class="pbr-stat-small">
+                                    Money received
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="pbr-stat-value">
+                            {{ income_transaction_count|default(0) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="pbr-stat-row">
+
+                        <div class="pbr-stat-left">
+
+                            <div
+                                class="pbr-stat-icon"
+                                style="background:#fff0f0;color:#c62828;">
+                                <i data-feather="arrow-up-right"></i>
+                            </div>
+
+                            <div>
+                                <div class="pbr-stat-name">
+                                    Expense Transactions
+                                </div>
+
+                                <div class="pbr-stat-small">
+                                    Money paid
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="pbr-stat-value">
+                            {{ expense_transaction_count|default(0) }}
+                        </div>
+
+                    </div>
+
+
+                    <div class="pbr-stat-row">
+
+                        <div class="pbr-stat-left">
+
+                            <div
+                                class="pbr-stat-icon"
+                                style="background:#eaf2ff;color:#0b3d91;">
+                                <i data-feather="percent"></i>
+                            </div>
+
+                            <div>
+                                <div class="pbr-stat-name">
+                                    Income Share
+                                </div>
+
+                                <div class="pbr-stat-small">
+                                    Of total movement
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="pbr-stat-value">
+                            {{ "%.1f"|format(income_percentage|default(0)|float) }}%
+                        </div>
+
+                    </div>
+
+
+                    <div class="pbr-stat-row">
+
+                        <div class="pbr-stat-left">
+
+                            <div
+                                class="pbr-stat-icon"
+                                style="background:#fff8e6;color:#b77900;">
+                                <i data-feather="percent"></i>
+                            </div>
+
+                            <div>
+                                <div class="pbr-stat-name">
+                                    Expense Share
+                                </div>
+
+                                <div class="pbr-stat-small">
+                                    Of total movement
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="pbr-stat-value">
+                            {{ "%.1f"|format(expense_percentage|default(0)|float) }}%
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Highest Balance -->
+        <div class="pbr-card pbr-feature">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="award"></i>
+                    Highest Balance
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                {% if highest_balance_person %}
+
+                    {% set highest_name = highest_balance_person.person_name|default('Unknown') %}
+                    {% set highest_balance = highest_balance_person.balance|default(0)|float %}
+
+                    <div class="pbr-feature-person">
+
+                        <div class="pbr-avatar">
+                            {{ highest_name[:1]|upper }}
+                        </div>
+
+                        <div>
+
+                            <div class="pbr-person-name">
+                                {{ highest_name }}
+                            </div>
+
+                            <div class="pbr-person-meta">
+                                {{ highest_balance_person.total_transactions|default(0) }}
+                                transactions
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="pbr-feature-amount
+                        {% if highest_balance < 0 %}
+                            pbr-feature-negative
+                        {% endif %}
+                    ">
+                        ${{ "%.2f"|format(highest_balance) }}
+                    </div>
+
+                    <div class="pbr-feature-info">
+
+                        <div class="pbr-feature-line">
+                            <span>Total Income</span>
+                            <strong>
+                                ${{ "%.2f"|format(highest_balance_person.total_income|default(0)|float) }}
+                            </strong>
+                        </div>
+
+                        <div class="pbr-feature-line">
+                            <span>Total Expense</span>
+                            <strong>
+                                ${{ "%.2f"|format(highest_balance_person.total_expense|default(0)|float) }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="pbr-empty">
+                        <div class="pbr-empty-icon">
+                            <i data-feather="user-x"></i>
+                        </div>
+
+                        <div class="pbr-empty-title">
+                            No person data
+                        </div>
+
+                        <div class="pbr-empty-text">
+                            There are no persons available.
+                        </div>
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP 5
+         ======================================================== -->
+
+    <section class="pbr-top-grid">
+
+        <!-- Top Balance -->
+        <div class="pbr-card">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="trending-up"></i>
+                    Top 5 Balances
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                <div class="pbr-ranking">
+
+                    {% for person in top_balance_persons|default([]) %}
+
+                        <div class="pbr-ranking-item">
+
+                            <div class="pbr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pbr-ranking-name">
+                                    {{ person.person_name|default('Unknown') }}
+                                </div>
+
+                                <div class="pbr-ranking-count">
+                                    {{ person.total_transactions|default(0) }}
+                                    transactions
+                                </div>
+
+                            </div>
+
+                            <div class="
+                                pbr-ranking-value
+                                {% if person.balance|default(0)|float > 0 %}
+                                    pbr-positive
+                                {% elif person.balance|default(0)|float < 0 %}
+                                    pbr-negative
+                                {% else %}
+                                    pbr-neutral
+                                {% endif %}
+                            ">
+                                ${{ "%.2f"|format(person.balance|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="pbr-empty">
+                            No balance data
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Top Income -->
+        <div class="pbr-card">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="arrow-down-left"></i>
+                    Top 5 Income
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                <div class="pbr-ranking">
+
+                    {% for person in top_income_persons|default([]) %}
+
+                        <div class="pbr-ranking-item">
+
+                            <div class="pbr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pbr-ranking-name">
+                                    {{ person.person_name|default('Unknown') }}
+                                </div>
+
+                                <div class="pbr-ranking-count">
+                                    {{ person.income_count|default(0) }}
+                                    income transactions
+                                </div>
+
+                            </div>
+
+                            <div class="pbr-ranking-value pbr-positive">
+                                ${{ "%.2f"|format(person.total_income|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="pbr-empty">
+                            No income data
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Top Expense -->
+        <div class="pbr-card">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="arrow-up-right"></i>
+                    Top 5 Expense
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                <div class="pbr-ranking">
+
+                    {% for person in top_expense_persons|default([]) %}
+
+                        <div class="pbr-ranking-item">
+
+                            <div class="pbr-rank">
+                                {{ loop.index }}
+                            </div>
+
+                            <div>
+
+                                <div class="pbr-ranking-name">
+                                    {{ person.person_name|default('Unknown') }}
+                                </div>
+
+                                <div class="pbr-ranking-count">
+                                    {{ person.expense_count|default(0) }}
+                                    expense transactions
+                                </div>
+
+                            </div>
+
+                            <div class="pbr-ranking-value pbr-negative">
+                                ${{ "%.2f"|format(person.total_expense|default(0)|float) }}
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="pbr-empty">
+                            No expense data
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="pbr-card pbr-filter-card">
+
+        <div class="pbr-card-header">
+
+            <h2 class="pbr-card-title">
+                <i data-feather="filter"></i>
+                Filter Person Balances
+            </h2>
+
+        </div>
+
+        <div class="pbr-card-body">
+
+            <div class="pbr-filters">
+
+                <div class="pbr-field">
+
+                    <label for="personSearch">
+                        Search
+                    </label>
+
+                    <input
+                        type="text"
+                        id="personSearch"
+                        class="pbr-input"
+                        placeholder="Search person, category, item..."
+                    >
+
+                </div>
+
+
+                <div class="pbr-field">
+
+                    <label for="personFilter">
+                        Person
+                    </label>
+
+                    <select
+                        id="personFilter"
+                        class="pbr-select">
+
+                        <option value="">
+                            All Persons
+                        </option>
+
+                        {% for name in report_person_names|default([]) %}
+
+                            <option value="{{ name|lower }}">
+                                {{ name }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="pbr-field">
+
+                    <label for="categoryFilter">
+                        Category
+                    </label>
+
+                    <select
+                        id="categoryFilter"
+                        class="pbr-select">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in report_categories|default([]) %}
+
+                            <option value="{{ category|lower }}">
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="pbr-field">
+
+                    <label for="sourceFilter">
+                        Source
+                    </label>
+
+                    <select
+                        id="sourceFilter"
+                        class="pbr-select">
+
+                        <option value="">
+                            All Sources
+                        </option>
+
+                        {% for source in report_sources|default([]) %}
+
+                            <option value="{{ source|lower }}">
+                                {{ source }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="pbr-filter-actions">
+
+                    <button
+                        type="button"
+                        class="pbr-btn pbr-reset"
+                        onclick="resetPersonBalanceFilters()">
+
+                        <i data-feather="rotate-ccw"></i>
+                        Reset
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         MAIN TABLE
+         ======================================================== -->
+
+    <section class="pbr-card">
+
+        <div class="pbr-card-header">
+
+            <h2 class="pbr-card-title">
+                <i data-feather="list"></i>
+                Person Balance Summary
+            </h2>
+
+            <div
+                id="visiblePersonCount"
+                style="
+                    color:#6b7280;
+                    font-size:11px;
+                    font-weight:800;
+                ">
+                {{ total_persons|default(0) }} persons
+            </div>
+
+        </div>
+
+
+        <div class="pbr-table-wrap">
+
+            <table
+                class="pbr-table"
+                id="personBalanceTable">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Rank</th>
+
+                        <th>Person</th>
+
+                        <th>Total Income</th>
+
+                        <th>Total Expense</th>
+
+                        <th>Balance</th>
+
+                        <th>Transactions</th>
+
+                        <th>Categories</th>
+
+                        <th>Items</th>
+
+                        <th>Sources</th>
+
+                        <th>First Transaction</th>
+
+                        <th>Last Transaction</th>
+
+                        <th>Invoice</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="personBalanceBody">
+
+                    {% for person in persons|default([]) %}
+
+                        {% set person_name = person.person_name|default('Unknown') %}
+                        {% set balance = person.balance|default(0)|float %}
+                        {% set income = person.total_income|default(0)|float %}
+                        {% set expense = person.total_expense|default(0)|float %}
+
+                        <tr
+                            class="pbr-person-row"
+                            data-person="{{ person_name|lower }}"
+                            data-category="{{ person.categories_text|default('')|lower }}"
+                            data-source="{{ person.sources_text|default('')|lower }}"
+                            data-search="
+                                {{ person_name|lower }}
+                                {{ person.categories_text|default('')|lower }}
+                                {{ person.items_text|default('')|lower }}
+                                {{ person.sources_text|default('')|lower }}
+                            "
+                        >
+
+                            <td class="pbr-rank-cell">
+                                #{{ person.rank|default(loop.index) }}
+                            </td>
+
+
+                            <td>
+
+                                <div class="pbr-person-cell">
+
+                                    <div class="pbr-small-avatar">
+                                        {{ person_name[:1]|upper }}
+                                    </div>
+
+                                    <div>
+
+                                        <div class="pbr-person-cell-name">
+                                            {{ person_name }}
+                                        </div>
+
+                                        <div class="pbr-person-cell-sub">
+                                            {{ person.total_transactions|default(0) }}
+                                            transaction(s)
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="pbr-money pbr-positive">
+                                    ${{ "%.2f"|format(income) }}
+                                </div>
+
+                                <div class="pbr-person-cell-sub">
+                                    {{ person.income_count|default(0) }} records
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="pbr-money pbr-negative">
+                                    ${{ "%.2f"|format(expense) }}
+                                </div>
+
+                                <div class="pbr-person-cell-sub">
+                                    {{ person.expense_count|default(0) }} records
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="
+                                    pbr-balance
+                                    {% if balance > 0 %}
+                                        pbr-balance-positive
+                                    {% elif balance < 0 %}
+                                        pbr-balance-negative
+                                    {% else %}
+                                        pbr-balance-zero
+                                    {% endif %}
+                                ">
+
+                                    {% if balance > 0 %}
+                                        +
+                                    {% endif %}
+
+                                    ${{ "%.2f"|format(balance) }}
+
+                                </div>
+
+                                <div style="margin-top:5px;">
+
+                                    {% if balance > 0 %}
+
+                                        <span class="pbr-badge pbr-badge-positive">
+                                            <i data-feather="arrow-up"></i>
+                                            Positive
+                                        </span>
+
+                                    {% elif balance < 0 %}
+
+                                        <span class="pbr-badge pbr-badge-negative">
+                                            <i data-feather="arrow-down"></i>
+                                            Negative
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="pbr-badge pbr-badge-zero">
+                                            Zero Balance
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="pbr-mini-stats">
+
+                                    <span class="pbr-mini-stat pbr-income-mini">
+                                        IN {{ person.income_count|default(0) }}
+                                    </span>
+
+                                    <span class="pbr-mini-stat pbr-expense-mini">
+                                        OUT {{ person.expense_count|default(0) }}
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    title="{{ person.categories_text|default('Uncategorized') }}"
+                                    style="
+                                        display:block;
+                                        max-width:170px;
+                                        white-space:nowrap;
+                                        overflow:hidden;
+                                        text-overflow:ellipsis;
+                                        font-size:11px;
+                                    "
+                                >
+                                    {{ person.categories_text|default('Uncategorized') }}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    title="{{ person.items_text|default('Transaction') }}"
+                                    style="
+                                        display:block;
+                                        max-width:150px;
+                                        white-space:nowrap;
+                                        overflow:hidden;
+                                        text-overflow:ellipsis;
+                                        font-size:11px;
+                                    "
+                                >
+                                    {{ person.items_text|default('Transaction') }}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    style="
+                                        display:block;
+                                        max-width:110px;
+                                        white-space:nowrap;
+                                        overflow:hidden;
+                                        text-overflow:ellipsis;
+                                        font-size:10px;
+                                        color:#6b7280;
+                                    "
+                                    title="{{ person.sources_text|default('NORMAL') }}"
+                                >
+                                    {{ person.sources_text|default('NORMAL') }}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+                                <span style="
+                                    font-size:10px;
+                                    color:#667085;
+                                    white-space:nowrap;
+                                ">
+                                    {{ person.first_transaction_display|default('—') }}
+                                </span>
+                            </td>
+
+
+                            <td>
+                                <span style="
+                                    font-size:10px;
+                                    color:#667085;
+                                    white-space:nowrap;
+                                ">
+                                    {{ person.last_transaction_display|default('—') }}
+                                </span>
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    class="pbr-link"
+                                    href="{{ url_for(
+                                        'main.person_invoice',
+                                        person_name=person_name
+                                    ) }}"
+                                >
+
+                                    <i data-feather="file-text"></i>
+                                    Invoice
+
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+
+                        <!-- ====================================================
+                             TRANSACTION DETAILS
+                             ==================================================== -->
+
+                        <tr class="pbr-details-row">
+
+                            <td colspan="12">
+
+                                <div class="pbr-details-box">
+
+                                    <div class="pbr-details-title">
+                                        Transaction Details — {{ person_name }}
+                                    </div>
+
+                                    {% if person.transactions|default([]) %}
+
+                                        <table class="pbr-transaction-table">
+
+                                            <thead>
+
+                                                <tr>
+                                                    <th>Date</th>
+                                                    <th>Type</th>
+                                                    <th>Amount</th>
+                                                    <th>Category</th>
+                                                    <th>Item</th>
+                                                    <th>Note</th>
+                                                    <th>Source</th>
+                                                </tr>
+
+                                            </thead>
+
+                                            <tbody>
+
+                                                {% for transaction in person.transactions|default([]) %}
+
+                                                    <tr>
+
+                                                        <td>
+                                                            {{ transaction.date_display|default('—') }}
+                                                        </td>
+
+                                                        <td>
+
+                                                            {% if transaction.type|default('expense') == 'income' %}
+
+                                                                <span class="pbr-badge pbr-badge-positive">
+                                                                    Income
+                                                                </span>
+
+                                                            {% else %}
+
+                                                                <span class="pbr-badge pbr-badge-negative">
+                                                                    Expense
+                                                                </span>
+
+                                                            {% endif %}
+
+                                                        </td>
+
+                                                        <td
+                                                            style="
+                                                                font-weight:850;
+                                                                color:
+                                                                {% if transaction.type|default('expense') == 'income' %}
+                                                                    #16803c
+                                                                {% else %}
+                                                                    #c62828
+                                                                {% endif %};
+                                                            "
+                                                        >
+
+                                                            ${{ "%.2f"|format(transaction.amount|default(0)|float) }}
+
+                                                        </td>
+
+                                                        <td>
+                                                            {{ transaction.category|default('Uncategorized') }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ transaction.item|default('Transaction') }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ transaction.note|default('—') }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ transaction.source|default('NORMAL') }}
+                                                        </td>
+
+                                                    </tr>
+
+                                                {% endfor %}
+
+                                            </tbody>
+
+                                        </table>
+
+                                    {% else %}
+
+                                        <div
+                                            style="
+                                                padding:20px;
+                                                text-align:center;
+                                                color:#6b7280;
+                                                font-size:11px;
+                                            "
+                                        >
+                                            No transaction details available.
+                                        </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                    <!-- ====================================================
+                         NO RESULTS
+                         ==================================================== -->
+
+                    <tr
+                        id="noResultsRow"
+                        class="pbr-no-results"
+                    >
+
+                        <td colspan="12">
+
+                            <div class="pbr-empty">
+
+                                <div class="pbr-empty-icon">
+                                    <i data-feather="search"></i>
+                                </div>
+
+                                <div class="pbr-empty-title">
+                                    No persons found
+                                </div>
+
+                                <div class="pbr-empty-text">
+                                    Try changing your search or filters.
+                                </div>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         LOWEST BALANCE / MOST ACTIVE
+         ======================================================== -->
+
+    <section class="pbr-overview-grid">
+
+        <!-- Lowest Balance -->
+        <div class="pbr-card pbr-feature">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="alert-triangle"></i>
+                    Lowest Balance
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                {% if lowest_balance_person %}
+
+                    {% set low_name = lowest_balance_person.person_name|default('Unknown') %}
+                    {% set low_balance = lowest_balance_person.balance|default(0)|float %}
+
+                    <div class="pbr-feature-person">
+
+                        <div
+                            class="pbr-avatar"
+                            style="
+                                background:#fff0f0;
+                                color:#c62828;
+                            "
+                        >
+                            {{ low_name[:1]|upper }}
+                        </div>
+
+                        <div>
+
+                            <div class="pbr-person-name">
+                                {{ low_name }}
+                            </div>
+
+                            <div class="pbr-person-meta">
+                                {{ lowest_balance_person.total_transactions|default(0) }}
+                                transactions
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="pbr-feature-amount pbr-feature-negative">
+                        ${{ "%.2f"|format(low_balance) }}
+                    </div>
+
+                    <div class="pbr-feature-info">
+
+                        <div class="pbr-feature-line">
+                            <span>Total Income</span>
+                            <strong>
+                                ${{ "%.2f"|format(lowest_balance_person.total_income|default(0)|float) }}
+                            </strong>
+                        </div>
+
+                        <div class="pbr-feature-line">
+                            <span>Total Expense</span>
+                            <strong>
+                                ${{ "%.2f"|format(lowest_balance_person.total_expense|default(0)|float) }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="pbr-empty">
+                        No data available
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Most Active -->
+        <div class="pbr-card pbr-feature">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="activity"></i>
+                    Most Active Person
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                {% if most_active_person %}
+
+                    {% set active_name = most_active_person.person_name|default('Unknown') %}
+
+                    <div class="pbr-feature-person">
+
+                        <div
+                            class="pbr-avatar"
+                            style="
+                                background:#eaf9fd;
+                                color:#087ea4;
+                            "
+                        >
+                            {{ active_name[:1]|upper }}
+                        </div>
+
+                        <div>
+
+                            <div class="pbr-person-name">
+                                {{ active_name }}
+                            </div>
+
+                            <div class="pbr-person-meta">
+                                Most transactions
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="pbr-feature-amount"
+                        style="color:#087ea4;"
+                    >
+                        {{ most_active_person.total_transactions|default(0) }}
+                    </div>
+
+                    <div
+                        style="
+                            color:#6b7280;
+                            font-size:11px;
+                        "
+                    >
+                        Total transactions recorded for this person.
+                    </div>
+
+                {% else %}
+
+                    <div class="pbr-empty">
+                        No active person data
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Highest Income -->
+        <div class="pbr-card pbr-feature">
+
+            <div class="pbr-card-header">
+
+                <h2 class="pbr-card-title">
+                    <i data-feather="dollar-sign"></i>
+                    Highest Income Person
+                </h2>
+
+            </div>
+
+            <div class="pbr-card-body">
+
+                {% if highest_income_person %}
+
+                    {% set hi_name = highest_income_person.person_name|default('Unknown') %}
+                    {% set hi_income = highest_income_person.total_income|default(0)|float %}
+
+                    <div class="pbr-feature-person">
+
+                        <div
+                            class="pbr-avatar"
+                            style="
+                                background:#eaf8ef;
+                                color:#16803c;
+                            "
+                        >
+                            {{ hi_name[:1]|upper }}
+                        </div>
+
+                        <div>
+
+                            <div class="pbr-person-name">
+                                {{ hi_name }}
+                            </div>
+
+                            <div class="pbr-person-meta">
+                                Highest total income
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="pbr-feature-amount">
+                        ${{ "%.2f"|format(hi_income) }}
+                    </div>
+
+                    <div class="pbr-feature-info">
+
+                        <div class="pbr-feature-line">
+                            <span>Income Records</span>
+                            <strong>
+                                {{ highest_income_person.income_count|default(0) }}
+                            </strong>
+                        </div>
+
+                        <div class="pbr-feature-line">
+                            <span>Current Balance</span>
+                            <strong>
+                                ${{ "%.2f"|format(highest_income_person.balance|default(0)|float) }}
+                            </strong>
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="pbr-empty">
+                        No income data
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         REPORT PERIOD
+         ======================================================== -->
+
+    <section class="pbr-card">
+
+        <div class="pbr-card-header">
+
+            <h2 class="pbr-card-title">
+                <i data-feather="calendar"></i>
+                Report Period
+            </h2>
+
+        </div>
+
+        <div class="pbr-card-body">
+
+            <div class="pbr-period">
+
+                <div class="pbr-period-item">
+
+                    <div class="pbr-period-label">
+                        First Transaction
+                    </div>
+
+                    <div class="pbr-period-value">
+                        {{ first_balance_date_display|default('—') }}
+                    </div>
+
+                </div>
+
+
+                <div class="pbr-period-item">
+
+                    <div class="pbr-period-label">
+                        Last Transaction
+                    </div>
+
+                    <div class="pbr-period-value">
+                        {{ last_balance_date_display|default('—') }}
+                    </div>
+
+                </div>
+
+
+                <div class="pbr-period-item">
+
+                    <div class="pbr-period-label">
+                        Generated At
+                    </div>
+
+                    <div class="pbr-period-value">
+                        {{ generated_at|default(now|default('—')) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="pbr-footer">
+
+        Person Balances Report
+        &nbsp;•&nbsp;
+        Generated {{ generated_at|default(now|default('—')) }}
+        &nbsp;•&nbsp;
+        Total Persons: {{ total_persons|default(0) }}
+
+    </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   PERSON BALANCES REPORT JS
+   ============================================================ */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ---------------------------------------------------------
+       Feather Icons
+       --------------------------------------------------------- */
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+
+    /* ---------------------------------------------------------
+       Filter Elements
+       --------------------------------------------------------- */
+
+    const searchInput = document.getElementById("personSearch");
+    const personFilter = document.getElementById("personFilter");
+    const categoryFilter = document.getElementById("categoryFilter");
+    const sourceFilter = document.getElementById("sourceFilter");
+
+    const rows = Array.from(
+        document.querySelectorAll(".pbr-person-row")
+    );
+
+    const noResultsRow = document.getElementById("noResultsRow");
+    const visiblePersonCount =
+        document.getElementById("visiblePersonCount");
+
+
+    /* ---------------------------------------------------------
+       Apply Filters
+       --------------------------------------------------------- */
+
+    function applyFilters() {
+
+        const search =
+            (searchInput?.value || "")
+                .trim()
+                .toLowerCase();
+
+        const person =
+            (personFilter?.value || "")
+                .trim()
+                .toLowerCase();
+
+        const category =
+            (categoryFilter?.value || "")
+                .trim()
+                .toLowerCase();
+
+        const source =
+            (sourceFilter?.value || "")
+                .trim()
+                .toLowerCase();
+
+        let visible = 0;
+
+
+        rows.forEach(function (row) {
+
+            const rowSearch =
+                row.dataset.search || "";
+
+            const rowPerson =
+                row.dataset.person || "";
+
+            const rowCategory =
+                row.dataset.category || "";
+
+            const rowSource =
+                row.dataset.source || "";
+
+
+            const searchMatch =
+                !search ||
+                rowSearch.includes(search);
+
+            const personMatch =
+                !person ||
+                rowPerson === person;
+
+            const categoryMatch =
+                !category ||
+                rowCategory.includes(category);
+
+            const sourceMatch =
+                !source ||
+                rowSource.includes(source);
+
+
+            const show =
+                searchMatch &&
+                personMatch &&
+                categoryMatch &&
+                sourceMatch;
+
+
+            row.style.display =
+                show ? "" : "none";
+
+
+            /* Hide associated details row */
+            const detailsRow =
+                row.nextElementSibling;
+
+            if (
+                detailsRow &&
+                detailsRow.classList.contains(
+                    "pbr-details-row"
+                )
+            ) {
+                detailsRow.classList.remove("show");
+                detailsRow.style.display = "none";
+            }
+
+
+            if (show) {
+                visible++;
+            }
+
+        });
+
+
+        if (noResultsRow) {
+            noResultsRow.classList.toggle(
+                "show",
+                visible === 0
+            );
+        }
+
+
+        if (visiblePersonCount) {
+
+            visiblePersonCount.textContent =
+                visible +
+                (visible === 1
+                    ? " person"
+                    : " persons");
+
+        }
+
+
+        if (typeof feather !== "undefined") {
+            feather.replace();
+        }
+
+    }
+
+
+    /* ---------------------------------------------------------
+       Input Events
+       --------------------------------------------------------- */
+
+    if (searchInput) {
+        searchInput.addEventListener(
+            "input",
+            applyFilters
+        );
+    }
+
+    if (personFilter) {
+        personFilter.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+    if (categoryFilter) {
+        categoryFilter.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+    if (sourceFilter) {
+        sourceFilter.addEventListener(
+            "change",
+            applyFilters
+        );
+    }
+
+
+    /* ---------------------------------------------------------
+       Initial Filter
+       --------------------------------------------------------- */
+
+    applyFilters();
+
+});
+
+
+/* ============================================================
+   RESET FILTERS
+   ============================================================ */
+
+function resetPersonBalanceFilters() {
+
+    const searchInput =
+        document.getElementById("personSearch");
+
+    const personFilter =
+        document.getElementById("personFilter");
+
+    const categoryFilter =
+        document.getElementById("categoryFilter");
+
+    const sourceFilter =
+        document.getElementById("sourceFilter");
+
+
+    if (searchInput) {
+        searchInput.value = "";
+    }
+
+    if (personFilter) {
+        personFilter.value = "";
+    }
+
+    if (categoryFilter) {
+        categoryFilter.value = "";
+    }
+
+    if (sourceFilter) {
+        sourceFilter.value = "";
+    }
+
+
+    searchInput?.dispatchEvent(
+        new Event("input")
+    );
+
+}
+
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+
+function exportPersonBalancesCSV() {
+
+    const rows =
+        Array.from(
+            document.querySelectorAll(
+                "#personBalanceBody .pbr-person-row"
+            )
+        );
+
+
+    const visibleRows =
+        rows.filter(function (row) {
+
+            return (
+                row.style.display !== "none"
+            );
+
+        });
+
+
+    if (!visibleRows.length) {
+
+        alert(
+            "There are no visible person records to export."
+        );
+
+        return;
+    }
+
+
+    const headers = [
+        "Rank",
+        "Person",
+        "Total Income",
+        "Total Expense",
+        "Balance",
+        "Income Transactions",
+        "Expense Transactions",
+        "Total Transactions",
+        "Categories",
+        "Items",
+        "Sources",
+        "First Transaction",
+        "Last Transaction"
+    ];
+
+
+    const csvRows = [
+        headers
+    ];
+
+
+    visibleRows.forEach(function (row) {
+
+        const cells =
+            row.querySelectorAll("td");
+
+
+        if (!cells.length) {
+            return;
+        }
+
+
+        const rank =
+            cells[0]?.innerText
+                .trim() || "";
+
+        const person =
+            cells[1]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const income =
+            cells[2]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const expense =
+            cells[3]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const balance =
+            cells[4]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const transactionStats =
+            cells[5]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const categories =
+            cells[6]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const items =
+            cells[7]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const sources =
+            cells[8]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const firstDate =
+            cells[9]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+        const lastDate =
+            cells[10]?.innerText
+                .trim()
+                .replace(/\s+/g, " ") || "";
+
+
+        const incomeMatch =
+            transactionStats.match(
+                /IN\s+(\d+)/i
+            );
+
+        const expenseMatch =
+            transactionStats.match(
+                /OUT\s+(\d+)/i
+            );
+
+
+        const incomeCount =
+            incomeMatch
+                ? incomeMatch[1]
+                : "";
+
+        const expenseCount =
+            expenseMatch
+                ? expenseMatch[1]
+                : "";
+
+
+        const totalTransactions =
+            (
+                parseInt(incomeCount || 0, 10) +
+                parseInt(expenseCount || 0, 10)
+            ).toString();
+
+
+        csvRows.push([
+            rank,
+            person,
+            income,
+            expense,
+            balance,
+            incomeCount,
+            expenseCount,
+            totalTransactions,
+            categories,
+            items,
+            sources,
+            firstDate,
+            lastDate
+        ]);
+
+    });
+
+
+    const csv =
+        csvRows
+            .map(function (row) {
+
+                return row
+                    .map(function (value) {
+
+                        const text =
+                            String(value ?? "");
+
+                        return '"' +
+                            text
+                                .replace(/"/g, '""') +
+                            '"';
+
+                    })
+                    .join(",");
+
+            })
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            ["\ufeff" + csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    const now =
+        new Date();
+
+
+    const date =
+        now.toISOString()
+            .slice(0, 10);
+
+
+    link.href = url;
+
+    link.download =
+        "person_balances_report_" +
+        date +
+        ".csv";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* ============================================================
+   OPTIONAL: DOUBLE CLICK PERSON FOR DETAILS
+   ============================================================ */
+
+document.addEventListener(
+    "dblclick",
+    function (event) {
+
+        const row =
+            event.target.closest(
+                ".pbr-person-row"
+            );
+
+        if (!row) {
+            return;
+        }
+
+
+        const detailsRow =
+            row.nextElementSibling;
+
+
+        if (
+            !detailsRow ||
+            !detailsRow.classList.contains(
+                "pbr-details-row"
+            )
+        ) {
+            return;
+        }
+
+
+        const isOpen =
+            detailsRow.classList.contains("show");
+
+
+        document
+            .querySelectorAll(".pbr-details-row")
+            .forEach(function (item) {
+
+                item.classList.remove("show");
+                item.style.display = "none";
+
+            });
+
+
+        if (!isOpen) {
+
+            detailsRow.classList.add("show");
+
+            detailsRow.style.display =
+                "table-row";
+
+        }
+
+    }
+);
+</script>
+
+{% endblock %}
+

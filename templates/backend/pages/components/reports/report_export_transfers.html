@@ -1,0 +1,2800 @@
+
+{% extends "backend/home/base.html" %}
+
+{% block title %}Export Transfers Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPORT TRANSFERS REPORT
+   LIGHT ONLY
+   ============================================================ */
+
+:root {
+    --report-primary: #2563eb;
+    --report-primary-dark: #1d4ed8;
+    --report-success: #16a34a;
+    --report-danger: #dc2626;
+    --report-warning: #d97706;
+    --report-info: #0891b2;
+    --report-purple: #7c3aed;
+
+    --report-bg: #f6f8fc;
+    --report-card: #ffffff;
+    --report-border: #e5e7eb;
+    --report-text: #111827;
+    --report-muted: #6b7280;
+    --report-soft: #f8fafc;
+    --report-radius: 16px;
+    --report-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
+}
+
+.transfer-report-wrapper {
+    width: 100%;
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 22px;
+    background: var(--report-bg);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.report-title-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.report-title-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 25px;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, .20);
+}
+
+.report-title h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--report-text);
+}
+
+.report-title p {
+    margin: 5px 0 0;
+    color: var(--report-muted);
+    font-size: 14px;
+}
+
+.report-header-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.report-btn {
+    border: 1px solid var(--report-border);
+    background: #fff;
+    color: #374151;
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.report-btn:hover {
+    transform: translateY(-1px);
+    border-color: #cbd5e1;
+    color: #111827;
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .08);
+}
+
+.report-btn-primary {
+    background: var(--report-primary);
+    color: #fff;
+    border-color: var(--report-primary);
+}
+
+.report-btn-primary:hover {
+    background: var(--report-primary-dark);
+    color: #fff;
+    border-color: var(--report-primary-dark);
+}
+
+.report-btn-success {
+    background: var(--report-success);
+    color: #fff;
+    border-color: var(--report-success);
+}
+
+.report-btn-danger {
+    background: var(--report-danger);
+    color: #fff;
+    border-color: var(--report-danger);
+}
+
+.report-btn-warning {
+    background: var(--report-warning);
+    color: #fff;
+    border-color: var(--report-warning);
+}
+
+/* ============================================================
+   FILTER CARD
+   ============================================================ */
+
+.filter-card {
+    background: var(--report-card);
+    border: 1px solid var(--report-border);
+    border-radius: var(--report-radius);
+    box-shadow: var(--report-shadow);
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.filter-card-header {
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--report-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--report-text);
+}
+
+.filter-card-title i {
+    color: var(--report-primary);
+}
+
+.filter-period-label {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #dbeafe;
+    padding: 6px 11px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.filter-card-body {
+    padding: 20px;
+}
+
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.filter-control {
+    width: 100%;
+    min-height: 43px;
+    border: 1px solid #d1d5db;
+    border-radius: 10px;
+    background: #fff;
+    color: #111827;
+    padding: 9px 12px;
+    font-size: 13px;
+    outline: none;
+    transition: .2s ease;
+}
+
+.filter-control:focus {
+    border-color: var(--report-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+    margin-top: 17px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   QUICK RANGE
+   ============================================================ */
+
+.quick-ranges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eef0f3;
+}
+
+.quick-ranges-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: #6b7280;
+    margin-right: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.quick-range {
+    border: 1px solid #dbe2ea;
+    background: #f8fafc;
+    color: #475569;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.quick-range:hover,
+.quick-range.active {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.summary-card {
+    background: #fff;
+    border: 1px solid var(--report-border);
+    border-radius: var(--report-radius);
+    padding: 18px;
+    box-shadow: var(--report-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::after {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    right: -35px;
+    bottom: -35px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .05);
+}
+
+.summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.summary-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+}
+
+.summary-icon.blue {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.summary-icon.green {
+    background: #f0fdf4;
+    color: #16a34a;
+}
+
+.summary-icon.orange {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.summary-icon.red {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.summary-icon.purple {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+.summary-label {
+    margin-top: 13px;
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.summary-value {
+    margin-top: 4px;
+    color: #111827;
+    font-size: 23px;
+    line-height: 1.2;
+    font-weight: 850;
+}
+
+.summary-sub {
+    margin-top: 6px;
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+/* ============================================================
+   ANALYTICS GRID
+   ============================================================ */
+
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.analytics-card {
+    background: #fff;
+    border: 1px solid var(--report-border);
+    border-radius: var(--report-radius);
+    box-shadow: var(--report-shadow);
+    overflow: hidden;
+}
+
+.analytics-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid #edf0f3;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.analytics-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.analytics-title i {
+    margin-right: 7px;
+    color: #2563eb;
+}
+
+.analytics-body {
+    padding: 15px 18px;
+}
+
+.mini-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mini-table th {
+    text-align: left;
+    padding: 9px 5px;
+    font-size: 11px;
+    color: #6b7280;
+    border-bottom: 1px solid #eef0f3;
+}
+
+.mini-table td {
+    padding: 10px 5px;
+    font-size: 12px;
+    color: #374151;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.mini-table tr:last-child td {
+    border-bottom: none;
+}
+
+.mini-table .amount {
+    text-align: right;
+    font-weight: 800;
+    color: #111827;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.badge-success {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.badge-danger {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.badge-warning {
+    background: #fffbeb;
+    color: #b45309;
+}
+
+.badge-info {
+    background: #ecfeff;
+    color: #0e7490;
+}
+
+.badge-primary {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.badge-purple {
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+
+.empty-mini {
+    padding: 20px 5px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 12px;
+}
+
+/* ============================================================
+   HIGHEST / LOWEST
+   ============================================================ */
+
+.extreme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.extreme-card {
+    background: #fff;
+    border: 1px solid var(--report-border);
+    border-radius: var(--report-radius);
+    padding: 18px;
+    box-shadow: var(--report-shadow);
+}
+
+.extreme-label {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.extreme-value {
+    font-size: 25px;
+    font-weight: 850;
+    color: #111827;
+}
+
+.extreme-info {
+    margin-top: 7px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.extreme-card.highest {
+    border-left: 4px solid #16a34a;
+}
+
+.extreme-card.lowest {
+    border-left: 4px solid #f59e0b;
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.table-card {
+    background: #fff;
+    border: 1px solid var(--report-border);
+    border-radius: var(--report-radius);
+    box-shadow: var(--report-shadow);
+    overflow: hidden;
+}
+
+.table-card-header {
+    padding: 17px 20px;
+    border-bottom: 1px solid var(--report-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.table-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.table-title i {
+    color: #2563eb;
+}
+
+.table-count {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.table-card-body {
+    padding: 15px;
+    overflow-x: auto;
+}
+
+/* ============================================================
+   DATATABLES
+   ============================================================ */
+
+.dataTables_wrapper {
+    width: 100%;
+}
+
+.dataTables_wrapper .dt-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.dataTables_wrapper .dt-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    padding: 7px 10px !important;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #2563eb !important;
+}
+
+.dataTables_wrapper .dt-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.dataTables_wrapper .dt-button {
+    border: 1px solid #dbe2ea !important;
+    background: #fff !important;
+    color: #374151 !important;
+    border-radius: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+}
+
+.dataTables_wrapper .dt-button:hover {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+}
+
+table.dataTable {
+    width: 100% !important;
+    border-collapse: collapse !important;
+}
+
+table.dataTable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    padding: 12px 10px !important;
+    white-space: nowrap;
+}
+
+table.dataTable tbody td {
+    color: #374151 !important;
+    font-size: 12px !important;
+    padding: 12px 10px !important;
+    border-bottom: 1px solid #f1f3f5 !important;
+    vertical-align: middle !important;
+}
+
+table.dataTable tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.transfer-route {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 230px;
+}
+
+.transfer-side {
+    min-width: 85px;
+}
+
+.transfer-name {
+    font-weight: 800;
+    color: #111827;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.transfer-type {
+    margin-top: 3px;
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.route-arrow {
+    color: #2563eb;
+    font-size: 15px;
+}
+
+.amount-cell {
+    text-align: right;
+    font-weight: 850;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.currency {
+    font-size: 10px;
+    color: #6b7280;
+    margin-left: 3px;
+}
+
+.date-cell {
+    white-space: nowrap;
+}
+
+.reference-cell {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.description-cell {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+
+.transfer-modal .modal-content {
+    border: none;
+    border-radius: 17px;
+    overflow: hidden;
+}
+
+.transfer-modal .modal-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 17px 20px;
+}
+
+.transfer-modal .modal-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.transfer-modal .modal-body {
+    padding: 20px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.detail-item {
+    border: 1px solid #eef0f3;
+    background: #f8fafc;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.detail-label {
+    font-size: 10px;
+    color: #6b7280;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+}
+
+.detail-value {
+    margin-top: 5px;
+    font-size: 13px;
+    color: #111827;
+    font-weight: 750;
+    word-break: break-word;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+    .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 1050px) {
+    .analytics-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 750px) {
+    .transfer-report-wrapper {
+        padding: 12px;
+    }
+
+    .report-header {
+        align-items: flex-start;
+    }
+
+    .report-title h1 {
+        font-size: 21px;
+    }
+
+    .report-title-icon {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .filter-grid,
+    .analytics-grid,
+    .summary-grid,
+    .extreme-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-card-body {
+        padding: 14px;
+    }
+
+    .table-card-body {
+        padding: 10px;
+    }
+
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-header-actions {
+        width: 100%;
+    }
+
+    .report-header-actions .report-btn {
+        flex: 1;
+    }
+
+    .dataTables_wrapper .dt-top,
+    .dataTables_wrapper .dt-bottom {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dataTables_wrapper .dt-buttons {
+        width: 100%;
+    }
+
+    .dataTables_wrapper .dt-button {
+        flex: 1;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    .transfer-report-wrapper {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .report-header-actions,
+    .filter-card,
+    .dt-top,
+    .dt-bottom,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_info,
+    .dataTables_paginate,
+    .dt-buttons,
+    .btn,
+    button {
+        display: none !important;
+    }
+
+    .summary-grid {
+        grid-template-columns: repeat(5, 1fr) !important;
+    }
+
+    .analytics-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    .table-card,
+    .analytics-card,
+    .summary-card,
+    .extreme-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+    }
+
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+}
+</style>
+
+
+<div class="transfer-report-wrapper">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="report-header">
+
+        <div class="report-title-area">
+
+            <div class="report-title-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+
+            <div class="report-title">
+                <h1>Export Transfers Report</h1>
+                <p>
+                    Account and saving transfer history, analytics and export tools
+                </p>
+            </div>
+
+        </div>
+
+        <div class="report-header-actions">
+
+            <a
+                href="{{ url_for('main.report_export_transfers', format='csv') }}"
+                class="report-btn report-btn-success"
+                id="headerCsvBtn"
+            >
+                <i class="fas fa-file-csv"></i>
+                CSV
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transfers', format='xlsx') }}"
+                class="report-btn report-btn-primary"
+                id="headerXlsxBtn"
+            >
+                <i class="fas fa-file-excel"></i>
+                Excel
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transfers', format='json') }}"
+                class="report-btn"
+                id="headerJsonBtn"
+            >
+                <i class="fas fa-code"></i>
+                JSON
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="filter-card">
+
+        <div class="filter-card-header">
+
+            <div class="filter-card-title">
+                <i class="fas fa-filter"></i>
+                Transfer Filters
+            </div>
+
+            <div class="filter-period-label">
+                {{ custom_range_label|default('Last 30 Days', true) }}
+            </div>
+
+        </div>
+
+        <div class="filter-card-body">
+
+            <form
+                method="GET"
+                action="{{ url_for('main.report_export_transfers') }}"
+                id="transferFilterForm"
+            >
+
+                <div class="filter-grid">
+
+                    <!-- START DATE -->
+                    <div class="filter-group">
+
+                        <label for="start_date">
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            class="filter-control"
+                            value="{{ start_date_value|default('', true) }}"
+                        >
+
+                    </div>
+
+
+                    <!-- END DATE -->
+                    <div class="filter-group">
+
+                        <label for="end_date">
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            class="filter-control"
+                            value="{{ end_date_value|default('', true) }}"
+                        >
+
+                    </div>
+
+
+                    <!-- FROM ACCOUNT -->
+                    <div class="filter-group">
+
+                        <label for="from_account">
+                            From Account / Saving
+                        </label>
+
+                        <select
+                            id="from_account"
+                            name="from_account"
+                            class="filter-control"
+                        >
+
+                            <option value="">
+                                All Sources
+                            </option>
+
+                            {% for account in account_options|default([], true) %}
+
+                                {% if account is mapping %}
+
+                                    <option
+                                        value="{{ account.id|default(account._id|default('', true), true) }}"
+                                        {% if from_account_filter|default('', true)|string == account.id|default(account._id|default('', true), true)|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ account.name|default('Unnamed Account', true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option
+                                        value="{{ account }}"
+                                        {% if from_account_filter|default('', true)|string == account|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ account }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                            {% for saving in saving_options|default([], true) %}
+
+                                {% if saving is mapping %}
+
+                                    <option
+                                        value="{{ saving.id|default(saving._id|default('', true), true) }}"
+                                        {% if from_account_filter|default('', true)|string == saving.id|default(saving._id|default('', true), true)|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        💰 {{ saving.title|default(saving.name|default('Saving', true), true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option value="{{ saving }}">
+                                        💰 {{ saving }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- TO ACCOUNT -->
+                    <div class="filter-group">
+
+                        <label for="to_account">
+                            To Account / Saving
+                        </label>
+
+                        <select
+                            id="to_account"
+                            name="to_account"
+                            class="filter-control"
+                        >
+
+                            <option value="">
+                                All Destinations
+                            </option>
+
+                            {% for account in account_options|default([], true) %}
+
+                                {% if account is mapping %}
+
+                                    <option
+                                        value="{{ account.id|default(account._id|default('', true), true) }}"
+                                        {% if to_account_filter|default('', true)|string == account.id|default(account._id|default('', true), true)|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ account.name|default('Unnamed Account', true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option value="{{ account }}">
+                                        {{ account }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                            {% for saving in saving_options|default([], true) %}
+
+                                {% if saving is mapping %}
+
+                                    <option
+                                        value="{{ saving.id|default(saving._id|default('', true), true) }}"
+                                        {% if to_account_filter|default('', true)|string == saving.id|default(saving._id|default('', true), true)|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        💰 {{ saving.title|default(saving.name|default('Saving', true), true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option value="{{ saving }}">
+                                        💰 {{ saving }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- ACCOUNT -->
+                    <div class="filter-group">
+
+                        <label for="account">
+                            Account
+                        </label>
+
+                        <select
+                            id="account"
+                            name="account"
+                            class="filter-control"
+                        >
+
+                            <option value="">
+                                All Accounts
+                            </option>
+
+                            {% for account in account_options|default([], true) %}
+
+                                {% if account is mapping %}
+
+                                    <option
+                                        value="{{ account.id|default(account._id|default('', true), true) }}"
+                                        {% if account_filter|default('', true)|string == account.id|default(account._id|default('', true), true)|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ account.name|default('Unnamed Account', true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option
+                                        value="{{ account }}"
+                                        {% if account_filter|default('', true)|string == account|string %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ account }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- TRANSFER TYPE -->
+                    <div class="filter-group">
+
+                        <label for="transfer_type">
+                            Transfer Type
+                        </label>
+
+                        <select
+                            id="transfer_type"
+                            name="transfer_type"
+                            class="filter-control"
+                        >
+
+                            <option value="">
+                                All Transfer Types
+                            </option>
+
+                            {% for transfer_type in transfer_type_options|default([], true) %}
+
+                                {% if transfer_type is mapping %}
+
+                                    <option
+                                        value="{{ transfer_type.value|default(transfer_type.name|default('', true), true) }}"
+                                        {% if transfer_type_filter|default('', true)|lower == transfer_type.value|default(transfer_type.name|default('', true), true)|lower %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ transfer_type.label|default(transfer_type.name|default(transfer_type.value|default('Transfer', true), true), true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option
+                                        value="{{ transfer_type }}"
+                                        {% if transfer_type_filter|default('', true)|lower == transfer_type|string|lower %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ transfer_type }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- STATUS -->
+                    <div class="filter-group">
+
+                        <label for="status">
+                            Status
+                        </label>
+
+                        <select
+                            id="status"
+                            name="status"
+                            class="filter-control"
+                        >
+
+                            <option value="">
+                                All Statuses
+                            </option>
+
+                            {% for status in status_options|default([], true) %}
+
+                                {% if status is mapping %}
+
+                                    <option
+                                        value="{{ status.value|default(status.name|default('', true), true) }}"
+                                        {% if status_filter|default('', true)|lower == status.value|default(status.name|default('', true), true)|lower %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ status.label|default(status.name|default(status.value|default('Status', true), true), true) }}
+                                    </option>
+
+                                {% else %}
+
+                                    <option
+                                        value="{{ status }}"
+                                        {% if status_filter|default('', true)|lower == status|string|lower %}
+                                            selected
+                                        {% endif %}
+                                    >
+                                        {{ status }}
+                                    </option>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- SEARCH -->
+                    <div class="filter-group">
+
+                        <label for="search">
+                            Search
+                        </label>
+
+                        <input
+                            type="text"
+                            id="search"
+                            name="search"
+                            class="filter-control"
+                            placeholder="Reference, description, account..."
+                            value="{{ search_filter|default('', true) }}"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="filter-actions">
+
+                    <button
+                        type="submit"
+                        class="report-btn report-btn-primary"
+                    >
+                        <i class="fas fa-search"></i>
+                        Apply Filters
+                    </button>
+
+                    <a
+                        href="{{ url_for('main.report_export_transfers') }}"
+                        class="report-btn"
+                    >
+                        <i class="fas fa-redo"></i>
+                        Reset
+                    </a>
+
+                </div>
+
+            </form>
+
+
+            <!-- QUICK RANGES -->
+
+            <div class="quick-ranges">
+
+                <span class="quick-ranges-title">
+                    <i class="fas fa-bolt"></i>
+                    Quick Range:
+                </span>
+
+                <button
+                    type="button"
+                    class="quick-range"
+                    data-days="7"
+                >
+                    7 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="quick-range"
+                    data-days="30"
+                >
+                    30 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="quick-range"
+                    data-days="90"
+                >
+                    90 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="quick-range"
+                    data-days="180"
+                >
+                    6 Months
+                </button>
+
+                <button
+                    type="button"
+                    class="quick-range"
+                    data-days="365"
+                >
+                    1 Year
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="summary-grid">
+
+        <!-- TOTAL TRANSFERS -->
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-icon blue">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-label">
+                Total Transfers
+            </div>
+
+            <div class="summary-value">
+                {{ total_transfers|default(0, true) }}
+            </div>
+
+            <div class="summary-sub">
+                Transactions in selected period
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL AMOUNT -->
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-icon green">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-label">
+                Transfer Amount
+            </div>
+
+            <div class="summary-value">
+                {{ "{:,.2f}".format(total_transfer_amount|default(0, true)|float) }}
+            </div>
+
+            <div class="summary-sub">
+                Combined transfer amount
+            </div>
+
+        </div>
+
+
+        <!-- AVERAGE -->
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-icon purple">
+                    <i class="fas fa-calculator"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-label">
+                Average Transfer
+            </div>
+
+            <div class="summary-value">
+                {{ "{:,.2f}".format(average_transfer|default(0, true)|float) }}
+            </div>
+
+            <div class="summary-sub">
+                Average per transfer
+            </div>
+
+        </div>
+
+
+        <!-- ACTIVE -->
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-icon green">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-label">
+                Active / Completed
+            </div>
+
+            <div class="summary-value">
+                {{ active_transfers|default(0, true) }}
+            </div>
+
+            <div class="summary-sub">
+                Successful transfers
+            </div>
+
+        </div>
+
+
+        <!-- INACTIVE -->
+        <div class="summary-card">
+
+            <div class="summary-top">
+
+                <div class="summary-icon red">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+
+            </div>
+
+            <div class="summary-label">
+                Inactive
+            </div>
+
+            <div class="summary-value">
+                {{ inactive_transfers|default(0, true) }}
+            </div>
+
+            <div class="summary-sub">
+                Cancelled / inactive
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         HIGHEST / LOWEST
+         ======================================================== -->
+
+    <div class="extreme-grid">
+
+        <div class="extreme-card highest">
+
+            <div class="extreme-label">
+                <i class="fas fa-arrow-up"></i>
+                Highest Transfer
+            </div>
+
+            {% set highest = highest_transfer|default({}, true) %}
+
+            <div class="extreme-value">
+                {{ "{:,.2f}".format(highest.amount|default(0, true)|float) }}
+                <small>
+                    {{ highest.currency|default('', true) }}
+                </small>
+            </div>
+
+            <div class="extreme-info">
+                {{ highest.from_name|default('Unknown', true) }}
+                →
+                {{ highest.to_name|default('Unknown', true) }}
+
+                {% if highest.date %}
+                    · {{ highest.date }}
+                {% endif %}
+            </div>
+
+        </div>
+
+
+        <div class="extreme-card lowest">
+
+            <div class="extreme-label">
+                <i class="fas fa-arrow-down"></i>
+                Lowest Transfer
+            </div>
+
+            {% set lowest = lowest_transfer|default({}, true) %}
+
+            <div class="extreme-value">
+                {{ "{:,.2f}".format(lowest.amount|default(0, true)|float) }}
+                <small>
+                    {{ lowest.currency|default('', true) }}
+                </small>
+            </div>
+
+            <div class="extreme-info">
+                {{ lowest.from_name|default('Unknown', true) }}
+                →
+                {{ lowest.to_name|default('Unknown', true) }}
+
+                {% if lowest.date %}
+                    · {{ lowest.date }}
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ANALYTICS
+         ======================================================== -->
+
+    <div class="analytics-grid">
+
+        <!-- TRANSFER TYPES -->
+
+        <div class="analytics-card">
+
+            <div class="analytics-header">
+
+                <div class="analytics-title">
+                    <i class="fas fa-layer-group"></i>
+                    Transfer Types
+                </div>
+
+            </div>
+
+            <div class="analytics-body">
+
+                {% set type_rows = transfer_type_summary|default([], true) %}
+
+                {% if type_rows %}
+
+                    <table class="mini-table">
+
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Count</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        {% for row in type_rows[:10] %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row["type"]|default(row["name"]|default('Transfer', true), true) }}
+                                </td>
+
+                                <td>
+                                    {{ row["count"]|default(0, true) }}
+                                </td>
+
+                                <td class="amount">
+                                    {{ "{:,.2f}".format(row["amount"]|default(0, true)|float) }}
+                                    {{ row["currency"]|default('', true) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                {% else %}
+
+                    <div class="empty-mini">
+                        No transfer type data available.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- CURRENCIES -->
+
+        <div class="analytics-card">
+
+            <div class="analytics-header">
+
+                <div class="analytics-title">
+                    <i class="fas fa-coins"></i>
+                    Currency Summary
+                </div>
+
+            </div>
+
+            <div class="analytics-body">
+
+                {% set currency_rows = currency_summary|default([], true) %}
+
+                {% if currency_rows %}
+
+                    <table class="mini-table">
+
+                        <thead>
+                            <tr>
+                                <th>Currency</th>
+                                <th>Count</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        {% for row in currency_rows[:10] %}
+
+                            <tr>
+
+                                <td>
+                                    <span class="badge badge-primary">
+                                        {{ row["currency"]|default('N/A', true) }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    {{ row["count"]|default(0, true) }}
+                                </td>
+
+                                <td class="amount">
+                                    {{ "{:,.2f}".format(row["amount"]|default(0, true)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                {% else %}
+
+                    <div class="empty-mini">
+                        No currency data available.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ROUTES -->
+
+        <div class="analytics-card">
+
+            <div class="analytics-header">
+
+                <div class="analytics-title">
+                    <i class="fas fa-route"></i>
+                    Transfer Routes
+                </div>
+
+            </div>
+
+            <div class="analytics-body">
+
+                {% set route_rows = route_summary|default([], true) %}
+
+                {% if route_rows %}
+
+                    <table class="mini-table">
+
+                        <thead>
+                            <tr>
+                                <th>Route</th>
+                                <th>Count</th>
+                                <th>Amount</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        {% for row in route_rows[:10] %}
+
+                            <tr>
+
+                                <td>
+                                    {{ row["route"]|default(row["name"]|default('Unknown', true), true) }}
+                                </td>
+
+                                <td>
+                                    {{ row["count"]|default(0, true) }}
+                                </td>
+
+                                <td class="amount">
+                                    {{ "{:,.2f}".format(row["amount"]|default(0, true)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                {% else %}
+
+                    <div class="empty-mini">
+                        No route data available.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FULL TRANSFERS TABLE
+         ======================================================== -->
+
+    <div class="table-card">
+
+        <div class="table-card-header">
+
+            <div>
+
+                <div class="table-title">
+                    <i class="fas fa-list"></i>
+                    Transfer History
+                </div>
+
+                <div class="table-count">
+                    {{ total_transfers|default(0, true) }} transfer(s) found
+                </div>
+
+            </div>
+
+            <div>
+
+                <button
+                    type="button"
+                    class="report-btn"
+                    onclick="window.print()"
+                >
+                    <i class="fas fa-print"></i>
+                    Print Report
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-card-body">
+
+            {% set rows = financial_transfers|default(transfers|default(transfer_rows|default([], true), true), true) %}
+
+            <table
+                id="transfersTable"
+                class="display responsive nowrap"
+                style="width:100%"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Transfer Route</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Currency</th>
+
+                        <th>Status</th>
+
+                        <th>Reference</th>
+
+                        <th>Description</th>
+
+                        <th>Action</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                {% for row in rows %}
+
+                    {% set row_index = loop.index %}
+
+                    <tr>
+
+                        <!-- INDEX -->
+
+                        <td>
+                            {{ row_index }}
+                        </td>
+
+
+                        <!-- DATE -->
+
+                        <td class="date-cell">
+
+                            {% if row.date %}
+                                {{ row.date }}
+                            {% elif row.transfer_date %}
+                                {{ row.transfer_date }}
+                            {% else %}
+                                —
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- ROUTE -->
+
+                        <td>
+
+                            <div class="transfer-route">
+
+                                <div class="transfer-side">
+
+                                    <div
+                                        class="transfer-name"
+                                        title="{{ row.from_name|default(row.from_account_name|default('Unknown', true), true) }}"
+                                    >
+                                        {{ row.from_name|default(row.from_account_name|default('Unknown', true), true) }}
+                                    </div>
+
+                                    <div class="transfer-type">
+                                        {{ row.from_type|default('', true) }}
+                                    </div>
+
+                                </div>
+
+                                <div class="route-arrow">
+                                    <i class="fas fa-long-arrow-alt-right"></i>
+                                </div>
+
+                                <div class="transfer-side">
+
+                                    <div
+                                        class="transfer-name"
+                                        title="{{ row.to_name|default(row.to_account_name|default('Unknown', true), true) }}"
+                                    >
+                                        {{ row.to_name|default(row.to_account_name|default('Unknown', true), true) }}
+                                    </div>
+
+                                    <div class="transfer-type">
+                                        {{ row.to_type|default('', true) }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- TYPE -->
+
+                        <td>
+
+                            {% set row_type = row.transfer_type|default(row.type|default('Transfer', true), true) %}
+
+                            {% if 'account' in row_type|string|lower and 'saving' in row_type|string|lower %}
+
+                                <span class="badge badge-purple">
+                                    {{ row_type }}
+                                </span>
+
+                            {% elif 'account' in row_type|string|lower %}
+
+                                <span class="badge badge-primary">
+                                    {{ row_type }}
+                                </span>
+
+                            {% elif 'saving' in row_type|string|lower %}
+
+                                <span class="badge badge-success">
+                                    {{ row_type }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge badge-info">
+                                    {{ row_type }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- AMOUNT -->
+
+                        <td class="amount-cell">
+
+                            {{ "{:,.2f}".format(row.amount|default(0, true)|float) }}
+
+                        </td>
+
+
+                        <!-- CURRENCY -->
+
+                        <td>
+
+                            <span class="badge badge-primary">
+                                {{ row.currency|default('N/A', true) }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- STATUS -->
+
+                        <td>
+
+                            {% set row_status = row.status|default('Active', true)|string %}
+
+                            {% if row_status|lower in ['active', 'completed', 'success', 'successful', 'true', '1'] %}
+
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    {{ row_status }}
+                                </span>
+
+                            {% elif row_status|lower in ['pending', 'processing', 'waiting'] %}
+
+                                <span class="badge badge-warning">
+                                    <i class="fas fa-clock"></i>
+                                    {{ row_status }}
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge badge-danger">
+                                    <i class="fas fa-times-circle"></i>
+                                    {{ row_status }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- REFERENCE -->
+
+                        <td>
+
+                            <div
+                                class="reference-cell"
+                                title="{{ row.reference|default(row.reference_no|default('', true), true) }}"
+                            >
+                                {{ row.reference|default(row.reference_no|default('—', true), true) }}
+                            </div>
+
+                        </td>
+
+
+                        <!-- DESCRIPTION -->
+
+                        <td>
+
+                            <div
+                                class="description-cell"
+                                title="{{ row.description|default(row.note|default('', true), true) }}"
+                            >
+                                {{ row.description|default(row.note|default('—', true), true) }}
+                            </div>
+
+                        </td>
+
+
+                        <!-- ACTION -->
+
+                        <td>
+
+                            <button
+                                type="button"
+                                class="report-btn"
+                                onclick="showTransferDetails(this)"
+                                data-transfer='{{ row|tojson|safe }}'
+                                title="View details"
+                            >
+                                <i class="fas fa-eye"></i>
+                            </button>
+
+                        </td>
+
+                    </tr>
+
+                {% else %}
+
+                    <tr>
+
+                        <td colspan="10" style="text-align:center; padding:40px;">
+
+                            <div style="color:#9ca3af;">
+
+                                <i
+                                    class="fas fa-exchange-alt"
+                                    style="font-size:35px; margin-bottom:12px;"
+                                ></i>
+
+                                <div style="font-weight:800; color:#6b7280;">
+                                    No transfers found
+                                </div>
+
+                                <div style="font-size:12px; margin-top:5px;">
+                                    Try changing your filters or date range.
+                                </div>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     TRANSFER DETAILS MODAL
+     ============================================================ -->
+
+<div
+    class="modal fade transfer-modal"
+    id="transferDetailsModal"
+    tabindex="-1"
+    aria-hidden="true"
+>
+
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    Transfer Details
+                </h5>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"
+                ></button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="detail-grid">
+
+                    <div class="detail-item">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value" id="detailDate">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Transfer Type</div>
+                        <div class="detail-value" id="detailType">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">From</div>
+                        <div class="detail-value" id="detailFrom">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">To</div>
+                        <div class="detail-value" id="detailTo">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Amount</div>
+                        <div class="detail-value" id="detailAmount">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Currency</div>
+                        <div class="detail-value" id="detailCurrency">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value" id="detailStatus">—</div>
+                    </div>
+
+                    <div class="detail-item">
+                        <div class="detail-label">Reference</div>
+                        <div class="detail-value" id="detailReference">—</div>
+                    </div>
+
+                    <div
+                        class="detail-item"
+                        style="grid-column:1/-1;"
+                    >
+                        <div class="detail-label">Description</div>
+                        <div class="detail-value" id="detailDescription">—</div>
+                    </div>
+
+                    <div
+                        class="detail-item"
+                        style="grid-column:1/-1;"
+                    >
+                        <div class="detail-label">Note</div>
+                        <div class="detail-value" id="detailNote">—</div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ========================================================
+       QUICK DATE RANGE
+       ======================================================== */
+
+    const startInput = document.getElementById("start_date");
+    const endInput = document.getElementById("end_date");
+    const filterForm = document.getElementById("transferFilterForm");
+
+    document.querySelectorAll(".quick-range").forEach(function (button) {
+
+        button.addEventListener("click", function () {
+
+            const days = parseInt(this.dataset.days || "30", 10);
+
+            const end = new Date();
+            const start = new Date();
+
+            start.setDate(end.getDate() - (days - 1));
+
+            function formatDate(date) {
+
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, "0");
+                const day = String(date.getDate()).padStart(2, "0");
+
+                return `${year}-${month}-${day}`;
+            }
+
+            startInput.value = formatDate(start);
+            endInput.value = formatDate(end);
+
+            document.querySelectorAll(".quick-range").forEach(function (btn) {
+                btn.classList.remove("active");
+            });
+
+            this.classList.add("active");
+
+            filterForm.submit();
+
+        });
+
+    });
+
+
+    /* ========================================================
+       DATE VALIDATION
+       ======================================================== */
+
+    filterForm.addEventListener("submit", function (event) {
+
+        if (
+            startInput.value &&
+            endInput.value &&
+            startInput.value > endInput.value
+        ) {
+
+            event.preventDefault();
+
+            alert("Start Date cannot be later than End Date.");
+
+            endInput.focus();
+
+            return false;
+        }
+
+    });
+
+
+    /* ========================================================
+       PRESERVE FILTERS FOR EXPORT LINKS
+       ======================================================== */
+
+    function updateExportLinks() {
+
+        const params = new URLSearchParams();
+
+        const fields = [
+            "start_date",
+            "end_date",
+            "from_account",
+            "to_account",
+            "account",
+            "transfer_type",
+            "status",
+            "search"
+        ];
+
+        fields.forEach(function (field) {
+
+            const element = document.getElementById(field);
+
+            if (element && element.value) {
+                params.set(field, element.value);
+            }
+
+        });
+
+
+        const csvBtn = document.getElementById("headerCsvBtn");
+        const xlsxBtn = document.getElementById("headerXlsxBtn");
+        const jsonBtn = document.getElementById("headerJsonBtn");
+
+        const baseUrl = "{{ url_for('main.report_export_transfers') }}";
+
+        if (csvBtn) {
+            csvBtn.href = baseUrl + "?format=csv&" + params.toString();
+        }
+
+        if (xlsxBtn) {
+            xlsxBtn.href = baseUrl + "?format=xlsx&" + params.toString();
+        }
+
+        if (jsonBtn) {
+            jsonBtn.href = baseUrl + "?format=json&" + params.toString();
+        }
+
+    }
+
+
+    [
+        "start_date",
+        "end_date",
+        "from_account",
+        "to_account",
+        "account",
+        "transfer_type",
+        "status",
+        "search"
+    ].forEach(function (field) {
+
+        const element = document.getElementById(field);
+
+        if (element) {
+            element.addEventListener("change", updateExportLinks);
+            element.addEventListener("input", updateExportLinks);
+        }
+
+    });
+
+
+    updateExportLinks();
+
+});
+</script>
+
+
+<!-- ============================================================
+     DATATABLES
+     ============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"
+>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+
+<script>
+$(document).ready(function () {
+
+    const table = $("#transfersTable").DataTable({
+
+        responsive: true,
+
+        autoWidth: false,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 15, 25, 50, 100, -1],
+            [10, 15, 25, 50, 100, "All"]
+        ],
+
+        order: [
+            [1, "desc"]
+        ],
+
+        dom:
+            '<"dt-top"lfB>' +
+            'rt' +
+            '<"dt-bottom"ip>',
+
+        buttons: [
+
+            {
+                extend: "copy",
+                text: '<i class="fas fa-copy"></i> Copy',
+                title: "Transfer History"
+            },
+
+            {
+                extend: "csv",
+                text: '<i class="fas fa-file-csv"></i> CSV',
+                title: "Transfer History"
+            },
+
+            {
+                extend: "excel",
+                text: '<i class="fas fa-file-excel"></i> Excel',
+                title: "Transfer History"
+            },
+
+            {
+                extend: "pdf",
+                text: '<i class="fas fa-file-pdf"></i> PDF',
+                title: "Transfer History",
+                orientation: "landscape",
+                pageSize: "A4"
+            },
+
+            {
+                extend: "print",
+                text: '<i class="fas fa-print"></i> Print',
+                title: "Transfer History"
+            },
+
+            {
+                text: '<i class="fas fa-code"></i> JSON',
+
+                action: function (event, dt) {
+
+                    const data = dt
+                        .rows({
+                            search: "applied"
+                        })
+                        .data()
+                        .toArray();
+
+                    const json = JSON.stringify(
+                        data,
+                        null,
+                        2
+                    );
+
+                    const blob = new Blob(
+                        [json],
+                        {
+                            type: "application/json;charset=utf-8"
+                        }
+                    );
+
+                    const url =
+                        URL.createObjectURL(blob);
+
+                    const a =
+                        document.createElement("a");
+
+                    a.href = url;
+
+                    a.download =
+                        "transfer-history.json";
+
+                    document.body.appendChild(a);
+
+                    a.click();
+
+                    document.body.removeChild(a);
+
+                    URL.revokeObjectURL(url);
+
+                }
+
+            }
+
+        ],
+
+        columnDefs: [
+
+            {
+                targets: [0, 9],
+                orderable: false
+            },
+
+            {
+                targets: [4],
+                className: "amount-cell"
+            }
+
+        ],
+
+        language: {
+
+            search: "Search transfers:",
+
+            lengthMenu:
+                "Show _MENU_ transfers",
+
+            info:
+                "Showing _START_ to _END_ of _TOTAL_ transfers",
+
+            infoEmpty:
+                "No transfers available",
+
+            zeroRecords:
+                "No matching transfers found",
+
+            emptyTable:
+                "No transfer records available",
+
+            paginate: {
+                first: "First",
+                last: "Last",
+                next: "Next",
+                previous: "Previous"
+            }
+
+        }
+
+    });
+
+});
+</script>
+
+
+<!-- ============================================================
+     TRANSFER DETAILS JS
+     ============================================================ -->
+
+<script>
+function showTransferDetails(button) {
+
+    let rawData = button.getAttribute("data-transfer");
+
+    if (!rawData) {
+        return;
+    }
+
+    let data = {};
+
+    try {
+        data = JSON.parse(rawData);
+    } catch (error) {
+
+        console.error(
+            "Unable to parse transfer data:",
+            error
+        );
+
+        return;
+    }
+
+
+    function value(primary, secondary, fallback) {
+
+        if (
+            data[primary] !== undefined &&
+            data[primary] !== null &&
+            data[primary] !== ""
+        ) {
+            return data[primary];
+        }
+
+        if (
+            secondary &&
+            data[secondary] !== undefined &&
+            data[secondary] !== null &&
+            data[secondary] !== ""
+        ) {
+            return data[secondary];
+        }
+
+        return fallback || "—";
+    }
+
+
+    const amount =
+        parseFloat(
+            value("amount", null, 0)
+        ) || 0;
+
+    const currency =
+        value("currency", null, "");
+
+    document.getElementById("detailDate").textContent =
+        value(
+            "date",
+            "transfer_date",
+            "—"
+        );
+
+    document.getElementById("detailType").textContent =
+        value(
+            "transfer_type",
+            "type",
+            "Transfer"
+        );
+
+    document.getElementById("detailFrom").textContent =
+        value(
+            "from_name",
+            "from_account_name",
+            "Unknown"
+        );
+
+    document.getElementById("detailTo").textContent =
+        value(
+            "to_name",
+            "to_account_name",
+            "Unknown"
+        );
+
+    document.getElementById("detailAmount").textContent =
+        amount.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+    document.getElementById("detailCurrency").textContent =
+        currency || "N/A";
+
+    document.getElementById("detailStatus").textContent =
+        value(
+            "status",
+            null,
+            "Active"
+        );
+
+    document.getElementById("detailReference").textContent =
+        value(
+            "reference",
+            "reference_no",
+            "—"
+        );
+
+    document.getElementById("detailDescription").textContent =
+        value(
+            "description",
+            null,
+            "—"
+        );
+
+    document.getElementById("detailNote").textContent =
+        value(
+            "note",
+            null,
+            "—"
+        );
+
+
+    /* Bootstrap 5 */
+
+    const modalElement =
+        document.getElementById(
+            "transferDetailsModal"
+        );
+
+    if (
+        typeof bootstrap !== "undefined" &&
+        bootstrap.Modal
+    ) {
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+
+    }
+
+}
+</script>
+
+{% endblock %}
+

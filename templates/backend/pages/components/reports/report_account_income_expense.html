@@ -1,0 +1,3080 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Account Income & Expense Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   ACCOUNT INCOME & EXPENSE REPORT
+   ============================================================ */
+
+:root {
+    --aie-primary: #2563eb;
+    --aie-primary-dark: #1d4ed8;
+    --aie-success: #16a34a;
+    --aie-success-light: #dcfce7;
+    --aie-danger: #dc2626;
+    --aie-danger-light: #fee2e2;
+    --aie-warning: #d97706;
+    --aie-warning-light: #fef3c7;
+    --aie-dark: #0f172a;
+    --aie-muted: #64748b;
+    --aie-border: #e2e8f0;
+    --aie-bg: #f8fafc;
+    --aie-white: #ffffff;
+    --aie-radius: 16px;
+    --aie-shadow: 0 8px 25px rgba(15, 23, 42, 0.07);
+}
+
+/* ============================================================
+   WRAPPER
+   ============================================================ */
+
+.aie-report {
+    width: 100%;
+    padding: 20px;
+    background: var(--aie-bg);
+    min-height: 100vh;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.aie-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.aie-title-area {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.aie-title-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--aie-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--aie-shadow);
+}
+
+.aie-title-icon i {
+    width: 25px;
+    height: 25px;
+}
+
+.aie-title-area h1 {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    color: var(--aie-dark);
+}
+
+.aie-title-area p {
+    margin: 4px 0 0;
+    color: var(--aie-muted);
+    font-size: 13px;
+}
+
+.aie-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.aie-btn {
+    border: 1px solid var(--aie-border);
+    background: white;
+    color: var(--aie-dark);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.aie-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+}
+
+.aie-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.aie-btn.primary {
+    background: var(--aie-primary);
+    color: white;
+    border-color: var(--aie-primary);
+}
+
+.aie-btn.success {
+    background: var(--aie-success);
+    color: white;
+    border-color: var(--aie-success);
+}
+
+/* ============================================================
+   BREADCRUMB
+   ============================================================ */
+
+.aie-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--aie-muted);
+    font-size: 12px;
+    margin-bottom: 18px;
+}
+
+.aie-breadcrumb a {
+    color: var(--aie-primary);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.aie-breadcrumb i {
+    width: 13px;
+    height: 13px;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.aie-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.aie-kpi {
+    background: white;
+    border: 1px solid var(--aie-border);
+    border-radius: var(--aie-radius);
+    padding: 18px;
+    box-shadow: var(--aie-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.aie-kpi::after {
+    content: "";
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    right: -28px;
+    bottom: -28px;
+    background: rgba(37, 99, 235, .06);
+}
+
+.aie-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.aie-kpi-label {
+    font-size: 11px;
+    color: var(--aie-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 800;
+}
+
+.aie-kpi-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.aie-kpi-icon.blue {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.aie-kpi-icon.green {
+    background: var(--aie-success-light);
+    color: var(--aie-success);
+}
+
+.aie-kpi-icon.red {
+    background: var(--aie-danger-light);
+    color: var(--aie-danger);
+}
+
+.aie-kpi-icon.orange {
+    background: var(--aie-warning-light);
+    color: var(--aie-warning);
+}
+
+.aie-kpi-icon i {
+    width: 17px;
+    height: 17px;
+}
+
+.aie-kpi-value {
+    margin-top: 12px;
+    font-size: 22px;
+    font-weight: 850;
+    color: var(--aie-dark);
+    word-break: break-word;
+}
+
+.aie-kpi-sub {
+    margin-top: 5px;
+    color: var(--aie-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.aie-panel {
+    background: white;
+    border: 1px solid var(--aie-border);
+    border-radius: var(--aie-radius);
+    box-shadow: var(--aie-shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.aie-panel-header {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--aie-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.aie-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--aie-dark);
+}
+
+.aie-panel-title i {
+    width: 18px;
+    height: 18px;
+    color: var(--aie-primary);
+}
+
+.aie-panel-body {
+    padding: 18px;
+}
+
+.aie-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.3fr 1fr 1.2fr auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.aie-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aie-field label {
+    font-size: 11px;
+    color: var(--aie-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.aie-field select,
+.aie-field input {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--aie-border);
+    border-radius: 10px;
+    background: white;
+    color: var(--aie-dark);
+    font-size: 13px;
+    outline: none;
+}
+
+.aie-field select:focus,
+.aie-field input:focus {
+    border-color: var(--aie-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.aie-reset {
+    height: 42px;
+    border: 1px solid var(--aie-border);
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    justify-content: center;
+}
+
+.aie-reset i {
+    width: 15px;
+    height: 15px;
+}
+
+/* ============================================================
+   HIGHLIGHTS
+   ============================================================ */
+
+.aie-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.aie-highlight {
+    background: white;
+    border: 1px solid var(--aie-border);
+    border-radius: var(--aie-radius);
+    box-shadow: var(--aie-shadow);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.aie-highlight.income {
+    border-top: 4px solid var(--aie-success);
+}
+
+.aie-highlight.expense {
+    border-top: 4px solid var(--aie-danger);
+}
+
+.aie-highlight.net {
+    border-top: 4px solid var(--aie-primary);
+}
+
+.aie-highlight-label {
+    font-size: 11px;
+    color: var(--aie-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.aie-highlight-name {
+    margin-top: 10px;
+    font-size: 18px;
+    font-weight: 850;
+    color: var(--aie-dark);
+    overflow-wrap: anywhere;
+}
+
+.aie-highlight-amount {
+    margin-top: 5px;
+    font-size: 25px;
+    font-weight: 900;
+}
+
+.aie-highlight.income .aie-highlight-amount {
+    color: var(--aie-success);
+}
+
+.aie-highlight.expense .aie-highlight-amount {
+    color: var(--aie-danger);
+}
+
+.aie-highlight.net .aie-highlight-amount {
+    color: var(--aie-primary);
+}
+
+.aie-highlight-meta {
+    margin-top: 9px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+.aie-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.aie-chip i {
+    width: 12px;
+    height: 12px;
+}
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+
+.aie-comparison {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.aie-flow-card {
+    background: white;
+    border: 1px solid var(--aie-border);
+    border-radius: var(--aie-radius);
+    box-shadow: var(--aie-shadow);
+    padding: 20px;
+}
+
+.aie-flow-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.aie-flow-head h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 850;
+    color: var(--aie-dark);
+}
+
+.aie-flow-head span {
+    font-size: 11px;
+    color: var(--aie-muted);
+}
+
+.aie-flow-row {
+    margin-bottom: 17px;
+}
+
+.aie-flow-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+}
+
+.aie-flow-label strong {
+    font-size: 12px;
+    color: var(--aie-dark);
+}
+
+.aie-flow-label span {
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.aie-flow-track {
+    height: 11px;
+    background: #eef2f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.aie-flow-fill {
+    height: 100%;
+    border-radius: 999px;
+    min-width: 2px;
+}
+
+.aie-flow-fill.income {
+    background: var(--aie-success);
+}
+
+.aie-flow-fill.expense {
+    background: var(--aie-danger);
+}
+
+.aie-flow-fill.net {
+    background: var(--aie-primary);
+}
+
+.aie-summary-box {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.aie-summary-item {
+    padding: 14px;
+    background: #f8fafc;
+    border: 1px solid var(--aie-border);
+    border-radius: 12px;
+}
+
+.aie-summary-item small {
+    display: block;
+    color: var(--aie-muted);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.aie-summary-item strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 18px;
+    color: var(--aie-dark);
+}
+
+.aie-status-strip {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #eff6ff;
+    color: #1e40af;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.aie-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.aie-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1150px;
+}
+
+.aie-table thead th {
+    background: #f8fafc;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-size: 10px;
+    font-weight: 850;
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--aie-border);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.aie-table tbody td {
+    padding: 14px 12px;
+    border-bottom: 1px solid #eef2f7;
+    font-size: 12px;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.aie-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.aie-rank {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.aie-account-name {
+    font-weight: 850;
+    color: var(--aie-dark);
+    font-size: 13px;
+}
+
+.aie-account-meta {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--aie-muted);
+}
+
+.aie-money {
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.aie-money.income {
+    color: var(--aie-success);
+}
+
+.aie-money.expense {
+    color: var(--aie-danger);
+}
+
+.aie-money.net-positive {
+    color: var(--aie-success);
+}
+
+.aie-money.net-negative {
+    color: var(--aie-danger);
+}
+
+.aie-money.zero {
+    color: var(--aie-muted);
+}
+
+.aie-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.aie-badge.active {
+    background: var(--aie-success-light);
+    color: #166534;
+}
+
+.aie-badge.inactive {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.aie-badge.income {
+    background: var(--aie-success-light);
+    color: #166534;
+}
+
+.aie-badge.expense {
+    background: var(--aie-danger-light);
+    color: #991b1b;
+}
+
+.aie-count {
+    font-weight: 800;
+    color: var(--aie-dark);
+}
+
+.aie-progress {
+    width: 100px;
+}
+
+.aie-progress-track {
+    height: 7px;
+    background: #eef2f7;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.aie-progress-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--aie-primary);
+}
+
+.aie-progress-label {
+    margin-top: 4px;
+    font-size: 9px;
+    color: var(--aie-muted);
+}
+
+/* ============================================================
+   TWO COLUMN SECTIONS
+   ============================================================ */
+
+.aie-two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.aie-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.aie-list-item {
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 11px;
+    border: 1px solid var(--aie-border);
+    border-radius: 11px;
+    background: #fff;
+}
+
+.aie-list-rank {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: #eff6ff;
+    color: var(--aie-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.aie-list-name {
+    font-size: 12px;
+    font-weight: 850;
+    color: var(--aie-dark);
+}
+
+.aie-list-meta {
+    margin-top: 3px;
+    color: var(--aie-muted);
+    font-size: 9px;
+}
+
+.aie-list-value {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 900;
+}
+
+.aie-list-value.income {
+    color: var(--aie-success);
+}
+
+.aie-list-value.expense {
+    color: var(--aie-danger);
+}
+
+/* ============================================================
+   TYPE BREAKDOWN
+   ============================================================ */
+
+.aie-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.aie-type-card {
+    border: 1px solid var(--aie-border);
+    border-radius: 12px;
+    padding: 15px;
+    background: #fff;
+}
+
+.aie-type-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.aie-type-name {
+    font-size: 13px;
+    font-weight: 850;
+    color: var(--aie-dark);
+}
+
+.aie-type-count {
+    font-size: 10px;
+    color: var(--aie-muted);
+    font-weight: 700;
+}
+
+.aie-type-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+    margin-top: 13px;
+}
+
+.aie-type-stat {
+    padding: 8px;
+    background: #f8fafc;
+    border-radius: 8px;
+}
+
+.aie-type-stat small {
+    display: block;
+    font-size: 9px;
+    color: var(--aie-muted);
+}
+
+.aie-type-stat strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--aie-dark);
+}
+
+.aie-type-income {
+    color: var(--aie-success) !important;
+}
+
+.aie-type-expense {
+    color: var(--aie-danger) !important;
+}
+
+/* ============================================================
+   LAST ACTIVITY
+   ============================================================ */
+
+.aie-last-activity {
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.aie-last-activity strong {
+    display: block;
+    color: var(--aie-dark);
+    font-size: 11px;
+}
+
+.aie-last-activity span {
+    color: var(--aie-muted);
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.aie-empty {
+    padding: 45px 20px;
+    text-align: center;
+    color: var(--aie-muted);
+}
+
+.aie-empty-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 15px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+}
+
+.aie-empty-icon i {
+    width: 25px;
+    height: 25px;
+}
+
+.aie-empty h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--aie-dark);
+}
+
+.aie-empty p {
+    margin: 6px 0 0;
+    font-size: 12px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.aie-footer {
+    padding: 15px 4px 5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: var(--aie-muted);
+    font-size: 10px;
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: white !important;
+    }
+
+    .aie-report {
+        padding: 0;
+        background: white;
+    }
+
+    .aie-actions,
+    .aie-filter-panel,
+    .no-print,
+    nav,
+    aside,
+    header {
+        display: none !important;
+    }
+
+    .aie-panel,
+    .aie-kpi,
+    .aie-highlight,
+    .aie-flow-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .aie-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .aie-highlight-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .aie-comparison,
+    .aie-two-col {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .aie-table {
+        min-width: 0;
+    }
+
+    .aie-table thead th,
+    .aie-table tbody td {
+        font-size: 8px;
+        padding: 7px 5px;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1300px) {
+
+    .aie-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .aie-filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 950px) {
+
+    .aie-highlight-grid,
+    .aie-comparison,
+    .aie-two-col {
+        grid-template-columns: 1fr;
+    }
+
+    .aie-type-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+
+    .aie-report {
+        padding: 12px;
+    }
+
+    .aie-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .aie-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .aie-title-area h1 {
+        font-size: 20px;
+    }
+
+    .aie-summary-box {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .aie-actions {
+        width: 100%;
+    }
+
+    .aie-actions .aie-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 450px) {
+
+    .aie-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .aie-title-icon {
+        width: 44px;
+        height: 44px;
+    }
+
+    .aie-kpi-value {
+        font-size: 20px;
+    }
+
+    .aie-summary-box {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+
+<div class="aie-report">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="aie-header">
+
+        <div class="aie-title-area">
+
+            <div class="aie-title-icon">
+                <i data-feather="bar-chart-2"></i>
+            </div>
+
+            <div>
+                <h1>Account Income & Expense</h1>
+                <p>
+                    Complete financial comparison and account activity report
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="aie-actions">
+
+            <button
+                type="button"
+                class="aie-btn"
+                onclick="window.print()"
+            >
+                <i data-feather="printer"></i>
+                Print
+            </button>
+
+
+            <button
+                type="button"
+                class="aie-btn success"
+                onclick="exportAccountIncomeExpenseCSV()"
+            >
+                <i data-feather="download"></i>
+                Export CSV
+            </button>
+
+
+            <button
+                type="button"
+                class="aie-btn primary"
+                onclick="window.location.reload()"
+            >
+                <i data-feather="refresh-cw"></i>
+                Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         BREADCRUMB
+         ======================================================== -->
+
+    <div class="aie-breadcrumb">
+
+        <a href="{{ url_for('main.dashboard') }}">
+            Dashboard
+        </a>
+
+        <i data-feather="chevron-right"></i>
+
+        <span>Reports</span>
+
+        <i data-feather="chevron-right"></i>
+
+        <strong>Account Income & Expense</strong>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="aie-kpi-grid">
+
+        <!-- TOTAL ACCOUNTS -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Total Accounts
+                </span>
+
+                <div class="aie-kpi-icon blue">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ total_accounts|default(0) }}
+            </div>
+
+            <div class="aie-kpi-sub">
+                {{ active_accounts|default(0) }} active /
+                {{ inactive_accounts|default(0) }} no activity
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Total Income
+                </span>
+
+                <div class="aie-kpi-icon green">
+                    <i data-feather="trending-up"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(total_income|default(0)|float) }}
+            </div>
+
+            <div class="aie-kpi-sub">
+                {{ income_transactions|default(0) }} income transactions
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Total Expense
+                </span>
+
+                <div class="aie-kpi-icon red">
+                    <i data-feather="trending-down"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(total_expense|default(0)|float) }}
+            </div>
+
+            <div class="aie-kpi-sub">
+                {{ expense_transactions|default(0) }} expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Net Result
+                </span>
+
+                <div class="aie-kpi-icon blue">
+                    <i data-feather="activity"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(net_total|default(0)|float) }}
+            </div>
+
+            <div class="aie-kpi-sub">
+                {{ net_status|default('Break Even') }}
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Transactions
+                </span>
+
+                <div class="aie-kpi-icon orange">
+                    <i data-feather="list"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="aie-kpi-sub">
+                All income + expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- ACTIVITY -->
+
+        <div class="aie-kpi">
+
+            <div class="aie-kpi-top">
+
+                <span class="aie-kpi-label">
+                    Account Activity
+                </span>
+
+                <div class="aie-kpi-icon blue">
+                    <i data-feather="zap"></i>
+                </div>
+
+            </div>
+
+            <div class="aie-kpi-value">
+                {{ "{:.1f}".format(activity_percentage|default(0)|float) }}%
+            </div>
+
+            <div class="aie-kpi-sub">
+                {{ activity_status|default('No Activity') }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTER PANEL
+         ======================================================== -->
+
+    <div class="aie-panel aie-filter-panel no-print">
+
+        <div class="aie-panel-header">
+
+            <div class="aie-panel-title">
+
+                <i data-feather="filter"></i>
+
+                Account Filters
+
+            </div>
+
+            <span style="font-size:11px;color:#64748b;">
+                Filter the report without reloading the page
+            </span>
+
+        </div>
+
+
+        <div class="aie-panel-body">
+
+            <div class="aie-filter-grid">
+
+                <!-- ACCOUNT -->
+
+                <div class="aie-field">
+
+                    <label for="aieAccountFilter">
+                        Account
+                    </label>
+
+                    <select id="aieAccountFilter">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for name in report_account_names|default([]) %}
+
+                        <option value="{{ name|lower }}">
+                            {{ name }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- TYPE -->
+
+                <div class="aie-field">
+
+                    <label for="aieTypeFilter">
+                        Account Type
+                    </label>
+
+                    <select id="aieTypeFilter">
+
+                        <option value="">
+                            All Types
+                        </option>
+
+                        {% for type in report_account_types|default([]) %}
+
+                        <option value="{{ type|lower }}">
+                            {{ type }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- CURRENCY -->
+
+                <div class="aie-field">
+
+                    <label for="aieCurrencyFilter">
+                        Currency
+                    </label>
+
+                    <select id="aieCurrencyFilter">
+
+                        <option value="">
+                            All Currencies
+                        </option>
+
+                        {% for cur in report_currencies|default([]) %}
+
+                        <option value="{{ cur|lower }}">
+                            {{ cur }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- STATUS -->
+
+                <div class="aie-field">
+
+                    <label for="aieStatusFilter">
+                        Activity
+                    </label>
+
+                    <select id="aieStatusFilter">
+
+                        <option value="">
+                            All Status
+                        </option>
+
+                        {% for status in report_statuses|default([]) %}
+
+                        <option value="{{ status|lower }}">
+                            {{ status }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- RESET -->
+
+                <button
+                    type="button"
+                    class="aie-reset"
+                    onclick="resetAIEFilters()"
+                >
+
+                    <i data-feather="rotate-ccw"></i>
+
+                    Reset
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         HIGHLIGHTS
+         ======================================================== -->
+
+    <div class="aie-highlight-grid">
+
+        <!-- HIGHEST INCOME -->
+
+        <div class="aie-highlight income">
+
+            <div class="aie-highlight-label">
+                Highest Income Account
+            </div>
+
+            {% if highest_income_account %}
+
+                <div class="aie-highlight-name">
+                    {{ highest_income_account.name }}
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ highest_income_account.currency|default(currency|default('USD')) }}
+                    {{ "{:,.2f}".format(highest_income|default(0)|float) }}
+                </div>
+
+                <div class="aie-highlight-meta">
+
+                    <span class="aie-chip">
+                        <i data-feather="arrow-up"></i>
+                        {{ highest_income_account.income_transactions|default(0) }}
+                        income txns
+                    </span>
+
+                    <span class="aie-chip">
+                        {{ highest_income_account.type|default('Other') }}
+                    </span>
+
+                </div>
+
+            {% else %}
+
+                <div class="aie-highlight-name">
+                    No income activity
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ currency|default('USD') }} 0.00
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- HIGHEST EXPENSE -->
+
+        <div class="aie-highlight expense">
+
+            <div class="aie-highlight-label">
+                Highest Expense Account
+            </div>
+
+            {% if highest_expense_account %}
+
+                <div class="aie-highlight-name">
+                    {{ highest_expense_account.name }}
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ highest_expense_account.currency|default(currency|default('USD')) }}
+                    {{ "{:,.2f}".format(highest_expense|default(0)|float) }}
+                </div>
+
+                <div class="aie-highlight-meta">
+
+                    <span class="aie-chip">
+                        <i data-feather="arrow-down"></i>
+                        {{ highest_expense_account.expense_transactions|default(0) }}
+                        expense txns
+                    </span>
+
+                    <span class="aie-chip">
+                        {{ highest_expense_account.type|default('Other') }}
+                    </span>
+
+                </div>
+
+            {% else %}
+
+                <div class="aie-highlight-name">
+                    No expense activity
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ currency|default('USD') }} 0.00
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- HIGHEST NET -->
+
+        <div class="aie-highlight net">
+
+            <div class="aie-highlight-label">
+                Highest Net Account
+            </div>
+
+            {% if highest_net_account %}
+
+                <div class="aie-highlight-name">
+                    {{ highest_net_account.name }}
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ highest_net_account.currency|default(currency|default('USD')) }}
+                    {{ "{:,.2f}".format(highest_net|default(0)|float) }}
+                </div>
+
+                <div class="aie-highlight-meta">
+
+                    <span class="aie-chip">
+                        Income:
+                        {{ "{:,.2f}".format(highest_net_account.income|default(0)|float) }}
+                    </span>
+
+                    <span class="aie-chip">
+                        Expense:
+                        {{ "{:,.2f}".format(highest_net_account.expense|default(0)|float) }}
+                    </span>
+
+                </div>
+
+            {% else %}
+
+                <div class="aie-highlight-name">
+                    No account data
+                </div>
+
+                <div class="aie-highlight-amount">
+                    {{ currency|default('USD') }} 0.00
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INCOME / EXPENSE COMPARISON
+         ======================================================== -->
+
+    <div class="aie-comparison">
+
+        <!-- FLOW -->
+
+        <div class="aie-flow-card">
+
+            <div class="aie-flow-head">
+
+                <h3>
+                    Income vs Expense
+                </h3>
+
+                <span>
+                    Financial Flow
+                </span>
+
+            </div>
+
+
+            <!-- INCOME -->
+
+            <div class="aie-flow-row">
+
+                <div class="aie-flow-label">
+
+                    <strong>
+                        Total Income
+                    </strong>
+
+                    <span style="color:#16a34a;">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(total_income|default(0)|float) }}
+                    </span>
+
+                </div>
+
+                <div class="aie-flow-track">
+
+                    <div
+                        class="aie-flow-fill income"
+                        style="width: {{ [income_percentage|default(0)|float, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- EXPENSE -->
+
+            <div class="aie-flow-row">
+
+                <div class="aie-flow-label">
+
+                    <strong>
+                        Total Expense
+                    </strong>
+
+                    <span style="color:#dc2626;">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(total_expense|default(0)|float) }}
+                    </span>
+
+                </div>
+
+                <div class="aie-flow-track">
+
+                    <div
+                        class="aie-flow-fill expense"
+                        style="width: {{ [expense_percentage|default(0)|float, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- NET -->
+
+            <div class="aie-flow-row">
+
+                <div class="aie-flow-label">
+
+                    <strong>
+                        Net Result
+                    </strong>
+
+                    <span style="color:#2563eb;">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(net_total|default(0)|float) }}
+                    </span>
+
+                </div>
+
+                <div class="aie-flow-track">
+
+                    {% set net_bar = ((net_total|default(0)|float)|abs) %}
+
+                    {% if total_income|default(0)|float > 0 %}
+
+                        {% set net_width =
+                            ((net_bar / total_income|float) * 100)
+                        %}
+
+                    {% else %}
+
+                        {% set net_width = 0 %}
+
+                    {% endif %}
+
+                    <div
+                        class="aie-flow-fill net"
+                        style="width: {{ [net_width|float, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+            </div>
+
+
+            <div class="aie-status-strip">
+
+                <i data-feather="info" style="width:14px;height:14px;vertical-align:middle;"></i>
+
+                {{ net_status|default('Break Even') }}
+
+                —
+                Income represents
+                {{ "{:.1f}".format(income_percentage|default(0)|float) }}%
+                of transactions, while expense represents
+                {{ "{:.1f}".format(expense_percentage|default(0)|float) }}%.
+
+            </div>
+
+        </div>
+
+
+        <!-- SUMMARY -->
+
+        <div class="aie-flow-card">
+
+            <div class="aie-flow-head">
+
+                <h3>
+                    Financial Summary
+                </h3>
+
+                <span>
+                    Current Report
+                </span>
+
+            </div>
+
+
+            <div class="aie-summary-box">
+
+                <div class="aie-summary-item">
+
+                    <small>
+                        Income Transactions
+                    </small>
+
+                    <strong>
+                        {{ income_transactions|default(0) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="aie-summary-item">
+
+                    <small>
+                        Expense Transactions
+                    </small>
+
+                    <strong>
+                        {{ expense_transactions|default(0) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="aie-summary-item">
+
+                    <small>
+                        Active Accounts
+                    </small>
+
+                    <strong>
+                        {{ active_accounts|default(0) }}
+                    </strong>
+
+                </div>
+
+
+                <div class="aie-summary-item">
+
+                    <small>
+                        No Activity
+                    </small>
+
+                    <strong>
+                        {{ inactive_accounts|default(0) }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN ACCOUNT TABLE
+         ======================================================== -->
+
+    <div class="aie-panel">
+
+        <div class="aie-panel-header">
+
+            <div class="aie-panel-title">
+
+                <i data-feather="credit-card"></i>
+
+                Account Income & Expense Details
+
+            </div>
+
+            <span
+                id="aieVisibleCount"
+                style="font-size:11px;color:#64748b;font-weight:700;"
+            >
+                {{ accounts|length }} accounts
+            </span>
+
+        </div>
+
+
+        {% if accounts %}
+
+        <div class="aie-table-wrap">
+
+            <table
+                class="aie-table"
+                id="aieAccountsTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Account</th>
+
+                        <th>Type</th>
+
+                        <th>Currency</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Net</th>
+
+                        <th>Transactions</th>
+
+                        <th>Income Share</th>
+
+                        <th>Expense Share</th>
+
+                        <th>Activity</th>
+
+                        <th>Last Activity</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for account in accounts %}
+
+                    <tr
+                        class="aie-account-row"
+                        data-account="{{ account.name|default('')|lower }}"
+                        data-type="{{ account.type|default('')|lower }}"
+                        data-currency="{{ account.currency|default('USD')|lower }}"
+                        data-status="{{ account.activity_status|default('No Activity')|lower }}"
+                    >
+
+                        <!-- RANK -->
+
+                        <td>
+
+                            <span class="aie-rank">
+                                {{ account.rank|default(loop.index) }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- ACCOUNT -->
+
+                        <td>
+
+                            <div class="aie-account-name">
+                                {{ account.name|default('Unknown Account') }}
+                            </div>
+
+                            <div class="aie-account-meta">
+
+                                {% if account.category_count|default(0) > 0 %}
+                                    {{ account.category_count }} categories
+                                {% else %}
+                                    No categories
+                                {% endif %}
+
+                                ·
+
+                                {% if account.item_count|default(0) > 0 %}
+                                    {{ account.item_count }} items
+                                {% else %}
+                                    No items
+                                {% endif %}
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- TYPE -->
+
+                        <td>
+
+                            <span class="aie-chip">
+                                {{ account.type|default('Other') }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- CURRENCY -->
+
+                        <td>
+
+                            <span class="aie-chip">
+                                {{ account.currency|default('USD') }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- INCOME -->
+
+                        <td>
+
+                            <span class="aie-money income">
+
+                                {{ account.currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(account.income|default(0)|float) }}
+
+                            </span>
+
+                            <div style="font-size:9px;color:#64748b;margin-top:3px;">
+
+                                {{ account.income_transactions|default(0) }}
+                                transactions
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- EXPENSE -->
+
+                        <td>
+
+                            <span class="aie-money expense">
+
+                                {{ account.currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(account.expense|default(0)|float) }}
+
+                            </span>
+
+                            <div style="font-size:9px;color:#64748b;margin-top:3px;">
+
+                                {{ account.expense_transactions|default(0) }}
+                                transactions
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- NET -->
+
+                        <td>
+
+                            {% if account.net|default(0)|float > 0 %}
+
+                                <span class="aie-money net-positive">
+
+                                    +{{ account.currency|default('USD') }}
+                                    {{ "{:,.2f}".format(account.net|float) }}
+
+                                </span>
+
+                            {% elif account.net|default(0)|float < 0 %}
+
+                                <span class="aie-money net-negative">
+
+                                    -{{ account.currency|default('USD') }}
+                                    {{ "{:,.2f}".format(account.net|float|abs) }}
+
+                                </span>
+
+                            {% else %}
+
+                                <span class="aie-money zero">
+
+                                    {{ account.currency|default('USD') }}
+                                    0.00
+
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- TRANSACTIONS -->
+
+                        <td>
+
+                            <span class="aie-count">
+                                {{ account.transaction_count|default(0) }}
+                            </span>
+
+                        </td>
+
+
+                        <!-- INCOME SHARE -->
+
+                        <td>
+
+                            <div class="aie-progress">
+
+                                <div class="aie-progress-track">
+
+                                    <div
+                                        class="aie-progress-fill"
+                                        style="width:{{ [account.income_percentage|default(0)|float,100]|min }}%;"
+                                    ></div>
+
+                                </div>
+
+                                <div class="aie-progress-label">
+
+                                    {{ "{:.1f}".format(account.income_percentage|default(0)|float) }}%
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- EXPENSE SHARE -->
+
+                        <td>
+
+                            <div class="aie-progress">
+
+                                <div class="aie-progress-track">
+
+                                    <div
+                                        class="aie-progress-fill"
+                                        style="width:{{ [account.expense_percentage|default(0)|float,100]|min }}%;"
+                                    ></div>
+
+                                </div>
+
+                                <div class="aie-progress-label">
+
+                                    {{ "{:.1f}".format(account.expense_percentage|default(0)|float) }}%
+
+                                </div>
+
+                            </div>
+
+                        </td>
+
+
+                        <!-- ACTIVITY -->
+
+                        <td>
+
+                            {% if account.activity_status|default('No Activity') == 'Active' %}
+
+                                <span class="aie-badge active">
+                                    Active
+                                </span>
+
+                            {% else %}
+
+                                <span class="aie-badge inactive">
+                                    No Activity
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <!-- LAST ACTIVITY -->
+
+                        <td>
+
+                            {% if account.last_activity %}
+
+                                <div class="aie-last-activity">
+
+                                    <strong>
+
+                                        {% if account.last_activity_type == 'income' %}
+
+                                            <span style="color:#16a34a;">
+                                                Income
+                                            </span>
+
+                                        {% elif account.last_activity_type == 'expense' %}
+
+                                            <span style="color:#dc2626;">
+                                                Expense
+                                            </span>
+
+                                        {% else %}
+
+                                            Activity
+
+                                        {% endif %}
+
+                                    </strong>
+
+
+                                    <span>
+
+                                        {{ account.last_activity_display|default('—') }}
+
+                                    </span>
+
+
+                                    {% if account.last_activity_amount|default(0)|float > 0 %}
+
+                                    <span>
+
+                                        ·
+                                        {{ account.currency|default('USD') }}
+                                        {{ "{:,.2f}".format(account.last_activity_amount|float) }}
+
+                                    </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            {% else %}
+
+                                <span style="color:#94a3b8;">
+                                    No activity
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+        <div class="aie-empty">
+
+            <div class="aie-empty-icon">
+
+                <i data-feather="credit-card"></i>
+
+            </div>
+
+            <h3>
+                No Account Data
+            </h3>
+
+            <p>
+                There are no accounts available for this report.
+            </p>
+
+        </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP 5
+         ======================================================== -->
+
+    <div class="aie-two-col">
+
+        <!-- TOP INCOME -->
+
+        <div class="aie-panel">
+
+            <div class="aie-panel-header">
+
+                <div class="aie-panel-title">
+
+                    <i data-feather="trending-up"></i>
+
+                    Top 5 Income Accounts
+
+                </div>
+
+            </div>
+
+
+            <div class="aie-panel-body">
+
+                {% if top_5_income_accounts %}
+
+                <div class="aie-list">
+
+                    {% for account in top_5_income_accounts %}
+
+                    <div class="aie-list-item">
+
+                        <div class="aie-list-rank">
+                            {{ loop.index }}
+                        </div>
+
+
+                        <div>
+
+                            <div class="aie-list-name">
+                                {{ account.name }}
+                            </div>
+
+                            <div class="aie-list-meta">
+
+                                {{ account.type|default('Other') }}
+
+                                ·
+
+                                {{ account.income_transactions|default(0) }}
+                                income transactions
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="aie-list-value income">
+
+                            {{ account.currency|default(currency|default('USD')) }}
+
+                            {{ "{:,.2f}".format(account.income|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="aie-empty">
+                    <p>No income accounts available.</p>
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP EXPENSE -->
+
+        <div class="aie-panel">
+
+            <div class="aie-panel-header">
+
+                <div class="aie-panel-title">
+
+                    <i data-feather="trending-down"></i>
+
+                    Top 5 Expense Accounts
+
+                </div>
+
+            </div>
+
+
+            <div class="aie-panel-body">
+
+                {% if top_5_expense_accounts %}
+
+                <div class="aie-list">
+
+                    {% for account in top_5_expense_accounts %}
+
+                    <div class="aie-list-item">
+
+                        <div class="aie-list-rank">
+                            {{ loop.index }}
+                        </div>
+
+
+                        <div>
+
+                            <div class="aie-list-name">
+                                {{ account.name }}
+                            </div>
+
+                            <div class="aie-list-meta">
+
+                                {{ account.type|default('Other') }}
+
+                                ·
+
+                                {{ account.expense_transactions|default(0) }}
+                                expense transactions
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="aie-list-value expense">
+
+                            {{ account.currency|default(currency|default('USD')) }}
+
+                            {{ "{:,.2f}".format(account.expense|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="aie-empty">
+                    <p>No expense accounts available.</p>
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT TYPE BREAKDOWN
+         ======================================================== -->
+
+    <div class="aie-panel">
+
+        <div class="aie-panel-header">
+
+            <div class="aie-panel-title">
+
+                <i data-feather="layers"></i>
+
+                Account Type Breakdown
+
+            </div>
+
+            <span style="font-size:11px;color:#64748b;">
+                {{ accounts_by_type|length }} types
+            </span>
+
+        </div>
+
+
+        <div class="aie-panel-body">
+
+            {% if accounts_by_type %}
+
+            <div class="aie-type-grid">
+
+                {% for group in accounts_by_type %}
+
+                <div class="aie-type-card">
+
+                    <div class="aie-type-head">
+
+                        <div class="aie-type-name">
+                            {{ group.type|default('Other') }}
+                        </div>
+
+                        <div class="aie-type-count">
+
+                            {{ group.count|default(0) }}
+                            accounts
+
+                        </div>
+
+                    </div>
+
+
+                    <div style="margin-top:6px;font-size:10px;color:#64748b;">
+
+                        {{ group.active_count|default(0) }}
+                        active accounts
+
+                        ·
+
+                        {{ group.transactions|default(0) }}
+                        transactions
+
+                    </div>
+
+
+                    <div class="aie-type-stats">
+
+                        <div class="aie-type-stat">
+
+                            <small>
+                                Income
+                            </small>
+
+                            <strong class="aie-type-income">
+
+                                {{ currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(group.income|default(0)|float) }}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="aie-type-stat">
+
+                            <small>
+                                Expense
+                            </small>
+
+                            <strong class="aie-type-expense">
+
+                                {{ currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(group.expense|default(0)|float) }}
+
+                            </strong>
+
+                        </div>
+
+
+                        <div class="aie-type-stat">
+
+                            <small>
+                                Net
+                            </small>
+
+                            <strong>
+
+                                {{ currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(group.net|default(0)|float) }}
+
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+            {% else %}
+
+            <div class="aie-empty">
+                <p>No account type data available.</p>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="aie-footer">
+
+        <div>
+
+            Generated:
+            <strong>
+                {% if generated_at %}
+                    {{ generated_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                {% else %}
+                    —
+                {% endif %}
+            </strong>
+
+        </div>
+
+
+        <div>
+
+            Account Income & Expense Report
+
+            ·
+
+            {{ total_accounts|default(0) }} accounts
+
+            ·
+
+            {{ total_transactions|default(0) }} transactions
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   ACCOUNT INCOME & EXPENSE REPORT JS
+   ============================================================ */
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ---------------------------------------------------------
+       FEATHER ICONS
+       --------------------------------------------------------- */
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+
+    /* ---------------------------------------------------------
+       FILTER ELEMENTS
+       --------------------------------------------------------- */
+
+    const accountFilter =
+        document.getElementById("aieAccountFilter");
+
+    const typeFilter =
+        document.getElementById("aieTypeFilter");
+
+    const currencyFilter =
+        document.getElementById("aieCurrencyFilter");
+
+    const statusFilter =
+        document.getElementById("aieStatusFilter");
+
+
+    if (
+        accountFilter &&
+        typeFilter &&
+        currencyFilter &&
+        statusFilter
+    ) {
+
+        accountFilter.addEventListener(
+            "change",
+            applyAIEFilters
+        );
+
+        typeFilter.addEventListener(
+            "change",
+            applyAIEFilters
+        );
+
+        currencyFilter.addEventListener(
+            "change",
+            applyAIEFilters
+        );
+
+        statusFilter.addEventListener(
+            "change",
+            applyAIEFilters
+        );
+
+    }
+
+
+    updateAIEVisibleCount();
+
+});
+
+
+/* ============================================================
+   APPLY FILTERS
+   ============================================================ */
+
+function applyAIEFilters() {
+
+    const accountValue =
+        (
+            document.getElementById(
+                "aieAccountFilter"
+            )?.value || ""
+        ).toLowerCase();
+
+
+    const typeValue =
+        (
+            document.getElementById(
+                "aieTypeFilter"
+            )?.value || ""
+        ).toLowerCase();
+
+
+    const currencyValue =
+        (
+            document.getElementById(
+                "aieCurrencyFilter"
+            )?.value || ""
+        ).toLowerCase();
+
+
+    const statusValue =
+        (
+            document.getElementById(
+                "aieStatusFilter"
+            )?.value || ""
+        ).toLowerCase();
+
+
+    const rows =
+        document.querySelectorAll(
+            ".aie-account-row"
+        );
+
+
+    let visible = 0;
+
+
+    rows.forEach(function (row) {
+
+        const account =
+            row.dataset.account || "";
+
+        const type =
+            row.dataset.type || "";
+
+        const currency =
+            row.dataset.currency || "";
+
+        const status =
+            row.dataset.status || "";
+
+
+        const accountMatch =
+            !accountValue ||
+            account === accountValue;
+
+
+        const typeMatch =
+            !typeValue ||
+            type === typeValue;
+
+
+        const currencyMatch =
+            !currencyValue ||
+            currency === currencyValue;
+
+
+        const statusMatch =
+            !statusValue ||
+            status === statusValue;
+
+
+        const show =
+            accountMatch &&
+            typeMatch &&
+            currencyMatch &&
+            statusMatch;
+
+
+        if (show) {
+
+            row.style.display = "";
+
+            visible++;
+
+        } else {
+
+            row.style.display = "none";
+
+        }
+
+    });
+
+
+    updateAIEVisibleCount(visible);
+
+}
+
+
+/* ============================================================
+   UPDATE VISIBLE COUNT
+   ============================================================ */
+
+function updateAIEVisibleCount(count = null) {
+
+    const counter =
+        document.getElementById(
+            "aieVisibleCount"
+        );
+
+
+    if (!counter) {
+        return;
+    }
+
+
+    if (count === null) {
+
+        count =
+            document.querySelectorAll(
+                ".aie-account-row"
+            ).length;
+
+    }
+
+
+    counter.textContent =
+        count +
+        (count === 1 ? " account" : " accounts");
+
+}
+
+
+/* ============================================================
+   RESET FILTERS
+   ============================================================ */
+
+function resetAIEFilters() {
+
+    const ids = [
+        "aieAccountFilter",
+        "aieTypeFilter",
+        "aieCurrencyFilter",
+        "aieStatusFilter"
+    ];
+
+
+    ids.forEach(function (id) {
+
+        const element =
+            document.getElementById(id);
+
+
+        if (element) {
+            element.value = "";
+        }
+
+    });
+
+
+    document
+        .querySelectorAll(".aie-account-row")
+        .forEach(function (row) {
+
+            row.style.display = "";
+
+        });
+
+
+    updateAIEVisibleCount();
+
+}
+
+
+/* ============================================================
+   CSV ESCAPE
+   ============================================================ */
+
+function aieCSVEscape(value) {
+
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+
+    let text =
+        String(value)
+            .replace(/\r?\n|\r/g, " ")
+            .trim();
+
+
+    if (
+        text.includes(",") ||
+        text.includes('"') ||
+        text.includes("\n")
+    ) {
+
+        text =
+            '"' +
+            text.replace(/"/g, '""') +
+            '"';
+
+    }
+
+
+    return text;
+
+}
+
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+
+function exportAccountIncomeExpenseCSV() {
+
+    const rows =
+        document.querySelectorAll(
+            ".aie-account-row"
+        );
+
+
+    const data = [];
+
+
+    data.push([
+        "Rank",
+        "Account",
+        "Type",
+        "Currency",
+        "Income",
+        "Expense",
+        "Net",
+        "Transactions",
+        "Income Share",
+        "Expense Share",
+        "Activity Status",
+        "Last Activity"
+    ]);
+
+
+    rows.forEach(function (row) {
+
+        if (
+            row.style.display === "none"
+        ) {
+            return;
+        }
+
+
+        const cells =
+            row.querySelectorAll("td");
+
+
+        if (!cells.length) {
+            return;
+        }
+
+
+        const rank =
+            cells[0]?.innerText.trim() || "";
+
+
+        const account =
+            cells[1]?.querySelector(
+                ".aie-account-name"
+            )?.innerText.trim()
+            ||
+            cells[1]?.innerText.trim()
+            ||
+            "";
+
+
+        const type =
+            cells[2]?.innerText.trim() || "";
+
+
+        const currency =
+            cells[3]?.innerText.trim() || "";
+
+
+        const income =
+            cells[4]?.innerText.trim() || "";
+
+
+        const expense =
+            cells[5]?.innerText.trim() || "";
+
+
+        const net =
+            cells[6]?.innerText.trim() || "";
+
+
+        const transactions =
+            cells[7]?.innerText.trim() || "";
+
+
+        const incomeShare =
+            cells[8]?.innerText.trim() || "";
+
+
+        const expenseShare =
+            cells[9]?.innerText.trim() || "";
+
+
+        const activity =
+            cells[10]?.innerText.trim() || "";
+
+
+        const lastActivity =
+            cells[11]?.innerText.trim() || "";
+
+
+        data.push([
+            rank,
+            account,
+            type,
+            currency,
+            income,
+            expense,
+            net,
+            transactions,
+            incomeShare,
+            expenseShare,
+            activity,
+            lastActivity
+        ]);
+
+    });
+
+
+    if (data.length <= 1) {
+
+        alert(
+            "There are no visible account records to export."
+        );
+
+        return;
+
+    }
+
+
+    const csv =
+        data
+            .map(function (row) {
+
+                return row
+                    .map(aieCSVEscape)
+                    .join(",");
+
+            })
+            .join("\r\n");
+
+
+    const blob =
+        new Blob(
+            ["\uFEFF" + csv],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    const date =
+        new Date()
+            .toISOString()
+            .slice(0, 10);
+
+
+    link.href = url;
+
+    link.download =
+        "account_income_expense_report_" +
+        date +
+        ".csv";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* ============================================================
+   KEYBOARD SHORTCUT
+   Ctrl + P
+   ============================================================ */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            (event.ctrlKey || event.metaKey) &&
+            event.key.toLowerCase() === "p"
+        ) {
+
+            event.preventDefault();
+
+            window.print();
+
+        }
+
+    }
+);
+</script>
+
+{% endblock %}

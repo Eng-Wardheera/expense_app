@@ -1,0 +1,4237 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Top Categories Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   TOP CATEGORIES REPORT
+   LIGHT / MODERN / RESPONSIVE
+   ============================================================ */
+
+:root {
+    --tc-primary: #2563eb;
+    --tc-primary-dark: #1d4ed8;
+    --tc-primary-soft: #eff6ff;
+
+    --tc-success: #16a34a;
+    --tc-success-soft: #f0fdf4;
+
+    --tc-danger: #dc2626;
+    --tc-danger-soft: #fef2f2;
+
+    --tc-warning: #d97706;
+    --tc-warning-soft: #fffbeb;
+
+    --tc-purple: #7c3aed;
+    --tc-purple-soft: #f5f3ff;
+
+    --tc-info: #0891b2;
+    --tc-info-soft: #ecfeff;
+
+    --tc-text: #172033;
+    --tc-muted: #64748b;
+    --tc-border: #e2e8f0;
+    --tc-bg: #f8fafc;
+    --tc-white: #ffffff;
+    --tc-shadow: 0 8px 28px rgba(15, 23, 42, .07);
+    --tc-radius: 18px;
+}
+
+.top-categories-page {
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background: var(--tc-bg);
+    color: var(--tc-text);
+    box-sizing: border-box;
+}
+
+.tc-container {
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.tc-header {
+    background: var(--tc-white);
+    border: 1px solid var(--tc-border);
+    border-radius: var(--tc-radius);
+    padding: 24px;
+    box-shadow: var(--tc-shadow);
+    margin-bottom: 20px;
+}
+
+.tc-header-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.tc-title-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tc-title-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    background: var(--tc-primary-soft);
+    color: var(--tc-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+}
+
+.tc-title-area h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.tc-title-area p {
+    margin: 5px 0 0;
+    color: var(--tc-muted);
+    font-size: 14px;
+}
+
+.tc-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tc-btn {
+    border: 1px solid var(--tc-border);
+    background: #fff;
+    color: var(--tc-text);
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.tc-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .08);
+}
+
+.tc-btn-primary {
+    background: var(--tc-primary);
+    color: #fff;
+    border-color: var(--tc-primary);
+}
+
+.tc-btn-primary:hover {
+    background: var(--tc-primary-dark);
+    color: #fff;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.tc-filter-card {
+    background: var(--tc-white);
+    border: 1px solid var(--tc-border);
+    border-radius: var(--tc-radius);
+    padding: 20px;
+    box-shadow: var(--tc-shadow);
+    margin-bottom: 20px;
+}
+
+.tc-section-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--tc-muted);
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    margin-bottom: 14px;
+}
+
+.tc-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        minmax(190px, 1.2fr)
+        minmax(150px, 1fr)
+        minmax(130px, .7fr)
+        auto auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.tc-field {
+    min-width: 0;
+}
+
+.tc-field label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 12px;
+    font-weight: 800;
+    color: #475569;
+}
+
+.tc-field input,
+.tc-field select {
+    width: 100%;
+    height: 43px;
+    box-sizing: border-box;
+    border: 1px solid var(--tc-border);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--tc-text);
+    padding: 0 12px;
+    outline: none;
+    transition: .2s ease;
+    font-size: 14px;
+}
+
+.tc-field input:focus,
+.tc-field select:focus {
+    border-color: var(--tc-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.tc-filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.tc-quick {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #eef2f7;
+}
+
+.tc-quick-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--tc-muted);
+}
+
+.tc-quick button {
+    border: 1px solid var(--tc-border);
+    background: #fff;
+    border-radius: 9px;
+    padding: 7px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+}
+
+.tc-quick button:hover {
+    color: var(--tc-primary);
+    border-color: #bfdbfe;
+    background: var(--tc-primary-soft);
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.tc-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.tc-kpi {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--tc-shadow);
+    min-height: 120px;
+}
+
+.tc-kpi::after {
+    content: "";
+    position: absolute;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    right: -25px;
+    bottom: -25px;
+    opacity: .55;
+    background: currentColor;
+}
+
+.tc-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 17px;
+}
+
+.tc-kpi-label {
+    font-size: 11px;
+    color: var(--tc-muted);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.tc-kpi-value {
+    font-size: 23px;
+    line-height: 1.2;
+    font-weight: 850;
+    margin-top: 5px;
+    word-break: break-word;
+}
+
+.kpi-blue {
+    color: var(--tc-primary);
+}
+
+.kpi-blue .tc-kpi-icon {
+    background: var(--tc-primary-soft);
+}
+
+.kpi-green {
+    color: var(--tc-success);
+}
+
+.kpi-green .tc-kpi-icon {
+    background: var(--tc-success-soft);
+}
+
+.kpi-red {
+    color: var(--tc-danger);
+}
+
+.kpi-red .tc-kpi-icon {
+    background: var(--tc-danger-soft);
+}
+
+.kpi-purple {
+    color: var(--tc-purple);
+}
+
+.kpi-purple .tc-kpi-icon {
+    background: var(--tc-purple-soft);
+}
+
+.kpi-orange {
+    color: var(--tc-warning);
+}
+
+.kpi-orange .tc-kpi-icon {
+    background: var(--tc-warning-soft);
+}
+
+.kpi-cyan {
+    color: var(--tc-info);
+}
+
+.kpi-cyan .tc-kpi-icon {
+    background: var(--tc-info-soft);
+}
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+
+.tc-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.tc-comparison {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 15px;
+    padding: 16px;
+    box-shadow: var(--tc-shadow);
+}
+
+.tc-comparison-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.tc-comparison-title {
+    color: var(--tc-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.tc-comparison-value {
+    margin-top: 9px;
+    font-size: 21px;
+    font-weight: 850;
+}
+
+.tc-change {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 5px 9px;
+    border-radius: 999px;
+}
+
+.tc-change-positive {
+    background: var(--tc-success-soft);
+    color: var(--tc-success);
+}
+
+.tc-change-negative {
+    background: var(--tc-danger-soft);
+    color: var(--tc-danger);
+}
+
+.tc-change-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* ============================================================
+   INSIGHT ROW
+   ============================================================ */
+
+.tc-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.tc-insight {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: var(--tc-shadow);
+}
+
+.tc-insight-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .55px;
+    color: var(--tc-muted);
+    font-weight: 800;
+}
+
+.tc-insight-value {
+    margin-top: 8px;
+    font-size: 18px;
+    font-weight: 850;
+}
+
+.tc-insight-meta {
+    margin-top: 4px;
+    color: var(--tc-muted);
+    font-size: 12px;
+}
+
+/* ============================================================
+   HEALTH / PROGRESS
+   ============================================================ */
+
+.tc-health-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.tc-health-card {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--tc-shadow);
+}
+
+.tc-health-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.tc-health-title {
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.tc-health-value {
+    font-size: 14px;
+    font-weight: 850;
+    color: var(--tc-primary);
+}
+
+.tc-progress {
+    height: 11px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.tc-progress-bar {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    transition: width 1s ease;
+    background: var(--tc-primary);
+}
+
+.tc-progress-green {
+    background: var(--tc-success);
+}
+
+.tc-progress-red {
+    background: var(--tc-danger);
+}
+
+.tc-health-description {
+    margin-top: 9px;
+    font-size: 12px;
+    color: var(--tc-muted);
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+
+.tc-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.tc-chart-card {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 17px;
+    padding: 18px;
+    box-shadow: var(--tc-shadow);
+    min-width: 0;
+}
+
+.tc-chart-card-wide {
+    grid-column: span 2;
+}
+
+.tc-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.tc-chart-title {
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.tc-chart-subtitle {
+    margin-top: 3px;
+    color: var(--tc-muted);
+    font-size: 12px;
+}
+
+.tc-chart-wrap {
+    position: relative;
+    height: 320px;
+}
+
+.tc-chart-wrap.small {
+    height: 290px;
+}
+
+/* ============================================================
+   TOP CATEGORY CARDS
+   ============================================================ */
+
+.tc-top-section {
+    margin-bottom: 20px;
+}
+
+.tc-card-title {
+    font-size: 17px;
+    font-weight: 850;
+    margin: 0 0 14px;
+}
+
+.tc-top-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.tc-top-card {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 16px;
+    padding: 17px;
+    box-shadow: var(--tc-shadow);
+}
+
+.tc-top-card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tc-rank {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 11px;
+    background: var(--tc-primary-soft);
+    color: var(--tc-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+}
+
+.tc-top-name {
+    font-weight: 850;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tc-top-type {
+    color: var(--tc-muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.tc-top-amount {
+    margin-top: 14px;
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.tc-top-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--tc-muted);
+}
+
+/* ============================================================
+   TABLE CARDS
+   ============================================================ */
+
+.tc-table-card {
+    background: #fff;
+    border: 1px solid var(--tc-border);
+    border-radius: 17px;
+    padding: 18px;
+    box-shadow: var(--tc-shadow);
+    margin-bottom: 18px;
+    overflow: hidden;
+}
+
+.tc-table-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.tc-table-title-wrap h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 850;
+}
+
+.tc-table-title-wrap p {
+    margin: 4px 0 0;
+    color: var(--tc-muted);
+    font-size: 12px;
+}
+
+.tc-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.tc-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 13px;
+}
+
+.tc-table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom: 1px solid var(--tc-border) !important;
+    padding: 12px 10px !important;
+    font-weight: 850 !important;
+    white-space: nowrap;
+}
+
+.tc-table tbody td {
+    padding: 11px 10px !important;
+    border-bottom: 1px solid #eef2f7 !important;
+    color: #334155;
+    vertical-align: middle;
+}
+
+.tc-table tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.tc-rank-cell {
+    width: 50px;
+    font-weight: 900;
+    color: var(--tc-primary);
+}
+
+.tc-money {
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.tc-positive {
+    color: var(--tc-success) !important;
+}
+
+.tc-negative {
+    color: var(--tc-danger) !important;
+}
+
+.tc-neutral {
+    color: #64748b !important;
+}
+
+.tc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    line-height: 1;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.tc-badge-income {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.tc-badge-expense {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.tc-badge-saving {
+    color: #6d28d9;
+    background: #ede9fe;
+}
+
+.tc-badge-active {
+    color: #0369a1;
+    background: #e0f2fe;
+}
+
+.tc-badge-neutral {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+/* ============================================================
+   DATATABLES
+   ============================================================ */
+
+.dataTables_wrapper {
+    width: 100%;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--tc-border) !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    height: 36px;
+    padding: 0 9px !important;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--tc-primary) !important;
+}
+
+.dataTables_wrapper .dt-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dt-button {
+    border: 1px solid var(--tc-border) !important;
+    background: #fff !important;
+    color: #475569 !important;
+    border-radius: 8px !important;
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+}
+
+.dataTables_wrapper .dt-button:hover {
+    background: var(--tc-primary-soft) !important;
+    color: var(--tc-primary) !important;
+    border-color: #bfdbfe !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    color: var(--tc-muted);
+    font-size: 12px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 7px !important;
+    border: 1px solid transparent !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--tc-primary) !important;
+    color: #fff !important;
+    border-color: var(--tc-primary) !important;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.tc-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--tc-muted);
+}
+
+.tc-empty-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 16px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.tc-footer {
+    text-align: center;
+    color: var(--tc-muted);
+    font-size: 11px;
+    padding: 10px 0 25px;
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+
+.tc-animate {
+    animation: tcFadeUp .45s ease both;
+}
+
+@keyframes tcFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+    .tc-kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .tc-filter-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .tc-filter-buttons {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 1100px) {
+    .tc-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .tc-comparison-grid,
+    .tc-insight-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tc-top-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tc-health-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tc-filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tc-filter-buttons {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 800px) {
+    .top-categories-page {
+        padding: 12px;
+    }
+
+    .tc-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tc-chart-card-wide {
+        grid-column: span 1;
+    }
+
+    .tc-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .tc-top-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .tc-header,
+    .tc-filter-card,
+    .tc-chart-card,
+    .tc-table-card,
+    .tc-health-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .tc-title-area h1 {
+        font-size: 21px;
+    }
+
+    .tc-title-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+    }
+
+    .tc-kpi-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+    }
+
+    .tc-kpi {
+        padding: 13px;
+        min-height: 105px;
+    }
+
+    .tc-kpi-value {
+        font-size: 18px;
+    }
+
+    .tc-comparison-grid,
+    .tc-insight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tc-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tc-filter-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .tc-header-actions {
+        width: 100%;
+    }
+
+    .tc-header-actions .tc-btn {
+        flex: 1;
+    }
+
+    .tc-chart-wrap {
+        height: 260px;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+    body {
+        background: #fff !important;
+    }
+
+    .top-categories-page {
+        background: #fff !important;
+        padding: 0 !important;
+    }
+
+    .tc-filter-card,
+    .tc-header-actions,
+    .tc-quick,
+    .dt-buttons,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_paginate,
+    .dataTables_info {
+        display: none !important;
+    }
+
+    .tc-header,
+    .tc-kpi,
+    .tc-comparison,
+    .tc-insight,
+    .tc-health-card,
+    .tc-chart-card,
+    .tc-top-card,
+    .tc-table-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .tc-chart-grid {
+        display: block;
+    }
+
+    .tc-chart-card {
+        margin-bottom: 15px;
+    }
+
+    .tc-chart-wrap {
+        height: 300px;
+    }
+
+    .tc-table-card {
+        border: 1px solid #ccc !important;
+    }
+
+    .tc-footer {
+        display: block;
+    }
+}
+</style>
+
+
+<div class="top-categories-page">
+<div class="tc-container">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="tc-header tc-animate">
+
+        <div class="tc-header-main">
+
+            <div class="tc-title-area">
+
+                <div class="tc-title-icon">
+                    <i class="bi bi-bar-chart-line-fill"></i>
+                </div>
+
+                <div>
+                    <h1>Top Categories</h1>
+
+                    <p>
+                        Category ranking, spending concentration and financial performance
+                        {% if custom_range_label %}
+                            • {{ custom_range_label }}
+                        {% endif %}
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="tc-header-actions">
+
+                <button type="button"
+                        class="tc-btn"
+                        onclick="window.print()">
+                    <i class="bi bi-printer"></i>
+                    Print Report
+                </button>
+
+                <button type="button"
+                        class="tc-btn tc-btn-primary"
+                        onclick="scrollToTransactions()">
+                    <i class="bi bi-table"></i>
+                    View Transactions
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="tc-filter-card tc-animate">
+
+        <div class="tc-section-label">
+            <i class="bi bi-funnel"></i>
+            Report Filters
+        </div>
+
+        <form method="GET"
+              action="{{ url_for('main.report_top_categories') }}">
+
+            <div class="tc-filter-grid">
+
+                <div class="tc-field">
+                    <label for="start_date">
+                        Start Date
+                    </label>
+
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           value="{{ start_date_value|default('', true) }}">
+                </div>
+
+
+                <div class="tc-field">
+                    <label for="end_date">
+                        End Date
+                    </label>
+
+                    <input type="date"
+                           id="end_date"
+                           name="end_date"
+                           value="{{ end_date_value|default('', true) }}">
+                </div>
+
+
+                <div class="tc-field">
+                    <label for="account">
+                        Account
+                    </label>
+
+                    <select id="account"
+                            name="account">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% set account_list = account_options|default([], true) %}
+
+                        {% for account in account_list %}
+
+                            {% if account is mapping %}
+
+                                <option value="{{ account.get('id', '') }}"
+                                    {% if account_filter|default('', true)|string == account.get('id', '')|string %}
+                                        selected
+                                    {% endif %}>
+                                    {{ account.get('name', 'Unknown Account') }}
+                                </option>
+
+                            {% else %}
+
+                                <option value="{{ account }}"
+                                    {% if account_filter|default('', true)|string == account|string %}
+                                        selected
+                                    {% endif %}>
+                                    {{ account }}
+                                </option>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+
+                <div class="tc-field">
+                    <label for="transaction_type">
+                        Transaction Type
+                    </label>
+
+                    <select id="transaction_type"
+                            name="transaction_type">
+
+                        <option value=""
+                            {% if transaction_type|default('', true) == '' %}
+                                selected
+                            {% endif %}>
+                            All Transactions
+                        </option>
+
+                        <option value="income"
+                            {% if transaction_type|default('', true) == 'income' %}
+                                selected
+                            {% endif %}>
+                            Income
+                        </option>
+
+                        <option value="expense"
+                            {% if transaction_type|default('', true) == 'expense' %}
+                                selected
+                            {% endif %}>
+                            Expense
+                        </option>
+
+                    </select>
+                </div>
+
+
+                <div class="tc-field">
+                    <label for="top_n">
+                        Top Categories
+                    </label>
+
+                    <select id="top_n"
+                            name="top_n">
+
+                        {% for n in [5, 10, 15, 20, 25, 50] %}
+
+                            <option value="{{ n }}"
+                                {% if top_n|default(10)|int == n %}
+                                    selected
+                                {% endif %}>
+                                Top {{ n }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+                </div>
+
+
+                <div class="tc-filter-buttons">
+
+                    <button type="submit"
+                            class="tc-btn tc-btn-primary"
+                            style="width:100%;">
+                        <i class="bi bi-search"></i>
+                        Apply
+                    </button>
+
+                </div>
+
+
+                <a href="{{ url_for('main.report_top_categories') }}"
+                   class="tc-btn"
+                   style="width:100%; box-sizing:border-box;">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                    Reset
+                </a>
+
+            </div>
+
+        </form>
+
+
+        <div class="tc-quick">
+
+            <span class="tc-quick-label">
+                Quick Range:
+            </span>
+
+            <button type="button"
+                    onclick="setQuickRange(7)">
+                7 Days
+            </button>
+
+            <button type="button"
+                    onclick="setQuickRange(30)">
+                30 Days
+            </button>
+
+            <button type="button"
+                    onclick="setQuickRange(90)">
+                90 Days
+            </button>
+
+            <button type="button"
+                    onclick="setCurrentMonth()">
+                Current Month
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="tc-kpi-grid">
+
+        <div class="tc-kpi kpi-blue tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-grid-3x3-gap-fill"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Categories
+            </div>
+
+            <div class="tc-kpi-value">
+                {{ (category_summary|default([], true))|length }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-green tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-arrow-down-left-circle-fill"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Total Income
+            </div>
+
+            <div class="tc-kpi-value">
+                ${{ "{:,.2f}".format(total_income|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-red tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-arrow-up-right-circle-fill"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Total Expense
+            </div>
+
+            <div class="tc-kpi-value">
+                ${{ "{:,.2f}".format(total_expense|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-purple tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-wallet2"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Net Savings
+            </div>
+
+            <div class="tc-kpi-value">
+                ${{ "{:,.2f}".format(total_savings|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-blue tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-pie-chart-fill"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Saving Rate
+            </div>
+
+            <div class="tc-kpi-value">
+                {{ "{:.1f}".format(saving_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-orange tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-speedometer2"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Expense Rate
+            </div>
+
+            <div class="tc-kpi-value">
+                {{ "{:.1f}".format(expense_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+
+        <div class="tc-kpi kpi-cyan tc-animate">
+
+            <div class="tc-kpi-icon">
+                <i class="bi bi-receipt"></i>
+            </div>
+
+            <div class="tc-kpi-label">
+                Transactions
+            </div>
+
+            <div class="tc-kpi-value">
+                {{ "{:,}".format(total_transactions|default(0, true)|int) }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         COMPARISON
+         ======================================================== -->
+
+    <section class="tc-comparison-grid">
+
+        {% set income_change_value = income_change|default(0, true)|float %}
+        {% set expense_change_value = expense_change|default(0, true)|float %}
+        {% set savings_change_value = savings_change|default(0, true)|float %}
+        {% set saving_rate_change_value = saving_rate_change|default(0, true)|float %}
+
+        <div class="tc-comparison">
+
+            <div class="tc-comparison-top">
+
+                <span class="tc-comparison-title">
+                    Income Change
+                </span>
+
+                <span class="tc-change
+                    {% if income_change_value > 0 %}
+                        tc-change-positive
+                    {% elif income_change_value < 0 %}
+                        tc-change-negative
+                    {% else %}
+                        tc-change-neutral
+                    {% endif %}">
+
+                    {% if income_change_value > 0 %}+{% endif %}
+                    {{ "{:.1f}".format(income_change_value) }}%
+
+                </span>
+
+            </div>
+
+            <div class="tc-comparison-value">
+                ${{ "{:,.2f}".format(previous_income|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-comparison">
+
+            <div class="tc-comparison-top">
+
+                <span class="tc-comparison-title">
+                    Expense Change
+                </span>
+
+                <span class="tc-change
+                    {% if expense_change_value > 0 %}
+                        tc-change-negative
+                    {% elif expense_change_value < 0 %}
+                        tc-change-positive
+                    {% else %}
+                        tc-change-neutral
+                    {% endif %}">
+
+                    {% if expense_change_value > 0 %}+{% endif %}
+                    {{ "{:.1f}".format(expense_change_value) }}%
+
+                </span>
+
+            </div>
+
+            <div class="tc-comparison-value">
+                ${{ "{:,.2f}".format(previous_expense|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-comparison">
+
+            <div class="tc-comparison-top">
+
+                <span class="tc-comparison-title">
+                    Savings Change
+                </span>
+
+                <span class="tc-change
+                    {% if savings_change_value > 0 %}
+                        tc-change-positive
+                    {% elif savings_change_value < 0 %}
+                        tc-change-negative
+                    {% else %}
+                        tc-change-neutral
+                    {% endif %}">
+
+                    {% if savings_change_value > 0 %}+{% endif %}
+                    {{ "{:.1f}".format(savings_change_value) }}%
+
+                </span>
+
+            </div>
+
+            <div class="tc-comparison-value">
+                ${{ "{:,.2f}".format(previous_savings|default(0, true)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-comparison">
+
+            <div class="tc-comparison-top">
+
+                <span class="tc-comparison-title">
+                    Saving Rate Change
+                </span>
+
+                <span class="tc-change
+                    {% if saving_rate_change_value > 0 %}
+                        tc-change-positive
+                    {% elif saving_rate_change_value < 0 %}
+                        tc-change-negative
+                    {% else %}
+                        tc-change-neutral
+                    {% endif %}">
+
+                    {% if saving_rate_change_value > 0 %}+{% endif %}
+                    {{ "{:.1f}".format(saving_rate_change_value) }}%
+
+                </span>
+
+            </div>
+
+            <div class="tc-comparison-value">
+                {{ "{:.1f}".format(previous_saving_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <section class="tc-insight-grid">
+
+        <div class="tc-insight">
+
+            <div class="tc-insight-label">
+                Highest Income Category
+            </div>
+
+            {% set high_income = highest_income_category|default({}, true) %}
+
+            <div class="tc-insight-value">
+                {{ high_income.get('name', 'No data') }}
+            </div>
+
+            <div class="tc-insight-meta">
+                ${{ "{:,.2f}".format(high_income.get('income', 0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-insight">
+
+            <div class="tc-insight-label">
+                Highest Expense Category
+            </div>
+
+            {% set high_expense = highest_expense_category|default({}, true) %}
+
+            <div class="tc-insight-value">
+                {{ high_expense.get('name', 'No data') }}
+            </div>
+
+            <div class="tc-insight-meta">
+                ${{ "{:,.2f}".format(high_expense.get('expense', 0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-insight">
+
+            <div class="tc-insight-label">
+                Highest Saving Category
+            </div>
+
+            {% set high_saving = highest_saving_category|default({}, true) %}
+
+            <div class="tc-insight-value">
+                {{ high_saving.get('name', 'No data') }}
+            </div>
+
+            <div class="tc-insight-meta">
+                ${{ "{:,.2f}".format(high_saving.get('net_saving', 0)|float) }}
+            </div>
+
+        </div>
+
+
+        <div class="tc-insight">
+
+            <div class="tc-insight-label">
+                Top Expense Concentration
+            </div>
+
+            <div class="tc-insight-value">
+                {{ "{:.1f}".format(top_expense_share|default(0, true)|float) }}%
+            </div>
+
+            <div class="tc-insight-meta">
+                Share of total expenses
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HEALTH / PROGRESS
+         ======================================================== -->
+
+    <section class="tc-health-grid">
+
+        <div class="tc-health-card">
+
+            <div class="tc-health-head">
+
+                <div class="tc-health-title">
+                    Financial Health
+                </div>
+
+                <div class="tc-health-value">
+                    {{ expense_health|default('N/A', true) }}
+                </div>
+
+            </div>
+
+            <div class="tc-progress">
+
+                {% set saving_progress_value = saving_progress|default(0, true)|float %}
+
+                <div class="tc-progress-bar tc-progress-green"
+                     data-progress="{{ saving_progress_value }}">
+                </div>
+
+            </div>
+
+            <div class="tc-health-description">
+                Saving progress:
+                {{ "{:.1f}".format(saving_progress_value) }}%
+            </div>
+
+        </div>
+
+
+        <div class="tc-health-card">
+
+            <div class="tc-health-head">
+
+                <div class="tc-health-title">
+                    Expense Control
+                </div>
+
+                <div class="tc-health-value">
+                    {{ "{:.1f}".format(expense_progress|default(0, true)|float) }}%
+                </div>
+
+            </div>
+
+            <div class="tc-progress">
+
+                {% set expense_progress_value = expense_progress|default(0, true)|float %}
+
+                <div class="tc-progress-bar tc-progress-red"
+                     data-progress="{{ expense_progress_value }}">
+                </div>
+
+            </div>
+
+            <div class="tc-health-description">
+                Expense rate:
+                {{ "{:.1f}".format(expense_rate|default(0, true)|float) }}%
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+
+    <section class="tc-chart-grid">
+
+        <!-- Income Categories -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Top Income Categories
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Highest income-generating categories
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap">
+                <canvas id="incomeCategoryChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Expense Categories -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Top Expense Categories
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Categories consuming the most money
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap">
+                <canvas id="expenseCategoryChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Saving Categories -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Top Saving Categories
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Categories producing the highest net savings
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap">
+                <canvas id="savingCategoryChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Income vs Expense -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Income vs Expense
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Category-by-category comparison
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap">
+                <canvas id="incomeExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Net Saving Doughnut -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Category Net Savings
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Distribution of positive category savings
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap small">
+                <canvas id="savingDoughnutChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- Account Saving -->
+        <div class="tc-chart-card">
+
+            <div class="tc-chart-head">
+
+                <div>
+                    <div class="tc-chart-title">
+                        Account Net Savings
+                    </div>
+
+                    <div class="tc-chart-subtitle">
+                        Savings performance by account
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tc-chart-wrap small">
+                <canvas id="accountSavingChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP CATEGORY CARDS
+         ======================================================== -->
+
+    <section class="tc-top-section">
+
+        <div class="tc-top-grid">
+
+            <!-- Top Expense -->
+
+            {% set top_expense_list = top_expense_categories|default([], true) %}
+
+            {% for row in top_expense_list[:6] %}
+
+                <div class="tc-top-card">
+
+                    <div class="tc-top-card-head">
+
+                        <div class="tc-rank">
+                            #{{ loop.index }}
+                        </div>
+
+                        <div style="min-width:0;">
+
+                            <div class="tc-top-name">
+                                {{ row.get('name', 'Unknown') }}
+                            </div>
+
+                            <div class="tc-top-type">
+                                Top Expense Category
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="tc-top-amount tc-negative">
+                        ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                    </div>
+
+                    <div class="tc-top-meta">
+
+                        <span>
+                            {{ row.get('transactions', 0) }} transactions
+                        </span>
+
+                        <span>
+                            {{ "{:.1f}".format(row.get('expense_share', 0)|float) }}%
+                        </span>
+
+                    </div>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CATEGORY RANKING TABLE
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-trophy-fill"></i>
+                    Category Ranking
+                </h3>
+
+                <p>
+                    Complete ranking of categories by total financial movement
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="categoryRankingTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Expense Rate</th>
+                        <th>Income Share</th>
+                        <th>Expense Share</th>
+                        <th>Transactions</th>
+                        <th>Total</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% set category_rows = category_summary|default([], true) %}
+
+                    {% for row in category_rows %}
+
+                        {% set net = row.get('net_saving', 0)|float %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ row.get('name', 'Unknown') }}
+                                </strong>
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money
+                                {% if net >= 0 %}
+                                    tc-positive
+                                {% else %}
+                                    tc-negative
+                                {% endif %}">
+                                ${{ "{:,.2f}".format(net) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('income_share', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('expense_share', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                            <td class="tc-money">
+                                ${{ "{:,.2f}".format(row.get('total', 0)|float) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         INCOME CATEGORIES
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-arrow-down-left-circle-fill tc-positive"></i>
+                    Income Categories
+                </h3>
+
+                <p>
+                    Categories ranked by income
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="incomeCategoriesTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Income</th>
+                        <th>Share</th>
+                        <th>Transactions</th>
+                        <th>Net Saving</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set income_rows = top_income_categories|default([], true) %}
+
+                    {% for row in income_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown') }}</strong>
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('income_share', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                            <td class="tc-money">
+                                ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         EXPENSE CATEGORIES
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-arrow-up-right-circle-fill tc-negative"></i>
+                    Expense Categories
+                </h3>
+
+                <p>
+                    Categories ranked by spending
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="expenseCategoriesTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Expense</th>
+                        <th>Share</th>
+                        <th>Transactions</th>
+                        <th>Net Saving</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set expense_rows = top_expense_categories|default([], true) %}
+
+                    {% for row in expense_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown') }}</strong>
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('expense_share', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                            <td class="tc-money
+                                {% if row.get('net_saving', 0)|float >= 0 %}
+                                    tc-positive
+                                {% else %}
+                                    tc-negative
+                                {% endif %}">
+                                ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         SAVING CATEGORIES
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-piggy-bank-fill"></i>
+                    Saving Categories
+                </h3>
+
+                <p>
+                    Categories producing positive net savings
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="savingCategoriesTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Net Saving</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set saving_rows = top_saving_categories|default([], true) %}
+
+                    {% for row in saving_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown') }}</strong>
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         NEGATIVE CATEGORIES
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-exclamation-triangle-fill tc-negative"></i>
+                    Negative Categories
+                </h3>
+
+                <p>
+                    Categories where expenses exceed income
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="negativeCategoriesTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Category</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Loss</th>
+                        <th>Transactions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set negative_rows = top_negative_categories|default([], true) %}
+
+                    {% for row in negative_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown') }}</strong>
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format((row.get('net_saving', 0)|float)|abs) }}
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ACCOUNT ANALYSIS
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-bank2"></i>
+                    Account Analysis
+                </h3>
+
+                <p>
+                    Category performance across accounts
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="accountAnalysisTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Account</th>
+                        <th>Type</th>
+                        <th>Balance</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Expense Rate</th>
+                        <th>Transactions</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set account_rows = account_summary|default([], true) %}
+
+                    {% for row in account_rows %}
+
+                        {% set account_net = row.get('net_saving', 0)|float %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown Account') }}</strong>
+                            </td>
+
+                            <td>
+                                {{ row.get('type', 'N/A') }}
+                            </td>
+
+                            <td class="tc-money">
+                                ${{ "{:,.2f}".format(row.get('balance', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money
+                                {% if account_net >= 0 %}
+                                    tc-positive
+                                {% else %}
+                                    tc-negative
+                                {% endif %}">
+                                ${{ "{:,.2f}".format(account_net) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                            <td>
+                                <span class="tc-badge tc-badge-active">
+                                    {{ row.get('status', 'Active') }}
+                                </span>
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         ITEM ANALYSIS
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-list-check"></i>
+                    Item Analysis
+                </h3>
+
+                <p>
+                    Detailed item-level category performance
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="itemAnalysisTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Item</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Expense Rate</th>
+                        <th>Transactions</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set item_rows = item_summary|default([], true) %}
+
+                    {% for row in item_rows %}
+
+                        {% set item_net = row.get('net_saving', 0)|float %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                <strong>{{ row.get('name', 'Unknown Item') }}</strong>
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money
+                                {% if item_net >= 0 %}
+                                    tc-positive
+                                {% else %}
+                                    tc-negative
+                                {% endif %}">
+                                ${{ "{:,.2f}".format(item_net) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('expense_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                            <td class="tc-money">
+                                ${{ "{:,.2f}".format(row.get('total', 0)|float) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP SAVING DAYS
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-calendar-check-fill"></i>
+                    Top Saving Days
+                </h3>
+
+                <p>
+                    Days with the highest net savings
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="savingDaysTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Saving Rate</th>
+                        <th>Transactions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set saving_day_rows = top_saving_days|default([], true) %}
+
+                    {% for row in saving_day_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                {{ row.get('label', row.get('date', 'N/A')) }}
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                            </td>
+
+                            <td>
+                                {{ "{:.1f}".format(row.get('saving_rate', 0)|float) }}%
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP EXPENSE DAYS
+         ======================================================== -->
+
+    <section class="tc-table-card">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-calendar-x-fill"></i>
+                    Top Expense Days
+                </h3>
+
+                <p>
+                    Days with the highest spending
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="expenseDaysTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Income</th>
+                        <th>Expense</th>
+                        <th>Net Saving</th>
+                        <th>Transactions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% set expense_day_rows = top_expense_days|default([], true) %}
+
+                    {% for row in expense_day_rows %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                {{ row.get('label', row.get('date', 'N/A')) }}
+                            </td>
+
+                            <td class="tc-money tc-positive">
+                                ${{ "{:,.2f}".format(row.get('income', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money tc-negative">
+                                ${{ "{:,.2f}".format(row.get('expense', 0)|float) }}
+                            </td>
+
+                            <td class="tc-money
+                                {% if row.get('net_saving', 0)|float >= 0 %}
+                                    tc-positive
+                                {% else %}
+                                    tc-negative
+                                {% endif %}">
+                                ${{ "{:,.2f}".format(row.get('net_saving', 0)|float) }}
+                            </td>
+
+                            <td>
+                                {{ row.get('transactions', 0) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FINANCIAL TRANSACTIONS
+         ======================================================== -->
+
+    <section class="tc-table-card"
+             id="transactionsSection">
+
+        <div class="tc-table-header">
+
+            <div class="tc-table-title-wrap">
+
+                <h3>
+                    <i class="bi bi-receipt-cutoff"></i>
+                    Financial Transactions
+                </h3>
+
+                <p>
+                    Complete transactions included in this report
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="tc-table-scroll">
+
+            <table id="financialTransactionsTable"
+                   class="tc-table display responsive nowrap">
+
+                <thead>
+
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Account</th>
+                        <th>Category</th>
+                        <th>Item</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Reference</th>
+                        <th>Description</th>
+                        <th>Note</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% set transaction_rows = financial_transactions|default([], true) %}
+
+                    {% for row in transaction_rows %}
+
+                        {% set tx_type = row.get('transaction_type', '')|string|lower %}
+
+                        <tr>
+
+                            <td class="tc-rank-cell">
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                {{ row.get('date', 'N/A') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('account', 'Unknown Account') }}
+                            </td>
+
+                            <td>
+                                <strong>
+                                    {{ row.get('category', 'Uncategorized') }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                {{ row.get('item', '-') }}
+                            </td>
+
+                            <td>
+
+                                {% if tx_type == 'income' %}
+
+                                    <span class="tc-badge tc-badge-income">
+                                        Income
+                                    </span>
+
+                                {% elif tx_type == 'expense' %}
+
+                                    <span class="tc-badge tc-badge-expense">
+                                        Expense
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="tc-badge tc-badge-neutral">
+                                        {{ row.get('transaction_type', 'N/A') }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="tc-money
+                                {% if tx_type == 'income' %}
+                                    tc-positive
+                                {% elif tx_type == 'expense' %}
+                                    tc-negative
+                                {% endif %}">
+
+                                ${{ "{:,.2f}".format(row.get('amount', 0)|float) }}
+
+                            </td>
+
+                            <td>
+
+                                <span class="tc-badge tc-badge-active">
+                                    {{ row.get('status', 'Active') }}
+                                </span>
+
+                            </td>
+
+                            <td>
+                                {{ row.get('reference', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('description', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('note', '-') }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="tc-footer">
+        Top Categories Financial Report
+        • Generated from the selected reporting period
+    </div>
+
+</div>
+</div>
+
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<script>
+/* ============================================================
+   TOP CATEGORIES REPORT JAVASCRIPT
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       SAFE DATA
+       ======================================================== */
+
+    const categorySummary =
+        {{ category_summary|default([], true)|tojson|safe }};
+
+    const topIncomeCategories =
+        {{ top_income_categories|default([], true)|tojson|safe }};
+
+    const topExpenseCategories =
+        {{ top_expense_categories|default([], true)|tojson|safe }};
+
+    const topSavingCategories =
+        {{ top_saving_categories|default([], true)|tojson|safe }};
+
+    const topPositiveSavingCategories =
+        {{ top_positive_saving_categories|default([], true)|tojson|safe }};
+
+    const topNegativeCategories =
+        {{ top_negative_categories|default([], true)|tojson|safe }};
+
+    const accountSummary =
+        {{ account_summary|default([], true)|tojson|safe }};
+
+    const itemSummary =
+        {{ item_summary|default([], true)|tojson|safe }};
+
+    const topSavingDays =
+        {{ top_saving_days|default([], true)|tojson|safe }};
+
+    const topExpenseDays =
+        {{ top_expense_days|default([], true)|tojson|safe }};
+
+    const topIncomeDays =
+        {{ top_income_days|default([], true)|tojson|safe }};
+
+    const financialTransactions =
+        {{ financial_transactions|default([], true)|tojson|safe }};
+
+
+    /* ========================================================
+       HELPERS
+       ======================================================== */
+
+    function number(value) {
+
+        const n = Number(value);
+
+        return Number.isFinite(n) ? n : 0;
+
+    }
+
+
+    function money(value) {
+
+        return "$" + number(value).toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+    }
+
+
+    function safeArray(value) {
+
+        return Array.isArray(value) ? value : [];
+
+    }
+
+
+    function categoryName(row) {
+
+        return row &&
+               row.name !== undefined &&
+               row.name !== null
+            ? String(row.name)
+            : "Unknown";
+
+    }
+
+
+    /* ========================================================
+       QUICK DATE FILTERS
+       ======================================================== */
+
+    window.setQuickRange = function (days) {
+
+        const end = new Date();
+
+        const start = new Date();
+
+        start.setDate(end.getDate() - (Number(days) - 1));
+
+        document.getElementById("start_date").value =
+            formatDateInput(start);
+
+        document.getElementById("end_date").value =
+            formatDateInput(end);
+
+    };
+
+
+    window.setCurrentMonth = function () {
+
+        const now = new Date();
+
+        const start =
+            new Date(now.getFullYear(), now.getMonth(), 1);
+
+        document.getElementById("start_date").value =
+            formatDateInput(start);
+
+        document.getElementById("end_date").value =
+            formatDateInput(now);
+
+    };
+
+
+    function formatDateInput(date) {
+
+        const year = date.getFullYear();
+
+        const month = String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+        const day = String(
+            date.getDate()
+        ).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+
+    /* ========================================================
+       SCROLL
+       ======================================================== */
+
+    window.scrollToTransactions = function () {
+
+        const target =
+            document.getElementById("transactionsSection");
+
+        if (target) {
+
+            target.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        }
+
+    };
+
+
+    /* ========================================================
+       JSON EXPORT
+       ======================================================== */
+
+    function jsonButton(filename) {
+
+        return {
+            text: "JSON",
+
+            action: function (e, dt) {
+
+                const rows =
+                    dt.rows({
+                        search: "applied"
+                    }).data().toArray();
+
+                const blob =
+                    new Blob(
+                        [
+                            JSON.stringify(
+                                rows,
+                                null,
+                                2
+                            )
+                        ],
+                        {
+                            type: "application/json"
+                        }
+                    );
+
+                const url =
+                    URL.createObjectURL(blob);
+
+                const link =
+                    document.createElement("a");
+
+                link.href = url;
+
+                link.download = filename;
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(url);
+
+            }
+
+        };
+
+    }
+
+
+    /* ========================================================
+       DATATABLE CONFIG
+       ======================================================== */
+
+    function initTable(selector, filename) {
+
+        const table =
+            document.querySelector(selector);
+
+        if (!table) {
+            return;
+        }
+
+        $(selector).DataTable({
+
+            responsive: true,
+
+            pageLength: 10,
+
+            lengthMenu: [
+                [10, 15, 25, 50, 100, -1],
+                [10, 15, 25, 50, 100, "All"]
+            ],
+
+            autoWidth: false,
+
+            order: [],
+
+            dom:
+                '<"dt-top"lfB>' +
+                'rt' +
+                '<"dt-bottom"ip>',
+
+            buttons: [
+
+                {
+                    extend: "copyHtml5",
+                    text: "Copy"
+                },
+
+                {
+                    extend: "csvHtml5",
+                    text: "CSV",
+                    title: filename
+                },
+
+                {
+                    extend: "excelHtml5",
+                    text: "Excel",
+                    title: filename
+                },
+
+                {
+                    extend: "pdfHtml5",
+                    text: "PDF",
+                    title: filename,
+                    orientation: "landscape",
+                    pageSize: "A4"
+                },
+
+                {
+                    extend: "print",
+                    text: "Print",
+                    title: filename
+                },
+
+                jsonButton(
+                    filename.toLowerCase()
+                        .replace(/\s+/g, "_")
+                        + ".json"
+                )
+
+            ],
+
+            language: {
+
+                search: "Search:",
+
+                lengthMenu:
+                    "Show _MENU_",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_",
+
+                infoEmpty:
+                    "No records available",
+
+                zeroRecords:
+                    "No matching records found",
+
+                paginate: {
+                    previous: "‹",
+                    next: "›"
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       INIT ALL TABLES
+       ======================================================== */
+
+    $(document).ready(function () {
+
+        initTable(
+            "#categoryRankingTable",
+            "Category Ranking"
+        );
+
+        initTable(
+            "#incomeCategoriesTable",
+            "Income Categories"
+        );
+
+        initTable(
+            "#expenseCategoriesTable",
+            "Expense Categories"
+        );
+
+        initTable(
+            "#savingCategoriesTable",
+            "Saving Categories"
+        );
+
+        initTable(
+            "#negativeCategoriesTable",
+            "Negative Categories"
+        );
+
+        initTable(
+            "#accountAnalysisTable",
+            "Account Analysis"
+        );
+
+        initTable(
+            "#itemAnalysisTable",
+            "Item Analysis"
+        );
+
+        initTable(
+            "#savingDaysTable",
+            "Top Saving Days"
+        );
+
+        initTable(
+            "#expenseDaysTable",
+            "Top Expense Days"
+        );
+
+        initTable(
+            "#financialTransactionsTable",
+            "Financial Transactions"
+        );
+
+    });
+
+
+    /* ========================================================
+       CHART DEFAULTS
+       ======================================================== */
+
+    Chart.defaults.font.family =
+        "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif";
+
+    Chart.defaults.color = "#64748b";
+
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+
+    /* ========================================================
+       CHART INSTANCES
+       ======================================================== */
+
+    let incomeChart = null;
+    let expenseChart = null;
+    let savingChart = null;
+    let incomeExpenseChart = null;
+    let doughnutChart = null;
+    let accountChart = null;
+
+
+    /* ========================================================
+       CHART 1 - TOP INCOME
+       ======================================================== */
+
+    function createIncomeChart() {
+
+        const rows =
+            safeArray(topIncomeCategories)
+                .slice(0, 15);
+
+        const labels =
+            rows.map(categoryName);
+
+        const values =
+            rows.map(
+                row => number(row.income)
+            );
+
+        const canvas =
+            document.getElementById(
+                "incomeCategoryChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        incomeChart =
+            new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Income",
+
+                                data: values,
+
+                                backgroundColor:
+                                    "rgba(22, 163, 74, .75)",
+
+                                borderColor:
+                                    "#16a34a",
+
+                                borderWidth: 1,
+
+                                borderRadius: 7
+                            }
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        indexAxis: "y",
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            },
+
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return money(ctx.raw);
+                                    }
+                                }
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+                                beginAtZero: true,
+
+                                ticks: {
+                                    callback: function (value) {
+                                        return money(value);
+                                    }
+                                }
+                            },
+
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CHART 2 - TOP EXPENSE
+       ======================================================== */
+
+    function createExpenseChart() {
+
+        const rows =
+            safeArray(topExpenseCategories)
+                .slice(0, 15);
+
+        const labels =
+            rows.map(categoryName);
+
+        const values =
+            rows.map(
+                row => number(row.expense)
+            );
+
+        const canvas =
+            document.getElementById(
+                "expenseCategoryChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        expenseChart =
+            new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Expense",
+
+                                data: values,
+
+                                backgroundColor:
+                                    "rgba(220, 38, 38, .75)",
+
+                                borderColor:
+                                    "#dc2626",
+
+                                borderWidth: 1,
+
+                                borderRadius: 7
+                            }
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        indexAxis: "y",
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            },
+
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return money(ctx.raw);
+                                    }
+                                }
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+                                beginAtZero: true,
+
+                                ticks: {
+                                    callback: function (value) {
+                                        return money(value);
+                                    }
+                                }
+                            },
+
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CHART 3 - TOP SAVING
+       ======================================================== */
+
+    function createSavingChart() {
+
+        const rows =
+            safeArray(topSavingCategories)
+                .slice(0, 15);
+
+        const labels =
+            rows.map(categoryName);
+
+        const values =
+            rows.map(
+                row => number(row.net_saving)
+            );
+
+        const canvas =
+            document.getElementById(
+                "savingCategoryChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        savingChart =
+            new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Net Saving",
+
+                                data: values,
+
+                                backgroundColor:
+                                    "rgba(124, 58, 237, .75)",
+
+                                borderColor:
+                                    "#7c3aed",
+
+                                borderWidth: 1,
+
+                                borderRadius: 7
+                            }
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        indexAxis: "y",
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            },
+
+                            tooltip: {
+                                callbacks: {
+                                    label: function (ctx) {
+                                        return money(ctx.raw);
+                                    }
+                                }
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+                                beginAtZero: true,
+
+                                ticks: {
+                                    callback: function (value) {
+                                        return money(value);
+                                    }
+                                }
+                            },
+
+                            y: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CHART 4 - INCOME VS EXPENSE
+       ======================================================== */
+
+    function createIncomeExpenseChart() {
+
+        const rows =
+            safeArray(categorySummary)
+                .slice(0, 15);
+
+        const labels =
+            rows.map(categoryName);
+
+        const incomes =
+            rows.map(
+                row => number(row.income)
+            );
+
+        const expenses =
+            rows.map(
+                row => number(row.expense)
+            );
+
+        const canvas =
+            document.getElementById(
+                "incomeExpenseChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        incomeExpenseChart =
+            new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+
+                            {
+                                label: "Income",
+
+                                data: incomes,
+
+                                backgroundColor:
+                                    "rgba(22, 163, 74, .72)",
+
+                                borderColor:
+                                    "#16a34a",
+
+                                borderWidth: 1,
+
+                                borderRadius: 5
+                            },
+
+                            {
+                                label: "Expense",
+
+                                data: expenses,
+
+                                backgroundColor:
+                                    "rgba(220, 38, 38, .72)",
+
+                                borderColor:
+                                    "#dc2626",
+
+                                borderWidth: 1,
+
+                                borderRadius: 5
+                            }
+
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        plugins: {
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label: function (ctx) {
+
+                                        return (
+                                            ctx.dataset.label
+                                            + ": "
+                                            + money(ctx.raw)
+                                        );
+
+                                    }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: true,
+
+                                ticks: {
+
+                                    callback:
+                                        function (value) {
+                                            return money(value);
+                                        }
+
+                                }
+
+                            },
+
+                            x: {
+
+                                grid: {
+                                    display: false
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CHART 5 - SAVING DOUGHNUT
+       ======================================================== */
+
+    function createSavingDoughnut() {
+
+        const rows =
+            safeArray(topPositiveSavingCategories)
+                .slice(0, 10);
+
+        const labels =
+            rows.map(categoryName);
+
+        const values =
+            rows.map(
+                row => Math.max(
+                    0,
+                    number(row.net_saving)
+                )
+            );
+
+        const canvas =
+            document.getElementById(
+                "savingDoughnutChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        doughnutChart =
+            new Chart(
+                canvas,
+                {
+                    type: "doughnut",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                data: values,
+
+                                backgroundColor: [
+                                    "#2563eb",
+                                    "#16a34a",
+                                    "#7c3aed",
+                                    "#0891b2",
+                                    "#d97706",
+                                    "#db2777",
+                                    "#475569",
+                                    "#0f766e",
+                                    "#4f46e5",
+                                    "#65a30d"
+                                ],
+
+                                borderWidth: 2,
+
+                                borderColor: "#ffffff"
+                            }
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        cutout: "62%",
+
+                        plugins: {
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label: function (ctx) {
+
+                                        return (
+                                            ctx.label
+                                            + ": "
+                                            + money(ctx.raw)
+                                        );
+
+                                    }
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CHART 6 - ACCOUNT SAVING
+       ======================================================== */
+
+    function createAccountChart() {
+
+        const rows =
+            safeArray(accountSummary)
+                .slice(0, 12);
+
+        const labels =
+            rows.map(
+                row =>
+                    row.name ||
+                    "Unknown Account"
+            );
+
+        const values =
+            rows.map(
+                row =>
+                    number(row.net_saving)
+            );
+
+        const canvas =
+            document.getElementById(
+                "accountSavingChart"
+            );
+
+        if (!canvas) {
+            return;
+        }
+
+        accountChart =
+            new Chart(
+                canvas,
+                {
+                    type: "bar",
+
+                    data: {
+
+                        labels: labels,
+
+                        datasets: [
+                            {
+                                label: "Net Saving",
+
+                                data: values,
+
+                                backgroundColor:
+                                    values.map(
+                                        value =>
+                                            value >= 0
+                                                ? "rgba(37, 99, 235, .75)"
+                                                : "rgba(220, 38, 38, .75)"
+                                    ),
+
+                                borderColor:
+                                    values.map(
+                                        value =>
+                                            value >= 0
+                                                ? "#2563eb"
+                                                : "#dc2626"
+                                    ),
+
+                                borderWidth: 1,
+
+                                borderRadius: 7
+                            }
+                        ]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        indexAxis: "y",
+
+                        plugins: {
+
+                            legend: {
+                                display: false
+                            },
+
+                            tooltip: {
+
+                                callbacks: {
+
+                                    label: function (ctx) {
+                                        return money(ctx.raw);
+                                    }
+
+                                }
+
+                            }
+
+                        },
+
+                        scales: {
+
+                            x: {
+
+                                ticks: {
+
+                                    callback:
+                                        function (value) {
+                                            return money(value);
+                                        }
+
+                                }
+
+                            },
+
+                            y: {
+
+                                grid: {
+                                    display: false
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+            );
+
+    }
+
+
+    /* ========================================================
+       CREATE CHARTS
+       ======================================================== */
+
+    function createCharts() {
+
+        if (typeof Chart === "undefined") {
+            return;
+        }
+
+        createIncomeChart();
+
+        createExpenseChart();
+
+        createSavingChart();
+
+        createIncomeExpenseChart();
+
+        createSavingDoughnut();
+
+        createAccountChart();
+
+    }
+
+
+    /* ========================================================
+       PROGRESS ANIMATION
+       ======================================================== */
+
+    function animateProgressBars() {
+
+        document
+            .querySelectorAll(
+                ".tc-progress-bar"
+            )
+            .forEach(function (bar) {
+
+                let value =
+                    Number(
+                        bar.dataset.progress || 0
+                    );
+
+                if (!Number.isFinite(value)) {
+                    value = 0;
+                }
+
+                value =
+                    Math.max(
+                        0,
+                        Math.min(100, value)
+                    );
+
+                requestAnimationFrame(
+                    function () {
+                        bar.style.width =
+                            value + "%";
+                    }
+                );
+
+            });
+
+    }
+
+
+    /* ========================================================
+       INITIALIZE
+       ======================================================== */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            animateProgressBars();
+
+            createCharts();
+
+        }
+    );
+
+
+})();
+</script>
+
+{% endblock %}

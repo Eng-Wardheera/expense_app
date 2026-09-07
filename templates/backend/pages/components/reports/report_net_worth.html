@@ -1,0 +1,3049 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Net Worth Report{% endblock %}
+
+{% block content %}
+
+<!-- ============================================================
+     NET WORTH REPORT
+     Advanced Financial Net Worth Dashboard
+     Bootstrap + Chart.js + DataTables + Buttons
+============================================================ -->
+
+<div class="container-fluid py-4 net-worth-page">
+
+    <!-- ========================================================
+         HEADER
+    ========================================================= -->
+    <div class="nw-header mb-4">
+        <div>
+            <div class="nw-eyebrow">
+                <i class="bi bi-bar-chart-line-fill"></i>
+                FINANCIAL ANALYTICS
+            </div>
+
+            <h1 class="nw-title">
+                <i class="bi bi-wallet2"></i>
+                Net Worth Report
+            </h1>
+
+            <p class="nw-subtitle">
+                Complete overview of assets, liabilities, accounts,
+                savings and net worth growth.
+            </p>
+        </div>
+
+        <div class="nw-header-actions">
+
+            <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="window.print()">
+                <i class="bi bi-printer"></i>
+                Print Report
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-primary"
+                onclick="exportNetWorthCSV()">
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                Export CSV
+            </button>
+
+        </div>
+    </div>
+
+
+    <!-- ========================================================
+         FILTER CARD
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4 nw-filter-card">
+
+        <div class="card-body">
+
+            <form method="GET"
+                  action="{{ url_for('main.report_net_worth') }}">
+
+                <div class="row g-3 align-items-end">
+
+                    <!-- Start Date -->
+                    <div class="col-xl-2 col-lg-3 col-md-6">
+
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-event"></i>
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="start_date"
+                            class="form-control"
+                            value="{{ start_date_value or '' }}">
+
+                    </div>
+
+
+                    <!-- End Date -->
+                    <div class="col-xl-2 col-lg-3 col-md-6">
+
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-calendar-check"></i>
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            name="end_date"
+                            class="form-control"
+                            value="{{ end_date_value or '' }}">
+
+                    </div>
+
+
+                    <!-- Account -->
+                    <div class="col-xl-2 col-lg-3 col-md-6">
+
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-bank"></i>
+                            Account
+                        </label>
+
+                        <select
+                            name="account"
+                            class="form-select">
+
+                            <option value="">
+                                All Accounts
+                            </option>
+
+                            {% for account in account_options or [] %}
+
+                            <option
+                                value="{{ account }}"
+                                {% if account_filter == account %}
+                                    selected
+                                {% endif %}>
+                                {{ account }}
+                            </option>
+
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Type -->
+                    <div class="col-xl-2 col-lg-3 col-md-6">
+
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-filter"></i>
+                            Transaction Type
+                        </label>
+
+                        <select
+                            name="transaction_type"
+                            class="form-select">
+
+                            <option value="">
+                                All Types
+                            </option>
+
+                            <option
+                                value="income"
+                                {% if transaction_type == 'income' %}
+                                    selected
+                                {% endif %}>
+                                Income
+                            </option>
+
+                            <option
+                                value="expense"
+                                {% if transaction_type == 'expense' %}
+                                    selected
+                                {% endif %}>
+                                Expense
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Buttons -->
+                    <div class="col-xl-4 col-lg-12">
+
+                        <div class="d-flex flex-wrap gap-2">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary flex-grow-1">
+
+                                <i class="bi bi-search"></i>
+                                Apply Filters
+
+                            </button>
+
+
+                            <a
+                                href="{{ url_for('main.report_net_worth') }}"
+                                class="btn btn-outline-secondary">
+
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                                Reset
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+
+            <!-- Quick Ranges -->
+            <div class="quick-ranges mt-3">
+
+                <span class="quick-label">
+                    Quick Range:
+                </span>
+
+                <button
+                    type="button"
+                    onclick="setNWRange('today')"
+                    class="btn btn-sm btn-light">
+                    Today
+                </button>
+
+                <button
+                    type="button"
+                    onclick="setNWRange('7')"
+                    class="btn btn-sm btn-light">
+                    Last 7 Days
+                </button>
+
+                <button
+                    type="button"
+                    onclick="setNWRange('30')"
+                    class="btn btn-sm btn-light">
+                    Last 30 Days
+                </button>
+
+                <button
+                    type="button"
+                    onclick="setNWRange('month')"
+                    class="btn btn-sm btn-light">
+                    This Month
+                </button>
+
+                <button
+                    type="button"
+                    onclick="setNWRange('year')"
+                    class="btn btn-sm btn-light">
+                    This Year
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PERIOD INFORMATION
+    ========================================================= -->
+    <div class="alert alert-light border shadow-sm mb-4">
+
+        <div class="d-flex flex-wrap align-items-center gap-3">
+
+            <div>
+                <i class="bi bi-calendar3 text-primary"></i>
+                <strong>Report Period:</strong>
+                {{ custom_range_label or 'Current Period' }}
+            </div>
+
+            <div class="vr"></div>
+
+            <div>
+                <i class="bi bi-clock-history text-secondary"></i>
+                {{ period_days or 0 }} days
+            </div>
+
+            {% if previous_range_label %}
+
+            <div class="vr"></div>
+
+            <div>
+                <i class="bi bi-arrow-left-right text-info"></i>
+                Compared with:
+                <strong>{{ previous_range_label }}</strong>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MAIN KPI CARDS
+    ========================================================= -->
+    <div class="row g-4 mb-4">
+
+        <!-- Total Assets -->
+        <div class="col-xl-3 col-lg-6 col-md-6">
+
+            <div class="card nw-kpi-card assets-card h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <span class="nw-kpi-label">
+                                TOTAL ASSETS
+                            </span>
+
+                            <h2 class="nw-kpi-value">
+                                ${{ "%.2f"|format(total_assets or 0) }}
+                            </h2>
+
+                        </div>
+
+                        <div class="nw-icon">
+                            <i class="bi bi-piggy-bank-fill"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="nw-kpi-bottom">
+
+                        <span>
+                            <i class="bi bi-wallet2"></i>
+                            Accounts + Savings
+                        </span>
+
+                        {% if asset_change is defined %}
+
+                        <span class="
+                            {% if asset_change >= 0 %}
+                                text-success
+                            {% else %}
+                                text-danger
+                            {% endif %}
+                        ">
+
+                            {% if asset_change >= 0 %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+
+                            {{ "%.2f"|format(asset_change|abs) }}%
+
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Total Liabilities -->
+        <div class="col-xl-3 col-lg-6 col-md-6">
+
+            <div class="card nw-kpi-card liabilities-card h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <span class="nw-kpi-label">
+                                TOTAL LIABILITIES
+                            </span>
+
+                            <h2 class="nw-kpi-value">
+                                ${{ "%.2f"|format(total_liabilities or 0) }}
+                            </h2>
+
+                        </div>
+
+                        <div class="nw-icon">
+                            <i class="bi bi-credit-card-fill"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="nw-kpi-bottom">
+
+                        <span>
+                            <i class="bi bi-arrow-down-circle"></i>
+                            Financial obligations
+                        </span>
+
+                        {% if liability_change is defined %}
+
+                        <span class="
+                            {% if liability_change <= 0 %}
+                                text-success
+                            {% else %}
+                                text-danger
+                            {% endif %}
+                        ">
+
+                            {% if liability_change >= 0 %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+
+                            {{ "%.2f"|format(liability_change|abs) }}%
+
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Net Worth -->
+        <div class="col-xl-3 col-lg-6 col-md-6">
+
+            <div class="card nw-kpi-card networth-card h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <span class="nw-kpi-label">
+                                NET WORTH
+                            </span>
+
+                            <h2 class="
+                                nw-kpi-value
+                                {% if net_worth >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                            ">
+
+                                ${{ "%.2f"|format(net_worth or 0) }}
+
+                            </h2>
+
+                        </div>
+
+                        <div class="nw-icon">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="nw-kpi-bottom">
+
+                        <span>
+                            Assets − Liabilities
+                        </span>
+
+                        {% if net_worth_change is defined %}
+
+                        <span class="
+                            {% if net_worth_change >= 0 %}
+                                text-success
+                            {% else %}
+                                text-danger
+                            {% endif %}
+                        ">
+
+                            {% if net_worth_change >= 0 %}
+                                <i class="bi bi-arrow-up"></i>
+                            {% else %}
+                                <i class="bi bi-arrow-down"></i>
+                            {% endif %}
+
+                            {{ "%.2f"|format(net_worth_change|abs) }}%
+
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Growth -->
+        <div class="col-xl-3 col-lg-6 col-md-6">
+
+            <div class="card nw-kpi-card growth-card h-100">
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <div>
+
+                            <span class="nw-kpi-label">
+                                NET WORTH GROWTH
+                            </span>
+
+                            <h2 class="
+                                nw-kpi-value
+                                {% if net_worth_growth >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                            ">
+
+                                {{ "%.2f"|format(net_worth_growth or 0) }}%
+
+                            </h2>
+
+                        </div>
+
+                        <div class="nw-icon">
+                            <i class="bi bi-speedometer2"></i>
+                        </div>
+
+                    </div>
+
+                    <div class="progress nw-progress mt-3">
+
+                        <div
+                            class="progress-bar"
+                            role="progressbar"
+                            style="width: {{ [net_worth_growth|default(0)|abs, 100]|min }}%">
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SECONDARY METRICS
+    ========================================================= -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card metric-card h-100">
+
+                <div class="card-body">
+
+                    <div class="metric-icon">
+                        <i class="bi bi-arrow-down-left-circle"></i>
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Total Income
+                        </small>
+
+                        <h4>
+                            ${{ "%.2f"|format(total_income or 0) }}
+                        </h4>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card metric-card h-100">
+
+                <div class="card-body">
+
+                    <div class="metric-icon expense">
+                        <i class="bi bi-arrow-up-right-circle"></i>
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Total Expenses
+                        </small>
+
+                        <h4>
+                            ${{ "%.2f"|format(total_expense or 0) }}
+                        </h4>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card metric-card h-100">
+
+                <div class="card-body">
+
+                    <div class="metric-icon savings">
+                        <i class="bi bi-safe2-fill"></i>
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Total Savings
+                        </small>
+
+                        <h4>
+                            ${{ "%.2f"|format(total_savings or 0) }}
+                        </h4>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="col-xl-3 col-md-6">
+
+            <div class="card metric-card h-100">
+
+                <div class="card-body">
+
+                    <div class="metric-icon transactions">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Transactions
+                        </small>
+
+                        <h4>
+                            {{ total_transactions or 0 }}
+                        </h4>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         NET WORTH STATUS
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-body">
+
+            <div class="row align-items-center">
+
+                <div class="col-lg-8">
+
+                    {% if net_worth > 0 %}
+
+                    <div class="alert alert-success mb-lg-0">
+
+                        <div class="d-flex gap-3">
+
+                            <i class="bi bi-check-circle-fill fs-3"></i>
+
+                            <div>
+
+                                <h5 class="fw-bold mb-1">
+                                    Positive Net Worth
+                                </h5>
+
+                                <p class="mb-0">
+                                    Your total assets are greater than
+                                    your liabilities. Your current net
+                                    worth is
+                                    <strong>
+                                        ${{ "%.2f"|format(net_worth) }}
+                                    </strong>.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% elif net_worth == 0 %}
+
+                    <div class="alert alert-warning mb-lg-0">
+
+                        <div class="d-flex gap-3">
+
+                            <i class="bi bi-exclamation-circle-fill fs-3"></i>
+
+                            <div>
+
+                                <h5 class="fw-bold mb-1">
+                                    Net Worth Is Zero
+                                </h5>
+
+                                <p class="mb-0">
+                                    Assets and liabilities are currently
+                                    balanced.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% else %}
+
+                    <div class="alert alert-danger mb-lg-0">
+
+                        <div class="d-flex gap-3">
+
+                            <i class="bi bi-exclamation-triangle-fill fs-3"></i>
+
+                            <div>
+
+                                <h5 class="fw-bold mb-1">
+                                    Negative Net Worth
+                                </h5>
+
+                                <p class="mb-0">
+                                    Your liabilities are greater than your
+                                    assets by
+                                    <strong>
+                                        ${{ "%.2f"|format(net_worth|abs) }}
+                                    </strong>.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div class="col-lg-4 mt-3 mt-lg-0">
+
+                    <div class="text-center">
+
+                        <small class="text-muted d-block">
+                            Financial Health
+                        </small>
+
+                        <div class="progress health-progress mt-2">
+
+                            <div
+                                class="progress-bar"
+                                style="width: {{ [net_worth_health|default(0), 100]|min }}%">
+
+                            </div>
+
+                        </div>
+
+                        <strong class="d-block mt-2">
+                            {{ "%.1f"|format(net_worth_health or 0) }}%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CHARTS
+    ========================================================= -->
+    <div class="row g-4 mb-4">
+
+        <!-- Net Worth Trend -->
+        <div class="col-xl-8">
+
+            <div class="card shadow-sm border-0 chart-card h-100">
+
+                <div class="card-header bg-white border-0">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <div>
+
+                            <h5 class="mb-1 fw-bold">
+                                <i class="bi bi-graph-up-arrow text-primary"></i>
+                                Net Worth Trend
+                            </h5>
+
+                            <small class="text-muted">
+                                Assets, liabilities and net worth over time
+                            </small>
+
+                        </div>
+
+                        <span class="badge bg-light text-dark">
+                            Trend
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="chart-wrapper">
+                        <canvas id="netWorthTrendChart"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Asset Allocation -->
+        <div class="col-xl-4">
+
+            <div class="card shadow-sm border-0 chart-card h-100">
+
+                <div class="card-header bg-white border-0">
+
+                    <h5 class="mb-1 fw-bold">
+                        <i class="bi bi-pie-chart-fill text-primary"></i>
+                        Asset Allocation
+                    </h5>
+
+                    <small class="text-muted">
+                        Distribution of your assets
+                    </small>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="chart-wrapper doughnut-wrapper">
+                        <canvas id="assetAllocationChart"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SECOND CHART ROW
+    ========================================================= -->
+    <div class="row g-4 mb-4">
+
+        <!-- Monthly -->
+        <div class="col-xl-6">
+
+            <div class="card shadow-sm border-0 chart-card h-100">
+
+                <div class="card-header bg-white border-0">
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-calendar3 text-primary"></i>
+                        Monthly Net Worth
+                    </h5>
+
+                    <small class="text-muted">
+                        Monthly financial movement
+                    </small>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="chart-wrapper">
+                        <canvas id="monthlyNetWorthChart"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Account -->
+        <div class="col-xl-6">
+
+            <div class="card shadow-sm border-0 chart-card h-100">
+
+                <div class="card-header bg-white border-0">
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-bank2 text-primary"></i>
+                        Account Balances
+                    </h5>
+
+                    <small class="text-muted">
+                        Current balance by account
+                    </small>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="chart-wrapper">
+                        <canvas id="accountBalanceChart"></canvas>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         PROGRESS SECTION
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white border-0">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-speedometer text-primary"></i>
+                        Financial Progress
+                    </h5>
+
+                    <small class="text-muted">
+                        Your financial position at a glance
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <!-- Assets Progress -->
+                <div class="col-lg-4">
+
+                    <div class="progress-box">
+
+                        <div class="d-flex justify-content-between mb-2">
+
+                            <strong>
+                                Assets
+                            </strong>
+
+                            <span>
+                                ${{ "%.2f"|format(total_assets or 0) }}
+                            </span>
+
+                        </div>
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar"
+                                style="width: {{ [asset_progress|default(0), 100]|min }}%">
+
+                            </div>
+
+                        </div>
+
+                        <small class="text-muted">
+                            {{ "%.1f"|format(asset_progress or 0) }}% position
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Liabilities Progress -->
+                <div class="col-lg-4">
+
+                    <div class="progress-box">
+
+                        <div class="d-flex justify-content-between mb-2">
+
+                            <strong>
+                                Liabilities
+                            </strong>
+
+                            <span>
+                                ${{ "%.2f"|format(total_liabilities or 0) }}
+                            </span>
+
+                        </div>
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar bg-danger"
+                                style="width: {{ [liability_progress|default(0), 100]|min }}%">
+
+                            </div>
+
+                        </div>
+
+                        <small class="text-muted">
+                            {{ "%.1f"|format(liability_progress or 0) }}%
+                            of assets
+                        </small>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Net Worth -->
+                <div class="col-lg-4">
+
+                    <div class="progress-box">
+
+                        <div class="d-flex justify-content-between mb-2">
+
+                            <strong>
+                                Net Worth
+                            </strong>
+
+                            <span>
+                                ${{ "%.2f"|format(net_worth or 0) }}
+                            </span>
+
+                        </div>
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar bg-success"
+                                style="width: {{ [net_worth_progress|default(0), 100]|min }}%">
+
+                            </div>
+
+                        </div>
+
+                        <small class="text-muted">
+                            {{ "%.1f"|format(net_worth_progress or 0) }}%
+                            financial strength
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT PERFORMANCE
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white border-0">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-bank text-primary"></i>
+                        Account Performance
+                    </h5>
+
+                    <small class="text-muted">
+                        Assets distributed across accounts
+                    </small>
+
+                </div>
+
+                <span class="badge bg-primary-subtle text-primary">
+                    {{ accounts|length if accounts else 0 }} Accounts
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+                    id="nwAccountsTable"
+                    class="table table-hover align-middle nw-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Balance</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Movement</th>
+                            <th>Share</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for account in accounts or [] %}
+
+                        <tr>
+
+                            <td>{{ loop.index }}</td>
+
+                            <td>
+                                <strong>
+                                    {{ account.name }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                <span class="badge bg-light text-dark">
+                                    {{ account.type or 'Account' }}
+                                </span>
+                            </td>
+
+                            <td class="fw-bold">
+                                ${{ "%.2f"|format(account.balance or 0) }}
+                            </td>
+
+                            <td class="text-success">
+                                +${{ "%.2f"|format(account.income or 0) }}
+                            </td>
+
+                            <td class="text-danger">
+                                -${{ "%.2f"|format(account.expense or 0) }}
+                            </td>
+
+                            <td class="
+                                {% if account.net >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                                fw-semibold
+                            ">
+
+                                ${{ "%.2f"|format(account.net or 0) }}
+
+                            </td>
+
+                            <td style="min-width:150px">
+
+                                <div class="progress">
+
+                                    <div
+                                        class="progress-bar"
+                                        style="width: {{ [account.share|default(0), 100]|min }}%">
+
+                                    </div>
+
+                                </div>
+
+                                <small>
+                                    {{ "%.1f"|format(account.share or 0) }}%
+                                </small>
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center py-5 text-muted">
+
+                                No account data available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SAVINGS PERFORMANCE
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white border-0">
+
+            <div class="d-flex justify-content-between align-items-center">
+
+                <div>
+
+                    <h5 class="fw-bold mb-1">
+                        <i class="bi bi-safe-fill text-success"></i>
+                        Savings Performance
+                    </h5>
+
+                    <small class="text-muted">
+                        Savings contributing to your net worth
+                    </small>
+
+                </div>
+
+                <span class="badge bg-success-subtle text-success">
+                    Savings
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+                    id="nwSavingsTable"
+                    class="table table-hover align-middle nw-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Saving</th>
+                            <th>Target</th>
+                            <th>Current Balance</th>
+                            <th>Remaining</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for saving in savings or [] %}
+
+                        <tr>
+
+                            <td>{{ loop.index }}</td>
+
+                            <td>
+                                <strong>
+                                    {{ saving.name }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(saving.target or 0) }}
+                            </td>
+
+                            <td class="text-success fw-bold">
+                                ${{ "%.2f"|format(saving.current_balance or 0) }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(saving.remaining or 0) }}
+                            </td>
+
+                            <td style="min-width:180px">
+
+                                <div class="progress">
+
+                                    <div
+                                        class="progress-bar bg-success"
+                                        style="width: {{ [saving.progress|default(0),100]|min }}%">
+
+                                    </div>
+
+                                </div>
+
+                                <small>
+                                    {{ "%.1f"|format(saving.progress or 0) }}%
+                                </small>
+
+                            </td>
+
+                            <td>
+
+                                {% if saving.status == 'completed' %}
+
+                                <span class="badge bg-success">
+                                    Completed
+                                </span>
+
+                                {% elif saving.status == 'active' %}
+
+                                <span class="badge bg-primary">
+                                    Active
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge bg-secondary">
+                                    {{ saving.status or 'Unknown' }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="7"
+                                class="text-center py-5 text-muted">
+
+                                No savings data available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DAILY NET WORTH
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white border-0">
+
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-calendar-week text-primary"></i>
+                Daily Net Worth Breakdown
+            </h5>
+
+            <small class="text-muted">
+                Daily assets, liabilities and net worth movement
+            </small>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+                    id="nwDailyTable"
+                    class="table table-hover align-middle nw-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Assets</th>
+                            <th>Liabilities</th>
+                            <th>Net Worth</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Movement</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in daily_data or [] %}
+
+                        <tr>
+
+                            <td>{{ loop.index }}</td>
+
+                            <td>
+                                {{ row.date }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(row.assets or 0) }}
+                            </td>
+
+                            <td class="text-danger">
+                                ${{ "%.2f"|format(row.liabilities or 0) }}
+                            </td>
+
+                            <td class="
+                                {% if row.net_worth >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                                fw-bold
+                            ">
+
+                                ${{ "%.2f"|format(row.net_worth or 0) }}
+
+                            </td>
+
+                            <td class="text-success">
+                                +${{ "%.2f"|format(row.income or 0) }}
+                            </td>
+
+                            <td class="text-danger">
+                                -${{ "%.2f"|format(row.expense or 0) }}
+                            </td>
+
+                            <td class="
+                                {% if row.movement >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                            ">
+
+                                {% if row.movement >= 0 %}
+                                    +
+                                {% endif %}
+
+                                ${{ "%.2f"|format(row.movement or 0) }}
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center py-5 text-muted">
+
+                                No daily data available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MONTHLY NET WORTH
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-4">
+
+        <div class="card-header bg-white border-0">
+
+            <h5 class="fw-bold mb-1">
+                <i class="bi bi-calendar-month text-primary"></i>
+                Monthly Net Worth Performance
+            </h5>
+
+            <small class="text-muted">
+                Monthly financial position and growth
+            </small>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+                    id="nwMonthlyTable"
+                    class="table table-hover align-middle nw-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Month</th>
+                            <th>Assets</th>
+                            <th>Liabilities</th>
+                            <th>Net Worth</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Growth</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in monthly_data or [] %}
+
+                        <tr>
+
+                            <td>{{ loop.index }}</td>
+
+                            <td>
+                                <strong>
+                                    {{ row.month }}
+                                </strong>
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(row.assets or 0) }}
+                            </td>
+
+                            <td class="text-danger">
+                                ${{ "%.2f"|format(row.liabilities or 0) }}
+                            </td>
+
+                            <td class="
+                                {% if row.net_worth >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                                fw-bold
+                            ">
+
+                                ${{ "%.2f"|format(row.net_worth or 0) }}
+
+                            </td>
+
+                            <td class="text-success">
+                                +${{ "%.2f"|format(row.income or 0) }}
+                            </td>
+
+                            <td class="text-danger">
+                                -${{ "%.2f"|format(row.expense or 0) }}
+                            </td>
+
+                            <td class="
+                                {% if row.growth >= 0 %}
+                                    text-success
+                                {% else %}
+                                    text-danger
+                                {% endif %}
+                                fw-semibold
+                            ">
+
+                                {% if row.growth >= 0 %}
+                                    <i class="bi bi-arrow-up"></i>
+                                {% else %}
+                                    <i class="bi bi-arrow-down"></i>
+                                {% endif %}
+
+                                {{ "%.2f"|format(row.growth|abs or 0) }}%
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center py-5 text-muted">
+
+                                No monthly data available.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTIONS
+    ========================================================= -->
+    <div class="card shadow-sm border-0 mb-5">
+
+        <div class="card-header bg-white border-0">
+
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+
+                <div>
+
+                    <h5 class="fw-bold mb-1">
+
+                        <i class="bi bi-receipt-cutoff text-primary"></i>
+
+                        Financial Transactions
+
+                    </h5>
+
+                    <small class="text-muted">
+
+                        Transactions used in the net worth analysis
+
+                    </small>
+
+                </div>
+
+                <span class="badge bg-primary">
+                    {{ financial_transactions|length if financial_transactions else 0 }}
+                    Records
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+
+                <table
+                    id="nwTransactionsTable"
+                    class="table table-hover align-middle nw-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in financial_transactions or [] %}
+
+                        <tr>
+
+                            <td>
+                                {{ loop.index }}
+                            </td>
+
+                            <td>
+                                {{ row.date }}
+                            </td>
+
+                            <td>
+                                {{ row.account }}
+                            </td>
+
+                            <td>
+                                {{ row.category }}
+                            </td>
+
+                            <td>
+                                {{ row.item }}
+                            </td>
+
+                            <td>
+
+                                {% if row.transaction_type|lower == 'income' %}
+
+                                <span class="badge bg-success-subtle text-success">
+                                    Income
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge bg-danger-subtle text-danger">
+                                    Expense
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td class="fw-bold">
+
+                                {% if row.transaction_type|lower == 'income' %}
+
+                                <span class="text-success">
+                                    +${{ "%.2f"|format(row.amount or 0) }}
+                                </span>
+
+                                {% else %}
+
+                                <span class="text-danger">
+                                    -${{ "%.2f"|format(row.amount or 0) }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if row.status %}
+
+                                <span class="badge bg-success">
+                                    Completed
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge bg-secondary">
+                                    Pending
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+                        </tr>
+
+                        {% else %}
+
+                        <tr>
+
+                            <td colspan="8"
+                                class="text-center py-5 text-muted">
+
+                                No financial transactions found.
+
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CHART.JS
+============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<!-- ============================================================
+     DATATABLES
+============================================================ -->
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/2.3.3/css/dataTables.dataTables.min.css">
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/3.2.5/css/buttons.dataTables.min.css">
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/responsive/3.0.6/css/responsive.dataTables.min.css">
+
+
+<script src="https://cdn.datatables.net/2.3.3/js/dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/3.0.6/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+
+<!-- ============================================================
+     CUSTOM CSS
+============================================================ -->
+<style>
+
+.net-worth-page {
+    max-width: 100%;
+}
+
+
+/* HEADER */
+
+.nw-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.nw-eyebrow {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #0d6efd;
+    margin-bottom: 7px;
+}
+
+.nw-title {
+    font-size: 32px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.nw-subtitle {
+    color: #6c757d;
+    margin-top: 8px;
+}
+
+
+/* FILTER */
+
+.nw-filter-card {
+    border-radius: 16px;
+}
+
+.quick-ranges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    align-items: center;
+}
+
+.quick-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #6c757d;
+}
+
+
+/* KPI */
+
+.nw-kpi-card {
+    border: 0;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 5px 22px rgba(0,0,0,.07);
+    transition: .25s ease;
+}
+
+.nw-kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,.11);
+}
+
+.assets-card {
+    border-left: 5px solid #198754;
+}
+
+.liabilities-card {
+    border-left: 5px solid #dc3545;
+}
+
+.networth-card {
+    border-left: 5px solid #0d6efd;
+}
+
+.growth-card {
+    border-left: 5px solid #6f42c1;
+}
+
+.nw-kpi-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .7px;
+    color: #6c757d;
+    margin-bottom: 8px;
+}
+
+.nw-kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0;
+}
+
+.nw-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: #f1f5f9;
+    color: #0d6efd;
+}
+
+.nw-kpi-bottom {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 20px;
+    font-size: 12px;
+    color: #6c757d;
+}
+
+
+/* SECONDARY METRICS */
+
+.metric-card {
+    border: 0;
+    border-radius: 15px;
+    box-shadow: 0 4px 18px rgba(0,0,0,.05);
+}
+
+.metric-card .card-body {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(25,135,84,.1);
+    color: #198754;
+    font-size: 22px;
+}
+
+.metric-icon.expense {
+    background: rgba(220,53,69,.1);
+    color: #dc3545;
+}
+
+.metric-icon.savings {
+    background: rgba(13,110,253,.1);
+    color: #0d6efd;
+}
+
+.metric-icon.transactions {
+    background: rgba(111,66,193,.1);
+    color: #6f42c1;
+}
+
+.metric-card small {
+    color: #6c757d;
+}
+
+.metric-card h4 {
+    margin: 4px 0 0;
+    font-weight: 800;
+}
+
+
+/* PROGRESS */
+
+.nw-progress {
+    height: 7px;
+    border-radius: 20px;
+}
+
+.health-progress {
+    height: 10px;
+    border-radius: 20px;
+}
+
+.progress-box {
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 15px;
+    border: 1px solid #edf0f3;
+}
+
+.progress-box .progress {
+    height: 9px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+
+
+/* CHARTS */
+
+.chart-card {
+    border-radius: 16px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 350px;
+}
+
+.doughnut-wrapper {
+    height: 350px;
+    display: flex;
+    justify-content: center;
+}
+
+
+/* TABLE */
+
+.nw-table {
+    width: 100% !important;
+}
+
+.nw-table thead th {
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    background: #f8fafc;
+}
+
+.nw-table tbody td {
+    font-size: 13px;
+}
+
+.nw-table tbody tr {
+    transition: .15s ease;
+}
+
+.nw-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+
+/* DATATABLE */
+
+.dt-container {
+    font-size: 13px;
+}
+
+.dt-search input {
+    border-radius: 9px !important;
+    border: 1px solid #dee2e6 !important;
+    padding: 8px 12px !important;
+}
+
+.dt-length select {
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+.dt-paging-button {
+    border-radius: 7px !important;
+    margin: 2px !important;
+}
+
+.dt-button {
+    border-radius: 7px !important;
+    border: 1px solid #dee2e6 !important;
+    background: #fff !important;
+    padding: 6px 12px !important;
+    font-size: 12px !important;
+}
+
+.dt-button:hover {
+    background: #f1f5f9 !important;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 991px) {
+
+    .nw-header {
+        flex-direction: column;
+    }
+
+    .nw-header-actions {
+        width: 100%;
+    }
+
+    .nw-header-actions .btn {
+        width: 100%;
+    }
+
+    .chart-wrapper {
+        height: 300px;
+    }
+
+}
+
+
+@media (max-width: 576px) {
+
+    .net-worth-page {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .nw-title {
+        font-size: 25px;
+    }
+
+    .nw-subtitle {
+        font-size: 13px;
+    }
+
+    .nw-kpi-value {
+        font-size: 23px;
+    }
+
+    .chart-wrapper {
+        height: 260px;
+    }
+
+    .quick-ranges {
+        align-items: flex-start;
+    }
+
+}
+
+
+/* PRINT */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .nw-header-actions,
+    .nw-filter-card,
+    .quick-ranges,
+    .dt-search,
+    .dt-length,
+    .dt-buttons,
+    .dt-paging,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+
+    .chart-wrapper {
+        height: 300px;
+    }
+
+    .nw-title {
+        font-size: 26px;
+    }
+
+}
+
+</style>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ==========================================================
+       DATATABLE CONFIG
+    ========================================================== */
+
+    const tableConfig = {
+
+        responsive: true,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 25, 50, 100, -1],
+            [10, 25, 50, 100, "All"]
+        ],
+
+        order: [],
+
+        layout: {
+
+            topStart: {
+                buttons: [
+
+                    {
+                        extend: "copy",
+                        text: '<i class="bi bi-copy"></i> Copy'
+                    },
+
+                    {
+                        extend: "csv",
+                        text: '<i class="bi bi-filetype-csv"></i> CSV',
+                        title: "Net Worth Report"
+                    },
+
+                    {
+                        extend: "excel",
+                        text: '<i class="bi bi-file-earmark-excel"></i> Excel',
+                        title: "Net Worth Report"
+                    },
+
+                    {
+                        extend: "pdf",
+                        text: '<i class="bi bi-filetype-pdf"></i> PDF',
+                        title: "Net Worth Report",
+                        orientation: "landscape",
+                        pageSize: "A4"
+                    },
+
+                    {
+                        extend: "print",
+                        text: '<i class="bi bi-printer"></i> Print',
+                        title: "Net Worth Report"
+                    }
+
+                ]
+            },
+
+            topEnd: "search",
+
+            bottomStart: "info",
+
+            bottomEnd: "paging"
+
+        },
+
+        language: {
+
+            search: "Search:",
+
+            searchPlaceholder: "Search records...",
+
+            lengthMenu: "Show _MENU_",
+
+            info: "Showing _START_ to _END_ of _TOTAL_ records",
+
+            infoEmpty: "Showing 0 to 0 of 0 records",
+
+            zeroRecords: "No matching records found",
+
+            emptyTable: "No data available",
+
+            paginate: {
+
+                first: "First",
+
+                previous: "Previous",
+
+                next: "Next",
+
+                last: "Last"
+
+            }
+
+        }
+
+    };
+
+
+    /* ==========================================================
+       INITIALIZE TABLES
+    ========================================================== */
+
+    const tables = [
+
+        "#nwAccountsTable",
+
+        "#nwSavingsTable",
+
+        "#nwDailyTable",
+
+        "#nwMonthlyTable",
+
+        "#nwTransactionsTable"
+
+    ];
+
+
+    tables.forEach(function (selector) {
+
+        const table = document.querySelector(selector);
+
+        if (table) {
+
+            new DataTable(
+                selector,
+                tableConfig
+            );
+
+        }
+
+    });
+
+
+    /* ==========================================================
+       DATA
+    ========================================================== */
+
+    const dailyData =
+        {{ daily_data|default([])|tojson|safe }};
+
+    const monthlyData =
+        {{ monthly_data|default([])|tojson|safe }};
+
+    const accountsData =
+        {{ accounts|default([])|tojson|safe }};
+
+
+    /* ==========================================================
+       NET WORTH TREND CHART
+    ========================================================== */
+
+    const trendCanvas =
+        document.getElementById("netWorthTrendChart");
+
+    if (trendCanvas) {
+
+        new Chart(trendCanvas, {
+
+            type: "line",
+
+            data: {
+
+                labels: dailyData.map(x => x.date),
+
+                datasets: [
+
+                    {
+                        label: "Assets",
+
+                        data: dailyData.map(
+                            x => Number(x.assets || 0)
+                        ),
+
+                        tension: .35,
+
+                        fill: false,
+
+                        borderWidth: 3
+
+                    },
+
+                    {
+                        label: "Liabilities",
+
+                        data: dailyData.map(
+                            x => Number(x.liabilities || 0)
+                        ),
+
+                        tension: .35,
+
+                        fill: false,
+
+                        borderWidth: 3
+
+                    },
+
+                    {
+                        label: "Net Worth",
+
+                        data: dailyData.map(
+                            x => Number(x.net_worth || 0)
+                        ),
+
+                        tension: .35,
+
+                        fill: false,
+
+                        borderWidth: 4
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    legend: {
+                        position: "top"
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return context.dataset.label +
+                                    ": $" +
+                                    Number(
+                                        context.raw || 0
+                                    ).toLocaleString(
+                                        undefined,
+                                        {
+                                            minimumFractionDigits: 2,
+                                            maximumFractionDigits: 2
+                                        }
+                                    );
+
+                            }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: false,
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    Number(value)
+                                    .toLocaleString();
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ==========================================================
+       ASSET ALLOCATION
+    ========================================================== */
+
+    const allocationCanvas =
+        document.getElementById("assetAllocationChart");
+
+    if (allocationCanvas) {
+
+        const labels =
+            accountsData.map(x => x.name);
+
+        const values =
+            accountsData.map(
+                x => Number(x.balance || 0)
+            );
+
+
+        new Chart(allocationCanvas, {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        data: values,
+
+                        borderWidth: 2
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: "68%",
+
+                plugins: {
+
+                    legend: {
+
+                        position: "bottom"
+
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return context.label +
+                                    ": $" +
+                                    Number(
+                                        context.raw || 0
+                                    ).toLocaleString(
+                                        undefined,
+                                        {
+                                            minimumFractionDigits: 2
+                                        }
+                                    );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ==========================================================
+       MONTHLY CHART
+    ========================================================== */
+
+    const monthlyCanvas =
+        document.getElementById("monthlyNetWorthChart");
+
+    if (monthlyCanvas) {
+
+        new Chart(monthlyCanvas, {
+
+            type: "bar",
+
+            data: {
+
+                labels:
+                    monthlyData.map(x => x.month),
+
+                datasets: [
+
+                    {
+                        label: "Assets",
+
+                        data:
+                            monthlyData.map(
+                                x => Number(x.assets || 0)
+                            ),
+
+                        borderWidth: 1
+
+                    },
+
+                    {
+                        label: "Liabilities",
+
+                        data:
+                            monthlyData.map(
+                                x => Number(x.liabilities || 0)
+                            ),
+
+                        borderWidth: 1
+
+                    },
+
+                    {
+                        label: "Net Worth",
+
+                        data:
+                            monthlyData.map(
+                                x => Number(x.net_worth || 0)
+                            ),
+
+                        borderWidth: 1
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+
+                    mode: "index",
+
+                    intersect: false
+
+                },
+
+                plugins: {
+
+                    legend: {
+                        position: "top"
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    Number(value)
+                                    .toLocaleString();
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ==========================================================
+       ACCOUNT BALANCE CHART
+    ========================================================== */
+
+    const accountCanvas =
+        document.getElementById("accountBalanceChart");
+
+    if (accountCanvas) {
+
+        new Chart(accountCanvas, {
+
+            type: "bar",
+
+            data: {
+
+                labels:
+                    accountsData.map(x => x.name),
+
+                datasets: [
+
+                    {
+
+                        label: "Balance",
+
+                        data:
+                            accountsData.map(
+                                x => Number(x.balance || 0)
+                            ),
+
+                        borderWidth: 1
+
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                indexAxis: "y",
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    Number(value)
+                                    .toLocaleString();
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+});
+
+
+/* =============================================================
+   QUICK DATE RANGE
+============================================================= */
+
+function setNWRange(type) {
+
+    const start =
+        document.querySelector(
+            'input[name="start_date"]'
+        );
+
+    const end =
+        document.querySelector(
+            'input[name="end_date"]'
+        );
+
+
+    if (!start || !end) {
+        return;
+    }
+
+
+    const today = new Date();
+
+    let startDate =
+        new Date(today);
+
+
+    let endDate =
+        new Date(today);
+
+
+    if (type === "today") {
+
+        startDate = new Date(today);
+
+    }
+
+
+    else if (type === "7") {
+
+        startDate.setDate(
+            today.getDate() - 6
+        );
+
+    }
+
+
+    else if (type === "30") {
+
+        startDate.setDate(
+            today.getDate() - 29
+        );
+
+    }
+
+
+    else if (type === "month") {
+
+        startDate =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                1
+            );
+
+    }
+
+
+    else if (type === "year") {
+
+        startDate =
+            new Date(
+                today.getFullYear(),
+                0,
+                1
+            );
+
+    }
+
+
+    start.value =
+        formatDateInput(startDate);
+
+    end.value =
+        formatDateInput(endDate);
+
+
+    start.form.submit();
+
+}
+
+
+/* =============================================================
+   DATE FORMAT
+============================================================= */
+
+function formatDateInput(date) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+
+    return `${year}-${month}-${day}`;
+
+}
+
+
+/* =============================================================
+   FULL CSV EXPORT
+============================================================= */
+
+function exportNetWorthCSV() {
+
+    const tables =
+        document.querySelectorAll(
+            ".nw-table"
+        );
+
+
+    let csv = "";
+
+    csv += "NET WORTH FINANCIAL REPORT\n";
+
+    csv +=
+        "Period," +
+        "{{ custom_range_label|default('Current Period') }}\n";
+
+    csv += "\n";
+
+
+    tables.forEach(function(table) {
+
+        const title =
+            table
+                .closest(".card")
+                ?.querySelector(".card-header h5")
+                ?.innerText
+                || "Report";
+
+        csv += title + "\n";
+
+
+        const rows =
+            table.querySelectorAll("tr");
+
+
+        rows.forEach(function(row) {
+
+            const cells =
+                row.querySelectorAll(
+                    "th, td"
+                );
+
+
+            const values =
+                Array.from(cells).map(
+                    function(cell) {
+
+                        return '"' +
+                            cell.innerText
+                                .replace(/"/g, '""')
+                                .replace(/\n/g, " ")
+                                .trim() +
+                            '"';
+
+                    }
+                );
+
+
+            csv +=
+                values.join(",") +
+                "\n";
+
+        });
+
+
+        csv += "\n";
+
+    });
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+
+    const link =
+        document.createElement("a");
+
+
+    link.href = url;
+
+    link.download =
+        "net_worth_report.csv";
+
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+</script>
+
+{% endblock %}

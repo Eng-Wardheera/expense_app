@@ -1,0 +1,3351 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Monthly Expenses Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   MONTHLY EXPENSES REPORT
+   PURE CSS / JS
+   NO BOOTSTRAP MODAL
+   ============================================================ */
+
+:root {
+    --mer-primary: #0d6efd;
+    --mer-primary-dark: #084298;
+    --mer-danger: #dc3545;
+    --mer-danger-dark: #b02a37;
+    --mer-success: #198754;
+    --mer-warning: #ffc107;
+    --mer-info: #0dcaf0;
+    --mer-dark: #172033;
+    --mer-text: #3d4657;
+    --mer-muted: #6c757d;
+    --mer-border: #e5e9f0;
+    --mer-light: #f6f8fb;
+    --mer-white: #ffffff;
+    --mer-shadow: 0 8px 28px rgba(20, 35, 60, .08);
+    --mer-radius: 16px;
+}
+
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.monthly-expense-page {
+    width: 100%;
+    padding: 8px 0 40px;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.mer-header {
+    background: var(--mer-white);
+    border: 1px solid var(--mer-border);
+    border-radius: var(--mer-radius);
+    padding: 21px;
+    margin-bottom: 20px;
+    box-shadow: var(--mer-shadow);
+}
+
+.mer-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.mer-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.mer-title-icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 14px;
+    background: rgba(220, 53, 69, .10);
+    color: var(--mer-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.mer-title-icon svg {
+    width: 27px;
+    height: 27px;
+}
+
+.mer-title {
+    margin: 0;
+    color: var(--mer-dark);
+    font-size: 25px;
+    font-weight: 850;
+}
+
+.mer-subtitle {
+    margin: 5px 0 0;
+    color: var(--mer-muted);
+    font-size: 13px;
+}
+
+.mer-header-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.mer-btn {
+    min-height: 40px;
+    padding: 9px 14px;
+    border: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 750;
+    transition: .2s ease;
+}
+
+.mer-btn:hover {
+    transform: translateY(-1px);
+}
+
+.mer-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.mer-btn-primary {
+    color: #fff;
+    background: var(--mer-primary);
+}
+
+.mer-btn-secondary {
+    color: var(--mer-dark);
+    background: #eef1f5;
+}
+
+.mer-btn-danger {
+    color: #fff;
+    background: var(--mer-danger);
+}
+
+.mer-btn-success {
+    color: #fff;
+    background: var(--mer-success);
+}
+
+
+/* ============================================================
+   SUMMARY
+   ============================================================ */
+
+.mer-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.mer-summary-card {
+    background: #fff;
+    border: 1px solid var(--mer-border);
+    border-radius: var(--mer-radius);
+    padding: 18px;
+    box-shadow: var(--mer-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.mer-summary-card::after {
+    content: "";
+    position: absolute;
+    width: 85px;
+    height: 85px;
+    right: -25px;
+    bottom: -30px;
+    border-radius: 50%;
+    background: rgba(13, 110, 253, .05);
+}
+
+.mer-summary-card.expense::after {
+    background: rgba(220, 53, 69, .06);
+}
+
+.mer-summary-card.month::after {
+    background: rgba(25, 135, 84, .06);
+}
+
+.mer-summary-card.average::after {
+    background: rgba(13, 202, 240, .06);
+}
+
+.mer-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mer-summary-label {
+    color: var(--mer-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.mer-summary-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-summary-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mer-summary-icon.expense {
+    background: rgba(220, 53, 69, .10);
+    color: var(--mer-danger);
+}
+
+.mer-summary-icon.transaction {
+    background: rgba(13, 110, 253, .10);
+    color: var(--mer-primary);
+}
+
+.mer-summary-icon.month {
+    background: rgba(25, 135, 84, .10);
+    color: var(--mer-success);
+}
+
+.mer-summary-icon.average {
+    background: rgba(13, 202, 240, .10);
+    color: #087990;
+}
+
+.mer-summary-value {
+    margin-top: 11px;
+    color: var(--mer-dark);
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.mer-summary-description {
+    margin-top: 3px;
+    color: var(--mer-muted);
+    font-size: 11px;
+}
+
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.mer-section {
+    background: #fff;
+    border: 1px solid var(--mer-border);
+    border-radius: var(--mer-radius);
+    box-shadow: var(--mer-shadow);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.mer-section-header {
+    padding: 16px 19px;
+    border-bottom: 1px solid var(--mer-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.mer-section-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--mer-dark);
+    font-size: 16px;
+    font-weight: 850;
+}
+
+.mer-section-title svg {
+    width: 19px;
+    height: 19px;
+    color: var(--mer-primary);
+}
+
+.mer-section-body {
+    padding: 19px;
+}
+
+.mer-insight-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.mer-insight {
+    border: 1px solid var(--mer-border);
+    border-radius: 12px;
+    padding: 14px;
+    background: #fbfcfe;
+}
+
+.mer-insight-label {
+    color: #8992a1;
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .45px;
+}
+
+.mer-insight-value {
+    margin-top: 7px;
+    color: var(--mer-dark);
+    font-size: 14px;
+    font-weight: 850;
+    word-break: break-word;
+}
+
+.mer-insight-amount {
+    margin-top: 4px;
+    color: var(--mer-danger);
+    font-size: 13px;
+    font-weight: 850;
+}
+
+
+/* ============================================================
+   MONTH BREAKDOWN
+   ============================================================ */
+
+.mer-month-card {
+    border: 1px solid var(--mer-border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.mer-month-card:last-child {
+    margin-bottom: 0;
+}
+
+.mer-month-header {
+    padding: 16px 18px;
+    background: #f8faff;
+    border-bottom: 1px solid var(--mer-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.mer-month-left {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.mer-month-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: rgba(220, 53, 69, .10);
+    color: var(--mer-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-month-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.mer-month-name {
+    color: var(--mer-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.mer-month-meta {
+    margin-top: 2px;
+    color: var(--mer-muted);
+    font-size: 11px;
+}
+
+.mer-month-total {
+    color: var(--mer-danger);
+    font-size: 19px;
+    font-weight: 900;
+}
+
+.mer-month-body {
+    padding: 14px;
+}
+
+
+/* ============================================================
+   ACCOUNT
+   ============================================================ */
+
+.mer-account {
+    border: 1px solid #edf0f4;
+    border-radius: 11px;
+    overflow: hidden;
+    margin-bottom: 11px;
+}
+
+.mer-account:last-child {
+    margin-bottom: 0;
+}
+
+.mer-account-header {
+    padding: 12px 14px;
+    background: #fcfcfd;
+    border-bottom: 1px solid #edf0f4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mer-account-name-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.mer-account-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: rgba(13, 110, 253, .09);
+    color: var(--mer-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-account-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
+.mer-account-name {
+    color: var(--mer-dark);
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.mer-account-count {
+    color: var(--mer-muted);
+    font-size: 10px;
+}
+
+.mer-account-total {
+    color: var(--mer-danger);
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.mer-account-body {
+    padding: 9px 12px;
+}
+
+
+/* ============================================================
+   CATEGORY
+   ============================================================ */
+
+.mer-category {
+    border-bottom: 1px dashed #e7ebf1;
+}
+
+.mer-category:last-child {
+    border-bottom: 0;
+}
+
+.mer-category-header {
+    padding: 10px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mer-category-name {
+    color: #3e4758;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.mer-category-total {
+    color: var(--mer-danger);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+
+/* ============================================================
+   ITEM
+   ============================================================ */
+
+.mer-items {
+    padding: 0 0 7px 15px;
+}
+
+.mer-item {
+    padding: 7px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.mer-item-name {
+    color: #697386;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mer-item-right {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.mer-item-amount {
+    color: var(--mer-danger);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.mer-item-count {
+    margin-top: 2px;
+    color: #8b94a2;
+    font-size: 10px;
+}
+
+
+/* ============================================================
+   FILTER
+   ============================================================ */
+
+.mer-filter {
+    background: #fff;
+    border: 1px solid var(--mer-border);
+    border-radius: var(--mer-radius);
+    padding: 17px;
+    margin-bottom: 20px;
+    box-shadow: var(--mer-shadow);
+}
+
+.mer-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr 1.2fr 1.2fr 1.2fr auto;
+    gap: 11px;
+    align-items: end;
+}
+
+.mer-field-label {
+    display: block;
+    margin-bottom: 6px;
+    color: #4d5768;
+    font-size: 11px;
+    font-weight: 850;
+}
+
+.mer-input,
+.mer-select {
+    width: 100%;
+    height: 41px;
+    border: 1px solid #dfe4ec;
+    border-radius: 9px;
+    background: #fff;
+    color: #293345;
+    padding: 0 11px;
+    outline: none;
+    font-size: 12px;
+}
+
+.mer-input:focus,
+.mer-select:focus {
+    border-color: var(--mer-primary);
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, .09);
+}
+
+.mer-filter-actions {
+    display: flex;
+    gap: 7px;
+}
+
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.mer-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.mer-table {
+    width: 100%;
+    min-width: 1100px;
+    border-collapse: collapse;
+}
+
+.mer-table thead th {
+    background: #f7f9fc;
+    color: #596477;
+    border-bottom: 1px solid var(--mer-border);
+    padding: 12px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.mer-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #edf0f4;
+    color: var(--mer-text);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.mer-table tbody tr:hover {
+    background: #fafcff;
+}
+
+.mer-date {
+    color: #596477;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.mer-account-cell {
+    color: var(--mer-dark) !important;
+    font-weight: 800;
+}
+
+.mer-category-cell {
+    font-weight: 650;
+}
+
+.mer-item-cell {
+    color: #6e7787 !important;
+}
+
+.mer-description {
+    max-width: 230px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mer-amount {
+    color: var(--mer-danger) !important;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.mer-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 850;
+    background: #eef1f5;
+    color: #596477;
+}
+
+.mer-status-completed,
+.mer-status-paid,
+.mer-status-success {
+    background: rgba(25, 135, 84, .10);
+    color: #137346;
+}
+
+.mer-status-pending {
+    background: rgba(255, 193, 7, .14);
+    color: #8a6800;
+}
+
+.mer-status-cancelled,
+.mer-status-failed {
+    background: rgba(220, 53, 69, .10);
+    color: var(--mer-danger-dark);
+}
+
+.mer-action {
+    width: 33px;
+    height: 33px;
+    border: 1px solid #e0e5ec;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--mer-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.mer-action:hover {
+    background: #f1f5ff;
+}
+
+.mer-action svg {
+    width: 15px;
+    height: 15px;
+}
+
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.mer-empty {
+    padding: 50px 20px;
+    text-align: center;
+}
+
+.mer-empty-icon {
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 12px;
+    border-radius: 15px;
+    background: #f0f3f7;
+    color: #8791a2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-empty-icon svg {
+    width: 26px;
+    height: 26px;
+}
+
+.mer-empty-title {
+    color: var(--mer-dark);
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.mer-empty-text {
+    margin-top: 5px;
+    color: var(--mer-muted);
+    font-size: 12px;
+}
+
+
+/* ============================================================
+   CUSTOM MODAL
+   IMPORTANT: NO BOOTSTRAP
+   ============================================================ */
+
+.mer-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(15, 23, 42, .70);
+    backdrop-filter: blur(4px);
+}
+
+.mer-modal-overlay.show {
+    display: flex;
+}
+
+.mer-modal {
+    width: min(760px, 100%);
+    max-height: calc(100vh - 36px);
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .28);
+    animation: merModalOpen .18s ease-out;
+}
+
+@keyframes merModalOpen {
+
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(.985);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+.mer-modal-header {
+    padding: 17px 19px;
+    border-bottom: 1px solid #e7ebf0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.mer-modal-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mer-modal-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: rgba(220, 53, 69, .10);
+    color: var(--mer-danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-modal-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.mer-modal-title {
+    margin: 0;
+    color: var(--mer-dark);
+    font-size: 17px;
+    font-weight: 900;
+}
+
+.mer-modal-close {
+    width: 35px;
+    height: 35px;
+    border: 0;
+    border-radius: 9px;
+    background: #f0f2f5;
+    color: #5d6676;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mer-modal-close:hover {
+    background: #e6e9ee;
+}
+
+.mer-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.mer-modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    max-height: calc(100vh - 170px);
+}
+
+.mer-modal-amount {
+    padding: 17px;
+    border: 1px solid #f4d8dc;
+    border-radius: 14px;
+    background: #fff6f7;
+    text-align: center;
+    margin-bottom: 17px;
+}
+
+.mer-modal-amount-label {
+    color: #906b73;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.mer-modal-amount-value {
+    margin-top: 5px;
+    color: var(--mer-danger);
+    font-size: 29px;
+    font-weight: 950;
+}
+
+.mer-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 11px;
+}
+
+.mer-info {
+    border: 1px solid #e7ebf0;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.mer-info-label {
+    color: #8a93a1;
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.mer-info-value {
+    margin-top: 5px;
+    color: #293345;
+    font-size: 12px;
+    font-weight: 750;
+    word-break: break-word;
+}
+
+.mer-note {
+    margin-top: 11px;
+    border: 1px solid #e7ebf0;
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.mer-note-text {
+    margin-top: 5px;
+    color: #5c6676;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.mer-modal-footer {
+    padding: 14px 19px;
+    border-top: 1px solid #e7ebf0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .mer-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mer-insight-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mer-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .mer-filter-actions {
+        grid-column: span 2;
+    }
+
+}
+
+@media (max-width: 768px) {
+
+    .monthly-expense-page {
+        padding: 5px 0 25px;
+    }
+
+    .mer-header {
+        padding: 16px;
+    }
+
+    .mer-title {
+        font-size: 20px;
+    }
+
+    .mer-title-icon {
+        width: 46px;
+        height: 46px;
+    }
+
+    .mer-header-actions {
+        width: 100%;
+    }
+
+    .mer-header-actions .mer-btn {
+        flex: 1;
+    }
+
+    .mer-summary-grid,
+    .mer-insight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mer-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .mer-filter-actions {
+        grid-column: auto;
+    }
+
+    .mer-filter-actions .mer-btn {
+        flex: 1;
+    }
+
+    .mer-section-body {
+        padding: 14px;
+    }
+
+    .mer-modal-overlay {
+        padding: 9px;
+    }
+
+    .mer-modal {
+        max-height: calc(100vh - 18px);
+        border-radius: 14px;
+    }
+
+    .mer-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+@media (max-width: 480px) {
+
+    .mer-header-actions {
+        flex-direction: column;
+    }
+
+    .mer-header-actions .mer-btn {
+        width: 100%;
+    }
+
+    .mer-month-header {
+        align-items: flex-start;
+    }
+
+    .mer-month-total {
+        width: 100%;
+    }
+
+    .mer-account-header {
+        align-items: flex-start;
+    }
+
+    .mer-modal-footer {
+        flex-direction: column;
+    }
+
+    .mer-modal-footer .mer-btn {
+        width: 100%;
+    }
+
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .no-print,
+    .mer-header-actions,
+    .mer-filter,
+    .mer-modal-overlay,
+    .mer-action {
+        display: none !important;
+    }
+
+    .monthly-expense-page {
+        padding: 0 !important;
+    }
+
+    .mer-header,
+    .mer-section,
+    .mer-summary-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+
+    .mer-summary-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .mer-insight-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .mer-table-wrapper {
+        overflow: visible !important;
+    }
+
+    .mer-table {
+        min-width: 100% !important;
+    }
+
+    .mer-table th,
+    .mer-table td {
+        font-size: 8px !important;
+        padding: 5px !important;
+    }
+
+    .mer-month-card,
+    .mer-account {
+        break-inside: avoid;
+    }
+
+}
+</style>
+
+
+<div class="monthly-expense-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="mer-header">
+
+        <div class="mer-header-row">
+
+            <div class="mer-title-wrapper">
+
+                <div class="mer-title-icon">
+                    <i data-feather="calendar"></i>
+                </div>
+
+                <div>
+
+                    <h1 class="mer-title">
+                        Monthly Expenses Report
+                    </h1>
+
+                    <p class="mer-subtitle">
+                        Monthly expense analysis —
+                        Month → Account → Category → Item
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="mer-header-actions">
+
+                <button
+                    type="button"
+                    class="mer-btn mer-btn-secondary"
+                    onclick="resetMonthlyExpenseFilters()"
+                >
+                    <i data-feather="rotate-ccw"></i>
+                    Reset
+                </button>
+
+                <button
+                    type="button"
+                    class="mer-btn mer-btn-primary"
+                    onclick="printMonthlyExpenseReport()"
+                >
+                    <i data-feather="printer"></i>
+                    Print Report
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="mer-summary-grid">
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="mer-summary-card expense">
+
+            <div class="mer-summary-top">
+
+                <span class="mer-summary-label">
+                    Total Expense
+                </span>
+
+                <div class="mer-summary-icon expense">
+                    <i data-feather="trending-down"></i>
+                </div>
+
+            </div>
+
+            <div class="mer-summary-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(total_expense|default(0)|float) }}
+            </div>
+
+            <div class="mer-summary-description">
+                Total expense across all months
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="mer-summary-card">
+
+            <div class="mer-summary-top">
+
+                <span class="mer-summary-label">
+                    Transactions
+                </span>
+
+                <div class="mer-summary-icon transaction">
+                    <i data-feather="list"></i>
+                </div>
+
+            </div>
+
+            <div class="mer-summary-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="mer-summary-description">
+                Expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- MONTHS -->
+
+        <div class="mer-summary-card month">
+
+            <div class="mer-summary-top">
+
+                <span class="mer-summary-label">
+                    Months
+                </span>
+
+                <div class="mer-summary-icon month">
+                    <i data-feather="calendar"></i>
+                </div>
+
+            </div>
+
+            <div class="mer-summary-value">
+                {{ month_count|default(0) }}
+            </div>
+
+            <div class="mer-summary-description">
+                Months containing expenses
+            </div>
+
+        </div>
+
+
+        <!-- AVERAGE -->
+
+        <div class="mer-summary-card average">
+
+            <div class="mer-summary-top">
+
+                <span class="mer-summary-label">
+                    Average Expense
+                </span>
+
+                <div class="mer-summary-icon average">
+                    <i data-feather="bar-chart-2"></i>
+                </div>
+
+            </div>
+
+            <div class="mer-summary-value">
+                {{ currency|default('USD') }}
+                {{ "{:,.2f}".format(average_expense|default(0)|float) }}
+            </div>
+
+            <div class="mer-summary-description">
+                Average per transaction
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <div class="mer-section">
+
+        <div class="mer-section-header">
+
+            <h2 class="mer-section-title">
+                <i data-feather="activity"></i>
+                Monthly Expense Insights
+            </h2>
+
+            <span class="mer-status mer-status-completed">
+                Expense Only
+            </span>
+
+        </div>
+
+
+        <div class="mer-section-body">
+
+            <div class="mer-insight-grid">
+
+                <!-- HIGHEST MONTH -->
+
+                <div class="mer-insight">
+
+                    <div class="mer-insight-label">
+                        Highest Expense Month
+                    </div>
+
+                    <div class="mer-insight-value">
+                        {{ highest_expense_month|default('—') }}
+                    </div>
+
+                    <div class="mer-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_month_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <!-- HIGHEST ACCOUNT -->
+
+                <div class="mer-insight">
+
+                    <div class="mer-insight-label">
+                        Highest Expense Account
+                    </div>
+
+                    <div class="mer-insight-value">
+                        {{ highest_expense_account|default('—') }}
+                    </div>
+
+                    <div class="mer-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_account_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <!-- HIGHEST CATEGORY -->
+
+                <div class="mer-insight">
+
+                    <div class="mer-insight-label">
+                        Highest Expense Category
+                    </div>
+
+                    <div class="mer-insight-value">
+                        {{ highest_expense_category|default('—') }}
+                    </div>
+
+                    <div class="mer-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(highest_expense_category_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+
+                <!-- LARGEST ITEM -->
+
+                <div class="mer-insight">
+
+                    <div class="mer-insight-label">
+                        Largest Expense Item
+                    </div>
+
+                    <div class="mer-insight-value">
+                        {{ largest_expense_item|default('—') }}
+                    </div>
+
+                    <div class="mer-insight-amount">
+                        {{ currency|default('USD') }}
+                        {{ "{:,.2f}".format(largest_expense_item_amount|default(0)|float) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MONTHLY BREAKDOWN
+         ======================================================== -->
+
+    <div class="mer-section">
+
+        <div class="mer-section-header">
+
+            <h2 class="mer-section-title">
+                <i data-feather="layers"></i>
+                Monthly Expense Breakdown
+            </h2>
+
+            <span class="mer-status mer-status-completed">
+                {{ month_count|default(0) }} Month(s)
+            </span>
+
+        </div>
+
+
+        <div class="mer-section-body">
+
+            {% if monthly_expenses %}
+
+                {% for month_key, month_data in monthly_expenses.items() %}
+
+                    <div class="mer-month-card">
+
+                        <!-- MONTH HEADER -->
+
+                        <div class="mer-month-header">
+
+                            <div class="mer-month-left">
+
+                                <div class="mer-month-icon">
+                                    <i data-feather="calendar"></i>
+                                </div>
+
+                                <div>
+
+                                    <div class="mer-month-name">
+                                        {{ month_data["month_label"] }}
+                                    </div>
+
+                                    <div class="mer-month-meta">
+                                        {{ month_data["transaction_count"]|default(0) }}
+                                        transaction(s)
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <div class="mer-month-total">
+
+                                {{ currency|default('USD') }}
+
+                                {{ "{:,.2f}".format(
+                                    month_data["total"]|default(0)|float
+                                ) }}
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- MONTH BODY -->
+
+                        <div class="mer-month-body">
+
+                            {% set accounts =
+                                month_data["accounts"]|default({})
+                            %}
+
+
+                            {% if accounts %}
+
+                                {% for account_name, account_data in accounts.items() %}
+
+                                    <div class="mer-account">
+
+                                        <!-- ACCOUNT HEADER -->
+
+                                        <div class="mer-account-header">
+
+                                            <div class="mer-account-name-wrapper">
+
+                                                <div class="mer-account-icon">
+                                                    <i data-feather="briefcase"></i>
+                                                </div>
+
+                                                <div>
+
+                                                    <div class="mer-account-name">
+                                                        {{ account_name }}
+                                                    </div>
+
+                                                    <div class="mer-account-count">
+                                                        {{ account_data["transaction_count"]|default(0) }}
+                                                        transaction(s)
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+
+                                            <div class="mer-account-total">
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "{:,.2f}".format(
+                                                    account_data["total"]|default(0)|float
+                                                ) }}
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <!-- ACCOUNT BODY -->
+
+                                        <div class="mer-account-body">
+
+                                            {% set categories =
+                                                account_data["categories"]|default({})
+                                            %}
+
+
+                                            {% if categories %}
+
+                                                {% for category_name, category_data in categories.items() %}
+
+                                                    <div class="mer-category">
+
+                                                        <!-- CATEGORY -->
+
+                                                        <div class="mer-category-header">
+
+                                                            <div class="mer-category-name">
+                                                                {{ category_name }}
+                                                            </div>
+
+                                                            <div class="mer-category-total">
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "{:,.2f}".format(
+                                                                    category_data["total"]|default(0)|float
+                                                                ) }}
+
+                                                            </div>
+
+                                                        </div>
+
+
+                                                        <!-- ITEMS -->
+
+                                                        <div class="mer-items">
+
+                                                            {% set items =
+                                                                category_data["items"]|default({})
+                                                            %}
+
+
+                                                            {% if items %}
+
+                                                                {% for item_name, item_data in items.items() %}
+
+                                                                    <div class="mer-item">
+
+                                                                        <div class="mer-item-name">
+                                                                            {{ item_name }}
+                                                                        </div>
+
+                                                                        <div class="mer-item-right">
+
+                                                                            <div class="mer-item-amount">
+
+                                                                                {{ currency|default('USD') }}
+
+                                                                                {{ "{:,.2f}".format(
+                                                                                    item_data["total"]|default(0)|float
+                                                                                ) }}
+
+                                                                            </div>
+
+                                                                            <div class="mer-item-count">
+
+                                                                                {{ item_data["transaction_count"]|default(0) }}
+
+                                                                                transaction(s)
+
+                                                                            </div>
+
+                                                                        </div>
+
+                                                                    </div>
+
+                                                                {% endfor %}
+
+                                                            {% else %}
+
+                                                                <div class="mer-item">
+
+                                                                    <div class="mer-item-name">
+                                                                        No items available
+                                                                    </div>
+
+                                                                </div>
+
+                                                            {% endif %}
+
+                                                        </div>
+
+                                                    </div>
+
+                                                {% endfor %}
+
+                                            {% else %}
+
+                                                <div class="mer-empty">
+
+                                                    <div class="mer-empty-icon">
+                                                        <i data-feather="folder-open"></i>
+                                                    </div>
+
+                                                    <div class="mer-empty-title">
+                                                        No Categories
+                                                    </div>
+
+                                                </div>
+
+                                            {% endif %}
+
+                                        </div>
+
+                                    </div>
+
+                                {% endfor %}
+
+                            {% else %}
+
+                                <div class="mer-empty">
+
+                                    <div class="mer-empty-icon">
+                                        <i data-feather="database"></i>
+                                    </div>
+
+                                    <div class="mer-empty-title">
+                                        No Accounts
+                                    </div>
+
+                                </div>
+
+                            {% endif %}
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            {% else %}
+
+                <div class="mer-empty">
+
+                    <div class="mer-empty-icon">
+                        <i data-feather="calendar"></i>
+                    </div>
+
+                    <div class="mer-empty-title">
+                        No Monthly Expense Data
+                    </div>
+
+                    <div class="mer-empty-text">
+                        No expense transactions were found.
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="mer-filter no-print">
+
+        <div class="mer-filter-grid">
+
+            <!-- SEARCH -->
+
+            <div>
+
+                <label
+                    class="mer-field-label"
+                    for="monthlyExpenseSearch"
+                >
+                    Search
+                </label>
+
+                <input
+                    type="text"
+                    id="monthlyExpenseSearch"
+                    class="mer-input"
+                    placeholder="Search account, category, item, description..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- MONTH -->
+
+            <div>
+
+                <label
+                    class="mer-field-label"
+                    for="monthFilter"
+                >
+                    Month
+                </label>
+
+                <select
+                    id="monthFilter"
+                    class="mer-select"
+                >
+
+                    <option value="">
+                        All Months
+                    </option>
+
+                    {% if monthly_expenses %}
+
+                        {% for month_key, month_data in monthly_expenses.items() %}
+
+                            <option value="{{ month_key }}">
+                                {{ month_data["month_label"] }}
+                            </option>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                </select>
+
+            </div>
+
+
+            <!-- ACCOUNT -->
+
+            <div>
+
+                <label
+                    class="mer-field-label"
+                    for="monthlyAccountFilter"
+                >
+                    Account
+                </label>
+
+                <select
+                    id="monthlyAccountFilter"
+                    class="mer-select"
+                >
+
+                    <option value="">
+                        All Accounts
+                    </option>
+
+                    {% set report_accounts = [] %}
+
+                    {% if monthly_expenses %}
+
+                        {% for month_key, month_data in monthly_expenses.items() %}
+
+                            {% for account_name, account_data in month_data["accounts"].items() %}
+
+                                {% if account_name not in report_accounts %}
+
+                                    {% set _ = report_accounts.append(account_name) %}
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        {% endfor %}
+
+                    {% endif %}
+
+
+                    {% for account_name in report_accounts|sort %}
+
+                        <option value="{{ account_name }}">
+                            {{ account_name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- CATEGORY -->
+
+            <div>
+
+                <label
+                    class="mer-field-label"
+                    for="monthlyCategoryFilter"
+                >
+                    Category
+                </label>
+
+                <select
+                    id="monthlyCategoryFilter"
+                    class="mer-select"
+                >
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% set report_categories = [] %}
+
+                    {% if monthly_expenses %}
+
+                        {% for month_key, month_data in monthly_expenses.items() %}
+
+                            {% for account_name, account_data in month_data["accounts"].items() %}
+
+                                {% for category_name, category_data in account_data["categories"].items() %}
+
+                                    {% if category_name not in report_categories %}
+
+                                        {% set _ = report_categories.append(category_name) %}
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                            {% endfor %}
+
+                        {% endfor %}
+
+                    {% endif %}
+
+
+                    {% for category_name in report_categories|sort %}
+
+                        <option value="{{ category_name }}">
+                            {{ category_name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div>
+
+                <label
+                    class="mer-field-label"
+                    for="monthlyStatusFilter"
+                >
+                    Status
+                </label>
+
+                <select
+                    id="monthlyStatusFilter"
+                    class="mer-select"
+                >
+
+                    <option value="">
+                        All Status
+                    </option>
+
+                    <option value="completed">
+                        Completed
+                    </option>
+
+                    <option value="paid">
+                        Paid
+                    </option>
+
+                    <option value="pending">
+                        Pending
+                    </option>
+
+                    <option value="cancelled">
+                        Cancelled
+                    </option>
+
+                    <option value="failed">
+                        Failed
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- RESET -->
+
+            <div class="mer-filter-actions">
+
+                <button
+                    type="button"
+                    class="mer-btn mer-btn-secondary"
+                    onclick="resetMonthlyExpenseFilters()"
+                >
+                    <i data-feather="x-circle"></i>
+                    Reset
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTION TABLE
+         ======================================================== -->
+
+    <div class="mer-section">
+
+        <div class="mer-section-header">
+
+            <h2 class="mer-section-title">
+                <i data-feather="list"></i>
+                Monthly Expense Transactions
+            </h2>
+
+            <span class="mer-status">
+                {{ total_transactions|default(0) }} Records
+            </span>
+
+        </div>
+
+
+        <div class="mer-table-wrapper">
+
+            <table
+                id="leadList"
+                class="mer-table"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Month</th>
+                        <th>Account</th>
+                        <th>Category</th>
+                        <th>Item</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Amount</th>
+                        <th class="no-print">Action</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% if transactions %}
+
+                        {% for transaction in transactions %}
+
+                            {% set status_text =
+                                transaction["status"]|default("Completed")|string
+                            %}
+
+                            {% set status_class =
+                                status_text|lower|replace(" ", "-")
+                            %}
+
+
+                            <tr
+                                data-date="{{ transaction['date_only']|default('') }}"
+                                data-month="{{ transaction['month_key']|default('') }}"
+                                data-account="{{ transaction['account']|default('') }}"
+                                data-category="{{ transaction['category']|default('') }}"
+                                data-status="{{ status_text|lower }}"
+                            >
+
+                                <!-- NUMBER -->
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+
+                                <!-- DATE -->
+
+                                <td class="mer-date">
+                                    {{ transaction["date"]|default("—") }}
+                                </td>
+
+
+                                <!-- MONTH -->
+
+                                <td>
+                                    {{ transaction["month_label"]|default("—") }}
+                                </td>
+
+
+                                <!-- ACCOUNT -->
+
+                                <td class="mer-account-cell">
+                                    {{ transaction["account"]|default("Unknown Account") }}
+                                </td>
+
+
+                                <!-- CATEGORY -->
+
+                                <td class="mer-category-cell">
+                                    {{ transaction["category"]|default("Uncategorized") }}
+                                </td>
+
+
+                                <!-- ITEM -->
+
+                                <td class="mer-item-cell">
+                                    {{ transaction["item"]|default("—") }}
+                                </td>
+
+
+                                <!-- DESCRIPTION -->
+
+                                <td>
+
+                                    <div
+                                        class="mer-description"
+                                        title="{{ transaction['description']|default('—') }}"
+                                    >
+                                        {{ transaction["description"]|default("—") }}
+                                    </div>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+
+                                <td>
+
+                                    <span class="mer-status mer-status-{{ status_class }}">
+                                        {{ status_text }}
+                                    </span>
+
+                                </td>
+
+
+                                <!-- AMOUNT -->
+
+                                <td class="mer-amount">
+
+                                    {{ transaction["currency"]|default(currency|default("USD")) }}
+
+                                    {{ "{:,.2f}".format(
+                                        transaction["amount"]|default(0)|float
+                                    ) }}
+
+                                </td>
+
+
+                                <!-- ACTION -->
+
+                                <td class="no-print">
+
+                                    <button
+                                        type="button"
+                                        class="mer-action"
+                                        title="View transaction"
+                                        onclick='viewMonthlyExpenseTransaction({{ transaction|tojson|safe }})'
+                                    >
+                                        <i data-feather="eye"></i>
+                                    </button>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                </tbody>
+
+            </table>
+
+
+            {% if not transactions %}
+
+                <div class="mer-empty">
+
+                    <div class="mer-empty-icon">
+                        <i data-feather="file-minus"></i>
+                    </div>
+
+                    <div class="mer-empty-title">
+                        No Expense Transactions
+                    </div>
+
+                    <div class="mer-empty-text">
+                        No monthly expense transactions were found.
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM TRANSACTION MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    id="monthlyExpenseModal"
+    class="mer-modal-overlay"
+    aria-hidden="true"
+>
+
+    <div
+        class="mer-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="monthlyExpenseModalTitle"
+    >
+
+        <!-- MODAL HEADER -->
+
+        <div class="mer-modal-header">
+
+            <div class="mer-modal-title-wrapper">
+
+                <div class="mer-modal-icon">
+                    <i data-feather="file-text"></i>
+                </div>
+
+                <h3
+                    id="monthlyExpenseModalTitle"
+                    class="mer-modal-title"
+                >
+                    Expense Transaction
+                </h3>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="mer-modal-close"
+                onclick="closeMonthlyExpenseModal()"
+                aria-label="Close"
+            >
+                <i data-feather="x"></i>
+            </button>
+
+        </div>
+
+
+        <!-- MODAL BODY -->
+
+        <div class="mer-modal-body">
+
+            <!-- AMOUNT -->
+
+            <div class="mer-modal-amount">
+
+                <div class="mer-modal-amount-label">
+                    Expense Amount
+                </div>
+
+                <div
+                    id="monthlyModalAmount"
+                    class="mer-modal-amount-value"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <!-- INFO -->
+
+            <div class="mer-info-grid">
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Date
+                    </div>
+
+                    <div
+                        id="monthlyModalDate"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Month
+                    </div>
+
+                    <div
+                        id="monthlyModalMonth"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Account
+                    </div>
+
+                    <div
+                        id="monthlyModalAccount"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Category
+                    </div>
+
+                    <div
+                        id="monthlyModalCategory"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Item
+                    </div>
+
+                    <div
+                        id="monthlyModalItem"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Status
+                    </div>
+
+                    <div
+                        id="monthlyModalStatus"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Reference
+                    </div>
+
+                    <div
+                        id="monthlyModalReference"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="mer-info">
+
+                    <div class="mer-info-label">
+                        Transaction ID
+                    </div>
+
+                    <div
+                        id="monthlyModalId"
+                        class="mer-info-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- DESCRIPTION -->
+
+            <div class="mer-note">
+
+                <div class="mer-info-label">
+                    Description
+                </div>
+
+                <div
+                    id="monthlyModalDescription"
+                    class="mer-note-text"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <!-- NOTE -->
+
+            <div class="mer-note">
+
+                <div class="mer-info-label">
+                    Note
+                </div>
+
+                <div
+                    id="monthlyModalNote"
+                    class="mer-note-text"
+                >
+                    —
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- MODAL FOOTER -->
+
+        <div class="mer-modal-footer">
+
+            <button
+                type="button"
+                class="mer-btn mer-btn-secondary"
+                onclick="closeMonthlyExpenseModal()"
+            >
+                <i data-feather="x"></i>
+                Close
+            </button>
+
+            <button
+                type="button"
+                class="mer-btn mer-btn-primary"
+                onclick="printCurrentMonthlyExpense()"
+            >
+                <i data-feather="printer"></i>
+                Print Transaction
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+/* ============================================================
+   MONTHLY EXPENSES REPORT JAVASCRIPT
+   NO BOOTSTRAP
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       STATE
+       ======================================================== */
+
+    let currentMonthlyExpense = null;
+
+
+    /* ========================================================
+       ELEMENTS
+       ======================================================== */
+
+    const searchInput =
+        document.getElementById(
+            "monthlyExpenseSearch"
+        );
+
+    const monthFilter =
+        document.getElementById(
+            "monthFilter"
+        );
+
+    const accountFilter =
+        document.getElementById(
+            "monthlyAccountFilter"
+        );
+
+    const categoryFilter =
+        document.getElementById(
+            "monthlyCategoryFilter"
+        );
+
+    const statusFilter =
+        document.getElementById(
+            "monthlyStatusFilter"
+        );
+
+    const table =
+        document.getElementById(
+            "leadList"
+        );
+
+
+    if (!table) {
+        return;
+    }
+
+
+    const tbody =
+        table.querySelector("tbody");
+
+
+    /* ========================================================
+       NORMALIZE
+       ======================================================== */
+
+    function normalize(value) {
+
+        return String(value || "")
+            .trim()
+            .toLowerCase();
+
+    }
+
+
+    /* ========================================================
+       APPLY FILTERS
+       ======================================================== */
+
+    function applyMonthlyExpenseFilters() {
+
+        const searchValue =
+            normalize(
+                searchInput
+                    ? searchInput.value
+                    : ""
+            );
+
+
+        const selectedMonth =
+            normalize(
+                monthFilter
+                    ? monthFilter.value
+                    : ""
+            );
+
+
+        const selectedAccount =
+            normalize(
+                accountFilter
+                    ? accountFilter.value
+                    : ""
+            );
+
+
+        const selectedCategory =
+            normalize(
+                categoryFilter
+                    ? categoryFilter.value
+                    : ""
+            );
+
+
+        const selectedStatus =
+            normalize(
+                statusFilter
+                    ? statusFilter.value
+                    : ""
+            );
+
+
+        const rows =
+            tbody.querySelectorAll("tr");
+
+
+        rows.forEach(function (row) {
+
+            if (!row.children.length) {
+                return;
+            }
+
+
+            const rowText =
+                normalize(row.innerText);
+
+
+            const rowMonth =
+                normalize(
+                    row.dataset.month || ""
+                );
+
+
+            const rowAccount =
+                normalize(
+                    row.dataset.account || ""
+                );
+
+
+            const rowCategory =
+                normalize(
+                    row.dataset.category || ""
+                );
+
+
+            const rowStatus =
+                normalize(
+                    row.dataset.status || ""
+                );
+
+
+            const matchesSearch =
+                !searchValue ||
+                rowText.includes(searchValue);
+
+
+            const matchesMonth =
+                !selectedMonth ||
+                rowMonth === selectedMonth;
+
+
+            const matchesAccount =
+                !selectedAccount ||
+                rowAccount === selectedAccount;
+
+
+            const matchesCategory =
+                !selectedCategory ||
+                rowCategory === selectedCategory;
+
+
+            const matchesStatus =
+                !selectedStatus ||
+                rowStatus === selectedStatus;
+
+
+            const visible =
+                matchesSearch &&
+                matchesMonth &&
+                matchesAccount &&
+                matchesCategory &&
+                matchesStatus;
+
+
+            row.style.display =
+                visible ? "" : "none";
+
+        });
+
+
+        updateMonthlyVisibleNumbers();
+
+    }
+
+
+    /* ========================================================
+       ROW NUMBERS
+       ======================================================== */
+
+    function updateMonthlyVisibleNumbers() {
+
+        const rows =
+            tbody.querySelectorAll("tr");
+
+        let number = 1;
+
+
+        rows.forEach(function (row) {
+
+            if (
+                !row.children.length ||
+                row.style.display === "none"
+            ) {
+                return;
+            }
+
+
+            if (row.children[0]) {
+
+                row.children[0].textContent =
+                    number;
+
+            }
+
+
+            number++;
+
+        });
+
+    }
+
+
+    /* ========================================================
+       RESET
+       ======================================================== */
+
+    window.resetMonthlyExpenseFilters =
+        function () {
+
+            if (searchInput) {
+                searchInput.value = "";
+            }
+
+            if (monthFilter) {
+                monthFilter.value = "";
+            }
+
+            if (accountFilter) {
+                accountFilter.value = "";
+            }
+
+            if (categoryFilter) {
+                categoryFilter.value = "";
+            }
+
+            if (statusFilter) {
+                statusFilter.value = "";
+            }
+
+
+            applyMonthlyExpenseFilters();
+
+        };
+
+
+    /* ========================================================
+       EVENTS
+       ======================================================== */
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            applyMonthlyExpenseFilters
+        );
+
+    }
+
+
+    if (monthFilter) {
+
+        monthFilter.addEventListener(
+            "change",
+            applyMonthlyExpenseFilters
+        );
+
+    }
+
+
+    if (accountFilter) {
+
+        accountFilter.addEventListener(
+            "change",
+            applyMonthlyExpenseFilters
+        );
+
+    }
+
+
+    if (categoryFilter) {
+
+        categoryFilter.addEventListener(
+            "change",
+            applyMonthlyExpenseFilters
+        );
+
+    }
+
+
+    if (statusFilter) {
+
+        statusFilter.addEventListener(
+            "change",
+            applyMonthlyExpenseFilters
+        );
+
+    }
+
+
+    /* ========================================================
+       OPEN MODAL
+       ======================================================== */
+
+    window.viewMonthlyExpenseTransaction =
+        function (transaction) {
+
+            currentMonthlyExpense =
+                transaction || {};
+
+
+            const currency =
+                transaction.currency ||
+                "{{ currency|default('USD') }}";
+
+
+            const amount =
+                Number(
+                    transaction.amount || 0
+                );
+
+
+            const formattedAmount =
+                amount.toLocaleString(
+                    undefined,
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+
+
+            document.getElementById(
+                "monthlyModalAmount"
+            ).textContent =
+                currency + " " +
+                formattedAmount;
+
+
+            document.getElementById(
+                "monthlyModalDate"
+            ).textContent =
+                transaction.date || "—";
+
+
+            document.getElementById(
+                "monthlyModalMonth"
+            ).textContent =
+                transaction.month_label || "—";
+
+
+            document.getElementById(
+                "monthlyModalAccount"
+            ).textContent =
+                transaction.account ||
+                "Unknown Account";
+
+
+            document.getElementById(
+                "monthlyModalCategory"
+            ).textContent =
+                transaction.category ||
+                "Uncategorized";
+
+
+            document.getElementById(
+                "monthlyModalItem"
+            ).textContent =
+                transaction.item || "—";
+
+
+            document.getElementById(
+                "monthlyModalStatus"
+            ).textContent =
+                transaction.status ||
+                "Completed";
+
+
+            document.getElementById(
+                "monthlyModalReference"
+            ).textContent =
+                transaction.reference || "—";
+
+
+            document.getElementById(
+                "monthlyModalId"
+            ).textContent =
+                transaction.id || "—";
+
+
+            document.getElementById(
+                "monthlyModalDescription"
+            ).textContent =
+                transaction.description || "—";
+
+
+            document.getElementById(
+                "monthlyModalNote"
+            ).textContent =
+                transaction.note || "—";
+
+
+            const modal =
+                document.getElementById(
+                    "monthlyExpenseModal"
+                );
+
+
+            modal.classList.add("show");
+
+            modal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+
+            document.body.style.overflow =
+                "hidden";
+
+        };
+
+
+    /* ========================================================
+       CLOSE MODAL
+       ======================================================== */
+
+    window.closeMonthlyExpenseModal =
+        function () {
+
+            const modal =
+                document.getElementById(
+                    "monthlyExpenseModal"
+                );
+
+
+            if (!modal) {
+                return;
+            }
+
+
+            modal.classList.remove("show");
+
+            modal.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+
+            document.body.style.overflow =
+                "";
+
+
+            currentMonthlyExpense =
+                null;
+
+        };
+
+
+    /* ========================================================
+       CLICK OUTSIDE
+       ======================================================== */
+
+    const modal =
+        document.getElementById(
+            "monthlyExpenseModal"
+        );
+
+
+    if (modal) {
+
+        modal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target === modal
+                ) {
+
+                    closeMonthlyExpenseModal();
+
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       ESC
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape" &&
+                modal &&
+                modal.classList.contains("show")
+            ) {
+
+                closeMonthlyExpenseModal();
+
+            }
+
+        }
+    );
+
+
+    /* ========================================================
+       PRINT REPORT
+       ======================================================== */
+
+    window.printMonthlyExpenseReport =
+        function () {
+
+            closeMonthlyExpenseModal();
+
+            window.print();
+
+        };
+
+
+    /* ========================================================
+       PRINT SINGLE TRANSACTION
+       ======================================================== */
+
+    window.printCurrentMonthlyExpense =
+        function () {
+
+            if (!currentMonthlyExpense) {
+                return;
+            }
+
+
+            const transaction =
+                currentMonthlyExpense;
+
+
+            const currency =
+                transaction.currency ||
+                "{{ currency|default('USD') }}";
+
+
+            const amount =
+                Number(
+                    transaction.amount || 0
+                );
+
+
+            const amountText =
+                currency + " " +
+                amount.toLocaleString(
+                    undefined,
+                    {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }
+                );
+
+
+            const printWindow =
+                window.open(
+                    "",
+                    "_blank",
+                    "width=850,height=700"
+                );
+
+
+            if (!printWindow) {
+
+                alert(
+                    "Please allow popups to print the transaction."
+                );
+
+                return;
+
+            }
+
+
+            function escapeHtml(value) {
+
+                return String(value || "—")
+                    .replace(
+                        /&/g,
+                        "&amp;"
+                    )
+                    .replace(
+                        /</g,
+                        "&lt;"
+                    )
+                    .replace(
+                        />/g,
+                        "&gt;"
+                    )
+                    .replace(
+                        /"/g,
+                        "&quot;"
+                    )
+                    .replace(
+                        /'/g,
+                        "&#039;"
+                    );
+
+            }
+
+
+            printWindow.document.write(`
+
+                <!DOCTYPE html>
+
+                <html>
+
+                <head>
+
+                    <meta charset="UTF-8">
+
+                    <title>
+                        Monthly Expense Transaction
+                    </title>
+
+                    <style>
+
+                        * {
+                            box-sizing: border-box;
+                        }
+
+                        body {
+                            margin: 0;
+                            padding: 35px;
+                            background: #fff;
+                            color: #222;
+                            font-family:
+                                Arial,
+                                Helvetica,
+                                sans-serif;
+                        }
+
+                        .invoice {
+                            width: 100%;
+                            max-width: 760px;
+                            margin: auto;
+                            border: 1px solid #ddd;
+                            padding: 30px;
+                        }
+
+                        .header {
+                            display: flex;
+                            justify-content: space-between;
+                            gap: 20px;
+                            border-bottom: 2px solid #222;
+                            padding-bottom: 18px;
+                            margin-bottom: 25px;
+                        }
+
+                        h1 {
+                            margin: 0;
+                            font-size: 24px;
+                        }
+
+                        .subtitle {
+                            margin-top: 6px;
+                            color: #777;
+                            font-size: 12px;
+                        }
+
+                        .amount {
+                            color: #dc3545;
+                            font-size: 26px;
+                            font-weight: 900;
+                            white-space: nowrap;
+                        }
+
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+
+                        td {
+                            padding: 12px 5px;
+                            border-bottom: 1px solid #eee;
+                            vertical-align: top;
+                        }
+
+                        td:first-child {
+                            width: 34%;
+                            color: #777;
+                            font-weight: 700;
+                        }
+
+                        .description {
+                            white-space: pre-wrap;
+                            line-height: 1.6;
+                        }
+
+                        .footer {
+                            margin-top: 30px;
+                            text-align: center;
+                            color: #888;
+                            font-size: 11px;
+                        }
+
+                        @media print {
+
+                            body {
+                                padding: 0;
+                            }
+
+                            .invoice {
+                                border: 0;
+                            }
+
+                        }
+
+                    </style>
+
+                </head>
+
+                <body>
+
+                    <div class="invoice">
+
+                        <div class="header">
+
+                            <div>
+
+                                <h1>
+                                    Expense Transaction
+                                </h1>
+
+                                <div class="subtitle">
+                                    Monthly Expenses Report
+                                </div>
+
+                            </div>
+
+                            <div class="amount">
+                                ${escapeHtml(amountText)}
+                            </div>
+
+                        </div>
+
+
+                        <table>
+
+                            <tr>
+                                <td>Date</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.date
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Month</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.month_label
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Account</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.account
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Category</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.category
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Item</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.item
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Status</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.status
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Reference</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.reference
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Description</td>
+                                <td class="description">
+                                    ${escapeHtml(
+                                        transaction.description
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Note</td>
+                                <td class="description">
+                                    ${escapeHtml(
+                                        transaction.note
+                                    )}
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>Transaction ID</td>
+                                <td>
+                                    ${escapeHtml(
+                                        transaction.id
+                                    )}
+                                </td>
+                            </tr>
+
+                        </table>
+
+
+                        <div class="footer">
+                            Generated from Monthly Expenses Report
+                        </div>
+
+                    </div>
+
+
+                    <script>
+
+                        window.onload = function () {
+                            window.print();
+                        };
+
+                    <\/script>
+
+                </body>
+
+                </html>
+
+            `);
+
+
+            printWindow.document.close();
+
+        };
+
+
+    /* ========================================================
+       INITIAL FILTER
+       ======================================================== */
+
+    applyMonthlyExpenseFilters();
+
+
+    /* ========================================================
+       FEATHER
+       ======================================================== */
+
+    if (
+        typeof feather !== "undefined"
+    ) {
+
+        feather.replace();
+
+    }
+
+})();
+</script>
+
+{% endblock %}

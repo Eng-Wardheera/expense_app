@@ -1,0 +1,2299 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Accounts Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   ACCOUNTS REPORT
+   ============================================================ */
+
+.accounts-report {
+    padding-bottom: 30px;
+}
+
+/* PAGE HEADER */
+.accounts-report .page-header {
+    margin-bottom: 20px;
+}
+
+.report-title-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(52, 152, 219, 0.10);
+    color: #3498db;
+    margin-right: 10px;
+}
+
+/* SUMMARY CARDS */
+.report-stat-card {
+    position: relative;
+    overflow: hidden;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    min-height: 145px;
+    transition: all .2s ease;
+}
+
+.report-stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.report-stat-card .card-body {
+    padding: 20px;
+}
+
+.stat-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: #7b8190;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #28323c;
+}
+
+.stat-subtitle {
+    font-size: 12px;
+    color: #98a0aa;
+    margin-top: 7px;
+}
+
+.stat-decoration {
+    position: absolute;
+    right: -25px;
+    bottom: -30px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    opacity: .06;
+}
+
+/* COLORS */
+.stat-blue .stat-icon {
+    background: rgba(52,152,219,.12);
+    color: #3498db;
+}
+
+.stat-green .stat-icon {
+    background: rgba(39,174,96,.12);
+    color: #27ae60;
+}
+
+.stat-red .stat-icon {
+    background: rgba(231,76,60,.12);
+    color: #e74c3c;
+}
+
+.stat-purple .stat-icon {
+    background: rgba(142,68,173,.12);
+    color: #8e44ad;
+}
+
+.stat-orange .stat-icon {
+    background: rgba(243,156,18,.12);
+    color: #f39c12;
+}
+
+.stat-dark .stat-icon {
+    background: rgba(52,73,94,.12);
+    color: #34495e;
+}
+
+/* REPORT CARDS */
+.report-card {
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.report-card .card-header {
+    background: #fff;
+    border-bottom: 1px solid #edf0f3;
+    padding: 16px 20px;
+}
+
+.report-card .card-body {
+    padding: 20px;
+}
+
+/* FILTER */
+.filter-box {
+    background: #f8f9fb;
+    border: 1px solid #edf0f3;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.filter-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #68707a;
+    margin-bottom: 5px;
+}
+
+/* TABLE */
+.accounts-table {
+    margin-bottom: 0;
+}
+
+.accounts-table thead th {
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    color: #6d7480;
+    background: #f8f9fb;
+    border-bottom: 1px solid #e9edf2;
+    padding: 13px 12px;
+}
+
+.accounts-table tbody td {
+    padding: 14px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #f0f2f5;
+}
+
+.accounts-table tbody tr:hover {
+    background: #fafbfd;
+}
+
+.account-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(52,152,219,.10);
+    color: #3498db;
+    font-weight: 700;
+    margin-right: 9px;
+}
+
+.account-name {
+    font-weight: 700;
+    color: #27313a;
+}
+
+.account-id {
+    display: block;
+    font-size: 10px;
+    color: #a0a6ad;
+    margin-top: 2px;
+}
+
+/* BADGES */
+.type-badge {
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.type-bank {
+    background: rgba(52,152,219,.10);
+    color: #2980b9;
+}
+
+.type-wallet {
+    background: rgba(142,68,173,.10);
+    color: #8e44ad;
+}
+
+.type-cash {
+    background: rgba(39,174,96,.10);
+    color: #27ae60;
+}
+
+.type-other {
+    background: rgba(127,140,141,.10);
+    color: #7f8c8d;
+}
+
+.status-active {
+    background: rgba(39,174,96,.10);
+    color: #27ae60;
+}
+
+.status-inactive {
+    background: rgba(149,165,166,.12);
+    color: #7f8c8d;
+}
+
+.status-badge {
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* MONEY */
+.money {
+    font-weight: 700;
+}
+
+.money-positive {
+    color: #27ae60;
+}
+
+.money-negative {
+    color: #e74c3c;
+}
+
+.money-neutral {
+    color: #34495e;
+}
+
+/* TOP ACCOUNT */
+.top-account-box {
+    border: 1px solid #edf0f3;
+    border-radius: 12px;
+    padding: 15px;
+    height: 100%;
+}
+
+.top-account-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(52,152,219,.10);
+    color: #3498db;
+}
+
+.top-account-label {
+    font-size: 11px;
+    color: #8a919b;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.top-account-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #28323c;
+    margin-top: 3px;
+}
+
+.top-account-value {
+    font-size: 21px;
+    font-weight: 800;
+    margin-top: 7px;
+}
+
+/* BREAKDOWN */
+.breakdown-row {
+    margin-bottom: 17px;
+}
+
+.breakdown-row:last-child {
+    margin-bottom: 0;
+}
+
+.breakdown-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #37414b;
+}
+
+.breakdown-meta {
+    font-size: 11px;
+    color: #9097a0;
+}
+
+.breakdown-value {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.breakdown-progress {
+    height: 7px;
+    border-radius: 20px;
+    background: #eef1f4;
+    overflow: hidden;
+    margin-top: 7px;
+}
+
+.breakdown-progress .progress-bar {
+    border-radius: 20px;
+}
+
+/* EMPTY */
+.empty-state {
+    text-align: center;
+    padding: 55px 20px;
+}
+
+.empty-state-icon {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f5f7;
+    color: #98a0aa;
+    font-size: 28px;
+}
+
+/* PRINT */
+@media print {
+
+    .page-header-right,
+    .filter-box,
+    .no-print,
+    .page-header-right-items,
+    .sidebar,
+    .nxl-navigation,
+    .nxl-header {
+        display: none !important;
+    }
+
+    .main-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .report-card,
+    .report-stat-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    body {
+        background: #fff !important;
+    }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+
+    .stat-value {
+        font-size: 20px;
+    }
+
+    .report-stat-card {
+        min-height: 125px;
+    }
+
+    .accounts-table {
+        min-width: 1050px;
+    }
+}
+</style>
+
+
+<div class="accounts-report">
+
+    <!-- ========================================================
+         PAGE HEADER
+         ======================================================== -->
+
+    <div class="page-header">
+
+        <div class="page-header-left d-flex align-items-center">
+
+            <div class="page-header-title">
+
+                <div class="d-flex align-items-center">
+
+                    <span class="report-title-icon">
+                        <i class="feather-credit-card"></i>
+                    </span>
+
+                    <div>
+                        <h5 class="m-b-3">
+                            Accounts Report
+                        </h5>
+
+                        <small class="text-muted">
+                            Complete financial account overview
+                        </small>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <ul class="breadcrumb ms-3 mb-0">
+
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('main.dashboard') }}">
+                        Home
+                    </a>
+                </li>
+
+                <li class="breadcrumb-item">
+                    Reports
+                </li>
+
+                <li class="breadcrumb-item">
+                    Accounts
+                </li>
+
+            </ul>
+
+        </div>
+
+
+        <div class="page-header-right ms-auto">
+
+            <div class="page-header-right-items">
+
+                <div class="d-flex align-items-center gap-2 page-header-right-items-wrapper">
+
+                    <button
+                        type="button"
+                        class="btn btn-light-brand no-print"
+                        onclick="window.print()"
+                    >
+                        <i class="feather-printer me-2"></i>
+                        Print
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-primary no-print"
+                        onclick="exportAccountsCSV()"
+                    >
+                        <i class="feather-download me-2"></i>
+                        Export CSV
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="main-content">
+
+        <!-- ====================================================
+             SUMMARY CARDS
+             ==================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <!-- TOTAL ACCOUNTS -->
+            <div class="col-xxl-3 col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-blue shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Total Accounts
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ total_accounts }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    {{ active_accounts }} active
+                                    ·
+                                    {{ inactive_accounts }} inactive
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-credit-card"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="stat-decoration"></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TOTAL BALANCE -->
+            <div class="col-xxl-3 col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-green shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Total Balance
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ "{:,.2f}".format(total_balance) }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    {{ currency }}
+                                    ·
+                                    {{ balance_status }}
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-dollar-sign"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="stat-decoration"></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TOTAL INCOME -->
+            <div class="col-xxl-3 col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-purple shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Total Income
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ "{:,.2f}".format(total_income) }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    {{ income_transactions }}
+                                    income transactions
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-arrow-down-left"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="stat-decoration"></div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TOTAL EXPENSE -->
+            <div class="col-xxl-3 col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-red shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Total Expenses
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ "{:,.2f}".format(total_expense) }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    {{ expense_transactions }}
+                                    expense transactions
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-arrow-up-right"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="stat-decoration"></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             SECONDARY SUMMARY
+             ==================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <!-- NET -->
+            <div class="col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-dark shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Net Total
+                                </div>
+
+                                <div class="stat-value
+                                    {% if net_total > 0 %}
+                                        text-success
+                                    {% elif net_total < 0 %}
+                                        text-danger
+                                    {% endif %}
+                                ">
+
+                                    {{ "{:,.2f}".format(net_total) }}
+
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    {{ net_status }}
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-bar-chart-2"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TRANSACTIONS -->
+            <div class="col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-blue shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Transactions
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ total_transactions }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    All account transactions
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-list"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACCOUNT TYPES -->
+            <div class="col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-orange shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Account Types
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ type_count }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    Different account types
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-layers"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- CURRENCIES -->
+            <div class="col-xl-3 col-md-6">
+
+                <div class="card report-stat-card stat-green shadow-sm">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between align-items-start">
+
+                            <div>
+
+                                <div class="stat-label">
+                                    Currencies
+                                </div>
+
+                                <div class="stat-value">
+                                    {{ currency_count }}
+                                </div>
+
+                                <div class="stat-subtitle">
+                                    Supported currencies
+                                </div>
+
+                            </div>
+
+                            <div class="stat-icon">
+                                <i class="feather-globe"></i>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             TOP ACCOUNT CARDS
+             ==================================================== -->
+
+        <div class="row g-3 mb-4">
+
+            <!-- HIGHEST BALANCE -->
+            <div class="col-xl-4">
+
+                <div class="card report-card shadow-sm h-100">
+
+                    <div class="card-header">
+
+                        <h6 class="mb-0">
+                            <i class="feather-award me-2 text-primary"></i>
+                            Highest Balance
+                        </h6>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="top-account-box">
+
+                            <div class="d-flex align-items-center">
+
+                                <div class="top-account-icon me-3">
+                                    <i class="feather-credit-card"></i>
+                                </div>
+
+                                <div>
+
+                                    <div class="top-account-label">
+                                        Account
+                                    </div>
+
+                                    <div class="top-account-name">
+                                        {{ highest_balance_account.account }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="top-account-value text-success">
+
+                                {{ "{:,.2f}".format(
+                                    highest_balance_account.balance|default(0)
+                                ) }}
+
+                                <small>
+                                    {{ highest_balance_account.currency|default(currency) }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- HIGHEST INCOME -->
+            <div class="col-xl-4">
+
+                <div class="card report-card shadow-sm h-100">
+
+                    <div class="card-header">
+
+                        <h6 class="mb-0">
+                            <i class="feather-trending-up me-2 text-success"></i>
+                            Highest Income
+                        </h6>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="top-account-box">
+
+                            <div class="d-flex align-items-center">
+
+                                <div class="top-account-icon me-3">
+                                    <i class="feather-arrow-down-left"></i>
+                                </div>
+
+                                <div>
+
+                                    <div class="top-account-label">
+                                        Account
+                                    </div>
+
+                                    <div class="top-account-name">
+                                        {{ highest_income_account.account }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="top-account-value text-success">
+
+                                {{ "{:,.2f}".format(
+                                    highest_income_account.income|default(0)
+                                ) }}
+
+                                <small>
+                                    {{ currency }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- HIGHEST EXPENSE -->
+            <div class="col-xl-4">
+
+                <div class="card report-card shadow-sm h-100">
+
+                    <div class="card-header">
+
+                        <h6 class="mb-0">
+                            <i class="feather-trending-down me-2 text-danger"></i>
+                            Highest Expense
+                        </h6>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="top-account-box">
+
+                            <div class="d-flex align-items-center">
+
+                                <div class="top-account-icon me-3">
+                                    <i class="feather-arrow-up-right"></i>
+                                </div>
+
+                                <div>
+
+                                    <div class="top-account-label">
+                                        Account
+                                    </div>
+
+                                    <div class="top-account-name">
+                                        {{ highest_expense_account.account }}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div class="top-account-value text-danger">
+
+                                {{ "{:,.2f}".format(
+                                    highest_expense_account.expense|default(0)
+                                ) }}
+
+                                <small>
+                                    {{ currency }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             FILTERS
+             ==================================================== -->
+
+        <div class="card report-card shadow-sm mb-4 no-print">
+
+            <div class="card-header">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <h6 class="mb-0">
+                        <i class="feather-filter me-2"></i>
+                        Filter Accounts
+                    </h6>
+
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-light"
+                        onclick="resetAccountFilters()"
+                    >
+                        Reset
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="filter-box">
+
+                    <div class="row g-3">
+
+                        <!-- SEARCH -->
+                        <div class="col-xl-4 col-lg-6">
+
+                            <label class="filter-label">
+                                Search Account
+                            </label>
+
+                            <div class="input-group">
+
+                                <span class="input-group-text">
+                                    <i class="feather-search"></i>
+                                </span>
+
+                                <input
+                                    type="text"
+                                    id="accountSearch"
+                                    class="form-control"
+                                    placeholder="Search account..."
+                                    onkeyup="filterAccounts()"
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- TYPE -->
+                        <div class="col-xl-2 col-lg-6">
+
+                            <label class="filter-label">
+                                Account Type
+                            </label>
+
+                            <select
+                                id="accountTypeFilter"
+                                class="form-select"
+                                onchange="filterAccounts()"
+                            >
+
+                                <option value="">
+                                    All Types
+                                </option>
+
+                                {% for type in account_types %}
+
+                                    <option value="{{ type|lower }}">
+                                        {{ type|title }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- CURRENCY -->
+                        <div class="col-xl-2 col-lg-6">
+
+                            <label class="filter-label">
+                                Currency
+                            </label>
+
+                            <select
+                                id="currencyFilter"
+                                class="form-select"
+                                onchange="filterAccounts()"
+                            >
+
+                                <option value="">
+                                    All Currencies
+                                </option>
+
+                                {% for item_currency in currencies %}
+
+                                    <option value="{{ item_currency|lower }}">
+                                        {{ item_currency }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- STATUS -->
+                        <div class="col-xl-2 col-lg-6">
+
+                            <label class="filter-label">
+                                Status
+                            </label>
+
+                            <select
+                                id="statusFilter"
+                                class="form-select"
+                                onchange="filterAccounts()"
+                            >
+
+                                <option value="">
+                                    All Status
+                                </option>
+
+                                {% for status in report_statuses %}
+
+                                    <option value="{{ status|lower }}">
+                                        {{ status }}
+                                    </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                        </div>
+
+
+                        <!-- RESULTS -->
+                        <div class="col-xl-2 col-lg-12 d-flex align-items-end">
+
+                            <div class="w-100">
+
+                                <div class="small text-muted mb-1">
+                                    Showing
+                                </div>
+
+                                <strong id="visibleCount">
+                                    {{ total_accounts }}
+                                </strong>
+
+                                <span class="text-muted">
+                                    / {{ total_accounts }} accounts
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             ACCOUNT TABLE
+             ==================================================== -->
+
+        <div class="card report-card shadow-sm mb-4">
+
+            <div class="card-header">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <h6 class="mb-1">
+                            All Accounts
+                        </h6>
+
+                        <small class="text-muted">
+                            Complete account financial report
+                        </small>
+
+                    </div>
+
+                    <span class="badge bg-light text-dark">
+                        {{ total_accounts }} Accounts
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="card-body p-0">
+
+                {% if accounts %}
+
+                <div class="table-responsive">
+
+                    <table
+                        class="table accounts-table"
+                        id="accountsTable"
+                    >
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    #
+                                </th>
+
+                                <th>
+                                    Account
+                                </th>
+
+                                <th>
+                                    Type
+                                </th>
+
+                                <th>
+                                    Currency
+                                </th>
+
+                                <th class="text-end">
+                                    Balance
+                                </th>
+
+                                <th class="text-end">
+                                    Income
+                                </th>
+
+                                <th class="text-end">
+                                    Expense
+                                </th>
+
+                                <th class="text-end">
+                                    Net
+                                </th>
+
+                                <th class="text-center">
+                                    Transactions
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                            {% for account in accounts %}
+
+                            <tr
+                                data-account="{{ account.account|lower }}"
+                                data-type="{{ account.type|lower }}"
+                                data-currency="{{ account.currency|lower }}"
+                                data-status="{{ account.status_label|lower }}"
+                            >
+
+                                <!-- RANK -->
+                                <td>
+
+                                    <span class="text-muted fw-semibold">
+                                        {{ account.rank }}
+                                    </span>
+
+                                </td>
+
+
+                                <!-- ACCOUNT -->
+                                <td>
+
+                                    <div class="d-flex align-items-center">
+
+                                        <span class="account-avatar">
+
+                                            {% if account.account %}
+                                                {{ account.account[0]|upper }}
+                                            {% else %}
+                                                ?
+                                            {% endif %}
+
+                                        </span>
+
+                                        <div>
+
+                                            <div class="account-name">
+                                                {{ account.account }}
+                                            </div>
+
+                                            <span class="account-id">
+                                                ID: {{ account.id }}
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                </td>
+
+
+                                <!-- TYPE -->
+                                <td>
+
+                                    {% set account_type = account.type|lower %}
+
+                                    {% if account_type == 'bank' %}
+
+                                        <span class="type-badge type-bank">
+                                            <i class="feather-home me-1"></i>
+                                            Bank
+                                        </span>
+
+                                    {% elif account_type == 'wallet' %}
+
+                                        <span class="type-badge type-wallet">
+                                            <i class="feather-smartphone me-1"></i>
+                                            Wallet
+                                        </span>
+
+                                    {% elif account_type == 'cash' %}
+
+                                        <span class="type-badge type-cash">
+                                            <i class="feather-dollar-sign me-1"></i>
+                                            Cash
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="type-badge type-other">
+                                            {{ account.type|title }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- CURRENCY -->
+                                <td>
+
+                                    <span class="badge bg-light text-dark">
+                                        {{ account.currency }}
+                                    </span>
+
+                                </td>
+
+
+                                <!-- BALANCE -->
+                                <td class="text-end">
+
+                                    <span
+                                        class="
+                                            money
+                                            {% if account.balance > 0 %}
+                                                money-positive
+                                            {% elif account.balance < 0 %}
+                                                money-negative
+                                            {% else %}
+                                                money-neutral
+                                            {% endif %}
+                                        "
+                                    >
+
+                                        {{ "{:,.2f}".format(account.balance) }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- INCOME -->
+                                <td class="text-end">
+
+                                    <span class="money money-positive">
+
+                                        +{{ "{:,.2f}".format(account.income) }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- EXPENSE -->
+                                <td class="text-end">
+
+                                    <span class="money money-negative">
+
+                                        -{{ "{:,.2f}".format(account.expense) }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- NET -->
+                                <td class="text-end">
+
+                                    {% if account.net > 0 %}
+
+                                        <span class="money money-positive">
+                                            +{{ "{:,.2f}".format(account.net) }}
+                                        </span>
+
+                                    {% elif account.net < 0 %}
+
+                                        <span class="money money-negative">
+                                            {{ "{:,.2f}".format(account.net) }}
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="money money-neutral">
+                                            0.00
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <!-- TRANSACTIONS -->
+                                <td class="text-center">
+
+                                    <span class="badge bg-light text-dark">
+
+                                        {{ account.transaction_count }}
+
+                                    </span>
+
+                                </td>
+
+
+                                <!-- STATUS -->
+                                <td>
+
+                                    {% if account.status_label == 'Active' %}
+
+                                        <span class="status-badge status-active">
+
+                                            <i class="feather-check-circle me-1"></i>
+                                            Active
+
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge status-inactive">
+
+                                            <i class="feather-pause-circle me-1"></i>
+                                            Inactive
+
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+
+                        <!-- FOOTER -->
+                        <tfoot>
+
+                            <tr class="table-light fw-bold">
+
+                                <td colspan="4">
+                                    TOTAL
+                                </td>
+
+                                <td class="text-end">
+                                    {{ "{:,.2f}".format(total_balance) }}
+                                </td>
+
+                                <td class="text-end text-success">
+                                    +{{ "{:,.2f}".format(total_income) }}
+                                </td>
+
+                                <td class="text-end text-danger">
+                                    -{{ "{:,.2f}".format(total_expense) }}
+                                </td>
+
+                                <td class="text-end
+                                    {% if net_total > 0 %}
+                                        text-success
+                                    {% elif net_total < 0 %}
+                                        text-danger
+                                    {% endif %}
+                                ">
+                                    {{ "{:,.2f}".format(net_total) }}
+                                </td>
+
+                                <td class="text-center">
+                                    {{ total_transactions }}
+                                </td>
+
+                                <td>
+                                    —
+                                </td>
+
+                            </tr>
+
+                        </tfoot>
+
+                    </table>
+
+                </div>
+
+                {% else %}
+
+                <div class="empty-state">
+
+                    <div class="empty-state-icon">
+
+                        <i class="feather-credit-card"></i>
+
+                    </div>
+
+                    <h5>
+                        No Accounts Found
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        There are no accounts available for this report.
+                    </p>
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             LOWER REPORTS
+             ==================================================== -->
+
+        <div class="row g-3">
+
+            <!-- ACCOUNT TYPE BREAKDOWN -->
+            <div class="col-xl-6">
+
+                <div class="card report-card shadow-sm h-100">
+
+                    <div class="card-header">
+
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <h6 class="mb-1">
+                                    Account Type Breakdown
+                                </h6>
+
+                                <small class="text-muted">
+                                    Balance by account type
+                                </small>
+
+                            </div>
+
+                            <i class="feather-pie-chart text-muted"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body">
+
+                        {% if accounts_by_type %}
+
+                            {% set max_type_balance =
+                                (
+                                    accounts_by_type.values()
+                                    |map(attribute='balance')
+                                    |list
+                                    |max
+                                )
+                            %}
+
+                            {% for type_name, breakdown in accounts_by_type.items() %}
+
+                                <div class="breakdown-row">
+
+                                    <div class="d-flex justify-content-between align-items-center">
+
+                                        <div>
+
+                                            <div class="breakdown-name">
+                                                {{ type_name|title }}
+                                            </div>
+
+                                            <div class="breakdown-meta">
+                                                {{ breakdown.count }}
+                                                account{% if breakdown.count != 1 %}s{% endif %}
+                                            </div>
+
+                                        </div>
+
+                                        <div class="breakdown-value">
+
+                                            {{ "{:,.2f}".format(
+                                                breakdown.balance
+                                            ) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="breakdown-progress">
+
+                                        {% if max_type_balance > 0 %}
+
+                                            {% set type_percent =
+                                                (
+                                                    breakdown.balance
+                                                    / max_type_balance
+                                                    * 100
+                                                )
+                                            %}
+
+                                        {% else %}
+
+                                            {% set type_percent = 0 %}
+
+                                        {% endif %}
+
+                                        <div
+                                            class="progress-bar"
+                                            role="progressbar"
+                                            style="width: {{ type_percent }}%;"
+                                        ></div>
+
+                                    </div>
+
+
+                                    <div class="d-flex justify-content-between mt-1">
+
+                                        <small class="text-success">
+                                            Income:
+                                            {{ "{:,.2f}".format(
+                                                breakdown.income
+                                            ) }}
+                                        </small>
+
+                                        <small class="text-danger">
+                                            Expense:
+                                            {{ "{:,.2f}".format(
+                                                breakdown.expense
+                                            ) }}
+                                        </small>
+
+                                    </div>
+
+                                </div>
+
+                            {% endfor %}
+
+                        {% else %}
+
+                            <div class="text-center text-muted py-4">
+                                No account type data available.
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- TOP 5 ACCOUNTS -->
+            <div class="col-xl-6">
+
+                <div class="card report-card shadow-sm h-100">
+
+                    <div class="card-header">
+
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <h6 class="mb-1">
+                                    Top 5 Accounts
+                                </h6>
+
+                                <small class="text-muted">
+                                    Ranked by current balance
+                                </small>
+
+                            </div>
+
+                            <i class="feather-award text-muted"></i>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body p-0">
+
+                        {% if top_5_accounts %}
+
+                            <div class="list-group list-group-flush">
+
+                                {% for account in top_5_accounts %}
+
+                                <div class="list-group-item py-3">
+
+                                    <div class="d-flex align-items-center">
+
+                                        <div
+                                            class="account-avatar me-2"
+                                            style="margin-right: 10px !important;"
+                                        >
+
+                                            {{ account.account[0]|upper }}
+
+                                        </div>
+
+
+                                        <div class="flex-grow-1">
+
+                                            <div class="fw-bold">
+
+                                                {{ account.account }}
+
+                                            </div>
+
+                                            <small class="text-muted">
+
+                                                {{ account.type|title }}
+
+                                                ·
+
+                                                {{ account.transaction_count }}
+                                                transactions
+
+                                            </small>
+
+                                        </div>
+
+
+                                        <div class="text-end">
+
+                                            <div class="fw-bold
+                                                {% if account.balance > 0 %}
+                                                    text-success
+                                                {% elif account.balance < 0 %}
+                                                    text-danger
+                                                {% endif %}
+                                            ">
+
+                                                {{ "{:,.2f}".format(
+                                                    account.balance
+                                                ) }}
+
+                                            </div>
+
+                                            <small class="text-muted">
+                                                {{ account.currency }}
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="empty-state">
+
+                                <div class="empty-state-icon">
+                                    <i class="feather-credit-card"></i>
+                                </div>
+
+                                <p class="text-muted">
+                                    No account data available.
+                                </p>
+
+                            </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             REPORT FOOTER
+             ==================================================== -->
+
+        <div class="card report-card shadow-sm mt-4">
+
+            <div class="card-body">
+
+                <div class="row align-items-center">
+
+                    <div class="col-md-8">
+
+                        <div class="d-flex align-items-center">
+
+                            <span class="report-title-icon">
+
+                                <i class="feather-info"></i>
+
+                            </span>
+
+                            <div>
+
+                                <h6 class="mb-1">
+                                    Report Status
+                                </h6>
+
+                                <small class="text-muted">
+                                    {{ report_status }}
+                                </small>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+
+                        <span class="
+                            badge
+                            {% if total_accounts > 0 %}
+                                bg-success
+                            {% else %}
+                                bg-secondary
+                            {% endif %}
+                            px-3 py-2
+                        ">
+
+                            {% if total_accounts > 0 %}
+
+                                <i class="feather-check-circle me-1"></i>
+                                Report Ready
+
+                            {% else %}
+
+                                <i class="feather-alert-circle me-1"></i>
+                                No Data
+
+                            {% endif %}
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /*
+    ============================================================
+    INITIALIZE
+    ============================================================
+    */
+
+    updateVisibleCount();
+
+});
+
+
+/*
+============================================================
+FILTER ACCOUNTS
+============================================================
+*/
+
+function filterAccounts() {
+
+    const searchInput =
+        document.getElementById("accountSearch");
+
+    const typeFilter =
+        document.getElementById("accountTypeFilter");
+
+    const currencyFilter =
+        document.getElementById("currencyFilter");
+
+    const statusFilter =
+        document.getElementById("statusFilter");
+
+    const search =
+        searchInput
+            ? searchInput.value
+                .toLowerCase()
+                .trim()
+            : "";
+
+    const selectedType =
+        typeFilter
+            ? typeFilter.value
+                .toLowerCase()
+            : "";
+
+    const selectedCurrency =
+        currencyFilter
+            ? currencyFilter.value
+                .toLowerCase()
+            : "";
+
+    const selectedStatus =
+        statusFilter
+            ? statusFilter.value
+                .toLowerCase()
+            : "";
+
+    const rows =
+        document.querySelectorAll(
+            "#accountsTable tbody tr"
+        );
+
+    let visible = 0;
+
+    rows.forEach(function (row) {
+
+        const account =
+            row.dataset.account || "";
+
+        const type =
+            row.dataset.type || "";
+
+        const currency =
+            row.dataset.currency || "";
+
+        const status =
+            row.dataset.status || "";
+
+        const matchesSearch =
+            !search ||
+            account.includes(search);
+
+        const matchesType =
+            !selectedType ||
+            type === selectedType;
+
+        const matchesCurrency =
+            !selectedCurrency ||
+            currency === selectedCurrency;
+
+        const matchesStatus =
+            !selectedStatus ||
+            status === selectedStatus;
+
+        if (
+            matchesSearch &&
+            matchesType &&
+            matchesCurrency &&
+            matchesStatus
+        ) {
+
+            row.style.display = "";
+
+            visible++;
+
+        } else {
+
+            row.style.display = "none";
+
+        }
+
+    });
+
+    updateVisibleCount(visible);
+
+}
+
+
+/*
+============================================================
+VISIBLE COUNT
+============================================================
+*/
+
+function updateVisibleCount(count) {
+
+    const counter =
+        document.getElementById(
+            "visibleCount"
+        );
+
+    if (!counter) {
+        return;
+    }
+
+    if (typeof count === "number") {
+
+        counter.textContent = count;
+
+        return;
+    }
+
+    const rows =
+        document.querySelectorAll(
+            "#accountsTable tbody tr"
+        );
+
+    let visible = 0;
+
+    rows.forEach(function (row) {
+
+        if (
+            row.style.display !== "none"
+        ) {
+
+            visible++;
+
+        }
+
+    });
+
+    counter.textContent = visible;
+
+}
+
+
+/*
+============================================================
+RESET FILTERS
+============================================================
+*/
+
+function resetAccountFilters() {
+
+    const search =
+        document.getElementById(
+            "accountSearch"
+        );
+
+    const type =
+        document.getElementById(
+            "accountTypeFilter"
+        );
+
+    const currency =
+        document.getElementById(
+            "currencyFilter"
+        );
+
+    const status =
+        document.getElementById(
+            "statusFilter"
+        );
+
+    if (search) {
+        search.value = "";
+    }
+
+    if (type) {
+        type.value = "";
+    }
+
+    if (currency) {
+        currency.value = "";
+    }
+
+    if (status) {
+        status.value = "";
+    }
+
+    filterAccounts();
+
+}
+
+
+/*
+============================================================
+CSV EXPORT
+============================================================
+*/
+
+function exportAccountsCSV() {
+
+    const table =
+        document.getElementById(
+            "accountsTable"
+        );
+
+    if (!table) {
+        return;
+    }
+
+    const rows =
+        table.querySelectorAll(
+            "tr"
+        );
+
+    const csv = [];
+
+    rows.forEach(function (row) {
+
+        if (
+            row.style.display === "none"
+        ) {
+
+            return;
+
+        }
+
+        const columns =
+            row.querySelectorAll(
+                "th, td"
+            );
+
+        const rowData = [];
+
+        columns.forEach(function (column) {
+
+            let text =
+                column.innerText
+                    .replace(/\n/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim();
+
+            text =
+                text.replace(
+                    /"/g,
+                    '""'
+                );
+
+            rowData.push(
+                '"' + text + '"'
+            );
+
+        });
+
+        csv.push(
+            rowData.join(",")
+        );
+
+    });
+
+    const csvContent =
+        csv.join("\n");
+
+    const blob =
+        new Blob(
+            [csvContent],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+        "accounts_report.csv";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/*
+============================================================
+KEYBOARD SHORTCUT
+============================================================
+*/
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        /*
+        Ctrl + P
+        */
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() === "p"
+        ) {
+
+            /*
+            Let browser handle normal print.
+            */
+
+            return;
+
+        }
+
+        /*
+        Escape = Reset filters
+        */
+
+        if (
+            event.key === "Escape"
+        ) {
+
+            resetAccountFilters();
+
+        }
+
+    }
+);
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,3136 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Expense By Category Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPENSE BY CATEGORY REPORT
+   ============================================================ */
+
+.expense-report-page {
+    padding: 20px 0 40px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.expense-report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+    padding: 24px;
+    border-radius: 18px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, .08);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .06);
+}
+
+.expense-report-header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.expense-report-icon {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0f0;
+    color: #dc3545;
+}
+
+.expense-report-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.expense-report-title {
+    margin: 0;
+    font-size: 25px;
+    font-weight: 800;
+    color: var(--bs-heading-color, #212529);
+}
+
+.expense-report-subtitle {
+    margin: 5px 0 0;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.expense-report-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.expense-action-btn {
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, .1);
+    background: #fff;
+    color: #343a40;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.expense-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, .08);
+}
+
+.expense-action-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.expense-action-btn.print-btn {
+    background: #dc3545;
+    color: #fff;
+    border-color: #dc3545;
+}
+
+.expense-action-btn.reset-btn {
+    background: #f8f9fa;
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.expense-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.expense-summary-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 135px;
+    padding: 20px;
+    border-radius: 17px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, .07);
+    box-shadow: 0 7px 25px rgba(0, 0, 0, .055);
+}
+
+.expense-summary-card::after {
+    content: "";
+    position: absolute;
+    right: -28px;
+    bottom: -35px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, .06);
+}
+
+.expense-summary-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.expense-summary-label {
+    color: #6c757d;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.expense-summary-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0f0;
+    color: #dc3545;
+}
+
+.expense-summary-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.expense-summary-value {
+    margin-top: 14px;
+    font-size: 25px;
+    line-height: 1.2;
+    font-weight: 850;
+    color: var(--bs-heading-color, #212529);
+}
+
+.expense-summary-meta {
+    margin-top: 7px;
+    font-size: 12px;
+    color: #868e96;
+}
+
+/* ============================================================
+   SECTION CARD
+   ============================================================ */
+
+.expense-section {
+    margin-bottom: 24px;
+    border-radius: 18px;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, .07);
+    box-shadow: 0 7px 25px rgba(0, 0, 0, .05);
+    overflow: hidden;
+}
+
+.expense-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 19px 22px;
+    border-bottom: 1px solid rgba(0, 0, 0, .07);
+}
+
+.expense-section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.expense-section-title-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0f0;
+    color: #dc3545;
+}
+
+.expense-section-title-icon svg {
+    width: 19px;
+    height: 19px;
+}
+
+.expense-section-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--bs-heading-color, #212529);
+}
+
+.expense-section-subtitle {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: #868e96;
+}
+
+.expense-section-body {
+    padding: 22px;
+}
+
+/* ============================================================
+   INSIGHTS
+   ============================================================ */
+
+.expense-insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.expense-insight-card {
+    padding: 18px;
+    border-radius: 14px;
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, .06);
+}
+
+.expense-insight-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    font-weight: 800;
+    color: #868e96;
+}
+
+.expense-insight-name {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--bs-heading-color, #212529);
+    word-break: break-word;
+}
+
+.expense-insight-amount {
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 850;
+    color: #dc3545;
+}
+
+/* ============================================================
+   CATEGORY BREAKDOWN
+   ============================================================ */
+
+.expense-category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.expense-category-card {
+    border: 1px solid rgba(0, 0, 0, .08);
+    border-radius: 15px;
+    overflow: hidden;
+    background: var(--bs-body-bg, #fff);
+}
+
+.expense-category-header {
+    padding: 18px;
+    background: #fafafa;
+    border-bottom: 1px solid rgba(0, 0, 0, .07);
+}
+
+.expense-category-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.expense-category-name-wrap {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+}
+
+.expense-category-number {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0f0;
+    color: #dc3545;
+    font-size: 12px;
+    font-weight: 850;
+}
+
+.expense-category-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--bs-heading-color, #212529);
+    word-break: break-word;
+}
+
+.expense-category-amount {
+    font-size: 18px;
+    font-weight: 850;
+    color: #dc3545;
+    white-space: nowrap;
+}
+
+.expense-category-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.expense-meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: #f1f3f5;
+    color: #495057;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.expense-meta-badge svg {
+    width: 13px;
+    height: 13px;
+}
+
+.expense-progress-wrap {
+    margin-top: 14px;
+}
+
+.expense-progress-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: #868e96;
+}
+
+.expense-progress {
+    width: 100%;
+    height: 7px;
+    overflow: hidden;
+    border-radius: 20px;
+    background: #edf0f2;
+}
+
+.expense-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: #dc3545;
+    transition: width .4s ease;
+}
+
+.expense-item-list {
+    padding: 0;
+}
+
+.expense-item-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 16px;
+    padding: 15px 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+}
+
+.expense-item-row:last-child {
+    border-bottom: 0;
+}
+
+.expense-item-info {
+    min-width: 0;
+}
+
+.expense-item-name {
+    font-size: 13px;
+    font-weight: 750;
+    color: var(--bs-heading-color, #212529);
+    word-break: break-word;
+}
+
+.expense-item-label {
+    margin-top: 3px;
+    font-size: 11px;
+    color: #868e96;
+}
+
+.expense-item-count {
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: #f8f9fa;
+    color: #6c757d;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.expense-item-amount {
+    font-size: 14px;
+    font-weight: 800;
+    color: #dc3545;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   OVERVIEW
+   ============================================================ */
+
+.expense-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.expense-overview-box {
+    padding: 16px;
+    border-radius: 12px;
+    background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, .05);
+}
+
+.expense-overview-label {
+    font-size: 11px;
+    color: #868e96;
+    font-weight: 700;
+}
+
+.expense-overview-value {
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 850;
+    color: var(--bs-heading-color, #212529);
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.expense-filters {
+    display: grid;
+    grid-template-columns: minmax(200px, 1fr) 190px 170px auto;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.expense-filter-group {
+    position: relative;
+}
+
+.expense-filter-input,
+.expense-filter-select {
+    width: 100%;
+    height: 42px;
+    padding: 0 13px;
+    border-radius: 9px;
+    border: 1px solid #dee2e6;
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-body-color, #212529);
+    outline: none;
+    font-size: 13px;
+    transition: border-color .2s, box-shadow .2s;
+}
+
+.expense-filter-input:focus,
+.expense-filter-select:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, .1);
+}
+
+.expense-clear-btn {
+    height: 42px;
+    padding: 0 15px;
+    border: 0;
+    border-radius: 9px;
+    background: #343a40;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 750;
+    cursor: pointer;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.expense-table-wrapper {
+    overflow-x: auto;
+}
+
+#expenseTransactionsTable {
+    width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#expenseTransactionsTable thead th {
+    padding: 13px 12px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    color: #495057;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+#expenseTransactionsTable tbody td {
+    padding: 14px 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, .06);
+    color: var(--bs-body-color, #343a40);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.expense-date {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.expense-account {
+    font-weight: 750;
+}
+
+.expense-category-cell {
+    font-weight: 700;
+}
+
+.expense-item-cell {
+    color: #6c757d;
+}
+
+.expense-description {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expense-amount-cell {
+    font-size: 13px !important;
+    font-weight: 850;
+    color: #dc3545 !important;
+    white-space: nowrap;
+}
+
+.expense-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: #e9f7ef;
+    color: #198754;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.expense-view-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    color: #495057;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.expense-view-btn:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+
+.expense-view-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* ============================================================
+   CUSTOM MODAL - NO BOOTSTRAP
+   ============================================================ */
+
+.expense-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(15, 23, 42, .68);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.expense-modal-overlay.show {
+    display: flex;
+    animation: expenseModalFadeIn .2s ease;
+}
+
+@keyframes expenseModalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.expense-modal-container {
+    width: min(680px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, .25);
+    animation: expenseModalSlideUp .22s ease;
+}
+
+@keyframes expenseModalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.expense-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 18px 20px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.expense-modal-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.expense-modal-title-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff0f0;
+    color: #dc3545;
+}
+
+.expense-modal-title-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.expense-modal-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 850;
+    color: #212529;
+}
+
+.expense-modal-subtitle {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: #868e96;
+}
+
+.expense-modal-close {
+    width: 36px;
+    height: 36px;
+    border: 0;
+    border-radius: 9px;
+    background: #f1f3f5;
+    color: #495057;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.expense-modal-close:hover {
+    background: #dc3545;
+    color: #fff;
+}
+
+.expense-modal-close svg {
+    width: 18px;
+    height: 18px;
+}
+
+.expense-modal-body {
+    padding: 22px;
+    overflow-y: auto;
+}
+
+.expense-modal-amount-card {
+    padding: 18px;
+    border-radius: 14px;
+    background: #fff5f5;
+    border: 1px solid #ffe0e0;
+    margin-bottom: 18px;
+}
+
+.expense-modal-amount-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #868e96;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.expense-modal-amount {
+    margin-top: 6px;
+    font-size: 30px;
+    font-weight: 900;
+    color: #dc3545;
+}
+
+.expense-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.expense-modal-field {
+    padding: 13px;
+    border-radius: 11px;
+    background: #f8f9fa;
+    border: 1px solid #edf0f2;
+    min-width: 0;
+}
+
+.expense-modal-field.full {
+    grid-column: 1 / -1;
+}
+
+.expense-modal-field-label {
+    font-size: 10px;
+    color: #868e96;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    font-weight: 800;
+}
+
+.expense-modal-field-value {
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 750;
+    color: #212529;
+    word-break: break-word;
+}
+
+.expense-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 15px 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.expense-modal-footer-btn {
+    height: 40px;
+    padding: 0 15px;
+    border-radius: 9px;
+    border: 1px solid #dee2e6;
+    background: #fff;
+    color: #343a40;
+    font-size: 12px;
+    font-weight: 750;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+}
+
+.expense-modal-footer-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.expense-modal-footer-btn.primary {
+    border-color: #dc3545;
+    background: #dc3545;
+    color: #fff;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.expense-empty-state {
+    padding: 55px 20px;
+    text-align: center;
+    color: #868e96;
+}
+
+.expense-empty-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 13px;
+    border-radius: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8f9fa;
+}
+
+.expense-empty-icon svg {
+    width: 27px;
+    height: 27px;
+}
+
+.expense-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: #495057;
+}
+
+.expense-empty-text {
+    margin: 5px 0 0;
+    font-size: 12px;
+}
+
+/* ============================================================
+   DATATABLES
+   ============================================================ */
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 14px;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    height: 35px;
+    border: 1px solid #dee2e6;
+    border-radius: 7px;
+    padding: 0 8px;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: #dc3545;
+}
+
+.dataTables_wrapper .dataTables_info {
+    color: #868e96;
+    font-size: 11px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 7px !important;
+    font-size: 11px;
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+
+@media (prefers-color-scheme: dark) {
+
+    .expense-report-header,
+    .expense-summary-card,
+    .expense-section,
+    .expense-category-card {
+        border-color: rgba(255, 255, 255, .08);
+    }
+
+    .expense-category-header,
+    .expense-insight-card,
+    .expense-overview-box,
+    .expense-filter-input,
+    .expense-filter-select,
+    .expense-meta-badge,
+    .expense-item-count {
+        background: rgba(255, 255, 255, .04);
+    }
+
+    .expense-modal-container {
+        background: #1f2937;
+    }
+
+    .expense-modal-title,
+    .expense-modal-field-value,
+    .expense-report-title,
+    .expense-section-title,
+    .expense-category-name,
+    .expense-item-name,
+    .expense-summary-value,
+    .expense-insight-name,
+    .expense-overview-value {
+        color: #f8f9fa;
+    }
+
+    .expense-modal-header,
+    .expense-modal-footer,
+    .expense-modal-field,
+    #expenseTransactionsTable thead th,
+    #expenseTransactionsTable tbody td {
+        border-color: rgba(255, 255, 255, .08);
+    }
+
+    .expense-modal-field,
+    .expense-modal-close {
+        background: rgba(255, 255, 255, .05);
+    }
+
+    .expense-modal-field-value {
+        color: #f8f9fa;
+    }
+
+    .expense-modal-footer-btn {
+        background: #374151;
+        color: #f8f9fa;
+        border-color: #4b5563;
+    }
+
+    .expense-action-btn.reset-btn {
+        background: #374151;
+        color: #f8f9fa;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .expense-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .expense-overview-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .expense-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .expense-report-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .expense-report-header-actions {
+        justify-content: flex-start;
+    }
+
+    .expense-insights-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 650px) {
+
+    .expense-report-page {
+        padding-top: 10px;
+    }
+
+    .expense-report-header {
+        padding: 17px;
+        border-radius: 14px;
+    }
+
+    .expense-report-header-left {
+        align-items: flex-start;
+    }
+
+    .expense-report-icon {
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+    }
+
+    .expense-report-title {
+        font-size: 20px;
+    }
+
+    .expense-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .expense-overview-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .expense-section-body {
+        padding: 15px;
+    }
+
+    .expense-section-header {
+        padding: 15px;
+    }
+
+    .expense-category-top {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .expense-category-amount {
+        padding-left: 45px;
+    }
+
+    .expense-item-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .expense-item-count {
+        display: none;
+    }
+
+    .expense-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .expense-modal-overlay {
+        padding: 10px;
+    }
+
+    .expense-modal-container {
+        max-height: calc(100vh - 20px);
+        border-radius: 14px;
+    }
+
+    .expense-modal-body {
+        padding: 15px;
+    }
+
+    .expense-modal-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .expense-modal-field.full {
+        grid-column: auto;
+    }
+
+    .expense-modal-amount {
+        font-size: 25px;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .no-print,
+    .expense-report-header-actions,
+    .expense-filters,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate,
+    .expense-view-btn {
+        display: none !important;
+    }
+
+    .expense-report-page {
+        padding: 0;
+    }
+
+    .expense-report-header,
+    .expense-summary-card,
+    .expense-section,
+    .expense-category-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .expense-section {
+        break-inside: avoid;
+    }
+
+    .expense-modal-overlay {
+        display: none !important;
+    }
+
+    #expenseTransactionsTable {
+        font-size: 10px !important;
+    }
+
+    #expenseTransactionsTable th,
+    #expenseTransactionsTable td {
+        padding: 7px !important;
+    }
+}
+</style>
+
+
+<div class="expense-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="expense-report-header">
+
+        <div class="expense-report-header-left">
+
+            <div class="expense-report-icon">
+                <i data-feather="trending-down"></i>
+            </div>
+
+            <div>
+                <h1 class="expense-report-title">
+                    Expense By Category
+                </h1>
+
+                <p class="expense-report-subtitle">
+                    Expense transactions grouped by category and item
+                </p>
+            </div>
+
+        </div>
+
+        <div class="expense-report-header-actions no-print">
+
+            <button
+                type="button"
+                class="expense-action-btn print-btn"
+                onclick="printExpenseReport()"
+            >
+                <i data-feather="printer"></i>
+                Print Report
+            </button>
+
+            <button
+                type="button"
+                class="expense-action-btn reset-btn"
+                onclick="resetExpenseFilters()"
+            >
+                <i data-feather="refresh-cw"></i>
+                Reset
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY CARDS
+         ======================================================== -->
+
+    <div class="expense-summary-grid">
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="expense-summary-card">
+
+            <div class="expense-summary-top">
+
+                <div class="expense-summary-label">
+                    Total Expense
+                </div>
+
+                <div class="expense-summary-icon">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+            </div>
+
+            <div class="expense-summary-value">
+                {{ currency }}
+                {{ "{:,.2f}".format(total_expense|default(0)) }}
+            </div>
+
+            <div class="expense-summary-meta">
+                {{ expense_transactions|default(0) }} expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORIES -->
+
+        <div class="expense-summary-card">
+
+            <div class="expense-summary-top">
+
+                <div class="expense-summary-label">
+                    Categories
+                </div>
+
+                <div class="expense-summary-icon">
+                    <i data-feather="folder"></i>
+                </div>
+
+            </div>
+
+            <div class="expense-summary-value">
+                {{ category_count|default(0) }}
+            </div>
+
+            <div class="expense-summary-meta">
+                Expense categories
+            </div>
+
+        </div>
+
+
+        <!-- ITEMS -->
+
+        <div class="expense-summary-card">
+
+            <div class="expense-summary-top">
+
+                <div class="expense-summary-label">
+                    Items
+                </div>
+
+                <div class="expense-summary-icon">
+                    <i data-feather="package"></i>
+                </div>
+
+            </div>
+
+            <div class="expense-summary-value">
+                {{ item_count|default(0) }}
+            </div>
+
+            <div class="expense-summary-meta">
+                Unique expense items
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNTS -->
+
+        <div class="expense-summary-card">
+
+            <div class="expense-summary-top">
+
+                <div class="expense-summary-label">
+                    Accounts
+                </div>
+
+                <div class="expense-summary-icon">
+                    <i data-feather="briefcase"></i>
+                </div>
+
+            </div>
+
+            <div class="expense-summary-value">
+                {{ account_count|default(0) }}
+            </div>
+
+            <div class="expense-summary-meta">
+                Accounts used for expenses
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <div class="expense-section">
+
+        <div class="expense-section-header">
+
+            <div class="expense-section-title-wrap">
+
+                <div class="expense-section-title-icon">
+                    <i data-feather="bar-chart-2"></i>
+                </div>
+
+                <div>
+                    <h2 class="expense-section-title">
+                        Expense Insights
+                    </h2>
+
+                    <p class="expense-section-subtitle">
+                        Highest expense areas
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="expense-section-body">
+
+            <div class="expense-insights-grid">
+
+                <!-- HIGHEST CATEGORY -->
+
+                <div class="expense-insight-card">
+
+                    <div class="expense-insight-label">
+                        Highest Expense Category
+                    </div>
+
+                    <div class="expense-insight-name">
+                        {{ highest_expense_category|default("—") }}
+                    </div>
+
+                    <div class="expense-insight-amount">
+                        {{ currency }}
+                        {{ "{:,.2f}".format(
+                            highest_expense_category_amount|default(0)
+                        ) }}
+                    </div>
+
+                </div>
+
+
+                <!-- LARGEST ITEM -->
+
+                <div class="expense-insight-card">
+
+                    <div class="expense-insight-label">
+                        Largest Expense Item
+                    </div>
+
+                    <div class="expense-insight-name">
+                        {{ largest_expense_item|default("—") }}
+                    </div>
+
+                    <div class="expense-insight-amount">
+                        {{ currency }}
+                        {{ "{:,.2f}".format(
+                            largest_expense_item_amount|default(0)
+                        ) }}
+                    </div>
+
+                </div>
+
+
+                <!-- LARGEST TRANSACTION -->
+
+                <div class="expense-insight-card">
+
+                    <div class="expense-insight-label">
+                        Largest Expense Transaction
+                    </div>
+
+                    <div class="expense-insight-name">
+
+                        {% if largest_expense_transaction|default({}) %}
+                            {{
+                                largest_expense_transaction["description"]
+                                |default(
+                                    largest_expense_transaction["item"]
+                                    |default("Expense Transaction")
+                                )
+                            }}
+                        {% else %}
+                            —
+                        {% endif %}
+
+                    </div>
+
+                    <div class="expense-insight-amount">
+                        {{ currency }}
+                        {{ "{:,.2f}".format(
+                            largest_expense_amount|default(0)
+                        ) }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         OVERVIEW
+         ======================================================== -->
+
+    <div class="expense-section">
+
+        <div class="expense-section-header">
+
+            <div class="expense-section-title-wrap">
+
+                <div class="expense-section-title-icon">
+                    <i data-feather="activity"></i>
+                </div>
+
+                <div>
+                    <h2 class="expense-section-title">
+                        Expense Overview
+                    </h2>
+
+                    <p class="expense-section-subtitle">
+                        Quick report statistics
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="expense-section-body">
+
+            <div class="expense-overview-grid">
+
+                <div class="expense-overview-box">
+
+                    <div class="expense-overview-label">
+                        Average Expense
+                    </div>
+
+                    <div class="expense-overview-value">
+                        {{ currency }}
+                        {{ "{:,.2f}".format(
+                            average_expense|default(0)
+                        ) }}
+                    </div>
+
+                </div>
+
+
+                <div class="expense-overview-box">
+
+                    <div class="expense-overview-label">
+                        Total Transactions
+                    </div>
+
+                    <div class="expense-overview-value">
+                        {{ expense_transactions|default(0) }}
+                    </div>
+
+                </div>
+
+
+                <div class="expense-overview-box">
+
+                    <div class="expense-overview-label">
+                        Income Transactions
+                    </div>
+
+                    <div class="expense-overview-value">
+                        0
+                    </div>
+
+                </div>
+
+
+                <div class="expense-overview-box">
+
+                    <div class="expense-overview-label">
+                        Report Status
+                    </div>
+
+                    <div class="expense-overview-value">
+                        {{ report_status|default("Expenses") }}
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY -> ITEM BREAKDOWN
+         ======================================================== -->
+
+    <div class="expense-section">
+
+        <div class="expense-section-header">
+
+            <div class="expense-section-title-wrap">
+
+                <div class="expense-section-title-icon">
+                    <i data-feather="layers"></i>
+                </div>
+
+                <div>
+                    <h2 class="expense-section-title">
+                        Category Breakdown
+                    </h2>
+
+                    <p class="expense-section-subtitle">
+                        Category → Item → Expense
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="expense-section-body">
+
+            {% if expense_by_category|default({}) %}
+
+                <div class="expense-category-list">
+
+                    {% for category_name, category_data in expense_by_category.items() %}
+
+                        {% set category_total = category_data["total"]|default(0) %}
+                        {% set category_items = category_data["items"]|default({}) %}
+                        {% set category_transactions = category_data["transaction_count"]|default(0) %}
+
+                        {% if total_expense|default(0) > 0 %}
+                            {% set category_percentage =
+                                (category_total / total_expense * 100)
+                            %}
+                        {% else %}
+                            {% set category_percentage = 0 %}
+                        {% endif %}
+
+                        <div
+                            class="expense-category-card"
+                            data-category="{{ category_name|lower }}"
+                        >
+
+                            <!-- CATEGORY HEADER -->
+
+                            <div class="expense-category-header">
+
+                                <div class="expense-category-top">
+
+                                    <div class="expense-category-name-wrap">
+
+                                        <div class="expense-category-number">
+                                            {{ loop.index }}
+                                        </div>
+
+                                        <div class="expense-category-name">
+                                            {{ category_name }}
+                                        </div>
+
+                                    </div>
+
+                                    <div class="expense-category-amount">
+                                        {{ currency }}
+                                        {{ "{:,.2f}".format(category_total) }}
+                                    </div>
+
+                                </div>
+
+
+                                <div class="expense-category-meta">
+
+                                    <span class="expense-meta-badge">
+                                        <i data-feather="list"></i>
+                                        {{ category_items|length }} items
+                                    </span>
+
+                                    <span class="expense-meta-badge">
+                                        <i data-feather="activity"></i>
+                                        {{ category_transactions }} transactions
+                                    </span>
+
+                                    <span class="expense-meta-badge">
+                                        {{ "{:.1f}".format(category_percentage) }}%
+                                        of expenses
+                                    </span>
+
+                                </div>
+
+
+                                <div class="expense-progress-wrap">
+
+                                    <div class="expense-progress-info">
+                                        <span>
+                                            Category Share
+                                        </span>
+
+                                        <span>
+                                            {{ "{:.1f}".format(category_percentage) }}%
+                                        </span>
+                                    </div>
+
+                                    <div class="expense-progress">
+
+                                        <div
+                                            class="expense-progress-bar"
+                                            style="width: {{ [category_percentage, 100]|min }}%;"
+                                        ></div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- ITEMS -->
+
+                            <div class="expense-item-list">
+
+                                {% if category_items %}
+
+                                    {% for item_name, item_data in category_items.items() %}
+
+                                        <div
+                                            class="expense-item-row"
+                                            data-item="{{ item_name|lower }}"
+                                        >
+
+                                            <div class="expense-item-info">
+
+                                                <div class="expense-item-name">
+                                                    {{ item_name }}
+                                                </div>
+
+                                                <div class="expense-item-label">
+                                                    Expense item
+                                                </div>
+
+                                            </div>
+
+                                            <div class="expense-item-count">
+                                                {{ item_data["transaction_count"]|default(0) }}
+                                                transactions
+                                            </div>
+
+                                            <div class="expense-item-amount">
+                                                {{ currency }}
+                                                {{ "{:,.2f}".format(
+                                                    item_data["total"]|default(0)
+                                                ) }}
+                                            </div>
+
+                                        </div>
+
+                                    {% endfor %}
+
+                                {% else %}
+
+                                    <div class="expense-empty-state">
+
+                                        <div class="expense-empty-icon">
+                                            <i data-feather="package"></i>
+                                        </div>
+
+                                        <h3 class="expense-empty-title">
+                                            No Items
+                                        </h3>
+
+                                        <p class="expense-empty-text">
+                                            No items were recorded for this category.
+                                        </p>
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="expense-empty-state">
+
+                    <div class="expense-empty-icon">
+                        <i data-feather="folder-minus"></i>
+                    </div>
+
+                    <h3 class="expense-empty-title">
+                        No Expense Categories
+                    </h3>
+
+                    <p class="expense-empty-text">
+                        There are no expense transactions available.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTION TABLE
+         ======================================================== -->
+
+    <div class="expense-section">
+
+        <div class="expense-section-header">
+
+            <div class="expense-section-title-wrap">
+
+                <div class="expense-section-title-icon">
+                    <i data-feather="list"></i>
+                </div>
+
+                <div>
+                    <h2 class="expense-section-title">
+                        Expense Transactions
+                    </h2>
+
+                    <p class="expense-section-subtitle">
+                        Complete expense transaction list
+                    </p>
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="expense-section-body">
+
+            <!-- FILTERS -->
+
+            <div class="expense-filters no-print">
+
+                <div class="expense-filter-group">
+
+                    <input
+                        type="text"
+                        id="expenseSearch"
+                        class="expense-filter-input"
+                        placeholder="Search transaction..."
+                    >
+
+                </div>
+
+                <div class="expense-filter-group">
+
+                    <select
+                        id="expenseCategoryFilter"
+                        class="expense-filter-select"
+                    >
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category_name, category_data in expense_by_category.items() %}
+
+                            <option value="{{ category_name }}">
+                                {{ category_name }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="expense-filter-group">
+
+                    <input
+                        type="date"
+                        id="expenseDateFilter"
+                        class="expense-filter-input"
+                    >
+
+                </div>
+
+                <button
+                    type="button"
+                    class="expense-clear-btn"
+                    onclick="clearExpenseTableFilters()"
+                >
+                    Clear Filters
+                </button>
+
+            </div>
+
+
+            {% if transactions|default([]) %}
+
+                <div class="expense-table-wrapper">
+
+                    <table
+                        id="expenseTransactionsTable"
+                        class="display"
+                    >
+
+                        <thead>
+
+                            <tr>
+
+                                <th>#</th>
+
+                                <th>Date</th>
+
+                                <th>Account</th>
+
+                                <th>Category</th>
+
+                                <th>Item</th>
+
+                                <th>Description</th>
+
+                                <th>Amount</th>
+
+                                <th>Status</th>
+
+                                <th class="no-print">
+                                    Action
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for transaction in transactions %}
+
+                                <tr>
+
+                                    <td>
+                                        {{ loop.index }}
+                                    </td>
+
+                                    <td class="expense-date">
+                                        {{ transaction["date"]|default("—") }}
+                                    </td>
+
+                                    <td class="expense-account">
+                                        {{ transaction["account_name"]|default("Unknown Account") }}
+                                    </td>
+
+                                    <td class="expense-category-cell">
+                                        {{ transaction["category"]|default("Uncategorized") }}
+                                    </td>
+
+                                    <td class="expense-item-cell">
+                                        {{ transaction["item"]|default("—") }}
+                                    </td>
+
+                                    <td
+                                        class="expense-description"
+                                        title="{{ transaction['description']|default('') }}"
+                                    >
+                                        {{ transaction["description"]|default("—") }}
+                                    </td>
+
+                                    <td class="expense-amount-cell">
+                                        {{ transaction["currency"]|default(currency) }}
+                                        {{ "{:,.2f}".format(
+                                            transaction["amount"]|default(0)
+                                        ) }}
+                                    </td>
+
+                                    <td>
+
+                                        <span class="expense-status">
+                                            {{ transaction["status"]|default("Completed") }}
+                                        </span>
+
+                                    </td>
+
+                                    <td class="no-print">
+
+                                        <button
+                                            type="button"
+                                            class="expense-view-btn"
+                                            title="View Expense"
+                                            onclick='viewExpenseTransaction({{ transaction|tojson|safe }})'
+                                        >
+                                            <i data-feather="eye"></i>
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="expense-empty-state">
+
+                    <div class="expense-empty-icon">
+                        <i data-feather="file-minus"></i>
+                    </div>
+
+                    <h3 class="expense-empty-title">
+                        No Expense Transactions
+                    </h3>
+
+                    <p class="expense-empty-text">
+                        No expense transactions were found.
+                    </p>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CUSTOM EXPENSE MODAL
+     NO BOOTSTRAP
+     ============================================================ -->
+
+<div
+    id="expenseModalOverlay"
+    class="expense-modal-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="expenseModalTitle"
+>
+
+    <div
+        class="expense-modal-container"
+        onclick="event.stopPropagation()"
+    >
+
+        <!-- ====================================================
+             MODAL HEADER
+             ==================================================== -->
+
+        <div class="expense-modal-header">
+
+            <div class="expense-modal-title-wrap">
+
+                <div class="expense-modal-title-icon">
+                    <i data-feather="credit-card"></i>
+                </div>
+
+                <div>
+
+                    <h2
+                        id="expenseModalTitle"
+                        class="expense-modal-title"
+                    >
+                        Expense Details
+                    </h2>
+
+                    <p class="expense-modal-subtitle">
+                        Transaction information
+                    </p>
+
+                </div>
+
+            </div>
+
+            <button
+                type="button"
+                class="expense-modal-close"
+                onclick="closeExpenseModal()"
+                aria-label="Close"
+            >
+                <i data-feather="x"></i>
+            </button>
+
+        </div>
+
+
+        <!-- ====================================================
+             MODAL BODY
+             ==================================================== -->
+
+        <div class="expense-modal-body">
+
+            <div class="expense-modal-amount-card">
+
+                <div class="expense-modal-amount-label">
+                    Expense Amount
+                </div>
+
+                <div
+                    id="expenseModalAmount"
+                    class="expense-modal-amount"
+                >
+                    —
+                </div>
+
+            </div>
+
+
+            <div class="expense-modal-grid">
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Date
+                    </div>
+
+                    <div
+                        id="expenseModalDate"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Account
+                    </div>
+
+                    <div
+                        id="expenseModalAccount"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Category
+                    </div>
+
+                    <div
+                        id="expenseModalCategory"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Item
+                    </div>
+
+                    <div
+                        id="expenseModalItem"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Status
+                    </div>
+
+                    <div
+                        id="expenseModalStatus"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field">
+
+                    <div class="expense-modal-field-label">
+                        Reference
+                    </div>
+
+                    <div
+                        id="expenseModalReference"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field full">
+
+                    <div class="expense-modal-field-label">
+                        Description
+                    </div>
+
+                    <div
+                        id="expenseModalDescription"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+
+                <div class="expense-modal-field full">
+
+                    <div class="expense-modal-field-label">
+                        Note
+                    </div>
+
+                    <div
+                        id="expenseModalNote"
+                        class="expense-modal-field-value"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             MODAL FOOTER
+             ==================================================== -->
+
+        <div class="expense-modal-footer">
+
+            <button
+                type="button"
+                class="expense-modal-footer-btn"
+                onclick="closeExpenseModal()"
+            >
+                <i data-feather="x"></i>
+                Close
+            </button>
+
+            <button
+                type="button"
+                class="expense-modal-footer-btn primary"
+                onclick="printExpenseTransaction()"
+            >
+                <i data-feather="printer"></i>
+                Print Transaction
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ========================================================
+       FEATHER ICONS
+       ======================================================== */
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+
+    /* ========================================================
+       DATATABLE
+       ======================================================== */
+
+    let expenseTable = null;
+
+    if (
+        typeof jQuery !== "undefined" &&
+        typeof jQuery.fn.DataTable !== "undefined" &&
+        document.getElementById("expenseTransactionsTable")
+    ) {
+
+        expenseTable = jQuery("#expenseTransactionsTable").DataTable({
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            responsive: true,
+
+            autoWidth: false,
+
+            language: {
+                search: "Search:",
+                lengthMenu: "Show _MENU_",
+                info: "Showing _START_ to _END_ of _TOTAL_ transactions",
+                infoEmpty: "No transactions",
+                zeroRecords: "No matching transactions found"
+            },
+
+            columnDefs: [
+                {
+                    targets: 8,
+                    orderable: false,
+                    searchable: false
+                }
+            ]
+
+        });
+
+
+        /* ====================================================
+           GLOBAL SEARCH
+           ==================================================== */
+
+        const searchInput =
+            document.getElementById("expenseSearch");
+
+        if (searchInput) {
+
+            searchInput.addEventListener("input", function () {
+
+                expenseTable
+                    .search(this.value)
+                    .draw();
+
+            });
+
+        }
+
+
+        /* ====================================================
+           CATEGORY FILTER
+           ==================================================== */
+
+        const categoryFilter =
+            document.getElementById(
+                "expenseCategoryFilter"
+            );
+
+        if (categoryFilter) {
+
+            categoryFilter.addEventListener(
+                "change",
+                function () {
+
+                    expenseTable
+                        .column(3)
+                        .search(this.value)
+                        .draw();
+
+                }
+            );
+
+        }
+
+
+        /* ====================================================
+           DATE FILTER
+           ==================================================== */
+
+        const dateFilter =
+            document.getElementById(
+                "expenseDateFilter"
+            );
+
+        if (dateFilter) {
+
+            dateFilter.addEventListener(
+                "change",
+                function () {
+
+                    expenseTable
+                        .column(1)
+                        .search(this.value)
+                        .draw();
+
+                }
+            );
+
+        }
+
+    }
+
+
+    /* ========================================================
+       MODAL OVERLAY CLICK
+       ======================================================== */
+
+    const expenseModalOverlay =
+        document.getElementById(
+            "expenseModalOverlay"
+        );
+
+    if (expenseModalOverlay) {
+
+        expenseModalOverlay.addEventListener(
+            "click",
+            function (event) {
+
+                if (event.target === this) {
+                    closeExpenseModal();
+                }
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       ESCAPE KEY
+       ======================================================== */
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (event.key === "Escape") {
+                closeExpenseModal();
+            }
+
+        }
+    );
+
+});
+
+
+/* ============================================================
+   SAFE TEXT
+   ============================================================ */
+
+function expenseSafeText(value, fallback = "—") {
+
+    if (
+        value === null ||
+        value === undefined ||
+        String(value).trim() === ""
+    ) {
+
+        return fallback;
+
+    }
+
+    return String(value);
+
+}
+
+
+/* ============================================================
+   FORMAT MONEY
+   ============================================================ */
+
+function formatExpenseMoney(amount, currency) {
+
+    const number =
+        Number(amount) || 0;
+
+    const formatted =
+        number.toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+
+    return (
+        expenseSafeText(currency, "USD")
+        + " "
+        + formatted
+    );
+
+}
+
+
+/* ============================================================
+   VIEW EXPENSE TRANSACTION
+   ============================================================ */
+
+function viewExpenseTransaction(transaction) {
+
+    if (!transaction) {
+        return;
+    }
+
+
+    /* ========================================================
+       VALUES
+       ======================================================== */
+
+    const currency =
+        expenseSafeText(
+            transaction.currency,
+            "USD"
+        );
+
+
+    const amount =
+        document.getElementById(
+            "expenseModalAmount"
+        );
+
+    const date =
+        document.getElementById(
+            "expenseModalDate"
+        );
+
+    const account =
+        document.getElementById(
+            "expenseModalAccount"
+        );
+
+    const category =
+        document.getElementById(
+            "expenseModalCategory"
+        );
+
+    const item =
+        document.getElementById(
+            "expenseModalItem"
+        );
+
+    const status =
+        document.getElementById(
+            "expenseModalStatus"
+        );
+
+    const reference =
+        document.getElementById(
+            "expenseModalReference"
+        );
+
+    const description =
+        document.getElementById(
+            "expenseModalDescription"
+        );
+
+    const note =
+        document.getElementById(
+            "expenseModalNote"
+        );
+
+
+    /* ========================================================
+       SET VALUES
+       ======================================================== */
+
+    if (amount) {
+
+        amount.textContent =
+            formatExpenseMoney(
+                transaction.amount,
+                currency
+            );
+
+    }
+
+
+    if (date) {
+
+        date.textContent =
+            expenseSafeText(
+                transaction.date
+            );
+
+    }
+
+
+    if (account) {
+
+        account.textContent =
+            expenseSafeText(
+                transaction.account_name,
+                "Unknown Account"
+            );
+
+    }
+
+
+    if (category) {
+
+        category.textContent =
+            expenseSafeText(
+                transaction.category,
+                "Uncategorized"
+            );
+
+    }
+
+
+    if (item) {
+
+        item.textContent =
+            expenseSafeText(
+                transaction.item
+            );
+
+    }
+
+
+    if (status) {
+
+        status.textContent =
+            expenseSafeText(
+                transaction.status,
+                "Completed"
+            );
+
+    }
+
+
+    if (reference) {
+
+        reference.textContent =
+            expenseSafeText(
+                transaction.reference
+            );
+
+    }
+
+
+    if (description) {
+
+        description.textContent =
+            expenseSafeText(
+                transaction.description
+            );
+
+    }
+
+
+    if (note) {
+
+        note.textContent =
+            expenseSafeText(
+                transaction.note
+            );
+
+    }
+
+
+    /* ========================================================
+       STORE CURRENT TRANSACTION
+       ======================================================== */
+
+    window.currentExpenseTransaction =
+        transaction;
+
+
+    /* ========================================================
+       SHOW MODAL
+       ======================================================== */
+
+    const modal =
+        document.getElementById(
+            "expenseModalOverlay"
+        );
+
+    if (modal) {
+
+        modal.classList.add("show");
+
+        document.body.style.overflow =
+            "hidden";
+
+    }
+
+
+    /* ========================================================
+       REPLACE ICONS
+       ======================================================== */
+
+    if (typeof feather !== "undefined") {
+        feather.replace();
+    }
+
+}
+
+
+/* ============================================================
+   CLOSE EXPENSE MODAL
+   ============================================================ */
+
+function closeExpenseModal() {
+
+    const modal =
+        document.getElementById(
+            "expenseModalOverlay"
+        );
+
+    if (modal) {
+
+        modal.classList.remove("show");
+
+    }
+
+    document.body.style.overflow = "";
+
+}
+
+
+/* ============================================================
+   CLEAR TABLE FILTERS
+   ============================================================ */
+
+function clearExpenseTableFilters() {
+
+    const searchInput =
+        document.getElementById(
+            "expenseSearch"
+        );
+
+    const categoryFilter =
+        document.getElementById(
+            "expenseCategoryFilter"
+        );
+
+    const dateFilter =
+        document.getElementById(
+            "expenseDateFilter"
+        );
+
+
+    if (searchInput) {
+        searchInput.value = "";
+    }
+
+
+    if (categoryFilter) {
+        categoryFilter.value = "";
+    }
+
+
+    if (dateFilter) {
+        dateFilter.value = "";
+    }
+
+
+    if (
+        typeof jQuery !== "undefined" &&
+        typeof jQuery.fn.DataTable !== "undefined" &&
+        jQuery.fn.DataTable.isDataTable(
+            "#expenseTransactionsTable"
+        )
+    ) {
+
+        const table =
+            jQuery(
+                "#expenseTransactionsTable"
+            ).DataTable();
+
+        table
+            .search("")
+            .columns()
+            .search("")
+            .draw();
+
+    }
+
+}
+
+
+/* ============================================================
+   RESET REPORT FILTERS
+   ============================================================ */
+
+function resetExpenseFilters() {
+
+    clearExpenseTableFilters();
+
+}
+
+
+/* ============================================================
+   PRINT REPORT
+   ============================================================ */
+
+function printExpenseReport() {
+
+    closeExpenseModal();
+
+    window.print();
+
+}
+
+
+/* ============================================================
+   PRINT CURRENT TRANSACTION
+   ============================================================ */
+
+function printExpenseTransaction() {
+
+    const transaction =
+        window.currentExpenseTransaction;
+
+    if (!transaction) {
+        return;
+    }
+
+
+    const currency =
+        expenseSafeText(
+            transaction.currency,
+            "USD"
+        );
+
+    const amount =
+        formatExpenseMoney(
+            transaction.amount,
+            currency
+        );
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=800,height=700"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Please allow popups to print the transaction."
+        );
+
+        return;
+
+    }
+
+
+    printWindow.document.write(`
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>Expense Transaction</title>
+
+            <style>
+
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    padding: 35px;
+                    font-family:
+                        Arial,
+                        Helvetica,
+                        sans-serif;
+                    color: #212529;
+                    background: #fff;
+                }
+
+                .receipt {
+                    max-width: 700px;
+                    margin: auto;
+                    border: 1px solid #ddd;
+                    border-radius: 14px;
+                    overflow: hidden;
+                }
+
+                .header {
+                    padding: 22px;
+                    background: #fff5f5;
+                    border-bottom: 1px solid #eee;
+                }
+
+                .title {
+                    margin: 0;
+                    font-size: 23px;
+                    font-weight: 800;
+                }
+
+                .subtitle {
+                    margin-top: 5px;
+                    color: #777;
+                    font-size: 12px;
+                }
+
+                .amount {
+                    padding: 25px 22px;
+                    font-size: 31px;
+                    font-weight: 900;
+                    color: #dc3545;
+                    border-bottom: 1px solid #eee;
+                }
+
+                .grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 1px;
+                    background: #eee;
+                }
+
+                .field {
+                    padding: 15px;
+                    background: #fff;
+                }
+
+                .field.full {
+                    grid-column: 1 / -1;
+                }
+
+                .label {
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    color: #888;
+                    font-weight: 800;
+                }
+
+                .value {
+                    margin-top: 5px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    word-break: break-word;
+                }
+
+                .footer {
+                    padding: 18px 22px;
+                    color: #888;
+                    font-size: 10px;
+                    border-top: 1px solid #eee;
+                    text-align: center;
+                }
+
+                @media print {
+
+                    body {
+                        padding: 0;
+                    }
+
+                    .receipt {
+                        border: 0;
+                    }
+
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <div class="receipt">
+
+                <div class="header">
+
+                    <h1 class="title">
+                        Expense Transaction
+                    </h1>
+
+                    <div class="subtitle">
+                        Expense By Category Report
+                    </div>
+
+                </div>
+
+                <div class="amount">
+                    ${escapeExpenseHtml(amount)}
+                </div>
+
+                <div class="grid">
+
+                    <div class="field">
+
+                        <div class="label">
+                            Date
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(transaction.date)
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="label">
+                            Account
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.account_name,
+                                    "Unknown Account"
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="label">
+                            Category
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.category,
+                                    "Uncategorized"
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="label">
+                            Item
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.item
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="label">
+                            Status
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.status,
+                                    "Completed"
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="label">
+                            Reference
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.reference
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field full">
+
+                        <div class="label">
+                            Description
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.description
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div class="field full">
+
+                        <div class="label">
+                            Note
+                        </div>
+
+                        <div class="value">
+                            ${escapeExpenseHtml(
+                                expenseSafeText(
+                                    transaction.note
+                                )
+                            )}
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="footer">
+                    Generated from Expense By Category Report
+                </div>
+
+            </div>
+
+            <script>
+
+                window.onload = function () {
+
+                    window.print();
+
+                    setTimeout(
+                        function () {
+                            window.close();
+                        },
+                        500
+                    );
+
+                };
+
+            <\/script>
+
+        </body>
+
+        </html>
+    `);
+
+
+    printWindow.document.close();
+
+}
+
+
+/* ============================================================
+   ESCAPE HTML FOR PRINT WINDOW
+   ============================================================ */
+
+function escapeExpenseHtml(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+}
+</script>
+
+{% endblock %}
+

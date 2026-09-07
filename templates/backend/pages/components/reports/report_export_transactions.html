@@ -1,0 +1,2492 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Export Transactions Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   EXPORT TRANSACTIONS REPORT
+   LIGHT / RESPONSIVE / MODERN UI
+   ============================================================ */
+
+:root {
+    --etr-primary: #2563eb;
+    --etr-primary-dark: #1d4ed8;
+    --etr-success: #16a34a;
+    --etr-danger: #dc2626;
+    --etr-warning: #d97706;
+    --etr-info: #0891b2;
+    --etr-purple: #7c3aed;
+
+    --etr-bg: #f5f7fb;
+    --etr-card: #ffffff;
+    --etr-border: #e5e7eb;
+    --etr-text: #111827;
+    --etr-muted: #6b7280;
+
+    --etr-radius: 18px;
+    --etr-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
+    --etr-shadow-hover: 0 14px 38px rgba(15, 23, 42, 0.11);
+}
+
+.export-report-page {
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background: var(--etr-bg);
+    color: var(--etr-text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.etr-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 26px;
+    margin-bottom: 22px;
+    background: linear-gradient(135deg, #ffffff, #f8fbff);
+    border: 1px solid var(--etr-border);
+    border-radius: 22px;
+    box-shadow: var(--etr-shadow);
+}
+
+.etr-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.etr-header-icon {
+    width: 62px;
+    height: 62px;
+    flex: 0 0 62px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 17px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    color: #ffffff;
+    font-size: 27px;
+    box-shadow: 0 10px 22px rgba(37, 99, 235, 0.22);
+}
+
+.etr-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+
+.etr-subtitle {
+    margin: 6px 0 0;
+    color: var(--etr-muted);
+    font-size: 14px;
+}
+
+.etr-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.etr-btn {
+    border: 1px solid transparent;
+    border-radius: 11px;
+    padding: 10px 14px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.etr-btn:hover {
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.etr-btn-primary {
+    color: #fff;
+    background: var(--etr-primary);
+    border-color: var(--etr-primary);
+}
+
+.etr-btn-primary:hover {
+    color: #fff;
+    background: var(--etr-primary-dark);
+}
+
+.etr-btn-success {
+    color: #fff;
+    background: var(--etr-success);
+    border-color: var(--etr-success);
+}
+
+.etr-btn-danger {
+    color: #fff;
+    background: var(--etr-danger);
+    border-color: var(--etr-danger);
+}
+
+.etr-btn-warning {
+    color: #fff;
+    background: var(--etr-warning);
+    border-color: var(--etr-warning);
+}
+
+.etr-btn-info {
+    color: #fff;
+    background: var(--etr-info);
+    border-color: var(--etr-info);
+}
+
+.etr-btn-light {
+    color: #374151;
+    background: #fff;
+    border-color: var(--etr-border);
+}
+
+.etr-btn-light:hover {
+    color: #111827;
+    background: #f9fafb;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.etr-filter-card {
+    background: var(--etr-card);
+    border: 1px solid var(--etr-border);
+    border-radius: var(--etr-radius);
+    box-shadow: var(--etr-shadow);
+    padding: 22px;
+    margin-bottom: 22px;
+}
+
+.etr-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 17px;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.etr-section-title i {
+    color: var(--etr-primary);
+}
+
+.etr-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.etr-field {
+    min-width: 0;
+}
+
+.etr-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.etr-input,
+.etr-select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d9dee7;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #111827;
+    font-size: 13px;
+    outline: none;
+    transition: 0.2s ease;
+}
+
+.etr-input:focus,
+.etr-select:focus {
+    border-color: var(--etr-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+
+.etr-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    align-items: end;
+}
+
+.etr-quick-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #edf0f4;
+}
+
+.etr-quick-label {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 3px;
+    color: var(--etr-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.etr-quick-btn {
+    border: 1px solid #dfe4eb;
+    background: #ffffff;
+    color: #374151;
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.etr-quick-btn:hover {
+    color: var(--etr-primary);
+    border-color: #93c5fd;
+    background: #eff6ff;
+}
+
+/* ============================================================
+   RANGE INFO
+   ============================================================ */
+
+.etr-range-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 14px 17px;
+    margin-bottom: 22px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 13px;
+}
+
+.etr-range-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 750;
+    color: #1e40af;
+}
+
+.etr-range-main i {
+    font-size: 17px;
+}
+
+.etr-range-days {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.etr-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.etr-kpi {
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid var(--etr-border);
+    border-radius: 17px;
+    padding: 20px;
+    box-shadow: var(--etr-shadow);
+    transition: 0.25s ease;
+}
+
+.etr-kpi:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--etr-shadow-hover);
+}
+
+.etr-kpi::after {
+    content: "";
+    position: absolute;
+    right: -25px;
+    bottom: -35px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.etr-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.etr-kpi-icon {
+    width: 43px;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 18px;
+}
+
+.etr-kpi-blue .etr-kpi-icon {
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.etr-kpi-green .etr-kpi-icon {
+    color: #16a34a;
+    background: #f0fdf4;
+}
+
+.etr-kpi-red .etr-kpi-icon {
+    color: #dc2626;
+    background: #fef2f2;
+}
+
+.etr-kpi-purple .etr-kpi-icon {
+    color: #7c3aed;
+    background: #f5f3ff;
+}
+
+.etr-kpi-orange .etr-kpi-icon {
+    color: #d97706;
+    background: #fffbeb;
+}
+
+.etr-kpi-cyan .etr-kpi-icon {
+    color: #0891b2;
+    background: #ecfeff;
+}
+
+.etr-kpi-label {
+    margin-top: 15px;
+    color: var(--etr-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.etr-kpi-value {
+    margin-top: 5px;
+    font-size: 24px;
+    line-height: 1.15;
+    font-weight: 850;
+    letter-spacing: -0.5px;
+}
+
+.etr-kpi-meta {
+    margin-top: 7px;
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+/* ============================================================
+   SUMMARY / EXPORT PANEL
+   ============================================================ */
+
+.etr-export-panel {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--etr-border);
+    border-radius: var(--etr-radius);
+    box-shadow: var(--etr-shadow);
+    padding: 21px;
+    margin-bottom: 22px;
+}
+
+.etr-export-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.etr-export-description {
+    margin: 5px 0 0;
+    color: var(--etr-muted);
+    font-size: 12px;
+}
+
+.etr-export-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.etr-table-card {
+    background: #ffffff;
+    border: 1px solid var(--etr-border);
+    border-radius: var(--etr-radius);
+    box-shadow: var(--etr-shadow);
+    padding: 21px;
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.etr-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 16px;
+}
+
+.etr-table-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.etr-table-subtitle {
+    margin: 4px 0 0;
+    color: var(--etr-muted);
+    font-size: 12px;
+}
+
+.etr-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.etr-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.etr-badge-income {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.etr-badge-expense {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.etr-badge-neutral {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+.etr-badge-success {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.etr-badge-warning {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.etr-amount-income {
+    color: #15803d;
+    font-weight: 800;
+}
+
+.etr-amount-expense {
+    color: #dc2626;
+    font-weight: 800;
+}
+
+.etr-amount-neutral {
+    color: #374151;
+    font-weight: 800;
+}
+
+/* ============================================================
+   DATATABLE CUSTOMIZATION
+   ============================================================ */
+
+.dataTables_wrapper {
+    font-size: 12px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid #d9dee7 !important;
+    border-radius: 8px !important;
+    background: #ffffff !important;
+    padding: 7px 9px !important;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--etr-primary) !important;
+}
+
+table.dataTable {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0;
+}
+
+table.dataTable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 12px 10px !important;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+table.dataTable tbody td {
+    padding: 11px 10px !important;
+    border-bottom: 1px solid #f0f2f5 !important;
+    color: #334155;
+    vertical-align: middle;
+}
+
+table.dataTable tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 7px !important;
+    border: 1px solid transparent !important;
+    margin: 1px !important;
+    padding: 5px 9px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    color: #ffffff !important;
+    background: var(--etr-primary) !important;
+    border-color: var(--etr-primary) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    color: #ffffff !important;
+    background: var(--etr-primary) !important;
+    border-color: var(--etr-primary) !important;
+}
+
+.dt-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.dt-button {
+    border: 1px solid #dfe4eb !important;
+    border-radius: 7px !important;
+    background: #ffffff !important;
+    color: #374151 !important;
+    padding: 6px 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+}
+
+.dt-button:hover {
+    color: var(--etr-primary) !important;
+    background: #eff6ff !important;
+    border-color: #bfdbfe !important;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.etr-empty {
+    text-align: center;
+    padding: 42px 20px;
+    color: #94a3b8;
+}
+
+.etr-empty i {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 38px;
+}
+
+.etr-empty strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #475569;
+    font-size: 14px;
+}
+
+.etr-empty span {
+    font-size: 12px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.etr-footer {
+    padding: 16px 4px 5px;
+    color: #94a3b8;
+    text-align: center;
+    font-size: 11px;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .etr-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .etr-kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 950px) {
+    .export-report-page {
+        padding: 15px;
+    }
+
+    .etr-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .etr-header-actions {
+        width: 100%;
+    }
+
+    .etr-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .etr-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .etr-export-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .etr-export-buttons {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 620px) {
+    .export-report-page {
+        padding: 10px;
+    }
+
+    .etr-header {
+        padding: 18px;
+        border-radius: 16px;
+    }
+
+    .etr-header-left {
+        align-items: flex-start;
+    }
+
+    .etr-header-icon {
+        width: 50px;
+        height: 50px;
+        flex-basis: 50px;
+        font-size: 21px;
+    }
+
+    .etr-title {
+        font-size: 20px;
+    }
+
+    .etr-filter-card,
+    .etr-table-card,
+    .etr-export-panel {
+        padding: 15px;
+        border-radius: 14px;
+    }
+
+    .etr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .etr-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .etr-range-info {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .etr-export-buttons,
+    .etr-filter-actions,
+    .etr-header-actions {
+        width: 100%;
+    }
+
+    .etr-btn {
+        flex: 1 1 auto;
+    }
+
+    .etr-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .export-report-page {
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+
+    .etr-header,
+    .etr-filter-card,
+    .etr-export-panel,
+    .etr-footer {
+        box-shadow: none !important;
+    }
+
+    .etr-header-actions,
+    .etr-filter-card,
+    .etr-export-panel,
+    .dt-buttons,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_paginate,
+    .dataTables_info {
+        display: none !important;
+    }
+
+    .etr-header {
+        border: 0 !important;
+        padding: 0 0 15px !important;
+        margin-bottom: 15px !important;
+    }
+
+    .etr-table-card {
+        border: 0 !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        page-break-inside: avoid;
+    }
+
+    table.dataTable {
+        width: 100% !important;
+    }
+
+    table.dataTable thead th,
+    table.dataTable tbody td {
+        font-size: 9px !important;
+        padding: 6px !important;
+    }
+
+    .etr-range-info {
+        background: #ffffff !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .etr-kpi-grid {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    .etr-kpi {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    @page {
+        size: landscape;
+        margin: 10mm;
+    }
+}
+</style>
+
+<div class="export-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="etr-header">
+
+        <div class="etr-header-left">
+
+            <div class="etr-header-icon">
+                <i class="bi bi-cloud-arrow-down"></i>
+            </div>
+
+            <div>
+                <h1 class="etr-title">
+                    Export Transactions
+                </h1>
+
+                <p class="etr-subtitle">
+                    Filter, review and export your financial transactions
+                    in CSV, Excel or JSON format.
+                </p>
+            </div>
+
+        </div>
+
+        <div class="etr-header-actions">
+
+            <button
+                type="button"
+                class="etr-btn etr-btn-light"
+                onclick="window.print()"
+            >
+                <i class="bi bi-printer"></i>
+                Print Report
+            </button>
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='csv') }}"
+                class="etr-btn etr-btn-success"
+                id="headerCsvBtn"
+            >
+                <i class="bi bi-filetype-csv"></i>
+                CSV
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='xlsx') }}"
+                class="etr-btn etr-btn-primary"
+                id="headerExcelBtn"
+            >
+                <i class="bi bi-file-earmark-excel"></i>
+                Excel
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='json') }}"
+                class="etr-btn etr-btn-info"
+                id="headerJsonBtn"
+            >
+                <i class="bi bi-filetype-json"></i>
+                JSON
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="etr-filter-card">
+
+        <h2 class="etr-section-title">
+            <i class="bi bi-funnel"></i>
+            Report Filters
+        </h2>
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_export_transactions') }}"
+            id="exportFilterForm"
+        >
+
+            <div class="etr-filter-grid">
+
+                <!-- START DATE -->
+                <div class="etr-field">
+
+                    <label for="start_date">
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        class="etr-input"
+                        id="start_date"
+                        name="start_date"
+                        value="{{ start_date_value|default('', true) }}"
+                    >
+
+                </div>
+
+
+                <!-- END DATE -->
+                <div class="etr-field">
+
+                    <label for="end_date">
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        class="etr-input"
+                        id="end_date"
+                        name="end_date"
+                        value="{{ end_date_value|default('', true) }}"
+                    >
+
+                </div>
+
+
+                <!-- ACCOUNT -->
+                <div class="etr-field">
+
+                    <label for="account">
+                        Account
+                    </label>
+
+                    <select
+                        class="etr-select"
+                        id="account"
+                        name="account"
+                    >
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% set account_list = account_options|default([], true) %}
+
+                        {% for account in account_list %}
+
+                            {% if account is mapping %}
+
+                                <option
+                                    value="{{ account.get('id', '') }}"
+                                    {% if account_filter|default('', true)|string == account.get('id', '')|string %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ account.get('name', 'Unnamed Account') }}
+                                </option>
+
+                            {% else %}
+
+                                <option
+                                    value="{{ account }}"
+                                    {% if account_filter|default('', true)|string == account|string %}
+                                        selected
+                                    {% endif %}
+                                >
+                                    {{ account }}
+                                </option>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- TRANSACTION TYPE -->
+                <div class="etr-field">
+
+                    <label for="transaction_type">
+                        Transaction Type
+                    </label>
+
+                    <select
+                        class="etr-select"
+                        id="transaction_type"
+                        name="transaction_type"
+                    >
+
+                        <option
+                            value=""
+                            {% if transaction_type|default('', true) == '' %}
+                                selected
+                            {% endif %}
+                        >
+                            All Types
+                        </option>
+
+                        <option
+                            value="income"
+                            {% if transaction_type|default('', true)|lower == 'income' %}
+                                selected
+                            {% endif %}
+                        >
+                            Income
+                        </option>
+
+                        <option
+                            value="expense"
+                            {% if transaction_type|default('', true)|lower == 'expense' %}
+                                selected
+                            {% endif %}
+                        >
+                            Expense
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <!-- CATEGORY -->
+                <div class="etr-field">
+
+                    <label for="category">
+                        Category
+                    </label>
+
+                    <select
+                        class="etr-select"
+                        id="category"
+                        name="category"
+                    >
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% set category_list = category_options|default([], true) %}
+
+                        {% for category in category_list %}
+
+                            <option
+                                value="{{ category }}"
+                                {% if category_filter|default('', true) == category %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- ITEM -->
+                <div class="etr-field">
+
+                    <label for="item">
+                        Item
+                    </label>
+
+                    <select
+                        class="etr-select"
+                        id="item"
+                        name="item"
+                    >
+
+                        <option value="">
+                            All Items
+                        </option>
+
+                        {% set item_list = item_options|default([], true) %}
+
+                        {% for item in item_list %}
+
+                            <option
+                                value="{{ item }}"
+                                {% if item_filter|default('', true) == item %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ item }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <!-- ACTIONS -->
+                <div class="etr-field">
+
+                    <label>
+                        Actions
+                    </label>
+
+                    <div class="etr-filter-actions">
+
+                        <button
+                            type="submit"
+                            class="etr-btn etr-btn-primary"
+                        >
+                            <i class="bi bi-search"></i>
+                            Apply Filters
+                        </button>
+
+                        <a
+                            href="{{ url_for('main.report_export_transactions') }}"
+                            class="etr-btn etr-btn-light"
+                        >
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                            Reset
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- QUICK PRESETS -->
+
+            <div class="etr-quick-row">
+
+                <span class="etr-quick-label">
+                    <i class="bi bi-lightning-charge"></i>
+                    Quick Range:
+                </span>
+
+                <button
+                    type="button"
+                    class="etr-quick-btn"
+                    onclick="setQuickRange(7)"
+                >
+                    Last 7 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="etr-quick-btn"
+                    onclick="setQuickRange(30)"
+                >
+                    Last 30 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="etr-quick-btn"
+                    onclick="setQuickRange(90)"
+                >
+                    Last 90 Days
+                </button>
+
+                <button
+                    type="button"
+                    class="etr-quick-btn"
+                    onclick="setCurrentMonth()"
+                >
+                    Current Month
+                </button>
+
+                <button
+                    type="button"
+                    class="etr-quick-btn"
+                    onclick="clearDates()"
+                >
+                    All Dates
+                </button>
+
+            </div>
+
+        </form>
+
+    </section>
+
+
+    <!-- ========================================================
+         RANGE INFORMATION
+         ======================================================== -->
+
+    <section class="etr-range-info">
+
+        <div class="etr-range-main">
+
+            <i class="bi bi-calendar3"></i>
+
+            <span>
+                {{ custom_range_label|default('Selected Period', true) }}
+            </span>
+
+        </div>
+
+        <div class="etr-range-days">
+
+            {{ period_days|default(0, true) }} day(s)
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="etr-kpi-grid">
+
+        <!-- TOTAL INCOME -->
+        <div class="etr-kpi etr-kpi-green">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Total Income
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        ${{ "%.2f"|format(total_income|default(0, true)|float) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        {{ income_transactions|default(0, true) }}
+                        income transaction(s)
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-arrow-down-left"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+        <div class="etr-kpi etr-kpi-red">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Total Expense
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        ${{ "%.2f"|format(total_expense|default(0, true)|float) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        {{ expense_transactions|default(0, true) }}
+                        expense transaction(s)
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-arrow-up-right"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- NET SAVINGS -->
+        <div class="etr-kpi etr-kpi-blue">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Net Savings
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        ${{ "%.2f"|format(total_savings|default(0, true)|float) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Income − Expense
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- SAVING RATE -->
+        <div class="etr-kpi etr-kpi-purple">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Saving Rate
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        {{ "%.2f"|format(saving_rate|default(0, true)|float) }}%
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Savings ÷ Income
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE RATE -->
+        <div class="etr-kpi etr-kpi-orange">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Expense Rate
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        {{ "%.2f"|format(expense_rate|default(0, true)|float) }}%
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Expense ÷ Income
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+        <div class="etr-kpi etr-kpi-cyan">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Total Transactions
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        {{ total_transactions|default(0, true) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Matching records
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- INCOME COUNT -->
+        <div class="etr-kpi etr-kpi-green">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Income Count
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        {{ income_transactions|default(0, true) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Incoming transactions
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-plus-circle"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE COUNT -->
+        <div class="etr-kpi etr-kpi-red">
+
+            <div class="etr-kpi-top">
+
+                <div>
+                    <div class="etr-kpi-label">
+                        Expense Count
+                    </div>
+
+                    <div class="etr-kpi-value">
+                        {{ expense_transactions|default(0, true) }}
+                    </div>
+
+                    <div class="etr-kpi-meta">
+                        Outgoing transactions
+                    </div>
+                </div>
+
+                <div class="etr-kpi-icon">
+                    <i class="bi bi-dash-circle"></i>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         EXPORT PANEL
+         ======================================================== -->
+
+    <section class="etr-export-panel">
+
+        <div>
+
+            <h2 class="etr-export-title">
+                <i class="bi bi-download"></i>
+                Export Filtered Transactions
+            </h2>
+
+            <p class="etr-export-description">
+                Export exactly the records matching the filters above.
+                CSV is suitable for spreadsheets, Excel for reporting,
+                and JSON for developers/API processing.
+            </p>
+
+        </div>
+
+        <div class="etr-export-buttons">
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='csv') }}"
+                class="etr-btn etr-btn-success dynamic-export"
+                data-format="csv"
+            >
+                <i class="bi bi-filetype-csv"></i>
+                Download CSV
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='xlsx') }}"
+                class="etr-btn etr-btn-primary dynamic-export"
+                data-format="xlsx"
+            >
+                <i class="bi bi-file-earmark-spreadsheet"></i>
+                Download Excel
+            </a>
+
+            <a
+                href="{{ url_for('main.report_export_transactions', format='json') }}"
+                class="etr-btn etr-btn-info dynamic-export"
+                data-format="json"
+            >
+                <i class="bi bi-braces"></i>
+                Download JSON
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TRANSACTIONS TABLE
+         ======================================================== -->
+
+    <section class="etr-table-card">
+
+        <div class="etr-table-header">
+
+            <div>
+
+                <h2 class="etr-table-title">
+                    Financial Transactions
+                </h2>
+
+                <p class="etr-table-subtitle">
+                    {{ total_transactions|default(0, true) }}
+                    transaction(s) found for the selected filters.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="etr-btn etr-btn-light"
+                onclick="window.print()"
+            >
+                <i class="bi bi-printer"></i>
+                Print
+            </button>
+
+        </div>
+
+
+        <div class="etr-table-wrapper">
+
+            <table
+                id="transactionsTable"
+                class="display nowrap"
+                style="width:100%;"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Item</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Status</th>
+
+                        <th>Reference</th>
+
+                        <th>Description</th>
+
+                        <th>Note</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% set transaction_list = transactions|default([], true) %}
+
+                    {% for row in transaction_list %}
+
+                        {% set row_type = row.get('transaction_type', '')|string|lower %}
+                        {% set row_status = row.get('status', '')|string|lower %}
+
+                        <tr>
+
+                            <td>
+                                {{ row.get('number', loop.index) }}
+                            </td>
+
+                            <td>
+                                {{ row.get('date', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('account', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('category', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('item', '-') }}
+                            </td>
+
+                            <td>
+
+                                {% if row_type == 'income' %}
+
+                                    <span class="etr-badge etr-badge-income">
+                                        <i class="bi bi-arrow-down-left"></i>
+                                        Income
+                                    </span>
+
+                                {% elif row_type == 'expense' %}
+
+                                    <span class="etr-badge etr-badge-expense">
+                                        <i class="bi bi-arrow-up-right"></i>
+                                        Expense
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="etr-badge etr-badge-neutral">
+                                        {{ row.get('transaction_type', '-') }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if row_type == 'income' %}
+
+                                    <span class="etr-amount-income">
+                                        +${{ "%.2f"|format(row.get('amount', 0)|float) }}
+                                    </span>
+
+                                {% elif row_type == 'expense' %}
+
+                                    <span class="etr-amount-expense">
+                                        -${{ "%.2f"|format(row.get('amount', 0)|float) }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="etr-amount-neutral">
+                                        ${{ "%.2f"|format(row.get('amount', 0)|float) }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+
+                                {% if row_status in ['true', '1', 'active', 'completed', 'success', 'paid'] %}
+
+                                    <span class="etr-badge etr-badge-success">
+                                        <i class="bi bi-check-circle"></i>
+                                        {{ row.get('status', 'Completed') }}
+                                    </span>
+
+                                {% elif row_status in ['false', '0', 'inactive', 'cancelled', 'failed'] %}
+
+                                    <span class="etr-badge etr-badge-warning">
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        {{ row.get('status', 'Inactive') }}
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="etr-badge etr-badge-neutral">
+                                        {{ row.get('status', '-') }}
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+                            <td>
+                                {{ row.get('reference', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('description', '-') }}
+                            </td>
+
+                            <td>
+                                {{ row.get('note', '-') }}
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="11">
+
+                                <div class="etr-empty">
+
+                                    <i class="bi bi-inbox"></i>
+
+                                    <strong>
+                                        No transactions found
+                                    </strong>
+
+                                    <span>
+                                        Try changing the selected filters
+                                        or date range.
+                                    </span>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         EXPORT DATA SUMMARY
+         ======================================================== -->
+
+    <section class="etr-table-card">
+
+        <div class="etr-table-header">
+
+            <div>
+
+                <h2 class="etr-table-title">
+                    Export Summary
+                </h2>
+
+                <p class="etr-table-subtitle">
+                    Quick overview of the currently filtered report.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="etr-table-wrapper">
+
+            <table
+                id="summaryTable"
+                class="display nowrap"
+                style="width:100%;"
+            >
+
+                <thead>
+
+                    <tr>
+                        <th>Metric</th>
+                        <th>Value</th>
+                        <th>Details</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+                        <td>Total Income</td>
+                        <td>
+                            ${{ "%.2f"|format(total_income|default(0, true)|float) }}
+                        </td>
+                        <td>
+                            {{ income_transactions|default(0, true) }}
+                            transaction(s)
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Total Expense</td>
+                        <td>
+                            ${{ "%.2f"|format(total_expense|default(0, true)|float) }}
+                        </td>
+                        <td>
+                            {{ expense_transactions|default(0, true) }}
+                            transaction(s)
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Net Savings</td>
+                        <td>
+                            ${{ "%.2f"|format(total_savings|default(0, true)|float) }}
+                        </td>
+                        <td>
+                            Income minus Expense
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Saving Rate</td>
+                        <td>
+                            {{ "%.2f"|format(saving_rate|default(0, true)|float) }}%
+                        </td>
+                        <td>
+                            Savings / Income
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Expense Rate</td>
+                        <td>
+                            {{ "%.2f"|format(expense_rate|default(0, true)|float) }}%
+                        </td>
+                        <td>
+                            Expense / Income
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Total Transactions</td>
+                        <td>
+                            {{ total_transactions|default(0, true) }}
+                        </td>
+                        <td>
+                            Filtered records
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>Report Period</td>
+                        <td>
+                            {{ period_days|default(0, true) }} day(s)
+                        </td>
+                        <td>
+                            {{ custom_range_label|default('Selected Period', true) }}
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="etr-footer">
+
+        Export Transactions Report
+        •
+        Generated from the financial transaction records
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css"
+>
+
+<link
+    rel="stylesheet"
+    href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css"
+>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+
+<script>
+/* ============================================================
+   EXPORT TRANSACTIONS REPORT JS
+   ============================================================ */
+
+(function () {
+
+    "use strict";
+
+
+    /* ========================================================
+       DATE HELPERS
+       ======================================================== */
+
+    function formatDateInput(date) {
+
+        const year = date.getFullYear();
+
+        const month = String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+        const day = String(
+            date.getDate()
+        ).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    }
+
+
+    function setQuickRange(days) {
+
+        const end = new Date();
+
+        const start = new Date();
+
+        start.setDate(
+            end.getDate() - (days - 1)
+        );
+
+        document.getElementById("start_date").value =
+            formatDateInput(start);
+
+        document.getElementById("end_date").value =
+            formatDateInput(end);
+
+    }
+
+
+    function setCurrentMonth() {
+
+        const today = new Date();
+
+        const start = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1
+        );
+
+        document.getElementById("start_date").value =
+            formatDateInput(start);
+
+        document.getElementById("end_date").value =
+            formatDateInput(today);
+
+    }
+
+
+    function clearDates() {
+
+        document.getElementById("start_date").value = "";
+
+        document.getElementById("end_date").value = "";
+
+    }
+
+
+    window.setQuickRange = setQuickRange;
+
+    window.setCurrentMonth = setCurrentMonth;
+
+    window.clearDates = clearDates;
+
+
+    /* ========================================================
+       BUILD FILTERED EXPORT URL
+       ======================================================== */
+
+    function buildExportUrl(format) {
+
+        const baseUrl =
+            "{{ url_for('main.report_export_transactions') }}";
+
+        const params = new URLSearchParams();
+
+
+        const startDate =
+            document.getElementById("start_date").value;
+
+        const endDate =
+            document.getElementById("end_date").value;
+
+        const account =
+            document.getElementById("account").value;
+
+        const transactionType =
+            document.getElementById("transaction_type").value;
+
+        const category =
+            document.getElementById("category").value;
+
+        const item =
+            document.getElementById("item").value;
+
+
+        if (startDate) {
+            params.set("start_date", startDate);
+        }
+
+        if (endDate) {
+            params.set("end_date", endDate);
+        }
+
+        if (account) {
+            params.set("account", account);
+        }
+
+        if (transactionType) {
+            params.set(
+                "transaction_type",
+                transactionType
+            );
+        }
+
+        if (category) {
+            params.set(
+                "category",
+                category
+            );
+        }
+
+        if (item) {
+            params.set(
+                "item",
+                item
+            );
+        }
+
+        params.set("format", format);
+
+        return `${baseUrl}?${params.toString()}`;
+
+    }
+
+
+    /* ========================================================
+       UPDATE EXPORT BUTTONS
+       ======================================================== */
+
+    function updateExportLinks() {
+
+        document
+            .querySelectorAll(".dynamic-export")
+            .forEach(function (button) {
+
+                const format =
+                    button.dataset.format;
+
+                button.href =
+                    buildExportUrl(format);
+
+            });
+
+
+        const csvHeader =
+            document.getElementById("headerCsvBtn");
+
+        const excelHeader =
+            document.getElementById("headerExcelBtn");
+
+        const jsonHeader =
+            document.getElementById("headerJsonBtn");
+
+
+        if (csvHeader) {
+            csvHeader.href =
+                buildExportUrl("csv");
+        }
+
+        if (excelHeader) {
+            excelHeader.href =
+                buildExportUrl("xlsx");
+        }
+
+        if (jsonHeader) {
+            jsonHeader.href =
+                buildExportUrl("json");
+        }
+
+    }
+
+
+    document
+        .getElementById("exportFilterForm")
+        .addEventListener(
+            "submit",
+            updateExportLinks
+        );
+
+
+    [
+        "start_date",
+        "end_date",
+        "account",
+        "transaction_type",
+        "category",
+        "item"
+    ].forEach(function (id) {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+
+            element.addEventListener(
+                "change",
+                updateExportLinks
+            );
+
+        }
+
+    });
+
+
+    /* ========================================================
+       JSON EXPORT FOR DATATABLE
+       ======================================================== */
+
+    function jsonExportButton(filename) {
+
+        return {
+
+            text: "JSON",
+
+            action: function (e, dt) {
+
+                const data =
+                    dt.rows({
+                        search: "applied"
+                    }).data().toArray();
+
+
+                const json =
+                    JSON.stringify(
+                        data,
+                        null,
+                        2
+                    );
+
+
+                const blob =
+                    new Blob(
+                        [json],
+                        {
+                            type:
+                                "application/json;charset=utf-8;"
+                        }
+                    );
+
+
+                const url =
+                    URL.createObjectURL(blob);
+
+
+                const link =
+                    document.createElement("a");
+
+                link.href = url;
+
+                link.download =
+                    filename;
+
+
+                document.body.appendChild(link);
+
+                link.click();
+
+                document.body.removeChild(link);
+
+                URL.revokeObjectURL(url);
+
+            }
+
+        };
+
+    }
+
+
+    /* ========================================================
+       COMMON DATATABLE BUTTONS
+       ======================================================== */
+
+    function commonButtons(filename) {
+
+        return [
+
+            {
+                extend: "copyHtml5",
+                text: "Copy"
+            },
+
+            {
+                extend: "csvHtml5",
+                text: "CSV",
+                filename: filename
+            },
+
+            {
+                extend: "excelHtml5",
+                text: "Excel",
+                filename: filename
+            },
+
+            {
+                extend: "pdfHtml5",
+                text: "PDF",
+                filename: filename,
+                orientation: "landscape",
+                pageSize: "A4"
+            },
+
+            {
+                extend: "print",
+                text: "Print"
+            },
+
+            jsonExportButton(
+                filename + ".json"
+            )
+
+        ];
+
+    }
+
+
+    /* ========================================================
+       TRANSACTIONS DATATABLE
+       ======================================================== */
+
+    if (
+        document.getElementById(
+            "transactionsTable"
+        )
+    ) {
+
+        $("#transactionsTable").DataTable({
+
+            responsive: true,
+
+            autoWidth: false,
+
+            pageLength: 10,
+
+            lengthMenu: [
+                [10, 15, 25, 50, 100, -1],
+                [10, 15, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            dom:
+                '<"dt-top"lfB>' +
+                'rt' +
+                '<"dt-bottom"ip>',
+
+            buttons:
+                commonButtons(
+                    "financial_transactions"
+                ),
+
+            language: {
+
+                search:
+                    "Search:",
+
+                lengthMenu:
+                    "Show _MENU_",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty:
+                    "No transactions available",
+
+                zeroRecords:
+                    "No matching transactions found",
+
+                emptyTable:
+                    "No transaction data available",
+
+                paginate: {
+
+                    first:
+                        "First",
+
+                    last:
+                        "Last",
+
+                    next:
+                        "Next",
+
+                    previous:
+                        "Previous"
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       SUMMARY DATATABLE
+       ======================================================== */
+
+    if (
+        document.getElementById(
+            "summaryTable"
+        )
+    ) {
+
+        $("#summaryTable").DataTable({
+
+            responsive: true,
+
+            autoWidth: false,
+
+            pageLength: 10,
+
+            searching: false,
+
+            lengthChange: false,
+
+            paging: false,
+
+            info: false,
+
+            order: [],
+
+            dom:
+                '<"dt-top"B>' +
+                'rt',
+
+            buttons:
+                commonButtons(
+                    "export_summary"
+                )
+
+        });
+
+    }
+
+
+    /* ========================================================
+       INITIAL EXPORT LINKS
+       ======================================================== */
+
+    updateExportLinks();
+
+
+    /* ========================================================
+       DATE VALIDATION
+       ======================================================== */
+
+    const filterForm =
+        document.getElementById(
+            "exportFilterForm"
+        );
+
+
+    if (filterForm) {
+
+        filterForm.addEventListener(
+            "submit",
+            function (event) {
+
+                const start =
+                    document.getElementById(
+                        "start_date"
+                    ).value;
+
+                const end =
+                    document.getElementById(
+                        "end_date"
+                    ).value;
+
+
+                if (
+                    start &&
+                    end &&
+                    start > end
+                ) {
+
+                    event.preventDefault();
+
+                    alert(
+                        "Start date cannot be later than end date."
+                    );
+
+                    return false;
+
+                }
+
+            }
+        );
+
+    }
+
+
+})();
+</script>
+
+{% endblock %}

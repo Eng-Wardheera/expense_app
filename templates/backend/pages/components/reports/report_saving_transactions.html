@@ -1,0 +1,2647 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Saving Transactions Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   SAVING TRANSACTIONS REPORT
+   ============================================================ */
+
+.saving-report-page {
+    --sr-primary: #2563eb;
+    --sr-primary-dark: #1d4ed8;
+    --sr-success: #16a34a;
+    --sr-danger: #dc2626;
+    --sr-warning: #d97706;
+    --sr-info: #0891b2;
+    --sr-purple: #7c3aed;
+    --sr-text: #172033;
+    --sr-muted: #64748b;
+    --sr-border: #e2e8f0;
+    --sr-bg: #f8fafc;
+    --sr-card: #ffffff;
+
+    width: 100%;
+    padding: 24px;
+    background: var(--sr-bg);
+    min-height: 100vh;
+    color: var(--sr-text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.sr-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.sr-header-left {
+    min-width: 0;
+}
+
+.sr-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--sr-muted);
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.sr-breadcrumb span:last-child {
+    color: var(--sr-text);
+    font-weight: 600;
+}
+
+.sr-title {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.sr-subtitle {
+    margin: 8px 0 0;
+    color: var(--sr-muted);
+    font-size: 14px;
+}
+
+.sr-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.sr-btn {
+    border: 1px solid var(--sr-border);
+    background: #fff;
+    color: var(--sr-text);
+    min-height: 40px;
+    padding: 9px 14px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: .2s ease;
+    text-decoration: none;
+}
+
+.sr-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(15, 23, 42, .08);
+}
+
+.sr-btn-primary {
+    background: var(--sr-primary);
+    color: #fff;
+    border-color: var(--sr-primary);
+}
+
+.sr-btn-primary:hover {
+    background: var(--sr-primary-dark);
+}
+
+.sr-btn-success {
+    background: var(--sr-success);
+    color: #fff;
+    border-color: var(--sr-success);
+}
+
+.sr-btn-dark {
+    background: #0f172a;
+    color: #fff;
+    border-color: #0f172a;
+}
+
+/* ============================================================
+   STATUS
+   ============================================================ */
+
+.sr-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 13px 16px;
+    background: #fff;
+    border: 1px solid var(--sr-border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.sr-status-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sr-status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--sr-success);
+}
+
+.sr-status-text {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.sr-generated {
+    color: var(--sr-muted);
+    font-size: 12px;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.sr-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sr-kpi {
+    position: relative;
+    background: var(--sr-card);
+    border: 1px solid var(--sr-border);
+    border-radius: 15px;
+    padding: 18px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .03);
+}
+
+.sr-kpi::after {
+    content: "";
+    position: absolute;
+    right: -25px;
+    bottom: -25px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, .06);
+}
+
+.sr-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 13px;
+    font-size: 17px;
+}
+
+.sr-kpi.blue .sr-kpi-icon {
+    background: #eff6ff;
+    color: var(--sr-primary);
+}
+
+.sr-kpi.green .sr-kpi-icon {
+    background: #f0fdf4;
+    color: var(--sr-success);
+}
+
+.sr-kpi.red .sr-kpi-icon {
+    background: #fef2f2;
+    color: var(--sr-danger);
+}
+
+.sr-kpi.purple .sr-kpi-icon {
+    background: #f5f3ff;
+    color: var(--sr-purple);
+}
+
+.sr-kpi.orange .sr-kpi-icon {
+    background: #fff7ed;
+    color: var(--sr-warning);
+}
+
+.sr-kpi-label {
+    color: var(--sr-muted);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.sr-kpi-value {
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 800;
+    word-break: break-word;
+}
+
+.sr-kpi-small {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--sr-muted);
+}
+
+/* ============================================================
+   SUMMARY GRID
+   ============================================================ */
+
+.sr-summary-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sr-card {
+    background: #fff;
+    border: 1px solid var(--sr-border);
+    border-radius: 15px;
+    padding: 19px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .03);
+}
+
+.sr-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 17px;
+}
+
+.sr-card-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.sr-card-subtitle {
+    margin: 4px 0 0;
+    color: var(--sr-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   MOVEMENT SUMMARY
+   ============================================================ */
+
+.sr-movement {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.sr-movement-box {
+    border: 1px solid var(--sr-border);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.sr-movement-label {
+    font-size: 11px;
+    color: var(--sr-muted);
+    font-weight: 700;
+}
+
+.sr-movement-value {
+    margin-top: 5px;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.sr-green {
+    color: var(--sr-success);
+}
+
+.sr-red {
+    color: var(--sr-danger);
+}
+
+.sr-blue {
+    color: var(--sr-primary);
+}
+
+.sr-net-box {
+    margin-top: 14px;
+    padding: 14px 15px;
+    border-radius: 11px;
+    background: #f8fafc;
+    border: 1px dashed var(--sr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.sr-net-label {
+    color: var(--sr-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.sr-net-value {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   TOP ITEM
+   ============================================================ */
+
+.sr-top-item {
+    border: 1px solid var(--sr-border);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.sr-top-rank {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #eff6ff;
+    color: var(--sr-primary);
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.sr-top-name {
+    font-size: 15px;
+    font-weight: 800;
+    margin-bottom: 5px;
+    overflow-wrap: anywhere;
+}
+
+.sr-top-amount {
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.sr-top-meta {
+    color: var(--sr-muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.sr-filter-card {
+    margin-bottom: 20px;
+}
+
+.sr-filter-grid {
+    display: grid;
+    grid-template-columns: 2fr repeat(6, 1fr);
+    gap: 10px;
+}
+
+.sr-field {
+    min-width: 0;
+}
+
+.sr-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--sr-muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.sr-field input,
+.sr-field select {
+    width: 100%;
+    height: 40px;
+    border: 1px solid var(--sr-border);
+    background: #fff;
+    color: var(--sr-text);
+    border-radius: 8px;
+    padding: 0 11px;
+    outline: none;
+    font-size: 12px;
+    transition: .2s ease;
+}
+
+.sr-field input:focus,
+.sr-field select:focus {
+    border-color: var(--sr-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .08);
+}
+
+.sr-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.sr-table-card {
+    padding: 0;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.sr-table-header {
+    padding: 18px 19px;
+    border-bottom: 1px solid var(--sr-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sr-table-title-wrap {
+    min-width: 0;
+}
+
+.sr-table-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.sr-table-count {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--sr-muted);
+}
+
+.sr-table-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.sr-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.sr-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1050px;
+}
+
+.sr-table th {
+    background: #f8fafc;
+    color: #475569;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 12px 13px;
+    border-bottom: 1px solid var(--sr-border);
+    white-space: nowrap;
+}
+
+.sr-table td {
+    padding: 13px;
+    border-bottom: 1px solid #eef2f7;
+    vertical-align: middle;
+    font-size: 12px;
+}
+
+.sr-table tbody tr {
+    transition: .15s ease;
+}
+
+.sr-table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.sr-date {
+    white-space: nowrap;
+    font-weight: 700;
+}
+
+.sr-id {
+    color: var(--sr-muted);
+    font-size: 10px;
+    font-family: monospace;
+}
+
+.sr-saving {
+    font-weight: 800;
+    color: var(--sr-text);
+}
+
+.sr-secondary {
+    color: var(--sr-muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.sr-amount {
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.sr-type-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.sr-type-deposit {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.sr-type-withdrawal {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.sr-type-other {
+    color: #1e40af;
+    background: #dbeafe;
+}
+
+.sr-description {
+    max-width: 220px;
+    overflow-wrap: anywhere;
+    color: #475569;
+}
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.sr-empty {
+    padding: 55px 20px;
+    text-align: center;
+    color: var(--sr-muted);
+}
+
+.sr-empty-icon {
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 13px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.sr-empty-title {
+    color: var(--sr-text);
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.sr-empty-text {
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+/* ============================================================
+   RANKING SECTIONS
+   ============================================================ */
+
+.sr-ranking-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sr-ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.sr-ranking-item {
+    display: grid;
+    grid-template-columns: 30px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 10px;
+    border: 1px solid var(--sr-border);
+    border-radius: 10px;
+}
+
+.sr-ranking-number {
+    width: 27px;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.sr-ranking-name {
+    min-width: 0;
+}
+
+.sr-ranking-name strong {
+    display: block;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sr-ranking-name span {
+    display: block;
+    margin-top: 2px;
+    color: var(--sr-muted);
+    font-size: 10px;
+}
+
+.sr-ranking-value {
+    text-align: right;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   DATE INFO
+   ============================================================ */
+
+.sr-date-card {
+    margin-bottom: 20px;
+}
+
+.sr-date-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.sr-date-box {
+    padding: 13px;
+    background: #f8fafc;
+    border: 1px solid var(--sr-border);
+    border-radius: 10px;
+}
+
+.sr-date-label {
+    font-size: 10px;
+    color: var(--sr-muted);
+    font-weight: 800;
+}
+
+.sr-date-value {
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.sr-footer {
+    padding: 18px 0 5px;
+    color: var(--sr-muted);
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1400px) {
+
+    .sr-kpi-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .sr-filter-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .sr-filter-grid .sr-search-field {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 1100px) {
+
+    .sr-summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .sr-summary-grid .sr-card:first-child {
+        grid-column: span 2;
+    }
+
+    .sr-ranking-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 800px) {
+
+    .saving-report-page {
+        padding: 15px;
+    }
+
+    .sr-header {
+        flex-direction: column;
+    }
+
+    .sr-header-actions {
+        width: 100%;
+    }
+
+    .sr-header-actions .sr-btn {
+        flex: 1;
+    }
+
+    .sr-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sr-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sr-summary-grid .sr-card:first-child {
+        grid-column: auto;
+    }
+
+    .sr-ranking-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sr-filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sr-filter-grid .sr-search-field {
+        grid-column: span 2;
+    }
+
+    .sr-date-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 550px) {
+
+    .sr-title {
+        font-size: 22px;
+    }
+
+    .sr-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sr-filter-grid .sr-search-field {
+        grid-column: auto;
+    }
+
+    .sr-movement {
+        grid-template-columns: 1fr;
+    }
+
+    .sr-status {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .sr-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    .saving-report-page {
+        padding: 0;
+        background: #fff;
+    }
+
+    .sr-header-actions,
+    .sr-filter-card,
+    .sr-table-actions,
+    .no-print {
+        display: none !important;
+    }
+
+    .sr-card,
+    .sr-kpi,
+    .sr-status {
+        box-shadow: none !important;
+    }
+
+    .sr-table {
+        min-width: 0;
+    }
+
+    .sr-table th,
+    .sr-table td {
+        font-size: 9px;
+        padding: 6px;
+    }
+
+    .sr-title {
+        font-size: 22px;
+    }
+}
+</style>
+
+
+<div class="saving-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="sr-header">
+
+        <div class="sr-header-left">
+
+            <div class="sr-breadcrumb">
+                <span>Reports</span>
+                <span>›</span>
+                <span>Savings</span>
+                <span>›</span>
+                <span>Saving Transactions</span>
+            </div>
+
+            <h1 class="sr-title">
+                Saving Transactions Report
+            </h1>
+
+            <p class="sr-subtitle">
+                Complete overview of all saving deposits, withdrawals,
+                contributions and saving movements.
+            </p>
+
+        </div>
+
+        <div class="sr-header-actions">
+
+            <button
+                type="button"
+                class="sr-btn"
+                onclick="window.print()"
+            >
+                <i data-feather="printer"></i>
+                Print
+            </button>
+
+            <button
+                type="button"
+                class="sr-btn sr-btn-success"
+                onclick="exportSavingTransactionsCSV()"
+            >
+                <i data-feather="download"></i>
+                Export CSV
+            </button>
+
+            <button
+                type="button"
+                class="sr-btn sr-btn-dark"
+                onclick="history.back()"
+            >
+                <i data-feather="arrow-left"></i>
+                Back
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         STATUS
+         ======================================================== -->
+
+    <div class="sr-status">
+
+        <div class="sr-status-left">
+
+            <span class="sr-status-dot"></span>
+
+            <span class="sr-status-text">
+                {{ report_saving_transactions_status|default(report_status|default('Report Ready')) }}
+            </span>
+
+        </div>
+
+        <div class="sr-generated">
+            Generated:
+            {{ generated_at|default('N/A') }}
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="sr-kpi-grid">
+
+        <!-- Total Transactions -->
+
+        <div class="sr-kpi blue">
+
+            <div class="sr-kpi-icon">
+                <i data-feather="activity"></i>
+            </div>
+
+            <div class="sr-kpi-label">
+                TOTAL TRANSACTIONS
+            </div>
+
+            <div
+                class="sr-kpi-value"
+                id="totalTransactionsValue"
+            >
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="sr-kpi-small">
+                Saving movements recorded
+            </div>
+
+        </div>
+
+
+        <!-- Deposits -->
+
+        <div class="sr-kpi green">
+
+            <div class="sr-kpi-icon">
+                <i data-feather="arrow-down-circle"></i>
+            </div>
+
+            <div class="sr-kpi-label">
+                TOTAL DEPOSITS
+            </div>
+
+            <div class="sr-kpi-value sr-green">
+                {{ "%.2f"|format(total_deposit_amount|default(0)|float) }}
+                {{ primary_currency|default(currency|default('USD')) }}
+            </div>
+
+            <div class="sr-kpi-small">
+                {{ total_deposit_transactions|default(0) }}
+                deposit transactions
+            </div>
+
+        </div>
+
+
+        <!-- Withdrawals -->
+
+        <div class="sr-kpi red">
+
+            <div class="sr-kpi-icon">
+                <i data-feather="arrow-up-circle"></i>
+            </div>
+
+            <div class="sr-kpi-label">
+                TOTAL WITHDRAWALS
+            </div>
+
+            <div class="sr-kpi-value sr-red">
+                {{ "%.2f"|format(total_withdrawal_amount|default(0)|float) }}
+                {{ primary_currency|default(currency|default('USD')) }}
+            </div>
+
+            <div class="sr-kpi-small">
+                {{ total_withdrawal_transactions|default(0) }}
+                withdrawal transactions
+            </div>
+
+        </div>
+
+
+        <!-- Net Movement -->
+
+        <div class="sr-kpi purple">
+
+            <div class="sr-kpi-icon">
+                <i data-feather="trending-up"></i>
+            </div>
+
+            <div class="sr-kpi-label">
+                NET SAVINGS MOVEMENT
+            </div>
+
+            <div
+                class="sr-kpi-value"
+                style="
+                color:
+                {% if net_savings_movement|default(0)|float > 0 %}
+                    #16a34a
+                {% elif net_savings_movement|default(0)|float < 0 %}
+                    #dc2626
+                {% else %}
+                    #64748b
+                {% endif %}
+                "
+            >
+                {{ "%.2f"|format(net_savings_movement|default(0)|float) }}
+                {{ primary_currency|default(currency|default('USD')) }}
+            </div>
+
+            <div class="sr-kpi-small">
+                {{ net_status|default('Balanced') }}
+            </div>
+
+        </div>
+
+
+        <!-- Savings -->
+
+        <div class="sr-kpi orange">
+
+            <div class="sr-kpi-icon">
+                <i data-feather="target"></i>
+            </div>
+
+            <div class="sr-kpi-label">
+                SAVINGS
+            </div>
+
+            <div class="sr-kpi-value">
+                {{ unique_savings|default(0) }}
+            </div>
+
+            <div class="sr-kpi-small">
+                {{ unique_accounts|default(0) }} accounts ·
+                {{ unique_categories|default(0) }} categories
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         SUMMARY
+         ======================================================== -->
+
+    <div class="sr-summary-grid">
+
+        <!-- Movement -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+                    <h2 class="sr-card-title">
+                        Savings Movement
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Deposits versus withdrawals
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="sr-movement">
+
+                <div class="sr-movement-box">
+
+                    <div class="sr-movement-label">
+                        MONEY DEPOSITED
+                    </div>
+
+                    <div class="sr-movement-value sr-green">
+                        {{ "%.2f"|format(total_deposit_amount|default(0)|float) }}
+                        {{ primary_currency|default('USD') }}
+                    </div>
+
+                    <div class="sr-secondary">
+                        {{ "%.1f"|format(deposit_percentage|default(0)|float) }}%
+                        of total movement
+                    </div>
+
+                </div>
+
+
+                <div class="sr-movement-box">
+
+                    <div class="sr-movement-label">
+                        MONEY WITHDRAWN
+                    </div>
+
+                    <div class="sr-movement-value sr-red">
+                        {{ "%.2f"|format(total_withdrawal_amount|default(0)|float) }}
+                        {{ primary_currency|default('USD') }}
+                    </div>
+
+                    <div class="sr-secondary">
+                        {{ "%.1f"|format(withdrawal_percentage|default(0)|float) }}%
+                        of total movement
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="sr-net-box">
+
+                <span class="sr-net-label">
+                    NET SAVINGS CHANGE
+                </span>
+
+                <span
+                    class="sr-net-value"
+                    style="
+                    color:
+                    {% if net_savings_movement|default(0)|float > 0 %}
+                        #16a34a
+                    {% elif net_savings_movement|default(0)|float < 0 %}
+                        #dc2626
+                    {% else %}
+                        #64748b
+                    {% endif %}
+                    "
+                >
+                    {{ "%.2f"|format(net_savings_movement|default(0)|float) }}
+                    {{ primary_currency|default('USD') }}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Top Saving -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+                    <h2 class="sr-card-title">
+                        Top Saving
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Saving with highest deposit activity
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="sr-top-item">
+
+                <div class="sr-top-rank">
+                    #1
+                </div>
+
+                <div class="sr-top-name">
+                    {{ top_saving.name|default('No Saving') }}
+                </div>
+
+                <div class="sr-top-amount sr-green">
+                    {{ "%.2f"|format(top_saving.deposits|default(0)|float) }}
+                    {{ primary_currency|default('USD') }}
+                </div>
+
+                <div class="sr-top-meta">
+                    {{ top_saving.count|default(0) }} transactions
+                    · Net
+                    {{ "%.2f"|format(top_saving.net|default(0)|float) }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- Top Account -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+                    <h2 class="sr-card-title">
+                        Top Account
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Account with highest saving deposits
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="sr-top-item">
+
+                <div class="sr-top-rank">
+                    #1
+                </div>
+
+                <div class="sr-top-name">
+                    {{ top_account.name|default('No Account') }}
+                </div>
+
+                <div class="sr-top-amount sr-green">
+                    {{ "%.2f"|format(top_account.deposits|default(0)|float) }}
+                    {{ primary_currency|default('USD') }}
+                </div>
+
+                <div class="sr-top-meta">
+                    {{ top_account.count|default(0) }} transactions
+                    · Net
+                    {{ "%.2f"|format(top_account.net|default(0)|float) }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP CATEGORY
+         ======================================================== -->
+
+    <div class="sr-card sr-date-card">
+
+        <div class="sr-card-header">
+
+            <div>
+                <h2 class="sr-card-title">
+                    Leading Category
+                </h2>
+
+                <p class="sr-card-subtitle">
+                    Category with the highest saving deposit activity
+                </p>
+            </div>
+
+        </div>
+
+        <div class="sr-top-item">
+
+            <div class="sr-top-rank">
+                #1
+            </div>
+
+            <div class="sr-top-name">
+                {{ top_category.name|default('No Category') }}
+            </div>
+
+            <div class="sr-top-amount sr-green">
+                {{ "%.2f"|format(top_category.deposits|default(0)|float) }}
+                {{ primary_currency|default('USD') }}
+            </div>
+
+            <div class="sr-top-meta">
+                {{ top_category.count|default(0) }} transactions
+                · Net
+                {{ "%.2f"|format(top_category.net|default(0)|float) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DATE RANGE
+         ======================================================== -->
+
+    <div class="sr-card sr-date-card">
+
+        <div class="sr-card-header">
+
+            <div>
+                <h2 class="sr-card-title">
+                    Report Period
+                </h2>
+
+                <p class="sr-card-subtitle">
+                    Date coverage of saving transactions
+                </p>
+            </div>
+
+        </div>
+
+        <div class="sr-date-grid">
+
+            <div class="sr-date-box">
+
+                <div class="sr-date-label">
+                    FIRST TRANSACTION
+                </div>
+
+                <div class="sr-date-value">
+                    {{ first_transaction_date_display|default(first_transaction_date|default('N/A')) }}
+                </div>
+
+            </div>
+
+
+            <div class="sr-date-box">
+
+                <div class="sr-date-label">
+                    LAST TRANSACTION
+                </div>
+
+                <div class="sr-date-value">
+                    {{ last_transaction_date_display|default(last_transaction_date|default('N/A')) }}
+                </div>
+
+            </div>
+
+
+            <div class="sr-date-box">
+
+                <div class="sr-date-label">
+                    CURRENCY
+                </div>
+
+                <div class="sr-date-value">
+                    {{ primary_currency|default(currency|default('USD')) }}
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="sr-card sr-filter-card">
+
+        <div class="sr-card-header">
+
+            <div>
+                <h2 class="sr-card-title">
+                    Filter Transactions
+                </h2>
+
+                <p class="sr-card-subtitle">
+                    Search and filter saving transaction records
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="sr-filter-grid">
+
+            <!-- Search -->
+
+            <div class="sr-field sr-search-field">
+
+                <label for="srSearch">
+                    SEARCH
+                </label>
+
+                <input
+                    type="text"
+                    id="srSearch"
+                    placeholder="Saving, account, category, description..."
+                    autocomplete="off"
+                >
+
+            </div>
+
+
+            <!-- Saving -->
+
+            <div class="sr-field">
+
+                <label for="srSavingFilter">
+                    SAVING
+                </label>
+
+                <select id="srSavingFilter">
+
+                    <option value="">
+                        All Savings
+                    </option>
+
+                    {% for saving_name in report_saving_names|default([]) %}
+
+                        <option value="{{ saving_name|e }}">
+                            {{ saving_name }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Account -->
+
+            <div class="sr-field">
+
+                <label for="srAccountFilter">
+                    ACCOUNT
+                </label>
+
+                <select id="srAccountFilter">
+
+                    <option value="">
+                        All Accounts
+                    </option>
+
+                    {% for account in report_accounts|default([]) %}
+
+                        <option value="{{ account|e }}">
+                            {{ account }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Category -->
+
+            <div class="sr-field">
+
+                <label for="srCategoryFilter">
+                    CATEGORY
+                </label>
+
+                <select id="srCategoryFilter">
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in report_categories|default([]) %}
+
+                        <option value="{{ category|e }}">
+                            {{ category }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Currency -->
+
+            <div class="sr-field">
+
+                <label for="srCurrencyFilter">
+                    CURRENCY
+                </label>
+
+                <select id="srCurrencyFilter">
+
+                    <option value="">
+                        All Currencies
+                    </option>
+
+                    {% for item_currency in report_currencies|default([]) %}
+
+                        <option value="{{ item_currency|e }}">
+                            {{ item_currency }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Transaction Type -->
+
+            <div class="sr-field">
+
+                <label for="srTypeFilter">
+                    TYPE
+                </label>
+
+                <select id="srTypeFilter">
+
+                    <option value="">
+                        All Types
+                    </option>
+
+                    {% for tx_type in report_transaction_types|default([]) %}
+
+                        <option value="{{ tx_type|e }}">
+                            {{ tx_type|title }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- Movement -->
+
+            <div class="sr-field">
+
+                <label for="srMovementFilter">
+                    MOVEMENT
+                </label>
+
+                <select id="srMovementFilter">
+
+                    <option value="">
+                        All Movements
+                    </option>
+
+                    <option value="deposit">
+                        Deposit
+                    </option>
+
+                    <option value="withdrawal">
+                        Withdrawal
+                    </option>
+
+                    <option value="other">
+                        Other
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <div class="sr-filter-actions">
+
+            <button
+                type="button"
+                class="sr-btn"
+                onclick="resetSavingTransactionFilters()"
+            >
+                <i data-feather="refresh-cw"></i>
+                Reset
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTIONS TABLE
+         ======================================================== -->
+
+    <div class="sr-card sr-table-card">
+
+        <div class="sr-table-header">
+
+            <div class="sr-table-title-wrap">
+
+                <h2 class="sr-table-title">
+                    Saving Transactions
+                </h2>
+
+                <div
+                    class="sr-table-count"
+                    id="visibleTransactionCount"
+                >
+                    Showing
+                    {{ total_transactions|default(0) }}
+                    transactions
+                </div>
+
+            </div>
+
+
+            <div class="sr-table-actions no-print">
+
+                <button
+                    type="button"
+                    class="sr-btn sr-btn-primary"
+                    onclick="exportSavingTransactionsCSV()"
+                >
+                    <i data-feather="file-text"></i>
+                    CSV
+                </button>
+
+                <button
+                    type="button"
+                    class="sr-btn"
+                    onclick="window.print()"
+                >
+                    <i data-feather="printer"></i>
+                    Print
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="sr-table-wrap">
+
+            <table
+                class="sr-table"
+                id="savingTransactionsTable"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Saving</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Currency</th>
+
+                        <th>Description</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody id="savingTransactionsBody">
+
+                    {% for transaction in saving_transactions|default([]) %}
+
+                        {% set tx_type = transaction.transaction_type|default('transaction')|lower %}
+                        {% set movement = transaction.movement|default('')|lower %}
+
+                        <tr
+                            class="sr-transaction-row"
+
+                            data-saving="{{ transaction.saving_name|default('')|lower|e }}"
+
+                            data-account="{{ transaction.account_name|default('')|lower|e }}"
+
+                            data-category="{{ transaction.category|default('')|lower|e }}"
+
+                            data-currency="{{ transaction.currency|default('')|lower|e }}"
+
+                            data-type="{{ tx_type|e }}"
+
+                            data-movement="{{ movement|e }}"
+
+                            data-search="
+                                {{ transaction.saving_name|default('')|lower }}
+                                {{ transaction.account_name|default('')|lower }}
+                                {{ transaction.category|default('')|lower }}
+                                {{ transaction.description|default('')|lower }}
+                                {{ tx_type }}
+                                {{ transaction.currency|default('')|lower }}
+                            "
+                        >
+
+                            <!-- Number -->
+
+                            <td>
+                                <strong>
+                                    {{ loop.index }}
+                                </strong>
+                            </td>
+
+
+                            <!-- Date -->
+
+                            <td>
+
+                                <div class="sr-date">
+                                    {{ transaction.date_display|default(transaction.date|default('N/A')) }}
+                                </div>
+
+                                {% if transaction.id|default('') %}
+                                    <div class="sr-id">
+                                        #{{ transaction.id[-8:] }}
+                                    </div>
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Saving -->
+
+                            <td>
+
+                                <div class="sr-saving">
+                                    {{ transaction.saving_name|default('Unnamed Saving') }}
+                                </div>
+
+                                {% if transaction.saving_id|default('') %}
+                                    <div class="sr-secondary">
+                                        Saving ID:
+                                        {{ transaction.saving_id[-8:] }}
+                                    </div>
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Account -->
+
+                            <td>
+
+                                <div>
+                                    {{ transaction.account_name|default('Unknown Account') }}
+                                </div>
+
+                                {% if transaction.account_id|default('') %}
+                                    <div class="sr-secondary">
+                                        Account ID:
+                                        {{ transaction.account_id[-8:] }}
+                                    </div>
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Category -->
+
+                            <td>
+
+                                <span>
+                                    {{ transaction.category|default('Uncategorized') }}
+                                </span>
+
+                            </td>
+
+
+                            <!-- Type -->
+
+                            <td>
+
+                                {% if movement == 'deposit' %}
+
+                                    <span class="sr-type-badge sr-type-deposit">
+                                        Deposit
+                                    </span>
+
+                                {% elif movement == 'withdrawal' %}
+
+                                    <span class="sr-type-badge sr-type-withdrawal">
+                                        Withdrawal
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="sr-type-badge sr-type-other">
+                                        {{ transaction.transaction_type|default('Transaction')|title }}
+                                    </span>
+
+                                {% endif %}
+
+                                <div class="sr-secondary">
+                                    {{ transaction.transaction_type|default('transaction')|title }}
+                                </div>
+
+                            </td>
+
+
+                            <!-- Amount -->
+
+                            <td>
+
+                                {% if movement == 'deposit' %}
+
+                                    <div class="sr-amount sr-green">
+                                        +{{ "%.2f"|format(transaction.amount|default(0)|float) }}
+                                    </div>
+
+                                {% elif movement == 'withdrawal' %}
+
+                                    <div class="sr-amount sr-red">
+                                        -{{ "%.2f"|format(transaction.amount|default(0)|float) }}
+                                    </div>
+
+                                {% else %}
+
+                                    <div class="sr-amount">
+                                        {{ "%.2f"|format(transaction.amount|default(0)|float) }}
+                                    </div>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- Currency -->
+
+                            <td>
+
+                                <strong>
+                                    {{ transaction.currency|default('USD') }}
+                                </strong>
+
+                            </td>
+
+
+                            <!-- Description -->
+
+                            <td>
+
+                                <div class="sr-description">
+
+                                    {% if transaction.description|default('') %}
+
+                                        {{ transaction.description }}
+
+                                    {% else %}
+
+                                        <span class="sr-secondary">
+                                            No description
+                                        </span>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td colspan="9">
+
+                                <div class="sr-empty">
+
+                                    <div class="sr-empty-icon">
+                                        <i data-feather="inbox"></i>
+                                    </div>
+
+                                    <div class="sr-empty-title">
+                                        No Saving Transactions Found
+                                    </div>
+
+                                    <div class="sr-empty-text">
+                                        There are currently no saving transactions
+                                        available for this report.
+                                    </div>
+
+                                </div>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP 5 RANKINGS
+         ======================================================== -->
+
+    <div class="sr-ranking-grid">
+
+
+        <!-- TOP SAVINGS -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+
+                    <h2 class="sr-card-title">
+                        Top 5 Savings
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Highest deposit activity
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sr-ranking-list">
+
+                {% for item in top_5_savings|default([]) %}
+
+                    <div class="sr-ranking-item">
+
+                        <div class="sr-ranking-number">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="sr-ranking-name">
+
+                            <strong title="{{ item.name|default('Unknown') }}">
+                                {{ item.name|default('Unknown Saving') }}
+                            </strong>
+
+                            <span>
+                                {{ item.count|default(0) }} transactions
+                            </span>
+
+                        </div>
+
+                        <div class="sr-ranking-value sr-green">
+
+                            {{ "%.2f"|format(item.deposits|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sr-empty">
+                        No saving data.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP ACCOUNTS -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+
+                    <h2 class="sr-card-title">
+                        Top 5 Accounts
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Highest saving deposits
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sr-ranking-list">
+
+                {% for item in top_5_accounts|default([]) %}
+
+                    <div class="sr-ranking-item">
+
+                        <div class="sr-ranking-number">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="sr-ranking-name">
+
+                            <strong title="{{ item.name|default('Unknown') }}">
+                                {{ item.name|default('Unknown Account') }}
+                            </strong>
+
+                            <span>
+                                {{ item.count|default(0) }} transactions
+                            </span>
+
+                        </div>
+
+                        <div class="sr-ranking-value sr-green">
+
+                            {{ "%.2f"|format(item.deposits|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sr-empty">
+                        No account data.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- TOP CATEGORIES -->
+
+        <div class="sr-card">
+
+            <div class="sr-card-header">
+
+                <div>
+
+                    <h2 class="sr-card-title">
+                        Top 5 Categories
+                    </h2>
+
+                    <p class="sr-card-subtitle">
+                        Highest saving deposits
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sr-ranking-list">
+
+                {% for item in top_5_categories|default([]) %}
+
+                    <div class="sr-ranking-item">
+
+                        <div class="sr-ranking-number">
+                            {{ loop.index }}
+                        </div>
+
+                        <div class="sr-ranking-name">
+
+                            <strong title="{{ item.name|default('Unknown') }}">
+                                {{ item.name|default('Uncategorized') }}
+                            </strong>
+
+                            <span>
+                                {{ item.count|default(0) }} transactions
+                            </span>
+
+                        </div>
+
+                        <div class="sr-ranking-value sr-green">
+
+                            {{ "%.2f"|format(item.deposits|default(0)|float) }}
+
+                        </div>
+
+                    </div>
+
+                {% else %}
+
+                    <div class="sr-empty">
+                        No category data.
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         REPORT FOOTER
+         ======================================================== -->
+
+    <div class="sr-footer">
+
+        <div>
+            Saving Transactions Report
+        </div>
+
+        <div>
+            {{ total_transactions|default(0) }}
+            transactions ·
+            {{ unique_savings|default(0) }}
+            savings ·
+            {{ unique_accounts|default(0) }}
+            accounts
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+(function () {
+
+    "use strict";
+
+    /* =========================================================
+       ELEMENTS
+       ========================================================= */
+
+    const searchInput =
+        document.getElementById("srSearch");
+
+    const savingFilter =
+        document.getElementById("srSavingFilter");
+
+    const accountFilter =
+        document.getElementById("srAccountFilter");
+
+    const categoryFilter =
+        document.getElementById("srCategoryFilter");
+
+    const currencyFilter =
+        document.getElementById("srCurrencyFilter");
+
+    const typeFilter =
+        document.getElementById("srTypeFilter");
+
+    const movementFilter =
+        document.getElementById("srMovementFilter");
+
+    const rows = Array.from(
+        document.querySelectorAll(
+            ".sr-transaction-row"
+        )
+    );
+
+    const visibleCount =
+        document.getElementById(
+            "visibleTransactionCount"
+        );
+
+
+    /* =========================================================
+       NORMALIZE
+       ========================================================= */
+
+    function normalize(value) {
+
+        return String(value || "")
+            .toLowerCase()
+            .trim();
+
+    }
+
+
+    /* =========================================================
+       FILTER
+       ========================================================= */
+
+    function filterTransactions() {
+
+        const search =
+            normalize(
+                searchInput
+                    ? searchInput.value
+                    : ""
+            );
+
+        const saving =
+            normalize(
+                savingFilter
+                    ? savingFilter.value
+                    : ""
+            );
+
+        const account =
+            normalize(
+                accountFilter
+                    ? accountFilter.value
+                    : ""
+            );
+
+        const category =
+            normalize(
+                categoryFilter
+                    ? categoryFilter.value
+                    : ""
+            );
+
+        const currency =
+            normalize(
+                currencyFilter
+                    ? currencyFilter.value
+                    : ""
+            );
+
+        const type =
+            normalize(
+                typeFilter
+                    ? typeFilter.value
+                    : ""
+            );
+
+        const movement =
+            normalize(
+                movementFilter
+                    ? movementFilter.value
+                    : ""
+            );
+
+
+        let visible = 0;
+
+
+        rows.forEach(function (row) {
+
+            const rowSaving =
+                normalize(
+                    row.dataset.saving
+                );
+
+            const rowAccount =
+                normalize(
+                    row.dataset.account
+                );
+
+            const rowCategory =
+                normalize(
+                    row.dataset.category
+                );
+
+            const rowCurrency =
+                normalize(
+                    row.dataset.currency
+                );
+
+            const rowType =
+                normalize(
+                    row.dataset.type
+                );
+
+            const rowMovement =
+                normalize(
+                    row.dataset.movement
+                );
+
+            const rowSearch =
+                normalize(
+                    row.dataset.search
+                );
+
+
+            const matchesSearch =
+                !search ||
+                rowSearch.includes(search);
+
+            const matchesSaving =
+                !saving ||
+                rowSaving === saving;
+
+            const matchesAccount =
+                !account ||
+                rowAccount === account;
+
+            const matchesCategory =
+                !category ||
+                rowCategory === category;
+
+            const matchesCurrency =
+                !currency ||
+                rowCurrency === currency;
+
+            const matchesType =
+                !type ||
+                rowType === type;
+
+            const matchesMovement =
+                !movement ||
+                rowMovement === movement;
+
+
+            const show =
+                matchesSearch &&
+                matchesSaving &&
+                matchesAccount &&
+                matchesCategory &&
+                matchesCurrency &&
+                matchesType &&
+                matchesMovement;
+
+
+            row.style.display =
+                show ? "" : "none";
+
+
+            if (show) {
+                visible++;
+            }
+
+        });
+
+
+        if (visibleCount) {
+
+            visibleCount.textContent =
+                "Showing " +
+                visible +
+                " of " +
+                rows.length +
+                " transactions";
+
+        }
+
+    }
+
+
+    /* =========================================================
+       RESET
+       ========================================================= */
+
+    window.resetSavingTransactionFilters =
+        function () {
+
+            if (searchInput) {
+                searchInput.value = "";
+            }
+
+            if (savingFilter) {
+                savingFilter.value = "";
+            }
+
+            if (accountFilter) {
+                accountFilter.value = "";
+            }
+
+            if (categoryFilter) {
+                categoryFilter.value = "";
+            }
+
+            if (currencyFilter) {
+                currencyFilter.value = "";
+            }
+
+            if (typeFilter) {
+                typeFilter.value = "";
+            }
+
+            if (movementFilter) {
+                movementFilter.value = "";
+            }
+
+            filterTransactions();
+
+        };
+
+
+    /* =========================================================
+       EVENT LISTENERS
+       ========================================================= */
+
+    if (searchInput) {
+
+        searchInput.addEventListener(
+            "input",
+            filterTransactions
+        );
+
+    }
+
+    [
+        savingFilter,
+        accountFilter,
+        categoryFilter,
+        currencyFilter,
+        typeFilter,
+        movementFilter
+    ].forEach(function (element) {
+
+        if (element) {
+
+            element.addEventListener(
+                "change",
+                filterTransactions
+            );
+
+        }
+
+    });
+
+
+    /* =========================================================
+       CSV EXPORT
+       ========================================================= */
+
+    window.exportSavingTransactionsCSV =
+        function () {
+
+            const table =
+                document.getElementById(
+                    "savingTransactionsTable"
+                );
+
+            if (!table) {
+                return;
+            }
+
+
+            const rowsToExport =
+                Array.from(
+                    table.querySelectorAll(
+                        "tr"
+                    )
+                ).filter(function (row) {
+
+                    return (
+                        row.style.display !==
+                        "none"
+                    );
+
+                });
+
+
+            if (!rowsToExport.length) {
+
+                alert(
+                    "No transactions available to export."
+                );
+
+                return;
+
+            }
+
+
+            const csv = [];
+
+
+            rowsToExport.forEach(
+                function (row) {
+
+                    const cells =
+                        Array.from(
+                            row.querySelectorAll(
+                                "th, td"
+                            )
+                        );
+
+                    const values =
+                        cells.map(
+                            function (cell) {
+
+                                let value =
+                                    cell.innerText
+                                        .replace(
+                                            /\s+/g,
+                                            " "
+                                        )
+                                        .trim();
+
+                                value =
+                                    value.replace(
+                                        /"/g,
+                                        '""'
+                                    );
+
+                                return '"' +
+                                    value +
+                                    '"';
+
+                            }
+                        );
+
+                    csv.push(
+                        values.join(",")
+                    );
+
+                }
+            );
+
+
+            const blob =
+                new Blob(
+                    [
+                        "\ufeff" +
+                        csv.join("\n")
+                    ],
+                    {
+                        type:
+                            "text/csv;charset=utf-8;"
+                    }
+                );
+
+
+            const url =
+                URL.createObjectURL(
+                    blob
+                );
+
+
+            const link =
+                document.createElement(
+                    "a"
+                );
+
+            link.href = url;
+
+            link.download =
+                "saving_transactions_report_" +
+                new Date()
+                    .toISOString()
+                    .slice(0, 10) +
+                ".csv";
+
+            document.body.appendChild(
+                link
+            );
+
+            link.click();
+
+            document.body.removeChild(
+                link
+            );
+
+            URL.revokeObjectURL(
+                url
+            );
+
+        };
+
+
+    /* =========================================================
+       INITIAL FILTER
+       ========================================================= */
+
+    filterTransactions();
+
+
+    /* =========================================================
+       FEATHER ICONS
+       ========================================================= */
+
+    if (
+        typeof feather !== "undefined"
+    ) {
+
+        feather.replace();
+
+    }
+
+})();
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,3242 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Custom Financial Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   CUSTOM REPORT — ADVANCED YEARLY-STYLE UI
+   ============================================================ */
+
+:root {
+    --cr-primary: #2563eb;
+    --cr-primary-dark: #1d4ed8;
+    --cr-success: #16a34a;
+    --cr-danger: #dc2626;
+    --cr-warning: #d97706;
+    --cr-purple: #7c3aed;
+    --cr-cyan: #0891b2;
+    --cr-dark: #0f172a;
+    --cr-text: #334155;
+    --cr-muted: #64748b;
+    --cr-border: #e2e8f0;
+    --cr-bg: #f8fafc;
+    --cr-white: #ffffff;
+    --cr-radius: 18px;
+    --cr-shadow: 0 10px 30px rgba(15, 23, 42, .07);
+}
+
+.custom-report-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--cr-bg);
+    padding: 24px;
+    color: var(--cr-text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.cr-header {
+    background: linear-gradient(135deg, #0f172a, #1e3a8a);
+    color: #fff;
+    border-radius: 24px;
+    padding: 28px;
+    margin-bottom: 22px;
+    box-shadow: var(--cr-shadow);
+}
+
+.cr-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+}
+
+.cr-title-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.cr-title-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.14);
+    font-size: 25px;
+}
+
+.cr-title {
+    margin: 0;
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.cr-subtitle {
+    margin: 7px 0 0;
+    color: rgba(255,255,255,.72);
+    font-size: 14px;
+}
+
+.cr-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.cr-header-btn {
+    border: 1px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.1);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 11px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: .2s ease;
+}
+
+.cr-header-btn:hover {
+    background: rgba(255,255,255,.2);
+}
+
+/* ============================================================
+   RANGE SUMMARY
+   ============================================================ */
+
+.cr-range-summary {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255,255,255,.15);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.cr-range-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 13px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.1);
+    font-size: 13px;
+    color: rgba(255,255,255,.9);
+}
+
+.cr-range-badge strong {
+    color: #fff;
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.cr-panel {
+    background: var(--cr-white);
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    box-shadow: var(--cr-shadow);
+    margin-bottom: 22px;
+}
+
+.cr-panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--cr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+}
+
+.cr-panel-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--cr-dark);
+}
+
+.cr-panel-title i {
+    margin-right: 8px;
+    color: var(--cr-primary);
+}
+
+.cr-filter-body {
+    padding: 20px;
+}
+
+.cr-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.cr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.cr-field label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--cr-muted);
+    text-transform: uppercase;
+    letter-spacing: .35px;
+}
+
+.cr-field input,
+.cr-field select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--cr-border);
+    border-radius: 11px;
+    background: #fff;
+    color: var(--cr-dark);
+    padding: 9px 12px;
+    outline: none;
+    transition: .2s ease;
+    box-sizing: border-box;
+}
+
+.cr-field input:focus,
+.cr-field select:focus {
+    border-color: var(--cr-primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+.cr-filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: 9px;
+}
+
+.cr-btn {
+    border: 0;
+    min-height: 44px;
+    border-radius: 11px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none;
+    transition: .2s ease;
+}
+
+.cr-btn-primary {
+    color: #fff;
+    background: var(--cr-primary);
+}
+
+.cr-btn-primary:hover {
+    background: var(--cr-primary-dark);
+}
+
+.cr-btn-light {
+    color: var(--cr-dark);
+    background: #f1f5f9;
+    border: 1px solid var(--cr-border);
+}
+
+.cr-btn-light:hover {
+    background: #e2e8f0;
+}
+
+/* ============================================================
+   PRESETS
+   ============================================================ */
+
+.cr-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 17px;
+    padding-top: 17px;
+    border-top: 1px solid var(--cr-border);
+}
+
+.cr-preset {
+    border: 1px solid var(--cr-border);
+    background: #fff;
+    color: var(--cr-text);
+    padding: 8px 12px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s ease;
+}
+
+.cr-preset:hover,
+.cr-preset.active {
+    color: #fff;
+    background: var(--cr-primary);
+    border-color: var(--cr-primary);
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.cr-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.cr-kpi {
+    background: #fff;
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    padding: 19px;
+    box-shadow: var(--cr-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.cr-kpi::after {
+    content: "";
+    position: absolute;
+    right: -30px;
+    top: -30px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: rgba(37,99,235,.05);
+}
+
+.cr-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.cr-kpi-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--cr-muted);
+    text-transform: uppercase;
+}
+
+.cr-kpi-icon {
+    width: 39px;
+    height: 39px;
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+}
+
+.cr-income .cr-kpi-icon {
+    background: #dcfce7;
+    color: var(--cr-success);
+}
+
+.cr-expense .cr-kpi-icon {
+    background: #fee2e2;
+    color: var(--cr-danger);
+}
+
+.cr-net .cr-kpi-icon {
+    background: #dbeafe;
+    color: var(--cr-primary);
+}
+
+.cr-count .cr-kpi-icon {
+    background: #f3e8ff;
+    color: var(--cr-purple);
+}
+
+.cr-kpi-value {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--cr-dark);
+    margin-top: 13px;
+}
+
+.cr-kpi-meta {
+    margin-top: 7px;
+    font-size: 12px;
+    color: var(--cr-muted);
+}
+
+.cr-change {
+    font-weight: 800;
+}
+
+.cr-change.up {
+    color: var(--cr-success);
+}
+
+.cr-change.down {
+    color: var(--cr-danger);
+}
+
+/* ============================================================
+   SECONDARY KPI
+   ============================================================ */
+
+.cr-secondary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.cr-mini-card {
+    background: #fff;
+    border: 1px solid var(--cr-border);
+    border-radius: 15px;
+    padding: 17px;
+    box-shadow: var(--cr-shadow);
+}
+
+.cr-mini-label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--cr-muted);
+    text-transform: uppercase;
+}
+
+.cr-mini-value {
+    margin-top: 7px;
+    font-size: 19px;
+    font-weight: 900;
+    color: var(--cr-dark);
+}
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.cr-chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.cr-chart-grid.equal {
+    grid-template-columns: 1fr 1fr;
+}
+
+.cr-chart-box {
+    background: #fff;
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    box-shadow: var(--cr-shadow);
+    padding: 20px;
+    min-width: 0;
+}
+
+.cr-chart-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.cr-chart-title {
+    margin: 0;
+    color: var(--cr-dark);
+    font-size: 15px;
+    font-weight: 850;
+}
+
+.cr-chart-subtitle {
+    color: var(--cr-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.cr-chart-container {
+    height: 310px;
+    position: relative;
+}
+
+.cr-chart-container.small {
+    height: 260px;
+}
+
+/* ============================================================
+   PERFORMANCE
+   ============================================================ */
+
+.cr-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.cr-performance-card {
+    background: #fff;
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    box-shadow: var(--cr-shadow);
+    padding: 20px;
+}
+
+.cr-performance-title {
+    font-size: 14px;
+    font-weight: 850;
+    color: var(--cr-dark);
+    margin-bottom: 17px;
+}
+
+.cr-performance-row {
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.cr-performance-row:last-child {
+    border-bottom: 0;
+}
+
+.cr-performance-top {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.cr-performance-name {
+    font-weight: 800;
+    color: var(--cr-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cr-performance-value {
+    font-weight: 900;
+    color: var(--cr-dark);
+    white-space: nowrap;
+}
+
+.cr-progress {
+    width: 100%;
+    height: 7px;
+    border-radius: 99px;
+    background: #eef2f7;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.cr-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    background: var(--cr-primary);
+}
+
+.cr-performance-meta {
+    margin-top: 5px;
+    color: var(--cr-muted);
+    font-size: 10px;
+}
+
+/* ============================================================
+   TABLE PANEL
+   ============================================================ */
+
+.cr-table-panel {
+    background: #fff;
+    border: 1px solid var(--cr-border);
+    border-radius: var(--cr-radius);
+    box-shadow: var(--cr-shadow);
+    margin-bottom: 22px;
+    overflow: hidden;
+}
+
+.cr-table-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--cr-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.cr-table-title-wrap h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 850;
+    color: var(--cr-dark);
+}
+
+.cr-table-title-wrap p {
+    margin: 5px 0 0;
+    color: var(--cr-muted);
+    font-size: 12px;
+}
+
+.cr-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.cr-table-action {
+    min-height: 37px;
+    padding: 0 12px;
+    border-radius: 9px;
+    border: 1px solid var(--cr-border);
+    background: #fff;
+    color: var(--cr-text);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.cr-table-action:hover {
+    background: #f8fafc;
+}
+
+.cr-table-action.primary {
+    background: var(--cr-primary);
+    color: #fff;
+    border-color: var(--cr-primary);
+}
+
+/* ============================================================
+   DATATABLE OVERRIDES
+   ============================================================ */
+
+.cr-datatable-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 20px 20px;
+}
+
+#customTransactionsTable {
+    width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+#customTransactionsTable thead th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .35px;
+    font-weight: 850;
+    border-bottom: 1px solid var(--cr-border);
+    padding: 13px 12px;
+    white-space: nowrap;
+}
+
+#customTransactionsTable tbody td {
+    padding: 13px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 12px;
+    color: var(--cr-text);
+    white-space: nowrap;
+}
+
+#customTransactionsTable tbody tr:hover {
+    background: #f8fbff;
+}
+
+.dt-type-income {
+    color: var(--cr-success);
+    font-weight: 900;
+}
+
+.dt-type-expense {
+    color: var(--cr-danger);
+    font-weight: 900;
+}
+
+.dt-amount {
+    font-weight: 900;
+    color: var(--cr-dark);
+}
+
+.dt-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 9px;
+    border-radius: 99px;
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+.dataTables_wrapper {
+    padding-top: 16px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 15px;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: var(--cr-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--cr-border) !important;
+    border-radius: 9px !important;
+    padding: 8px 10px !important;
+    background: #fff !important;
+    outline: none;
+    margin-left: 5px;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus {
+    border-color: var(--cr-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    margin-top: 12px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border: 1px solid var(--cr-border) !important;
+    border-radius: 8px !important;
+    background: #fff !important;
+    color: var(--cr-text) !important;
+    padding: 6px 10px !important;
+    margin-left: 4px !important;
+    font-size: 11px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--cr-primary) !important;
+    color: #fff !important;
+    border-color: var(--cr-primary) !important;
+}
+
+.dataTables_wrapper .dataTables_info {
+    color: var(--cr-muted);
+    font-size: 11px;
+    padding-top: 14px;
+}
+
+/* ============================================================
+   DAILY BREAKDOWN
+   ============================================================ */
+
+.cr-daily-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.cr-day {
+    border: 1px solid var(--cr-border);
+    border-radius: 12px;
+    padding: 11px;
+    background: #fff;
+}
+
+.cr-day-label {
+    font-size: 10px;
+    font-weight: 850;
+    color: var(--cr-muted);
+}
+
+.cr-day-date {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 900;
+    color: var(--cr-dark);
+}
+
+.cr-day-income,
+.cr-day-expense,
+.cr-day-net {
+    margin-top: 9px;
+    font-size: 10px;
+}
+
+.cr-day-income strong {
+    color: var(--cr-success);
+}
+
+.cr-day-expense strong {
+    color: var(--cr-danger);
+}
+
+.cr-day-net strong {
+    color: var(--cr-primary);
+}
+
+/* ============================================================
+   ALERT
+   ============================================================ */
+
+.cr-alert {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    padding: 13px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.cr-empty {
+    padding: 45px 20px;
+    text-align: center;
+    color: var(--cr-muted);
+}
+
+.cr-empty i {
+    font-size: 38px;
+    opacity: .4;
+    margin-bottom: 12px;
+}
+
+.cr-empty h4 {
+    margin: 0 0 5px;
+    color: var(--cr-dark);
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .custom-report-page {
+        padding: 0;
+        background: #fff;
+    }
+
+    .cr-header {
+        background: #fff !important;
+        color: #000 !important;
+        border: 1px solid #ddd;
+        box-shadow: none;
+    }
+
+    .cr-header .cr-subtitle,
+    .cr-header .cr-range-badge {
+        color: #333 !important;
+    }
+
+    .cr-header-actions,
+    .cr-panel,
+    .cr-table-actions,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .cr-kpi,
+    .cr-mini-card,
+    .cr-chart-box,
+    .cr-performance-card,
+    .cr-table-panel {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .cr-kpi-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .cr-chart-grid,
+    .cr-performance-grid {
+        break-inside: avoid;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .cr-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .cr-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cr-secondary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .cr-performance-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cr-daily-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 850px) {
+
+    .custom-report-page {
+        padding: 14px;
+    }
+
+    .cr-header {
+        padding: 20px;
+    }
+
+    .cr-header-top {
+        flex-direction: column;
+    }
+
+    .cr-filter-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cr-chart-grid,
+    .cr-chart-grid.equal {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-performance-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-daily-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+
+    .custom-report-page {
+        padding: 9px;
+    }
+
+    .cr-title {
+        font-size: 21px;
+    }
+
+    .cr-title-icon {
+        width: 47px;
+        height: 47px;
+    }
+
+    .cr-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-filter-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .cr-filter-actions .cr-btn {
+        width: 100%;
+    }
+
+    .cr-kpi-grid,
+    .cr-secondary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-kpi-value {
+        font-size: 23px;
+    }
+
+    .cr-daily-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-table-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cr-table-actions {
+        width: 100%;
+    }
+
+    .cr-table-action {
+        flex: 1;
+    }
+
+    .cr-chart-container {
+        height: 260px;
+    }
+}
+</style>
+
+
+<div class="custom-report-page">
+
+    <!-- ======================================================
+         HEADER
+         ====================================================== -->
+
+    <section class="cr-header">
+
+        <div class="cr-header-top">
+
+            <div class="cr-title-wrap">
+
+                <div class="cr-title-icon">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+
+                <div>
+                    <h1 class="cr-title">
+                        Custom Financial Report
+                    </h1>
+
+                    <p class="cr-subtitle">
+                        Advanced financial analysis for your selected custom date range.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="cr-header-actions">
+
+                <button class="cr-header-btn" onclick="printReport()">
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+
+                <button class="cr-header-btn" onclick="exportJSON()">
+                    <i class="fas fa-file-code"></i>
+                    JSON
+                </button>
+
+                <button class="cr-header-btn" onclick="exportCSV()">
+                    <i class="fas fa-file-csv"></i>
+                    CSV
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="cr-range-summary">
+
+            <div class="cr-range-badge">
+                <i class="fas fa-calendar-alt"></i>
+                <strong>Period:</strong>
+                {{ custom_range_label }}
+            </div>
+
+            <div class="cr-range-badge">
+                <i class="fas fa-clock"></i>
+                <strong>{{ period_days }}</strong> Days
+            </div>
+
+            {% if previous_range_label %}
+            <div class="cr-range-badge">
+                <i class="fas fa-history"></i>
+                Previous:
+                {{ previous_range_label }}
+            </div>
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         FILTERS
+         ====================================================== -->
+
+    <section class="cr-panel">
+
+        <div class="cr-panel-header">
+
+            <h3 class="cr-panel-title">
+                <i class="fas fa-filter"></i>
+                Custom Report Filters
+            </h3>
+
+        </div>
+
+        <div class="cr-filter-body">
+
+            <form method="GET"
+                  action="{{ url_for('main.report_custom') }}"
+                  id="customReportForm">
+
+                <div class="cr-filter-grid">
+
+                    <!-- START DATE -->
+                    <div class="cr-field">
+
+                        <label for="start_date">
+                            Start Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="start_date"
+                            name="start_date"
+                            value="{{ start_date_value }}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- END DATE -->
+                    <div class="cr-field">
+
+                        <label for="end_date">
+                            End Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="end_date"
+                            name="end_date"
+                            value="{{ end_date_value }}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <!-- CATEGORY -->
+                    <div class="cr-field">
+
+                        <label for="category">
+                            Category
+                        </label>
+
+                        <select id="category" name="category">
+
+                            <option value="">
+                                All Categories
+                            </option>
+
+                            {% for category in category_options %}
+                            <option
+                                value="{{ category }}"
+                                {% if category_filter == category %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ category }}
+                            </option>
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- ACCOUNT -->
+                    <div class="cr-field">
+
+                        <label for="account">
+                            Account
+                        </label>
+
+                        <select id="account" name="account">
+
+                            <option value="">
+                                All Accounts
+                            </option>
+
+                            {% for account in account_options %}
+                            <option
+                                value="{{ account }}"
+                                {% if account_filter == account %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ account }}
+                            </option>
+                            {% endfor %}
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- TYPE -->
+                    <div class="cr-field">
+
+                        <label for="transaction_type">
+                            Transaction Type
+                        </label>
+
+                        <select
+                            id="transaction_type"
+                            name="transaction_type"
+                        >
+
+                            <option
+                                value=""
+                                {% if not transaction_type %}
+                                    selected
+                                {% endif %}
+                            >
+                                All Transactions
+                            </option>
+
+                            <option
+                                value="income"
+                                {% if transaction_type == "income" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Income Only
+                            </option>
+
+                            <option
+                                value="expense"
+                                {% if transaction_type == "expense" %}
+                                    selected
+                                {% endif %}
+                            >
+                                Expense Only
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="cr-filter-actions"
+                     style="margin-top:15px;">
+
+                    <button
+                        type="submit"
+                        class="cr-btn cr-btn-primary"
+                    >
+                        <i class="fas fa-search"></i>
+                        Generate Report
+                    </button>
+
+                    <a
+                        href="{{ url_for('main.report_custom') }}"
+                        class="cr-btn cr-btn-light"
+                    >
+                        <i class="fas fa-sync-alt"></i>
+                        Reset
+                    </a>
+
+                </div>
+
+
+                <!-- PRESETS -->
+
+                <div class="cr-presets">
+
+                    <span style="
+                        font-size:12px;
+                        font-weight:800;
+                        color:#64748b;
+                        padding:8px 3px;
+                    ">
+                        Quick Range:
+                    </span>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="today">
+                        Today
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="yesterday">
+                        Yesterday
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="7">
+                        Last 7 Days
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="30">
+                        Last 30 Days
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="month">
+                        This Month
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="last-month">
+                        Last Month
+                    </button>
+
+                    <button type="button"
+                            class="cr-preset"
+                            data-range="year">
+                        This Year
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         KPI CARDS
+         ====================================================== -->
+
+    <section class="cr-kpi-grid">
+
+        <!-- INCOME -->
+        <div class="cr-kpi cr-income">
+
+            <div class="cr-kpi-top">
+
+                <span class="cr-kpi-label">
+                    Total Income
+                </span>
+
+                <div class="cr-kpi-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+
+            </div>
+
+            <div class="cr-kpi-value">
+                ${{ "%.2f"|format(total_income or 0) }}
+            </div>
+
+            <div class="cr-kpi-meta">
+
+                {{ income_count or 0 }} income transactions
+
+                {% if income_change is defined %}
+                ·
+                <span class="cr-change {% if income_change >= 0 %}up{% else %}down{% endif %}">
+                    {% if income_change >= 0 %}+{% endif %}
+                    {{ "%.1f"|format(income_change or 0) }}%
+                </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE -->
+        <div class="cr-kpi cr-expense">
+
+            <div class="cr-kpi-top">
+
+                <span class="cr-kpi-label">
+                    Total Expense
+                </span>
+
+                <div class="cr-kpi-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+
+            </div>
+
+            <div class="cr-kpi-value">
+                ${{ "%.2f"|format(total_expense or 0) }}
+            </div>
+
+            <div class="cr-kpi-meta">
+
+                {{ expense_count or 0 }} expense transactions
+
+                {% if expense_change is defined %}
+                ·
+                <span class="cr-change {% if expense_change <= 0 %}up{% else %}down{% endif %}">
+                    {% if expense_change >= 0 %}+{% endif %}
+                    {{ "%.1f"|format(expense_change or 0) }}%
+                </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+        <div class="cr-kpi cr-net">
+
+            <div class="cr-kpi-top">
+
+                <span class="cr-kpi-label">
+                    Net Profit / Loss
+                </span>
+
+                <div class="cr-kpi-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+
+            </div>
+
+            <div class="cr-kpi-value"
+                 style="
+                    color:
+                    {% if net_profit >= 0 %}
+                        #16a34a
+                    {% else %}
+                        #dc2626
+                    {% endif %}
+                 ;">
+
+                ${{ "%.2f"|format(net_profit or 0) }}
+
+            </div>
+
+            <div class="cr-kpi-meta">
+
+                {% if net_profit >= 0 %}
+                    Positive financial movement
+                {% else %}
+                    Negative financial movement
+                {% endif %}
+
+                {% if net_change is defined %}
+                ·
+                <span class="cr-change {% if net_change >= 0 %}up{% else %}down{% endif %}">
+                    {% if net_change >= 0 %}+{% endif %}
+                    {{ "%.1f"|format(net_change or 0) }}%
+                </span>
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+        <div class="cr-kpi cr-count">
+
+            <div class="cr-kpi-top">
+
+                <span class="cr-kpi-label">
+                    Transactions
+                </span>
+
+                <div class="cr-kpi-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+
+            </div>
+
+            <div class="cr-kpi-value">
+                {{ total_transactions or 0 }}
+            </div>
+
+            <div class="cr-kpi-meta">
+                Average:
+                ${{ "%.2f"|format(average_transaction or 0) }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         SECONDARY KPIs
+         ====================================================== -->
+
+    <section class="cr-secondary-grid">
+
+        <div class="cr-mini-card">
+
+            <div class="cr-mini-label">
+                Profit Margin
+            </div>
+
+            <div class="cr-mini-value">
+                {{ "%.1f"|format(profit_margin or 0) }}%
+            </div>
+
+        </div>
+
+
+        <div class="cr-mini-card">
+
+            <div class="cr-mini-label">
+                Expense Ratio
+            </div>
+
+            <div class="cr-mini-value">
+                {{ "%.1f"|format(expense_ratio or 0) }}%
+            </div>
+
+        </div>
+
+
+        <div class="cr-mini-card">
+
+            <div class="cr-mini-label">
+                Highest Transaction
+            </div>
+
+            <div class="cr-mini-value">
+                ${{ "%.2f"|format(highest_transaction or 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="cr-mini-card">
+
+            <div class="cr-mini-label">
+                Lowest Transaction
+            </div>
+
+            <div class="cr-mini-value">
+                ${{ "%.2f"|format(lowest_transaction or 0) }}
+            </div>
+
+        </div>
+
+    </section>
+
+
+    {% if expense_ratio >= 80 %}
+    <div class="cr-alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        Warning: Your expense ratio is {{ "%.1f"|format(expense_ratio) }}%.
+        Expenses are consuming a very high portion of your income.
+    </div>
+    {% endif %}
+
+
+    <!-- ======================================================
+         MAIN CHARTS
+         ====================================================== -->
+
+    <section class="cr-chart-grid">
+
+        <div class="cr-chart-box">
+
+            <div class="cr-chart-head">
+
+                <div>
+                    <h3 class="cr-chart-title">
+                        Income vs Expense
+                    </h3>
+
+                    <div class="cr-chart-subtitle">
+                        Daily financial movement during selected period
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="cr-chart-container">
+                <canvas id="customDailyChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <div class="cr-chart-box">
+
+            <div class="cr-chart-head">
+
+                <div>
+                    <h3 class="cr-chart-title">
+                        Financial Distribution
+                    </h3>
+
+                    <div class="cr-chart-subtitle">
+                        Income and expense distribution
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="cr-chart-container small">
+                <canvas id="customDistributionChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         SECOND CHART ROW
+         ====================================================== -->
+
+    <section class="cr-chart-grid equal">
+
+        <div class="cr-chart-box">
+
+            <div class="cr-chart-head">
+
+                <div>
+                    <h3 class="cr-chart-title">
+                        Category Performance
+                    </h3>
+
+                    <div class="cr-chart-subtitle">
+                        Income and expense by category
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="cr-chart-container">
+                <canvas id="customCategoryChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <div class="cr-chart-box">
+
+            <div class="cr-chart-head">
+
+                <div>
+                    <h3 class="cr-chart-title">
+                        Account Performance
+                    </h3>
+
+                    <div class="cr-chart-subtitle">
+                        Financial activity by account
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="cr-chart-container">
+                <canvas id="customAccountChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         PERFORMANCE LISTS
+         ====================================================== -->
+
+    <section class="cr-performance-grid">
+
+        <!-- CATEGORIES -->
+
+        <div class="cr-performance-card">
+
+            <div class="cr-performance-title">
+                <i class="fas fa-layer-group"></i>
+                Category Performance
+            </div>
+
+            {% for category in categories[:8] %}
+
+            {% set category_total =
+                (category["income"] or 0) +
+                (category["expense"] or 0)
+            %}
+
+            {% if category_total > 0 %}
+                {% set category_percent =
+                    (category_total / ((total_income or 0) + (total_expense or 0)) * 100)
+                %}
+            {% else %}
+                {% set category_percent = 0 %}
+            {% endif %}
+
+            <div class="cr-performance-row">
+
+                <div class="cr-performance-top">
+
+                    <span class="cr-performance-name">
+                        {{ category["name"] }}
+                    </span>
+
+                    <span class="cr-performance-value">
+                        ${{ "%.2f"|format(category_total) }}
+                    </span>
+
+                </div>
+
+                <div class="cr-progress">
+
+                    <div
+                        class="cr-progress-bar"
+                        style="width:{{ [category_percent, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+                <div class="cr-performance-meta">
+                    Income:
+                    ${{ "%.2f"|format(category["income"] or 0) }}
+                    ·
+                    Expense:
+                    ${{ "%.2f"|format(category["expense"] or 0) }}
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="cr-empty">
+                No category data available.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- ACCOUNTS -->
+
+        <div class="cr-performance-card">
+
+            <div class="cr-performance-title">
+                <i class="fas fa-wallet"></i>
+                Account Performance
+            </div>
+
+            {% for account in accounts[:8] %}
+
+            {% set account_total =
+                (account["income"] or 0) +
+                (account["expense"] or 0)
+            %}
+
+            {% if account_total > 0 %}
+                {% set account_percent =
+                    (account_total / ((total_income or 0) + (total_expense or 0)) * 100)
+                %}
+            {% else %}
+                {% set account_percent = 0 %}
+            {% endif %}
+
+            <div class="cr-performance-row">
+
+                <div class="cr-performance-top">
+
+                    <span class="cr-performance-name">
+                        {{ account["name"] }}
+                    </span>
+
+                    <span class="cr-performance-value">
+                        ${{ "%.2f"|format(account_total) }}
+                    </span>
+
+                </div>
+
+                <div class="cr-progress">
+
+                    <div
+                        class="cr-progress-bar"
+                        style="width:{{ [account_percent, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+                <div class="cr-performance-meta">
+                    Income:
+                    ${{ "%.2f"|format(account["income"] or 0) }}
+                    ·
+                    Expense:
+                    ${{ "%.2f"|format(account["expense"] or 0) }}
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="cr-empty">
+                No account data available.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- ITEMS -->
+
+        <div class="cr-performance-card">
+
+            <div class="cr-performance-title">
+                <i class="fas fa-tags"></i>
+                Top Items
+            </div>
+
+            {% for item in items[:8] %}
+
+            {% set item_total =
+                (item["income"] or 0) +
+                (item["expense"] or 0)
+            %}
+
+            {% if item_total > 0 %}
+                {% set item_percent =
+                    (item_total / ((total_income or 0) + (total_expense or 0)) * 100)
+                %}
+            {% else %}
+                {% set item_percent = 0 %}
+            {% endif %}
+
+            <div class="cr-performance-row">
+
+                <div class="cr-performance-top">
+
+                    <span class="cr-performance-name">
+                        {{ item["name"] }}
+                    </span>
+
+                    <span class="cr-performance-value">
+                        ${{ "%.2f"|format(item_total) }}
+                    </span>
+
+                </div>
+
+                <div class="cr-progress">
+
+                    <div
+                        class="cr-progress-bar"
+                        style="width:{{ [item_percent, 100]|min }}%;"
+                    ></div>
+
+                </div>
+
+                <div class="cr-performance-meta">
+                    Transactions:
+                    {{ item["transaction_count"] or 0 }}
+                </div>
+
+            </div>
+
+            {% else %}
+
+            <div class="cr-empty">
+                No item data available.
+            </div>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         DAILY BREAKDOWN
+         ====================================================== -->
+
+    <section class="cr-panel">
+
+        <div class="cr-panel-header">
+
+            <h3 class="cr-panel-title">
+                <i class="fas fa-calendar-day"></i>
+                Daily Breakdown
+            </h3>
+
+        </div>
+
+        <div class="cr-filter-body">
+
+            <div class="cr-daily-grid">
+
+                {% for day in daily_data %}
+
+                <div class="cr-day">
+
+                    <div class="cr-day-label">
+                        {{ day["date"] }}
+                    </div>
+
+                    <div class="cr-day-date">
+                        {{ day.get("label", "") }}
+                    </div>
+
+                    <div class="cr-day-income">
+                        Income:
+                        <strong>
+                            ${{ "%.2f"|format(day["income"] or 0) }}
+                        </strong>
+                    </div>
+
+                    <div class="cr-day-expense">
+                        Expense:
+                        <strong>
+                            ${{ "%.2f"|format(day["expense"] or 0) }}
+                        </strong>
+                    </div>
+
+                    <div class="cr-day-net">
+                        Net:
+                        <strong>
+                            ${{ "%.2f"|format(
+                                (day["income"] or 0) -
+                                (day["expense"] or 0)
+                            ) }}
+                        </strong>
+                    </div>
+
+                </div>
+
+                {% else %}
+
+                <div class="cr-empty">
+                    No daily data available.
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ======================================================
+         TRANSACTION DATATABLE
+         ====================================================== -->
+
+    <section class="cr-table-panel">
+
+        <div class="cr-table-header">
+
+            <div class="cr-table-title-wrap">
+
+                <h3>
+                    <i class="fas fa-list"></i>
+                    Custom Period Transactions
+                </h3>
+
+                <p>
+                    Complete transaction history for the selected custom period.
+                </p>
+
+            </div>
+
+
+            <div class="cr-table-actions">
+
+                <button
+                    type="button"
+                    class="cr-table-action"
+                    onclick="copyTableData()"
+                >
+                    <i class="fas fa-copy"></i>
+                    Copy
+                </button>
+
+                <button
+                    type="button"
+                    class="cr-table-action"
+                    onclick="exportCSV()"
+                >
+                    <i class="fas fa-file-csv"></i>
+                    CSV
+                </button>
+
+                <button
+                    type="button"
+                    class="cr-table-action"
+                    onclick="exportJSON()"
+                >
+                    <i class="fas fa-code"></i>
+                    JSON
+                </button>
+
+                <button
+                    type="button"
+                    class="cr-table-action primary"
+                    onclick="printReport()"
+                >
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="cr-datatable-wrapper">
+
+            <table
+                id="customTransactionsTable"
+                class="display nowrap"
+            >
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            #
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Account
+                        </th>
+
+                        <th>
+                            Category
+                        </th>
+
+                        <th>
+                            Item
+                        </th>
+
+                        <th>
+                            Type
+                        </th>
+
+                        <th>
+                            Amount
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for transaction in custom_transactions %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td data-order="{{ transaction.date }}">
+                            {{ transaction.date }}
+                        </td>
+
+                        <td>
+                            {{ transaction.account }}
+                        </td>
+
+                        <td>
+                            {{ transaction.category }}
+                        </td>
+
+                        <td>
+                            {{ transaction.item }}
+                        </td>
+
+                        <td>
+
+                            {% if transaction.transaction_type|lower == "income" %}
+
+                                <span class="dt-type-income">
+                                    <i class="fas fa-arrow-down"></i>
+                                    Income
+                                </span>
+
+                            {% else %}
+
+                                <span class="dt-type-expense">
+                                    <i class="fas fa-arrow-up"></i>
+                                    Expense
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td class="dt-amount"
+                            data-order="{{ transaction.amount }}">
+
+                            ${{ "%.2f"|format(transaction.amount or 0) }}
+
+                        </td>
+
+                        <td>
+
+                            <span class="dt-status">
+
+                                {% if transaction.status in [true, "true", "True", "completed", "Completed"] %}
+                                    Completed
+                                {% else %}
+                                    {{ transaction.status or "Completed" }}
+                                {% endif %}
+
+                            </span>
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+
+            {% if not custom_transactions %}
+
+            <div class="cr-empty">
+
+                <i class="fas fa-receipt"></i>
+
+                <h4>
+                    No Transactions Found
+                </h4>
+
+                <p>
+                    There are no transactions matching the selected filters.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+</div>
+
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    /* ========================================================
+       DATA FROM FLASK
+       ======================================================== */
+
+    const dailyData = {{ daily_data | tojson | safe }};
+    const categoryData = {{ categories | tojson | safe }};
+    const accountData = {{ accounts | tojson | safe }};
+    const itemData = {{ items | tojson | safe }};
+    const transactionData = {{ custom_transactions | tojson | safe }};
+
+
+    /* ========================================================
+       HELPERS
+       ======================================================== */
+
+    function money(value) {
+
+        value = Number(value || 0);
+
+        return value.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+    }
+
+
+    function safeName(value, fallback = "Unknown") {
+
+        if (
+            value === null ||
+            value === undefined ||
+            String(value).trim() === ""
+        ) {
+            return fallback;
+        }
+
+        return String(value);
+
+    }
+
+
+    /* ========================================================
+       DAILY CHART
+       ======================================================== */
+
+    const dailyCanvas =
+        document.getElementById("customDailyChart");
+
+    if (dailyCanvas && dailyData.length) {
+
+        const labels = dailyData.map(item =>
+            safeName(
+                item.label || item.date,
+                ""
+            )
+        );
+
+        const income = dailyData.map(item =>
+            Number(item.income || 0)
+        );
+
+        const expense = dailyData.map(item =>
+            Number(item.expense || 0)
+        );
+
+        const net = dailyData.map(item =>
+            Number(item.income || 0) -
+            Number(item.expense || 0)
+        );
+
+
+        new Chart(dailyCanvas, {
+
+            type: "line",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: income,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expense,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Net",
+                        data: net,
+                        borderWidth: 2,
+                        borderDash: [6, 5],
+                        tension: .35,
+                        fill: false
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    legend: {
+                        position: "top"
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return (
+                                    context.dataset.label +
+                                    ": $" +
+                                    money(context.raw)
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function(value) {
+                                return "$" + money(value);
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       DISTRIBUTION DOUGHNUT
+       ======================================================== */
+
+    const distributionCanvas =
+        document.getElementById("customDistributionChart");
+
+    if (distributionCanvas) {
+
+        new Chart(distributionCanvas, {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: [
+                    "Income",
+                    "Expense"
+                ],
+
+                datasets: [{
+
+                    data: [
+                        Number({{ total_income or 0 }}),
+                        Number({{ total_expense or 0 }})
+                    ],
+
+                    borderWidth: 0
+
+                }]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: "68%",
+
+                plugins: {
+
+                    legend: {
+                        position: "bottom"
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return (
+                                    context.label +
+                                    ": $" +
+                                    money(context.raw)
+                                );
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       CATEGORY CHART
+       ======================================================== */
+
+    const categoryCanvas =
+        document.getElementById("customCategoryChart");
+
+    if (
+        categoryCanvas &&
+        categoryData &&
+        categoryData.length
+    ) {
+
+        const topCategories =
+            categoryData.slice(0, 10);
+
+        new Chart(categoryCanvas, {
+
+            type: "bar",
+
+            data: {
+
+                labels: topCategories.map(item =>
+                    safeName(item.name)
+                ),
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: topCategories.map(item =>
+                            Number(item.income || 0)
+                        ),
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: "Expense",
+                        data: topCategories.map(item =>
+                            Number(item.expense || 0)
+                        ),
+                        borderWidth: 1
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+                    legend: {
+                        position: "top"
+                    }
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+                            callback: function(value) {
+                                return "$" + money(value);
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       ACCOUNT CHART
+       ======================================================== */
+
+    const accountCanvas =
+        document.getElementById("customAccountChart");
+
+    if (
+        accountCanvas &&
+        accountData &&
+        accountData.length
+    ) {
+
+        const topAccounts =
+            accountData.slice(0, 10);
+
+
+        new Chart(accountCanvas, {
+
+            type: "bar",
+
+            data: {
+
+                labels: topAccounts.map(item =>
+                    safeName(item.name)
+                ),
+
+                datasets: [{
+
+                    label: "Total Activity",
+
+                    data: topAccounts.map(item =>
+                        Number(item.income || 0) +
+                        Number(item.expense || 0)
+                    ),
+
+                    borderWidth: 1
+
+                }]
+
+            },
+
+            options: {
+
+                indexAxis: "y",
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+                        display: false
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+                            callback: function(value) {
+                                return "$" + money(value);
+                            }
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       DATATABLE
+       ======================================================== */
+
+    if (
+        typeof $.fn.DataTable !== "undefined" &&
+        document.getElementById("customTransactionsTable")
+    ) {
+
+        $("#customTransactionsTable").DataTable({
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            responsive: false,
+
+            autoWidth: false,
+
+            columnDefs: [
+
+                {
+                    targets: 0,
+                    orderable: false,
+                    searchable: false
+                },
+
+                {
+                    targets: 6,
+                    type: "num"
+                }
+
+            ],
+
+            language: {
+
+                search: "Search:",
+
+                searchPlaceholder:
+                    "Search transactions...",
+
+                lengthMenu:
+                    "Show _MENU_",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty:
+                    "No transactions available",
+
+                zeroRecords:
+                    "No matching transactions found",
+
+                emptyTable:
+                    "No transactions found",
+
+                paginate: {
+
+                    first: "First",
+
+                    last: "Last",
+
+                    next: "›",
+
+                    previous: "‹"
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       DATE VALIDATION
+       ======================================================== */
+
+    const startInput =
+        document.getElementById("start_date");
+
+    const endInput =
+        document.getElementById("end_date");
+
+
+    function validateDates() {
+
+        if (!startInput.value || !endInput.value) {
+            return;
+        }
+
+        if (startInput.value > endInput.value) {
+
+            endInput.setCustomValidity(
+                "End date must be on or after start date."
+            );
+
+        } else {
+
+            endInput.setCustomValidity("");
+
+        }
+
+    }
+
+
+    startInput.addEventListener(
+        "change",
+        validateDates
+    );
+
+    endInput.addEventListener(
+        "change",
+        validateDates
+    );
+
+
+    /* ========================================================
+       QUICK DATE PRESETS
+       ======================================================== */
+
+    document
+        .querySelectorAll(".cr-preset")
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    const range =
+                        this.dataset.range;
+
+                    const now = new Date();
+
+                    let start =
+                        new Date(now);
+
+                    let end =
+                        new Date(now);
+
+
+                    /* TODAY */
+
+                    if (range === "today") {
+
+                        start =
+                            new Date(now);
+
+                        end =
+                            new Date(now);
+
+                    }
+
+
+                    /* YESTERDAY */
+
+                    else if (range === "yesterday") {
+
+                        start =
+                            new Date(now);
+
+                        start.setDate(
+                            start.getDate() - 1
+                        );
+
+                        end =
+                            new Date(start);
+
+                    }
+
+
+                    /* LAST N DAYS */
+
+                    else if (
+                        range === "7" ||
+                        range === "30"
+                    ) {
+
+                        const days =
+                            Number(range);
+
+                        start =
+                            new Date(now);
+
+                        start.setDate(
+                            start.getDate() -
+                            (days - 1)
+                        );
+
+                        end =
+                            new Date(now);
+
+                    }
+
+
+                    /* THIS MONTH */
+
+                    else if (range === "month") {
+
+                        start =
+                            new Date(
+                                now.getFullYear(),
+                                now.getMonth(),
+                                1
+                            );
+
+                        end =
+                            new Date(
+                                now.getFullYear(),
+                                now.getMonth() + 1,
+                                0
+                            );
+
+                    }
+
+
+                    /* LAST MONTH */
+
+                    else if (
+                        range === "last-month"
+                    ) {
+
+                        start =
+                            new Date(
+                                now.getFullYear(),
+                                now.getMonth() - 1,
+                                1
+                            );
+
+                        end =
+                            new Date(
+                                now.getFullYear(),
+                                now.getMonth(),
+                                0
+                            );
+
+                    }
+
+
+                    /* THIS YEAR */
+
+                    else if (range === "year") {
+
+                        start =
+                            new Date(
+                                now.getFullYear(),
+                                0,
+                                1
+                            );
+
+                        end =
+                            new Date(
+                                now.getFullYear(),
+                                11,
+                                31
+                            );
+
+                    }
+
+
+                    startInput.value =
+                        formatDateInput(start);
+
+                    endInput.value =
+                        formatDateInput(end);
+
+                    validateDates();
+
+                    document
+                        .getElementById(
+                            "customReportForm"
+                        )
+                        .submit();
+
+                }
+            );
+
+        });
+
+
+    /* ========================================================
+       FORMAT DATE
+       ======================================================== */
+
+    function formatDateInput(date) {
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(2, "0");
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+});
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+function printReport() {
+
+    window.print();
+
+}
+
+
+/* ============================================================
+   EXPORT JSON
+   ============================================================ */
+
+function exportJSON() {
+
+    const data = {
+
+        report: "Custom Financial Report",
+
+        period: {
+            start: "{{ start_date_value }}",
+            end: "{{ end_date_value }}",
+            label: "{{ custom_range_label }}"
+        },
+
+        summary: {
+
+            total_income:
+                Number({{ total_income or 0 }}),
+
+            income_count:
+                Number({{ income_count or 0 }}),
+
+            total_expense:
+                Number({{ total_expense or 0 }}),
+
+            expense_count:
+                Number({{ expense_count or 0 }}),
+
+            net_profit:
+                Number({{ net_profit or 0 }}),
+
+            total_transactions:
+                Number({{ total_transactions or 0 }}),
+
+            average_transaction:
+                Number({{ average_transaction or 0 }}),
+
+            highest_transaction:
+                Number({{ highest_transaction or 0 }}),
+
+            lowest_transaction:
+                Number({{ lowest_transaction or 0 }}),
+
+            profit_margin:
+                Number({{ profit_margin or 0 }}),
+
+            expense_ratio:
+                Number({{ expense_ratio or 0 }})
+
+        },
+
+        transactions:
+            {{ custom_transactions | tojson | safe }}
+
+    };
+
+
+    const blob =
+        new Blob(
+            [
+                JSON.stringify(
+                    data,
+                    null,
+                    2
+                )
+            ],
+            {
+                type: "application/json"
+            }
+        );
+
+
+    downloadBlob(
+        blob,
+        "custom-report-{{ start_date_value }}-{{ end_date_value }}.json"
+    );
+
+}
+
+
+/* ============================================================
+   EXPORT CSV
+   ============================================================ */
+
+function exportCSV() {
+
+    const rows = [
+        [
+            "#",
+            "Date",
+            "Account",
+            "Category",
+            "Item",
+            "Type",
+            "Amount",
+            "Status"
+        ]
+    ];
+
+
+    const transactions =
+        {{ custom_transactions | tojson | safe }};
+
+
+    transactions.forEach(
+        function(transaction, index) {
+
+            rows.push([
+
+                index + 1,
+
+                transaction.date || "",
+
+                transaction.account || "",
+
+                transaction.category || "",
+
+                transaction.item || "",
+
+                transaction.transaction_type || "",
+
+                Number(
+                    transaction.amount || 0
+                ).toFixed(2),
+
+                transaction.status || ""
+
+            ]);
+
+        }
+    );
+
+
+    const csv =
+        rows
+            .map(row =>
+                row.map(csvEscape).join(",")
+            )
+            .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type: "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    downloadBlob(
+        blob,
+        "custom-report-{{ start_date_value }}-{{ end_date_value }}.csv"
+    );
+
+}
+
+
+/* ============================================================
+   CSV ESCAPE
+   ============================================================ */
+
+function csvEscape(value) {
+
+    value =
+        value === null ||
+        value === undefined
+            ? ""
+            : String(value);
+
+    if (
+        value.includes(",") ||
+        value.includes('"') ||
+        value.includes("\n")
+    ) {
+
+        return '"' +
+            value.replace(
+                /"/g,
+                '""'
+            ) +
+            '"';
+
+    }
+
+    return value;
+
+}
+
+
+/* ============================================================
+   DOWNLOAD
+   ============================================================ */
+
+function downloadBlob(blob, filename) {
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download = filename;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+/* ============================================================
+   COPY TABLE
+   ============================================================ */
+
+function copyTableData() {
+
+    const transactions =
+        {{ custom_transactions | tojson | safe }};
+
+
+    let text =
+        "Date\tAccount\tCategory\tItem\tType\tAmount\tStatus\n";
+
+
+    transactions.forEach(
+        function(transaction) {
+
+            text +=
+                `${transaction.date || ""}\t` +
+                `${transaction.account || ""}\t` +
+                `${transaction.category || ""}\t` +
+                `${transaction.item || ""}\t` +
+                `${transaction.transaction_type || ""}\t` +
+                `${Number(transaction.amount || 0).toFixed(2)}\t` +
+                `${transaction.status || ""}\n`;
+
+        }
+    );
+
+
+    navigator.clipboard
+        .writeText(text)
+        .then(function () {
+
+            showCopyMessage(
+                "Transaction data copied successfully."
+            );
+
+        })
+        .catch(function () {
+
+            alert(
+                "Unable to copy table data."
+            );
+
+        });
+
+}
+
+
+/* ============================================================
+   COPY MESSAGE
+   ============================================================ */
+
+function showCopyMessage(message) {
+
+    const old =
+        document.getElementById(
+            "copySuccessMessage"
+        );
+
+    if (old) {
+        old.remove();
+    }
+
+
+    const toast =
+        document.createElement("div");
+
+    toast.id =
+        "copySuccessMessage";
+
+    toast.innerHTML =
+        `<i class="fas fa-check-circle"></i> ${message}`;
+
+
+    toast.style.position =
+        "fixed";
+
+    toast.style.right =
+        "20px";
+
+    toast.style.bottom =
+        "20px";
+
+    toast.style.zIndex =
+        "99999";
+
+    toast.style.padding =
+        "13px 17px";
+
+    toast.style.borderRadius =
+        "11px";
+
+    toast.style.background =
+        "#0f172a";
+
+    toast.style.color =
+        "#fff";
+
+    toast.style.fontSize =
+        "12px";
+
+    toast.style.fontWeight =
+        "800";
+
+    toast.style.boxShadow =
+        "0 10px 30px rgba(0,0,0,.2)";
+
+
+    document.body.appendChild(toast);
+
+
+    setTimeout(function () {
+
+        toast.remove();
+
+    }, 2500);
+
+}
+</script>
+
+{% endblock %}

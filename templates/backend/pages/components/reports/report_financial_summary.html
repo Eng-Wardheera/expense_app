@@ -1,0 +1,3827 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}
+Financial Summary Report
+{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   FINANCIAL SUMMARY REPORT
+   VERY ADVANCED REPORT UI
+   ============================================================ */
+
+:root {
+    --fs-primary: #2563eb;
+    --fs-primary-dark: #1d4ed8;
+    --fs-success: #16a34a;
+    --fs-danger: #dc2626;
+    --fs-warning: #d97706;
+    --fs-purple: #7c3aed;
+    --fs-cyan: #0891b2;
+
+    --fs-bg: #f4f7fb;
+    --fs-card: #ffffff;
+    --fs-text: #172033;
+    --fs-muted: #6b7280;
+    --fs-border: #e5e7eb;
+
+    --fs-radius: 18px;
+    --fs-shadow: 0 10px 35px rgba(15, 23, 42, .07);
+}
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.financial-report-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--fs-bg);
+    padding: 24px;
+    color: var(--fs-text);
+}
+
+.fs-container {
+    width: 100%;
+    max-width: 1800px;
+    margin: auto;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.fs-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.fs-header-left {
+    min-width: 0;
+}
+
+.fs-title {
+    margin: 0;
+    font-size: 31px;
+    font-weight: 900;
+    letter-spacing: -.8px;
+}
+
+.fs-subtitle {
+    margin: 7px 0 0;
+    color: var(--fs-muted);
+    font-size: 14px;
+}
+
+.fs-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.fs-btn {
+    min-height: 40px;
+    border: 1px solid var(--fs-border);
+    border-radius: 10px;
+    background: var(--fs-card);
+    color: var(--fs-text);
+    padding: 8px 13px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    transition: .2s ease;
+}
+
+.fs-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 7px 18px rgba(15, 23, 42, .08);
+}
+
+.fs-btn-primary {
+    color: #fff;
+    background: var(--fs-primary);
+    border-color: var(--fs-primary);
+}
+
+.fs-btn-primary:hover {
+    background: var(--fs-primary-dark);
+}
+
+.fs-btn-success {
+    color: #fff;
+    background: var(--fs-success);
+    border-color: var(--fs-success);
+}
+
+.fs-btn-danger {
+    color: #fff;
+    background: var(--fs-danger);
+    border-color: var(--fs-danger);
+}
+
+.fs-btn-purple {
+    color: #fff;
+    background: var(--fs-purple);
+    border-color: var(--fs-purple);
+}
+
+/* ============================================================
+   FILTER
+   ============================================================ */
+
+.fs-filter-card {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    box-shadow: var(--fs-shadow);
+    padding: 20px;
+    margin-bottom: 22px;
+}
+
+.fs-filter-title {
+    margin: 0 0 16px;
+    font-size: 16px;
+    font-weight: 900;
+}
+
+.fs-filter-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(5, minmax(150px, 1fr))
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.fs-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fs-field label {
+    font-size: 10px;
+    color: var(--fs-muted);
+    text-transform: uppercase;
+    letter-spacing: .45px;
+    font-weight: 900;
+}
+
+.fs-field input,
+.fs-field select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--fs-border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: var(--fs-card);
+    color: var(--fs-text);
+    outline: none;
+}
+
+.fs-field input:focus,
+.fs-field select:focus {
+    border-color: var(--fs-primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+.fs-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--fs-border);
+}
+
+.fs-preset {
+    border: 1px solid var(--fs-border);
+    border-radius: 8px;
+    background: var(--fs-bg);
+    color: var(--fs-text);
+    padding: 7px 11px;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* ============================================================
+   ALERT
+   ============================================================ */
+
+.fs-alert {
+    padding: 15px 17px;
+    border-radius: 14px;
+    margin-bottom: 22px;
+    border: 1px solid rgba(217,119,6,.25);
+    background: rgba(217,119,6,.08);
+    color: #92400e;
+}
+
+/* ============================================================
+   KPI
+   ============================================================ */
+
+.fs-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.fs-kpi {
+    position: relative;
+    overflow: hidden;
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    box-shadow: var(--fs-shadow);
+    padding: 19px;
+}
+
+.fs-kpi::after {
+    content: "";
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    right: -35px;
+    top: -35px;
+    border-radius: 50%;
+    background: rgba(37,99,235,.05);
+}
+
+.fs-kpi-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fs-kpi-label {
+    font-size: 11px;
+    color: var(--fs-muted);
+    text-transform: uppercase;
+    font-weight: 900;
+}
+
+.fs-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 900;
+    background: rgba(37,99,235,.09);
+    color: var(--fs-primary);
+}
+
+.fs-kpi-value {
+    margin-top: 13px;
+    font-size: 27px;
+    font-weight: 900;
+}
+
+.fs-kpi-meta {
+    margin-top: 8px;
+    color: var(--fs-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   COMPARISON
+   ============================================================ */
+
+.fs-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.fs-comparison {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: 15px;
+    padding: 16px;
+}
+
+.fs-comparison-title {
+    color: var(--fs-muted);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.fs-comparison-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.fs-comparison-value {
+    font-size: 20px;
+    font-weight: 900;
+}
+
+.fs-change {
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10px;
+    font-weight: 900;
+}
+
+.fs-change-up {
+    background: rgba(22,163,74,.1);
+    color: #15803d;
+}
+
+.fs-change-down {
+    background: rgba(220,38,38,.1);
+    color: #b91c1c;
+}
+
+.fs-change-neutral {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* ============================================================
+   METRICS
+   ============================================================ */
+
+.fs-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.fs-mini {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: 14px;
+    padding: 15px;
+}
+
+.fs-mini-label {
+    color: var(--fs-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    font-weight: 900;
+}
+
+.fs-mini-value {
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+
+.fs-section {
+    margin-bottom: 24px;
+}
+
+.fs-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.fs-section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+}
+
+.fs-section-desc {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--fs-muted);
+}
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+
+.fs-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.fs-chart-card {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    box-shadow: var(--fs-shadow);
+    padding: 18px;
+    min-width: 0;
+}
+
+.fs-chart-card.full {
+    grid-column: 1 / -1;
+}
+
+.fs-chart-title {
+    margin: 0 0 13px;
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.fs-chart {
+    position: relative;
+    height: 320px;
+}
+
+.fs-chart.large {
+    height: 390px;
+}
+
+/* ============================================================
+   PERFORMANCE
+   ============================================================ */
+
+.fs-performance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.fs-performance-card {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    box-shadow: var(--fs-shadow);
+    padding: 18px;
+}
+
+.fs-performance-title {
+    font-size: 14px;
+    font-weight: 900;
+    margin-bottom: 15px;
+}
+
+.fs-performance-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 13px;
+}
+
+.fs-performance-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.fs-performance-value {
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.fs-progress {
+    height: 7px;
+    background: #edf1f6;
+    border-radius: 999px;
+    overflow: hidden;
+    grid-column: 1 / -1;
+}
+
+.fs-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+}
+
+/* ============================================================
+   TABLE CARD
+   ============================================================ */
+
+.fs-table-card {
+    background: var(--fs-card);
+    border: 1px solid var(--fs-border);
+    border-radius: var(--fs-radius);
+    box-shadow: var(--fs-shadow);
+    overflow: hidden;
+}
+
+.fs-table-toolbar {
+    padding: 15px;
+    border-bottom: 1px solid var(--fs-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fs-table-title {
+    font-size: 14px;
+    font-weight: 900;
+}
+
+.fs-table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.fs-table-actions .fs-btn {
+    min-height: 34px;
+    padding: 6px 9px;
+    font-size: 10px;
+}
+
+.fs-table-wrap {
+    overflow-x: auto;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.fs-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+.fs-table th {
+    padding: 12px 13px;
+    background: #f8fafc;
+    color: var(--fs-muted);
+    border-bottom: 1px solid var(--fs-border);
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.fs-table td {
+    padding: 11px 13px;
+    border-bottom: 1px solid var(--fs-border);
+    font-size: 11px;
+}
+
+.fs-table tbody tr:hover {
+    background: rgba(37,99,235,.025);
+}
+
+.fs-table tfoot td {
+    background: #f8fafc;
+    font-weight: 900;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.fs-badge {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.fs-income {
+    color: #15803d;
+    background: rgba(22,163,74,.1);
+}
+
+.fs-expense {
+    color: #b91c1c;
+    background: rgba(220,38,38,.1);
+}
+
+.fs-completed {
+    color: #15803d;
+    background: rgba(22,163,74,.1);
+}
+
+.fs-failed {
+    color: #b91c1c;
+    background: rgba(220,38,38,.1);
+}
+
+.fs-neutral {
+    color: #475569;
+    background: #f1f5f9;
+}
+
+/* ============================================================
+   DATATABLE
+   ============================================================ */
+
+.dataTables_wrapper {
+    padding: 14px;
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: 12px;
+}
+
+.dataTables_wrapper .dataTables_length label,
+.dataTables_wrapper .dataTables_filter label {
+    color: var(--fs-muted);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--fs-border);
+    border-radius: 8px;
+    background: var(--fs-card);
+    color: var(--fs-text);
+    padding: 7px 9px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    margin-left: 7px;
+}
+
+.dataTables_wrapper .dataTables_paginate {
+    margin-top: 10px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border: 1px solid var(--fs-border) !important;
+    border-radius: 7px !important;
+    background: var(--fs-card) !important;
+    color: var(--fs-text) !important;
+    font-size: 10px;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--fs-primary) !important;
+    color: #fff !important;
+    border-color: var(--fs-primary) !important;
+}
+
+/* ============================================================
+   EMPTY
+   ============================================================ */
+
+.fs-empty {
+    text-align: center;
+    padding: 40px 15px;
+    color: var(--fs-muted);
+}
+
+.fs-empty-title {
+    font-weight: 900;
+    color: var(--fs-text);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+
+    .fs-filter-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .fs-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .fs-mini-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .fs-performance-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .financial-report-page {
+        padding: 15px;
+    }
+
+    .fs-header {
+        flex-direction: column;
+    }
+
+    .fs-filter-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .fs-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fs-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fs-chart-card.full {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .financial-report-page {
+        padding: 10px;
+    }
+
+    .fs-title {
+        font-size: 23px;
+    }
+
+    .fs-filter-grid,
+    .fs-kpi-grid,
+    .fs-mini-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fs-chart {
+        height: 270px;
+    }
+
+    .fs-chart.large {
+        height: 300px;
+    }
+
+    .fs-table-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .fs-table-actions {
+        width: 100%;
+    }
+
+    .fs-table-actions .fs-btn {
+        flex: 1;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .financial-report-page {
+        padding: 0 !important;
+        background: #fff !important;
+    }
+
+    .fs-filter-card,
+    .fs-header-actions,
+    .fs-table-actions,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_paginate,
+    .dataTables_info {
+        display: none !important;
+    }
+
+    .fs-kpi,
+    .fs-chart-card,
+    .fs-performance-card,
+    .fs-table-card {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .fs-section {
+        break-inside: avoid;
+    }
+
+    .fs-table {
+        min-width: 100%;
+    }
+}
+</style>
+
+
+<div class="financial-report-page">
+
+<div class="fs-container">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="fs-header">
+
+        <div class="fs-header-left">
+
+            <h1 class="fs-title">
+                Financial Summary Report
+            </h1>
+
+            <p class="fs-subtitle">
+                {{ custom_range_label }}
+                {% if period_days %}
+                    · {{ period_days }} day{% if period_days != 1 %}s{% endif %}
+                {% endif %}
+            </p>
+
+        </div>
+
+
+        <div class="fs-header-actions">
+
+            <button class="fs-btn"
+                    onclick="printFullReport()">
+                🖨 Print Report
+            </button>
+
+            <button class="fs-btn fs-btn-danger"
+                    onclick="exportFullPDF()">
+                PDF
+            </button>
+
+            <button class="fs-btn fs-btn-success"
+                    onclick="exportFullCSV()">
+                CSV
+            </button>
+
+            <button class="fs-btn fs-btn-primary"
+                    onclick="exportFinancialJSON()">
+                JSON
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="fs-filter-card">
+
+        <h2 class="fs-filter-title">
+            Report Filters
+        </h2>
+
+        <form method="GET"
+              action="{{ url_for('main.report_financial_summary') }}">
+
+            <div class="fs-filter-grid">
+
+                <div class="fs-field">
+
+                    <label>
+                        Start Date
+                    </label>
+
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           value="{{ start_date }}">
+
+                </div>
+
+
+                <div class="fs-field">
+
+                    <label>
+                        End Date
+                    </label>
+
+                    <input type="date"
+                           id="end_date"
+                           name="end_date"
+                           value="{{ end_date }}">
+
+                </div>
+
+
+                <div class="fs-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select name="category">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for category in category_options %}
+
+                        <option value="{{ category }}"
+                            {% if category_filter == category %}
+                                selected
+                            {% endif %}>
+                            {{ category }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="fs-field">
+
+                    <label>
+                        Account
+                    </label>
+
+                    <select name="account">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% for account in account_options %}
+
+                        <option value="{{ account }}"
+                            {% if account_filter == account %}
+                                selected
+                            {% endif %}>
+                            {{ account }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="fs-field">
+
+                    <label>
+                        Transaction Type
+                    </label>
+
+                    <select name="transaction_type">
+
+                        <option value="">
+                            Income + Expense
+                        </option>
+
+                        <option value="income"
+                            {% if transaction_type == "income" %}
+                                selected
+                            {% endif %}>
+                            Income Only
+                        </option>
+
+                        <option value="expense"
+                            {% if transaction_type == "expense" %}
+                                selected
+                            {% endif %}>
+                            Expense Only
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <button type="submit"
+                        class="fs-btn fs-btn-primary">
+                    Apply Filters
+                </button>
+
+            </div>
+
+        </form>
+
+
+        <div class="fs-presets">
+
+            <button class="fs-preset"
+                    onclick="setPreset('today')">
+                Today
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('yesterday')">
+                Yesterday
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('7')">
+                Last 7 Days
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('30')">
+                Last 30 Days
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('month')">
+                This Month
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('last_month')">
+                Last Month
+            </button>
+
+            <button class="fs-preset"
+                    onclick="setPreset('year')">
+                This Year
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         WARNING
+         ======================================================== -->
+
+    {% if expense_ratio >= 80 %}
+
+    <div class="fs-alert">
+
+        <strong>
+            ⚠ High Expense Ratio
+        </strong>
+
+        <div>
+            Expenses represent
+            {{ "%.1f"|format(expense_ratio or 0) }}%
+            of total income during this period.
+        </div>
+
+    </div>
+
+    {% endif %}
+
+
+    <!-- ========================================================
+         KPI
+         ======================================================== -->
+
+    <div class="fs-kpi-grid">
+
+        <div class="fs-kpi">
+
+            <div class="fs-kpi-top">
+
+                <span class="fs-kpi-label">
+                    Total Income
+                </span>
+
+                <span class="fs-kpi-icon">
+                    ↑
+                </span>
+
+            </div>
+
+            <div class="fs-kpi-value"
+                 style="color:var(--fs-success);">
+                ${{ "%.2f"|format(total_income or 0) }}
+            </div>
+
+            <div class="fs-kpi-meta">
+                {{ income_count or 0 }} income transactions
+            </div>
+
+        </div>
+
+
+        <div class="fs-kpi">
+
+            <div class="fs-kpi-top">
+
+                <span class="fs-kpi-label">
+                    Total Expense
+                </span>
+
+                <span class="fs-kpi-icon">
+                    ↓
+                </span>
+
+            </div>
+
+            <div class="fs-kpi-value"
+                 style="color:var(--fs-danger);">
+                ${{ "%.2f"|format(total_expense or 0) }}
+            </div>
+
+            <div class="fs-kpi-meta">
+                {{ expense_count or 0 }} expense transactions
+            </div>
+
+        </div>
+
+
+        <div class="fs-kpi">
+
+            <div class="fs-kpi-top">
+
+                <span class="fs-kpi-label">
+                    Net Profit / Loss
+                </span>
+
+                <span class="fs-kpi-icon">
+                    $
+                </span>
+
+            </div>
+
+            <div class="fs-kpi-value"
+                 style="
+                    color:
+                    {% if net_profit > 0 %}
+                        var(--fs-success)
+                    {% elif net_profit < 0 %}
+                        var(--fs-danger)
+                    {% else %}
+                        var(--fs-text)
+                    {% endif %};
+                 ">
+
+                ${{ "%.2f"|format(net_profit or 0) }}
+
+            </div>
+
+            <div class="fs-kpi-meta">
+                Income − Expense
+            </div>
+
+        </div>
+
+
+        <div class="fs-kpi">
+
+            <div class="fs-kpi-top">
+
+                <span class="fs-kpi-label">
+                    Transactions
+                </span>
+
+                <span class="fs-kpi-icon">
+                    #
+                </span>
+
+            </div>
+
+            <div class="fs-kpi-value">
+                {{ total_transactions or 0 }}
+            </div>
+
+            <div class="fs-kpi-meta">
+                Selected period
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         COMPARISON
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-section-head">
+
+            <div>
+
+                <h2 class="fs-section-title">
+                    Previous Period Comparison
+                </h2>
+
+                <div class="fs-section-desc">
+                    Compared with {{ previous_range_label }}
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="fs-comparison-grid">
+
+            <div class="fs-comparison">
+
+                <div class="fs-comparison-title">
+                    Previous Income
+                </div>
+
+                <div class="fs-comparison-main">
+
+                    <div class="fs-comparison-value">
+                        ${{ "%.2f"|format(previous_income or 0) }}
+                    </div>
+
+                    {% if income_change > 0 %}
+
+                    <span class="fs-change fs-change-up">
+                        ↑ {{ "%.1f"|format(income_change) }}%
+                    </span>
+
+                    {% elif income_change < 0 %}
+
+                    <span class="fs-change fs-change-down">
+                        ↓ {{ "%.1f"|format(income_change|abs) }}%
+                    </span>
+
+                    {% else %}
+
+                    <span class="fs-change fs-change-neutral">
+                        0.0%
+                    </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-comparison">
+
+                <div class="fs-comparison-title">
+                    Previous Expense
+                </div>
+
+                <div class="fs-comparison-main">
+
+                    <div class="fs-comparison-value">
+                        ${{ "%.2f"|format(previous_expense or 0) }}
+                    </div>
+
+                    {% if expense_change > 0 %}
+
+                    <span class="fs-change fs-change-down">
+                        ↑ {{ "%.1f"|format(expense_change) }}%
+                    </span>
+
+                    {% elif expense_change < 0 %}
+
+                    <span class="fs-change fs-change-up">
+                        ↓ {{ "%.1f"|format(expense_change|abs) }}%
+                    </span>
+
+                    {% else %}
+
+                    <span class="fs-change fs-change-neutral">
+                        0.0%
+                    </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-comparison">
+
+                <div class="fs-comparison-title">
+                    Previous Net
+                </div>
+
+                <div class="fs-comparison-main">
+
+                    <div class="fs-comparison-value">
+                        ${{ "%.2f"|format(previous_net or 0) }}
+                    </div>
+
+                    {% if net_change > 0 %}
+
+                    <span class="fs-change fs-change-up">
+                        ↑ {{ "%.1f"|format(net_change) }}%
+                    </span>
+
+                    {% elif net_change < 0 %}
+
+                    <span class="fs-change fs-change-down">
+                        ↓ {{ "%.1f"|format(net_change|abs) }}%
+                    </span>
+
+                    {% else %}
+
+                    <span class="fs-change fs-change-neutral">
+                        0.0%
+                    </span>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         METRICS
+         ======================================================== -->
+
+    <div class="fs-mini-grid">
+
+        <div class="fs-mini">
+
+            <div class="fs-mini-label">
+                Average Transaction
+            </div>
+
+            <div class="fs-mini-value">
+                ${{ "%.2f"|format(average_transaction or 0) }}
+            </div>
+
+        </div>
+
+
+        <div class="fs-mini">
+
+            <div class="fs-mini-label">
+                Profit Margin
+            </div>
+
+            <div class="fs-mini-value">
+                {{ "%.1f"|format(profit_margin or 0) }}%
+            </div>
+
+        </div>
+
+
+        <div class="fs-mini">
+
+            <div class="fs-mini-label">
+                Expense Ratio
+            </div>
+
+            <div class="fs-mini-value">
+                {{ "%.1f"|format(expense_ratio or 0) }}%
+            </div>
+
+        </div>
+
+
+        <div class="fs-mini">
+
+            <div class="fs-mini-label">
+                Highest Transaction
+            </div>
+
+            <div class="fs-mini-value">
+                ${{ "%.2f"|format(highest_transaction or 0) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-section-head">
+
+            <div>
+
+                <h2 class="fs-section-title">
+                    Financial Analytics
+                </h2>
+
+                <div class="fs-section-desc">
+                    Visual analysis of the selected financial period
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="fs-chart-grid">
+
+            <div class="fs-chart-card full">
+
+                <h3 class="fs-chart-title">
+                    Monthly Financial Performance
+                </h3>
+
+                <div class="fs-chart large">
+                    <canvas id="monthlyFinancialChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="fs-chart-card">
+
+                <h3 class="fs-chart-title">
+                    Daily Financial Movement
+                </h3>
+
+                <div class="fs-chart">
+                    <canvas id="dailyFinancialChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="fs-chart-card">
+
+                <h3 class="fs-chart-title">
+                    Income vs Expense
+                </h3>
+
+                <div class="fs-chart">
+                    <canvas id="incomeExpenseChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="fs-chart-card">
+
+                <h3 class="fs-chart-title">
+                    Category Performance
+                </h3>
+
+                <div class="fs-chart">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+
+            </div>
+
+
+            <div class="fs-chart-card">
+
+                <h3 class="fs-chart-title">
+                    Account Performance
+                </h3>
+
+                <div class="fs-chart">
+                    <canvas id="accountChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP PERFORMANCE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-section-head">
+
+            <div>
+
+                <h2 class="fs-section-title">
+                    Top Performance
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="fs-performance-grid">
+
+
+            <!-- TOP INCOME -->
+
+            <div class="fs-performance-card">
+
+                <div class="fs-performance-title">
+                    Top Income Categories
+                </div>
+
+                {% if top_income_categories %}
+
+                    {% set max_income =
+                        top_income_categories[0]["income"] or 1 %}
+
+                    {% for row in top_income_categories[:10] %}
+
+                    <div class="fs-performance-row">
+
+                        <div class="fs-performance-name">
+                            {{ row["name"] }}
+                        </div>
+
+                        <div class="fs-performance-value">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </div>
+
+                        <div class="fs-progress">
+
+                            <div class="fs-progress-bar"
+                                 style="
+                                    width:
+                                    {{ ((row['income'] or 0) / max_income * 100)
+                                       if max_income else 0 }}%;
+                                    background:var(--fs-success);
+                                 ">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="fs-empty">
+                        No income category data.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- TOP EXPENSE -->
+
+            <div class="fs-performance-card">
+
+                <div class="fs-performance-title">
+                    Top Expense Categories
+                </div>
+
+                {% if top_expense_categories %}
+
+                    {% set max_expense =
+                        top_expense_categories[0]["expense"] or 1 %}
+
+                    {% for row in top_expense_categories[:10] %}
+
+                    <div class="fs-performance-row">
+
+                        <div class="fs-performance-name">
+                            {{ row["name"] }}
+                        </div>
+
+                        <div class="fs-performance-value">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </div>
+
+                        <div class="fs-progress">
+
+                            <div class="fs-progress-bar"
+                                 style="
+                                    width:
+                                    {{ ((row['expense'] or 0) / max_expense * 100)
+                                       if max_expense else 0 }}%;
+                                    background:var(--fs-danger);
+                                 ">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="fs-empty">
+                        No expense category data.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+
+            <!-- TOP ITEMS -->
+
+            <div class="fs-performance-card">
+
+                <div class="fs-performance-title">
+                    Top Items
+                </div>
+
+                {% if top_items %}
+
+                    {% set max_item =
+                        top_items[0]["total"] or 1 %}
+
+                    {% for row in top_items[:10] %}
+
+                    <div class="fs-performance-row">
+
+                        <div class="fs-performance-name">
+                            {{ row["name"] }}
+                        </div>
+
+                        <div class="fs-performance-value">
+                            ${{ "%.2f"|format(row["total"] or 0) }}
+                        </div>
+
+                        <div class="fs-progress">
+
+                            <div class="fs-progress-bar"
+                                 style="
+                                    width:
+                                    {{ ((row['total'] or 0) / max_item * 100)
+                                       if max_item else 0 }}%;
+                                    background:var(--fs-primary);
+                                 ">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+                {% else %}
+
+                    <div class="fs-empty">
+                        No item data.
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         DAILY TABLE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-table-card">
+
+            <div class="fs-table-toolbar">
+
+                <div class="fs-table-title">
+                    Daily Breakdown
+                </div>
+
+                <div class="fs-table-actions">
+
+                    <button class="fs-btn"
+                            onclick="exportTableCSV(
+                                'dailyTable',
+                                'daily_breakdown.csv'
+                            )">
+                        CSV
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="copyTable(
+                                'dailyTable'
+                            )">
+                        Copy
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="printTable(
+                                'dailyTable',
+                                'Daily Breakdown'
+                            )">
+                        Print
+                    </button>
+
+                    <button class="fs-btn fs-btn-danger"
+                            onclick="exportTablePDF(
+                                'dailyTable',
+                                'Daily Breakdown'
+                            )">
+                        PDF
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-table-wrap">
+
+                <table class="fs-table"
+                       id="dailyTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Date</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Transactions</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in daily_data %}
+
+                    <tr>
+
+                        <td>
+                            {{ row["date"] }}
+                        </td>
+
+                        <td style="color:var(--fs-success);font-weight:900;">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td style="color:var(--fs-danger);font-weight:900;">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            ${{ "%.2f"|format(row["net"] or 0) }}
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"]
+                               or row.get("transactions", 0)
+                               or 0 }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                    <tfoot>
+
+                        <tr>
+
+                            <td>
+                                TOTAL
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(total_income or 0) }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(total_expense or 0) }}
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(net_profit or 0) }}
+                            </td>
+
+                            <td>
+                                {{ total_transactions or 0 }}
+                            </td>
+
+                        </tr>
+
+                    </tfoot>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY TABLE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-table-card">
+
+            <div class="fs-table-toolbar">
+
+                <div class="fs-table-title">
+                    Category Summary
+                </div>
+
+                <div class="fs-table-actions">
+
+                    <button class="fs-btn"
+                            onclick="exportTableCSV(
+                                'categoryTable',
+                                'category_summary.csv'
+                            )">
+                        CSV
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="copyTable(
+                                'categoryTable'
+                            )">
+                        Copy
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="printTable(
+                                'categoryTable',
+                                'Category Summary'
+                            )">
+                        Print
+                    </button>
+
+                    <button class="fs-btn fs-btn-danger"
+                            onclick="exportTablePDF(
+                                'categoryTable',
+                                'Category Summary'
+                            )">
+                        PDF
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-table-wrap">
+
+                <table class="fs-table"
+                       id="categoryTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Transactions</th>
+                            <th>Average</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in categories %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            {{ row["name"] }}
+                        </td>
+
+                        <td style="color:var(--fs-success);font-weight:900;">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td style="color:var(--fs-danger);font-weight:900;">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            ${{ "%.2f"|format(row["net"] or 0) }}
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td>
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ACCOUNT TABLE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-table-card">
+
+            <div class="fs-table-toolbar">
+
+                <div class="fs-table-title">
+                    Account Summary
+                </div>
+
+                <div class="fs-table-actions">
+
+                    <button class="fs-btn"
+                            onclick="exportTableCSV(
+                                'accountTable',
+                                'account_summary.csv'
+                            )">
+                        CSV
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="copyTable(
+                                'accountTable'
+                            )">
+                        Copy
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="printTable(
+                                'accountTable',
+                                'Account Summary'
+                            )">
+                        Print
+                    </button>
+
+                    <button class="fs-btn fs-btn-danger"
+                            onclick="exportTablePDF(
+                                'accountTable',
+                                'Account Summary'
+                            )">
+                        PDF
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-table-wrap">
+
+                <table class="fs-table"
+                       id="accountTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Account</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Transactions</th>
+                            <th>Average</th>
+                            <th>Highest</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in accounts %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            {{ row["name"] }}
+                        </td>
+
+                        <td style="color:var(--fs-success);font-weight:900;">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td style="color:var(--fs-danger);font-weight:900;">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            ${{ "%.2f"|format(row["net"] or 0) }}
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td>
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                        <td>
+                            ${{ "%.2f"|format(row["highest"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         ITEM TABLE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-table-card">
+
+            <div class="fs-table-toolbar">
+
+                <div class="fs-table-title">
+                    Item Summary
+                </div>
+
+                <div class="fs-table-actions">
+
+                    <button class="fs-btn"
+                            onclick="exportTableCSV(
+                                'itemTable',
+                                'item_summary.csv'
+                            )">
+                        CSV
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="copyTable(
+                                'itemTable'
+                            )">
+                        Copy
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="printTable(
+                                'itemTable',
+                                'Item Summary'
+                            )">
+                        Print
+                    </button>
+
+                    <button class="fs-btn fs-btn-danger"
+                            onclick="exportTablePDF(
+                                'itemTable',
+                                'Item Summary'
+                            )">
+                        PDF
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-table-wrap">
+
+                <table class="fs-table"
+                       id="itemTable">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net</th>
+                            <th>Transactions</th>
+                            <th>Average</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for row in items %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            {{ row["name"] }}
+                        </td>
+
+                        <td style="color:var(--fs-success);font-weight:900;">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td style="color:var(--fs-danger);font-weight:900;">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td style="font-weight:900;">
+                            ${{ "%.2f"|format(row["net"] or 0) }}
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td>
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TRANSACTIONS TABLE
+         ======================================================== -->
+
+    <div class="fs-section">
+
+        <div class="fs-table-card">
+
+            <div class="fs-table-toolbar">
+
+                <div>
+
+                    <div class="fs-table-title">
+                        Financial Transactions
+                    </div>
+
+                    <div style="
+                        color:var(--fs-muted);
+                        font-size:10px;
+                        margin-top:3px;
+                    ">
+                        {{ total_transactions or 0 }}
+                        transactions
+                    </div>
+
+                </div>
+
+
+                <div class="fs-table-actions">
+
+                    <button class="fs-btn"
+                            onclick="copyTable(
+                                'financialTransactionsTable'
+                            )">
+                        Copy
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="exportTableCSV(
+                                'financialTransactionsTable',
+                                'financial_transactions.csv'
+                            )">
+                        CSV
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="exportFinancialJSON()">
+                        JSON
+                    </button>
+
+                    <button class="fs-btn"
+                            onclick="printTable(
+                                'financialTransactionsTable',
+                                'Financial Transactions'
+                            )">
+                        Print
+                    </button>
+
+                    <button class="fs-btn fs-btn-danger"
+                            onclick="exportTablePDF(
+                                'financialTransactionsTable',
+                                'Financial Transactions'
+                            )">
+                        PDF
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <div class="fs-table-wrap">
+
+                <table id="financialTransactionsTable"
+                       class="fs-table display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for transaction in financial_transactions %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td data-order="{{ transaction['date'] }}">
+                            {{ transaction["date"] }}
+                        </td>
+
+                        <td>
+                            {{ transaction["account"]
+                               or "Unknown Account" }}
+                        </td>
+
+                        <td>
+                            {{ transaction["category"]
+                               or "Uncategorized" }}
+                        </td>
+
+                        <td>
+                            {{ transaction["item"] or "—" }}
+                        </td>
+
+                        <td>
+
+                            {% if transaction["transaction_type"]|lower == "income" %}
+
+                                <span class="fs-badge fs-income">
+                                    Income
+                                </span>
+
+                            {% else %}
+
+                                <span class="fs-badge fs-expense">
+                                    Expense
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td style="
+                            white-space:nowrap;
+                            font-weight:900;
+                        ">
+
+                            {% if transaction["transaction_type"]|lower == "income" %}
+
+                                <span style="color:var(--fs-success);">
+                                    +${{
+                                        "%.2f"|format(
+                                            transaction["amount"] or 0
+                                        )
+                                    }}
+                                </span>
+
+                            {% else %}
+
+                                <span style="color:var(--fs-danger);">
+                                    -${{
+                                        "%.2f"|format(
+                                            transaction["amount"] or 0
+                                        )
+                                    }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+
+                        <td>
+
+                            {% set status =
+                                transaction["status"]|string|lower %}
+
+                            {% if status in [
+                                "true",
+                                "completed",
+                                "success",
+                                "successful",
+                                "active"
+                            ] %}
+
+                                <span class="fs-badge fs-completed">
+                                    Completed
+                                </span>
+
+                            {% elif status in [
+                                "false",
+                                "failed",
+                                "cancelled",
+                                "canceled"
+                            ] %}
+
+                                <span class="fs-badge fs-failed">
+                                    Failed
+                                </span>
+
+                            {% else %}
+
+                                <span class="fs-badge fs-neutral">
+                                    {{ transaction["status"]
+                                       or "Completed" }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<!-- ============================================================
+     CHART.JS
+     ============================================================ -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+
+const financialDailyData =
+    {{ daily_data | tojson | safe }};
+
+const financialMonthlyData =
+    {{ monthly_data | tojson | safe }};
+
+const financialCategories =
+    {{ categories | tojson | safe }};
+
+const financialAccounts =
+    {{ accounts | tojson | safe }};
+
+const financialItems =
+    {{ items | tojson | safe }};
+
+const financialTransactions =
+    {{ financial_transactions | tojson | safe }};
+
+
+/* ============================================================
+   HELPER
+   ============================================================ */
+
+function valueOf(obj, keys, fallback = 0) {
+
+    for (const key of keys) {
+
+        if (
+            obj &&
+            obj[key] !== undefined &&
+            obj[key] !== null
+        ) {
+            return obj[key];
+        }
+
+    }
+
+    return fallback;
+}
+
+
+function money(value) {
+
+    return Number(value || 0)
+        .toLocaleString(
+            undefined,
+            {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }
+        );
+}
+
+
+/* ============================================================
+   MONTHLY CHART
+   ============================================================ */
+
+const monthlyCanvas =
+    document.getElementById(
+        "monthlyFinancialChart"
+    );
+
+if (monthlyCanvas) {
+
+    const labels =
+        financialMonthlyData.map(
+            row => valueOf(
+                row,
+                ["label", "month", "date"],
+                ""
+            )
+        );
+
+    const income =
+        financialMonthlyData.map(
+            row => Number(
+                valueOf(row, ["income"], 0)
+            )
+        );
+
+    const expense =
+        financialMonthlyData.map(
+            row => Number(
+                valueOf(row, ["expense"], 0)
+            )
+        );
+
+    const net =
+        financialMonthlyData.map(
+            row => Number(
+                valueOf(
+                    row,
+                    ["net"],
+                    Number(
+                        valueOf(row, ["income"], 0)
+                    ) -
+                    Number(
+                        valueOf(row, ["expense"], 0)
+                    )
+                )
+            )
+        );
+
+
+    new Chart(
+        monthlyCanvas,
+        {
+
+            type: "line",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: income,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expense,
+                        borderWidth: 3,
+                        tension: .35,
+                        fill: false
+                    },
+
+                    {
+                        label: "Net",
+                        data: net,
+                        borderWidth: 3,
+                        borderDash: [6, 5],
+                        tension: .35,
+                        fill: false
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return context.dataset.label +
+                                    ": $" +
+                                    money(context.raw);
+
+                            }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    money(value);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   DAILY CHART
+   ============================================================ */
+
+const dailyCanvas =
+    document.getElementById(
+        "dailyFinancialChart"
+    );
+
+if (dailyCanvas) {
+
+    const labels =
+        financialDailyData.map(
+            row => valueOf(
+                row,
+                ["label", "date"],
+                ""
+            )
+        );
+
+    const income =
+        financialDailyData.map(
+            row => Number(
+                valueOf(row, ["income"], 0)
+            )
+        );
+
+    const expense =
+        financialDailyData.map(
+            row => Number(
+                valueOf(row, ["expense"], 0)
+            )
+        );
+
+    const net =
+        financialDailyData.map(
+            row => Number(
+                valueOf(
+                    row,
+                    ["net"],
+                    Number(
+                        valueOf(row, ["income"], 0)
+                    ) -
+                    Number(
+                        valueOf(row, ["expense"], 0)
+                    )
+                )
+            )
+        );
+
+
+    new Chart(
+        dailyCanvas,
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: income,
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expense,
+                        borderWidth: 1
+                    },
+
+                    {
+                        type: "line",
+                        label: "Net",
+                        data: net,
+                        borderWidth: 2,
+                        tension: .3
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return context.dataset.label +
+                                    ": $" +
+                                    money(context.raw);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   DONUT
+   ============================================================ */
+
+const donutCanvas =
+    document.getElementById(
+        "incomeExpenseChart"
+    );
+
+if (donutCanvas) {
+
+    new Chart(
+        donutCanvas,
+        {
+
+            type: "doughnut",
+
+            data: {
+
+                labels: [
+                    "Income",
+                    "Expense"
+                ],
+
+                datasets: [
+
+                    {
+                        data: [
+                            Number({{ total_income or 0 }}),
+                            Number({{ total_expense or 0 }})
+                        ],
+
+                        borderWidth: 0
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: "68%",
+
+                plugins: {
+
+                    legend: {
+                        position: "bottom"
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label: function(context) {
+
+                                return context.label +
+                                    ": $" +
+                                    money(context.raw);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CATEGORY CHART
+   ============================================================ */
+
+const categoryCanvas =
+    document.getElementById(
+        "categoryChart"
+    );
+
+if (categoryCanvas) {
+
+    const rows =
+        financialCategories.slice(0, 15);
+
+    const labels =
+        rows.map(
+            row => valueOf(
+                row,
+                ["name"],
+                "Unknown"
+            )
+        );
+
+    const income =
+        rows.map(
+            row => Number(
+                valueOf(row, ["income"], 0)
+            )
+        );
+
+    const expense =
+        rows.map(
+            row => Number(
+                valueOf(row, ["expense"], 0)
+            )
+        );
+
+
+    new Chart(
+        categoryCanvas,
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: income,
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expense,
+                        borderWidth: 1
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                indexAxis: "y",
+
+                scales: {
+
+                    x: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    money(value);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   ACCOUNT CHART
+   ============================================================ */
+
+const accountCanvas =
+    document.getElementById(
+        "accountChart"
+    );
+
+if (accountCanvas) {
+
+    const rows =
+        financialAccounts.slice(0, 15);
+
+    const labels =
+        rows.map(
+            row => valueOf(
+                row,
+                ["name"],
+                "Unknown"
+            )
+        );
+
+    const income =
+        rows.map(
+            row => Number(
+                valueOf(row, ["income"], 0)
+            )
+        );
+
+    const expense =
+        rows.map(
+            row => Number(
+                valueOf(row, ["expense"], 0)
+            )
+        );
+
+
+    new Chart(
+        accountCanvas,
+        {
+
+            type: "bar",
+
+            data: {
+
+                labels: labels,
+
+                datasets: [
+
+                    {
+                        label: "Income",
+                        data: income,
+                        borderWidth: 1
+                    },
+
+                    {
+                        label: "Expense",
+                        data: expense,
+                        borderWidth: 1
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                indexAxis: "y",
+
+                scales: {
+
+                    x: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            callback: function(value) {
+
+                                return "$" +
+                                    money(value);
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   DATATABLE
+   ============================================================ */
+
+let financialDataTable = null;
+
+if (
+    typeof jQuery !== "undefined" &&
+    jQuery.fn &&
+    jQuery.fn.DataTable
+) {
+
+    financialDataTable =
+        jQuery(
+            "#financialTransactionsTable"
+        ).DataTable({
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            responsive: true,
+
+            autoWidth: false,
+
+            language: {
+
+                search: "Search:",
+
+                lengthMenu:
+                    "Show _MENU_ transactions",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty:
+                    "No transactions available",
+
+                zeroRecords:
+                    "No matching transactions",
+
+                paginate: {
+
+                    first: "First",
+
+                    last: "Last",
+
+                    next: "›",
+
+                    previous: "‹"
+
+                }
+
+            }
+
+        });
+
+}
+
+
+/* ============================================================
+   CSV
+   ============================================================ */
+
+function csvEscape(value) {
+
+    const text =
+        String(value ?? "");
+
+    if (
+        text.includes(",") ||
+        text.includes('"') ||
+        text.includes("\n")
+    ) {
+
+        return '"' +
+            text.replace(/"/g, '""') +
+            '"';
+
+    }
+
+    return text;
+}
+
+
+function tableToCSV(tableId) {
+
+    const table =
+        document.getElementById(tableId);
+
+    if (!table) {
+        return "";
+    }
+
+    const rows = [];
+
+
+    table.querySelectorAll("tr")
+        .forEach(row => {
+
+            const cells = [];
+
+            row.querySelectorAll("th, td")
+                .forEach(cell => {
+
+                    cells.push(
+                        csvEscape(
+                            cell.innerText.trim()
+                        )
+                    );
+
+                });
+
+            rows.push(
+                cells.join(",")
+            );
+
+        });
+
+
+    return rows.join("\n");
+}
+
+
+function downloadFile(
+    content,
+    filename,
+    mime
+) {
+
+    const blob =
+        new Blob(
+            [content],
+            {type: mime}
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download = filename;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+}
+
+
+function exportTableCSV(
+    tableId,
+    filename
+) {
+
+    const csv =
+        tableToCSV(tableId);
+
+    downloadFile(
+        csv,
+        filename,
+        "text/csv;charset=utf-8;"
+    );
+
+}
+
+
+/* ============================================================
+   COPY TABLE
+   ============================================================ */
+
+function copyTable(tableId) {
+
+    const table =
+        document.getElementById(tableId);
+
+    if (!table) {
+        return;
+    }
+
+
+    const text =
+        Array.from(
+            table.querySelectorAll("tr")
+        )
+        .map(row =>
+            Array.from(
+                row.querySelectorAll("th,td")
+            )
+            .map(cell =>
+                cell.innerText.trim()
+            )
+            .join("\t")
+        )
+        .join("\n");
+
+
+    if (
+        navigator.clipboard &&
+        navigator.clipboard.writeText
+    ) {
+
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+
+                alert(
+                    "Table copied successfully."
+                );
+
+            });
+
+    }
+
+}
+
+
+/* ============================================================
+   PRINT TABLE
+   ============================================================ */
+
+function printTable(
+    tableId,
+    title
+) {
+
+    const table =
+        document.getElementById(tableId);
+
+    if (!table) {
+        return;
+    }
+
+
+    const printWindow =
+        window.open(
+            "",
+            "_blank",
+            "width=1400,height=900"
+        );
+
+
+    if (!printWindow) {
+
+        alert(
+            "Please allow popups for printing."
+        );
+
+        return;
+
+    }
+
+
+    printWindow.document.write(`
+
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                ${title}
+            </title>
+
+            <style>
+
+                body {
+                    font-family: Arial, sans-serif;
+                    padding: 30px;
+                    color: #111827;
+                }
+
+                h1 {
+                    margin: 0 0 5px;
+                }
+
+                p {
+                    color: #6b7280;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 25px;
+                }
+
+                th,
+                td {
+                    border: 1px solid #ddd;
+                    padding: 9px;
+                    font-size: 11px;
+                    text-align: left;
+                }
+
+                th {
+                    background: #f3f4f6;
+                    font-weight: bold;
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <h1>
+                ${title}
+            </h1>
+
+            <p>
+                {{ custom_range_label|e }}
+            </p>
+
+            ${table.outerHTML}
+
+        </body>
+
+        </html>
+
+    `);
+
+
+    printWindow.document.close();
+
+    printWindow.focus();
+
+    setTimeout(() => {
+
+        printWindow.print();
+
+        printWindow.close();
+
+    }, 400);
+
+}
+
+
+/* ============================================================
+   PDF
+   ============================================================ */
+
+function exportTablePDF(
+    tableId,
+    title
+) {
+
+    /*
+       Browser native PDF:
+       Print -> Save as PDF
+    */
+
+    printTable(
+        tableId,
+        title
+    );
+
+}
+
+
+/* ============================================================
+   FULL REPORT PRINT / PDF
+   ============================================================ */
+
+function printFullReport() {
+
+    window.print();
+
+}
+
+
+function exportFullPDF() {
+
+    window.print();
+
+}
+
+
+/* ============================================================
+   FULL CSV
+   ============================================================ */
+
+function exportFullCSV() {
+
+    const sections = [
+
+        {
+            id: "dailyTable",
+            name: "DAILY BREAKDOWN"
+        },
+
+        {
+            id: "categoryTable",
+            name: "CATEGORY SUMMARY"
+        },
+
+        {
+            id: "accountTable",
+            name: "ACCOUNT SUMMARY"
+        },
+
+        {
+            id: "itemTable",
+            name: "ITEM SUMMARY"
+        },
+
+        {
+            id: "financialTransactionsTable",
+            name: "FINANCIAL TRANSACTIONS"
+        }
+
+    ];
+
+
+    let output = "";
+
+
+    sections.forEach(section => {
+
+        const table =
+            document.getElementById(
+                section.id
+            );
+
+        if (!table) {
+            return;
+        }
+
+
+        output +=
+            "\n\n" +
+            section.name +
+            "\n";
+
+
+        output +=
+            tableToCSV(
+                section.id
+            );
+
+
+        output += "\n";
+
+    });
+
+
+    downloadFile(
+        output,
+        "financial_summary_report.csv",
+        "text/csv;charset=utf-8;"
+    );
+
+}
+
+
+/* ============================================================
+   JSON
+   ============================================================ */
+
+function exportFinancialJSON() {
+
+    const payload = {
+
+        report:
+            "Financial Summary Report",
+
+        range:
+            "{{ custom_range_label|e }}",
+
+        previous_range:
+            "{{ previous_range_label|e }}",
+
+        summary: {
+
+            total_income:
+                Number({{ total_income or 0 }}),
+
+            total_expense:
+                Number({{ total_expense or 0 }}),
+
+            net_profit:
+                Number({{ net_profit or 0 }}),
+
+            total_transactions:
+                Number({{ total_transactions or 0 }}),
+
+            average_transaction:
+                Number({{ average_transaction or 0 }}),
+
+            highest_transaction:
+                Number({{ highest_transaction or 0 }}),
+
+            lowest_transaction:
+                Number({{ lowest_transaction or 0 }}),
+
+            profit_margin:
+                Number({{ profit_margin or 0 }}),
+
+            expense_ratio:
+                Number({{ expense_ratio or 0 }})
+
+        },
+
+        comparison: {
+
+            previous_income:
+                Number({{ previous_income or 0 }}),
+
+            previous_expense:
+                Number({{ previous_expense or 0 }}),
+
+            previous_net:
+                Number({{ previous_net or 0 }}),
+
+            income_change:
+                Number({{ income_change or 0 }}),
+
+            expense_change:
+                Number({{ expense_change or 0 }}),
+
+            net_change:
+                Number({{ net_change or 0 }})
+
+        },
+
+        daily:
+            financialDailyData,
+
+        monthly:
+            financialMonthlyData,
+
+        categories:
+            financialCategories,
+
+        accounts:
+            financialAccounts,
+
+        items:
+            financialItems,
+
+        transactions:
+            financialTransactions
+
+    };
+
+
+    downloadFile(
+
+        JSON.stringify(
+            payload,
+            null,
+            2
+        ),
+
+        "financial_summary_report.json",
+
+        "application/json"
+
+    );
+
+}
+
+
+/* ============================================================
+   DATE PRESETS
+   ============================================================ */
+
+function formatDate(date) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+function setPreset(type) {
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0, 0, 0, 0
+    );
+
+
+    let start =
+        new Date(today);
+
+    let end =
+        new Date(today);
+
+
+    if (type === "yesterday") {
+
+        start.setDate(
+            start.getDate() - 1
+        );
+
+        end =
+            new Date(start);
+
+    }
+
+
+    else if (type === "7") {
+
+        start.setDate(
+            start.getDate() - 6
+        );
+
+    }
+
+
+    else if (type === "30") {
+
+        start.setDate(
+            start.getDate() - 29
+        );
+
+    }
+
+
+    else if (type === "month") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                1
+            );
+
+    }
+
+
+    else if (type === "last_month") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                today.getMonth() - 1,
+                1
+            );
+
+        end =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                0
+            );
+
+    }
+
+
+    else if (type === "year") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                0,
+                1
+            );
+
+    }
+
+
+    document.getElementById(
+        "start_date"
+    ).value =
+        formatDate(start);
+
+
+    document.getElementById(
+        "end_date"
+    ).value =
+        formatDate(end);
+
+
+    document.querySelector(
+        ".fs-filter-card form"
+    ).submit();
+
+}
+
+
+/* ============================================================
+   DATE VALIDATION
+   ============================================================ */
+
+const startDate =
+    document.getElementById(
+        "start_date"
+    );
+
+const endDate =
+    document.getElementById(
+        "end_date"
+    );
+
+
+if (startDate && endDate) {
+
+    startDate.addEventListener(
+        "change",
+        function() {
+
+            if (
+                endDate.value &&
+                startDate.value >
+                endDate.value
+            ) {
+
+                endDate.value =
+                    startDate.value;
+
+            }
+
+        }
+    );
+
+
+    endDate.addEventListener(
+        "change",
+        function() {
+
+            if (
+                startDate.value &&
+                endDate.value <
+                startDate.value
+            ) {
+
+                startDate.value =
+                    endDate.value;
+
+            }
+
+        }
+    );
+
+}
+</script>
+
+{% endblock %}

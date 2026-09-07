@@ -1,0 +1,4497 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Top Spenders Report{% endblock %}
+
+{% block content %}
+
+<style>
+/* ============================================================
+   TOP SPENDERS REPORT
+   LIGHT / WHITE MODERN UI
+   NO DARK MODE
+   ============================================================ */
+
+:root {
+    --ts-primary: #2563eb;
+    --ts-primary-dark: #1d4ed8;
+    --ts-primary-soft: #eff6ff;
+
+    --ts-success: #16a34a;
+    --ts-success-soft: #f0fdf4;
+
+    --ts-danger: #dc2626;
+    --ts-danger-soft: #fef2f2;
+
+    --ts-warning: #d97706;
+    --ts-warning-soft: #fffbeb;
+
+    --ts-purple: #7c3aed;
+    --ts-purple-soft: #f5f3ff;
+
+    --ts-cyan: #0891b2;
+    --ts-cyan-soft: #ecfeff;
+
+    --ts-text: #172033;
+    --ts-muted: #64748b;
+    --ts-border: #e5e7eb;
+    --ts-bg: #f8fafc;
+    --ts-white: #ffffff;
+
+    --ts-radius: 16px;
+    --ts-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
+    --ts-shadow-hover: 0 14px 38px rgba(15, 23, 42, 0.12);
+}
+
+.top-spenders-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--ts-bg);
+    color: var(--ts-text);
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.ts-header {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+    border: 1px solid var(--ts-border);
+    border-radius: 22px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-header-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.ts-title-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.ts-title-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ts-primary-soft);
+    color: var(--ts-primary);
+    font-size: 25px;
+    flex-shrink: 0;
+}
+
+.ts-title {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+}
+
+.ts-subtitle {
+    margin: 6px 0 0;
+    color: var(--ts-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.ts-range-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    padding: 10px 14px;
+    border-radius: 12px;
+    color: var(--ts-muted);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+
+.ts-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.ts-btn {
+    border: 1px solid var(--ts-border);
+    background: #ffffff;
+    color: var(--ts-text);
+    min-height: 42px;
+    padding: 0 15px;
+    border-radius: 11px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all .2s ease;
+}
+
+.ts-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(15, 23, 42, .08);
+}
+
+.ts-btn-primary {
+    background: var(--ts-primary);
+    color: #ffffff;
+    border-color: var(--ts-primary);
+}
+
+.ts-btn-primary:hover {
+    background: var(--ts-primary-dark);
+    color: #ffffff;
+}
+
+.ts-btn-danger {
+    color: var(--ts-danger);
+}
+
+.ts-btn-success {
+    color: var(--ts-success);
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.ts-filter-card {
+    background: var(--ts-white);
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-section-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.ts-section-title h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.ts-section-title i {
+    color: var(--ts-primary);
+}
+
+.ts-filter-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        minmax(180px, 1.2fr)
+        minmax(150px, 1fr)
+        minmax(110px, .7fr)
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.ts-field {
+    min-width: 0;
+}
+
+.ts-field label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--ts-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+}
+
+.ts-field input,
+.ts-field select {
+    width: 100%;
+    height: 43px;
+    padding: 0 12px;
+    border: 1px solid var(--ts-border);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ts-text);
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.ts-field input:focus,
+.ts-field select:focus {
+    border-color: var(--ts-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+}
+
+.ts-filter-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.ts-filter-buttons .ts-btn {
+    height: 43px;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   QUICK FILTERS
+   ============================================================ */
+
+.ts-quick-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #f1f5f9;
+}
+
+.ts-quick-label {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--ts-muted);
+    margin-right: 4px;
+}
+
+.ts-quick-btn {
+    border: 1px solid var(--ts-border);
+    background: #ffffff;
+    color: var(--ts-muted);
+    padding: 7px 11px;
+    border-radius: 9px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all .2s ease;
+}
+
+.ts-quick-btn:hover {
+    color: var(--ts-primary);
+    border-color: #bfdbfe;
+    background: var(--ts-primary-soft);
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.ts-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ts-kpi {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 19px;
+    box-shadow: var(--ts-shadow);
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.ts-kpi:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--ts-shadow-hover);
+}
+
+.ts-kpi::after {
+    content: "";
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    right: -30px;
+    top: -30px;
+    background: currentColor;
+    opacity: .04;
+}
+
+.ts-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.ts-kpi-label {
+    color: var(--ts-muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.ts-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+}
+
+.ts-kpi-value {
+    margin-top: 11px;
+    font-size: 26px;
+    font-weight: 850;
+    letter-spacing: -0.6px;
+}
+
+.ts-kpi-meta {
+    margin-top: 7px;
+    color: var(--ts-muted);
+    font-size: 12px;
+}
+
+.kpi-danger {
+    color: var(--ts-danger);
+}
+
+.kpi-danger .ts-kpi-icon {
+    background: var(--ts-danger-soft);
+}
+
+.kpi-success {
+    color: var(--ts-success);
+}
+
+.kpi-success .ts-kpi-icon {
+    background: var(--ts-success-soft);
+}
+
+.kpi-primary {
+    color: var(--ts-primary);
+}
+
+.kpi-primary .ts-kpi-icon {
+    background: var(--ts-primary-soft);
+}
+
+.kpi-purple {
+    color: var(--ts-purple);
+}
+
+.kpi-purple .ts-kpi-icon {
+    background: var(--ts-purple-soft);
+}
+
+.kpi-warning {
+    color: var(--ts-warning);
+}
+
+.kpi-warning .ts-kpi-icon {
+    background: var(--ts-warning-soft);
+}
+
+.kpi-cyan {
+    color: var(--ts-cyan);
+}
+
+.kpi-cyan .ts-kpi-icon {
+    background: var(--ts-cyan-soft);
+}
+
+/* ============================================================
+   COMPARISON CARDS
+   ============================================================ */
+
+.ts-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.ts-change-card {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: 14px;
+    padding: 16px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-change-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.ts-change-title {
+    color: var(--ts-muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.ts-change-value {
+    font-size: 21px;
+    font-weight: 850;
+    margin-top: 8px;
+}
+
+.ts-change-note {
+    font-size: 11px;
+    color: var(--ts-muted);
+    margin-top: 4px;
+}
+
+.change-up {
+    color: var(--ts-success);
+}
+
+.change-down {
+    color: var(--ts-danger);
+}
+
+.change-neutral {
+    color: var(--ts-muted);
+}
+
+/* ============================================================
+   HEALTH + PROGRESS
+   ============================================================ */
+
+.ts-health-grid {
+    display: grid;
+    grid-template-columns: 1.15fr .85fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ts-panel {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 20px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-health-main {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.ts-health-ring {
+    width: 105px;
+    height: 105px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        conic-gradient(
+            var(--ts-danger) calc(var(--expense-progress, 0) * 1%),
+            #eef2f7 0
+        );
+    position: relative;
+    flex-shrink: 0;
+}
+
+.ts-health-ring::before {
+    content: "";
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    background: #ffffff;
+    position: absolute;
+}
+
+.ts-health-ring span {
+    position: relative;
+    z-index: 2;
+    font-weight: 850;
+    font-size: 18px;
+}
+
+.ts-health-content h3 {
+    margin: 0;
+    font-size: 19px;
+}
+
+.ts-health-content p {
+    margin: 5px 0 0;
+    color: var(--ts-muted);
+    font-size: 13px;
+}
+
+.ts-progress-row {
+    margin-bottom: 15px;
+}
+
+.ts-progress-row:last-child {
+    margin-bottom: 0;
+}
+
+.ts-progress-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 7px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.ts-progress-track {
+    height: 9px;
+    border-radius: 99px;
+    background: #eef2f7;
+    overflow: hidden;
+}
+
+.ts-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    transition: width .8s ease;
+}
+
+.progress-danger {
+    background: var(--ts-danger);
+}
+
+.progress-success {
+    background: var(--ts-success);
+}
+
+.progress-primary {
+    background: var(--ts-primary);
+}
+
+/* ============================================================
+   HIGHLIGHTS
+   ============================================================ */
+
+.ts-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ts-highlight {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 19px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-highlight-top {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 12px;
+}
+
+.ts-highlight-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ts-highlight h4 {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ts-muted);
+}
+
+.ts-highlight-value {
+    font-size: 23px;
+    font-weight: 850;
+}
+
+.ts-highlight-meta {
+    color: var(--ts-muted);
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.highlight-danger .ts-highlight-icon {
+    background: var(--ts-danger-soft);
+    color: var(--ts-danger);
+}
+
+.highlight-warning .ts-highlight-icon {
+    background: var(--ts-warning-soft);
+    color: var(--ts-warning);
+}
+
+.highlight-primary .ts-highlight-icon {
+    background: var(--ts-primary-soft);
+    color: var(--ts-primary);
+}
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.ts-chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ts-chart-card {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 18px;
+    box-shadow: var(--ts-shadow);
+    min-width: 0;
+}
+
+.ts-chart-card.full {
+    grid-column: 1 / -1;
+}
+
+.ts-chart-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.ts-chart-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.ts-chart-subtitle {
+    margin: 4px 0 0;
+    color: var(--ts-muted);
+    font-size: 11px;
+}
+
+.ts-chart-container {
+    position: relative;
+    height: 310px;
+}
+
+.ts-chart-container.small {
+    height: 280px;
+}
+
+/* ============================================================
+   TOP SPENDER RANKING
+   ============================================================ */
+
+.ts-ranking-card {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 20px;
+    box-shadow: var(--ts-shadow);
+    margin-bottom: 20px;
+}
+
+.ts-ranking-list {
+    display: grid;
+    gap: 10px;
+}
+
+.ts-rank-row {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid #edf1f5;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: all .2s ease;
+}
+
+.ts-rank-row:hover {
+    border-color: #dbeafe;
+    background: #fafdff;
+    transform: translateX(2px);
+}
+
+.ts-rank-number {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ts-primary-soft);
+    color: var(--ts-primary);
+    font-weight: 850;
+}
+
+.ts-rank-row:nth-child(1) .ts-rank-number {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.ts-rank-row:nth-child(2) .ts-rank-number {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.ts-rank-row:nth-child(3) .ts-rank-number {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.ts-rank-name {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.ts-rank-meta {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--ts-muted);
+}
+
+.ts-rank-amount {
+    text-align: right;
+    font-size: 16px;
+    font-weight: 850;
+    color: var(--ts-danger);
+}
+
+.ts-rank-share {
+    font-size: 11px;
+    color: var(--ts-muted);
+    margin-top: 3px;
+}
+
+/* ============================================================
+   TOP LISTS
+   ============================================================ */
+
+.ts-lists-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ts-list-card {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 18px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-list {
+    display: grid;
+    gap: 9px;
+}
+
+.ts-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px;
+    border: 1px solid #eef2f7;
+    border-radius: 11px;
+}
+
+.ts-list-left {
+    min-width: 0;
+}
+
+.ts-list-name {
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ts-list-meta {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--ts-muted);
+}
+
+.ts-list-value {
+    color: var(--ts-danger);
+    font-size: 12px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   TABLE SECTIONS
+   ============================================================ */
+
+.ts-table-section {
+    margin-bottom: 20px;
+}
+
+.ts-table-card {
+    background: #ffffff;
+    border: 1px solid var(--ts-border);
+    border-radius: var(--ts-radius);
+    padding: 18px;
+    box-shadow: var(--ts-shadow);
+}
+
+.ts-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.ts-table-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 850;
+}
+
+.ts-table-desc {
+    margin: 4px 0 0;
+    font-size: 11px;
+    color: var(--ts-muted);
+}
+
+.ts-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+table.dataTable {
+    width: 100% !important;
+}
+
+table.dataTable thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom: 1px solid var(--ts-border) !important;
+    font-size: 11px !important;
+    font-weight: 850 !important;
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    white-space: nowrap;
+}
+
+table.dataTable tbody td {
+    font-size: 12px !important;
+    color: var(--ts-text);
+    vertical-align: middle;
+}
+
+table.dataTable tbody tr:hover {
+    background: #f8fbff !important;
+}
+
+.dataTables_wrapper {
+    font-size: 12px;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    border: 1px solid var(--ts-border) !important;
+    border-radius: 9px !important;
+    padding: 7px 10px !important;
+    outline: none;
+}
+
+.dataTables_wrapper .dataTables_length select {
+    border: 1px solid var(--ts-border) !important;
+    border-radius: 8px !important;
+    padding: 5px 8px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    border-radius: 7px !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: var(--ts-primary) !important;
+    color: #ffffff !important;
+    border-color: var(--ts-primary) !important;
+}
+
+.dt-buttons {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 7px;
+}
+
+.dt-button {
+    border: 1px solid var(--ts-border) !important;
+    background: #ffffff !important;
+    color: #475569 !important;
+    border-radius: 7px !important;
+    padding: 6px 9px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+}
+
+.dt-button:hover {
+    background: var(--ts-primary-soft) !important;
+    color: var(--ts-primary) !important;
+    border-color: #bfdbfe !important;
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.ts-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.badge-income {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.badge-expense {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.badge-success {
+    color: #15803d;
+    background: #dcfce7;
+}
+
+.badge-inactive {
+    color: #64748b;
+    background: #f1f5f9;
+}
+
+.badge-primary {
+    color: #1d4ed8;
+    background: #dbeafe;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.ts-empty {
+    padding: 30px 15px;
+    text-align: center;
+    color: var(--ts-muted);
+}
+
+.ts-empty i {
+    font-size: 30px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.ts-footer {
+    text-align: center;
+    color: var(--ts-muted);
+    font-size: 11px;
+    padding: 10px 0 25px;
+}
+
+/* ============================================================
+   ANIMATION
+   ============================================================ */
+
+@keyframes tsFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ts-animate {
+    animation: tsFadeUp .45s ease both;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1250px) {
+    .ts-filter-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ts-kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .ts-comparison-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ts-lists-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 950px) {
+    .top-spenders-page {
+        padding: 16px;
+    }
+
+    .ts-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ts-health-grid,
+    .ts-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-chart-card.full {
+        grid-column: auto;
+    }
+
+    .ts-highlight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-lists-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .top-spenders-page {
+        padding: 10px;
+    }
+
+    .ts-header,
+    .ts-filter-card,
+    .ts-panel,
+    .ts-chart-card,
+    .ts-table-card,
+    .ts-ranking-card,
+    .ts-list-card,
+    .ts-highlight,
+    .ts-kpi,
+    .ts-change-card {
+        border-radius: 13px;
+    }
+
+    .ts-title {
+        font-size: 22px;
+    }
+
+    .ts-title-icon {
+        width: 46px;
+        height: 46px;
+        font-size: 20px;
+    }
+
+    .ts-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-filter-buttons {
+        width: 100%;
+    }
+
+    .ts-filter-buttons .ts-btn {
+        flex: 1;
+    }
+
+    .ts-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ts-health-main {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ts-chart-container,
+    .ts-chart-container.small {
+        height: 260px;
+    }
+
+    .ts-rank-row {
+        grid-template-columns: 40px 1fr;
+    }
+
+    .ts-rank-amount {
+        grid-column: 2;
+        text-align: left;
+    }
+
+    .ts-actions {
+        width: 100%;
+    }
+
+    .ts-actions .ts-btn {
+        flex: 1;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    @page {
+        size: A4 landscape;
+        margin: 10mm;
+    }
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .top-spenders-page {
+        padding: 0 !important;
+        background: #ffffff !important;
+    }
+
+    .ts-filter-card,
+    .ts-actions,
+    .ts-quick-filters,
+    .dt-buttons,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_paginate,
+    .dataTables_info {
+        display: none !important;
+    }
+
+    .ts-header,
+    .ts-kpi,
+    .ts-panel,
+    .ts-chart-card,
+    .ts-table-card,
+    .ts-ranking-card,
+    .ts-list-card,
+    .ts-highlight,
+    .ts-change-card {
+        box-shadow: none !important;
+        border: 1px solid #d9dee7 !important;
+        break-inside: avoid;
+    }
+
+    .ts-header {
+        margin-bottom: 10px;
+    }
+
+    .ts-chart-container {
+        height: 230px !important;
+    }
+
+    .ts-table-section {
+        break-inside: avoid;
+    }
+
+    .ts-footer {
+        display: block;
+    }
+}
+</style>
+
+
+<div class="top-spenders-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <section class="ts-header ts-animate">
+
+        <div class="ts-header-main">
+
+            <div class="ts-title-wrap">
+
+                <div class="ts-title-icon">
+                    <i class="bi bi-person-lines-fill"></i>
+                </div>
+
+                <div>
+                    <h1 class="ts-title">
+                        Top Spenders Report
+                    </h1>
+
+                    <p class="ts-subtitle">
+                        Analyze which accounts are spending the most money,
+                        compare spending behavior, and identify your biggest
+                        expense areas.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-range-badge">
+                <i class="bi bi-calendar3"></i>
+
+                {{ custom_range_label|default('Selected Period', true) }}
+
+            </div>
+
+        </div>
+
+        <div class="ts-actions">
+
+            <button type="button"
+                    class="ts-btn ts-btn-primary"
+                    onclick="window.print()">
+                <i class="bi bi-printer"></i>
+                Print Report
+            </button>
+
+            <button type="button"
+                    class="ts-btn"
+                    onclick="scrollToSection('topSpendersSection')">
+                <i class="bi bi-trophy"></i>
+                Top Spenders
+            </button>
+
+            <button type="button"
+                    class="ts-btn"
+                    onclick="scrollToSection('transactionsSection')">
+                <i class="bi bi-receipt"></i>
+                Transactions
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <section class="ts-filter-card ts-animate">
+
+        <div class="ts-section-title">
+            <i class="bi bi-funnel-fill"></i>
+            <h2>Report Filters</h2>
+        </div>
+
+        <form method="GET"
+              action="{{ url_for('main.report_top_spenders') }}">
+
+            <div class="ts-filter-grid">
+
+                <div class="ts-field">
+
+                    <label for="start_date">
+                        Start Date
+                    </label>
+
+                    <input type="date"
+                           id="start_date"
+                           name="start_date"
+                           value="{{ start_date_value|default('', true) }}">
+
+                </div>
+
+
+                <div class="ts-field">
+
+                    <label for="end_date">
+                        End Date
+                    </label>
+
+                    <input type="date"
+                           id="end_date"
+                           name="end_date"
+                           value="{{ end_date_value|default('', true) }}">
+
+                </div>
+
+
+                <div class="ts-field">
+
+                    <label for="account">
+                        Account
+                    </label>
+
+                    <select id="account"
+                            name="account">
+
+                        <option value="">
+                            All Accounts
+                        </option>
+
+                        {% set accounts_list = account_options|default([], true) %}
+
+                        {% for account in accounts_list %}
+
+                            {% if account is mapping %}
+
+                                <option value="{{ account.get('id', '') }}"
+                                    {% if account_filter|default('', true)|string == account.get('id', '')|string %}
+                                        selected
+                                    {% endif %}>
+                                    {{ account.get('name', 'Account') }}
+                                </option>
+
+                            {% else %}
+
+                                <option value="{{ account }}">
+                                    {{ account }}
+                                </option>
+
+                            {% endif %}
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="ts-field">
+
+                    <label for="transaction_type">
+                        Transaction Type
+                    </label>
+
+                    <select id="transaction_type"
+                            name="transaction_type">
+
+                        <option value=""
+                            {% if transaction_type|default('', true) == '' %}
+                                selected
+                            {% endif %}>
+                            All
+                        </option>
+
+                        <option value="income"
+                            {% if transaction_type|default('', true) == 'income' %}
+                                selected
+                            {% endif %}>
+                            Income
+                        </option>
+
+                        <option value="expense"
+                            {% if transaction_type|default('', true) == 'expense' %}
+                                selected
+                            {% endif %}>
+                            Expense
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="ts-field">
+
+                    <label for="top_n">
+                        Top N
+                    </label>
+
+                    <select id="top_n"
+                            name="top_n">
+
+                        {% for n in [5, 10, 15, 20, 25, 50] %}
+
+                            <option value="{{ n }}"
+                                {% if top_n|default(10, true)|int == n %}
+                                    selected
+                                {% endif %}>
+                                Top {{ n }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="ts-filter-buttons">
+
+                    <button type="submit"
+                            class="ts-btn ts-btn-primary">
+                        <i class="bi bi-search"></i>
+                        Apply
+                    </button>
+
+                    <a href="{{ url_for('main.report_top_spenders') }}"
+                       class="ts-btn">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                        Reset
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+
+        <!-- QUICK DATE PRESETS -->
+
+        <div class="ts-quick-filters">
+
+            <span class="ts-quick-label">
+                Quick Range:
+            </span>
+
+            <button type="button"
+                    class="ts-quick-btn"
+                    onclick="setQuickRange(7)">
+                Last 7 Days
+            </button>
+
+            <button type="button"
+                    class="ts-quick-btn"
+                    onclick="setQuickRange(30)">
+                Last 30 Days
+            </button>
+
+            <button type="button"
+                    class="ts-quick-btn"
+                    onclick="setQuickRange(90)">
+                Last 90 Days
+            </button>
+
+            <button type="button"
+                    class="ts-quick-btn"
+                    onclick="setCurrentMonth()">
+                Current Month
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <section class="ts-kpi-grid">
+
+        <!-- TOTAL SPENDING -->
+
+        <div class="ts-kpi kpi-danger ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Total Spending
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-credit-card-2-front"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                ${{ "%.2f"|format(total_expense|default(0, true)|float) }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                Total expense during selected period
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="ts-kpi kpi-success ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Total Income
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-arrow-down-circle"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                ${{ "%.2f"|format(total_income|default(0, true)|float) }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                Total income during selected period
+            </div>
+
+        </div>
+
+
+        <!-- NET SAVINGS -->
+
+        <div class="ts-kpi kpi-primary ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Net Savings
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                ${{ "%.2f"|format(total_savings|default(0, true)|float) }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                Income minus expenses
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE RATE -->
+
+        <div class="ts-kpi kpi-warning ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Expense Rate
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-percent"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                {{ "%.1f"|format(expense_rate|default(0, true)|float) }}%
+            </div>
+
+            <div class="ts-kpi-meta">
+                Expense ÷ income
+            </div>
+
+        </div>
+
+
+        <!-- SAVING RATE -->
+
+        <div class="ts-kpi kpi-purple ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Saving Rate
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                {{ "%.1f"|format(saving_rate|default(0, true)|float) }}%
+            </div>
+
+            <div class="ts-kpi-meta">
+                Net savings ÷ income
+            </div>
+
+        </div>
+
+
+        <!-- AVERAGE DAILY -->
+
+        <div class="ts-kpi kpi-danger ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Avg Daily Expense
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-calendar-day"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                ${{ "%.2f"|format(average_daily_expense|default(0, true)|float) }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                Average spending per day
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="ts-kpi kpi-cyan ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Expense Transactions
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+
+            </div>
+
+            <div class="ts-kpi-value">
+                {{ expense_transactions|default(0, true) }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                Expense records in period
+            </div>
+
+        </div>
+
+
+        <!-- TOP SPENDER -->
+
+        <div class="ts-kpi kpi-danger ts-animate">
+
+            <div class="ts-kpi-top">
+
+                <div class="ts-kpi-label">
+                    Top Spender
+                </div>
+
+                <div class="ts-kpi-icon">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+
+            </div>
+
+            {% set top_spender = highest_spender|default({}, true) %}
+
+            <div class="ts-kpi-value"
+                 style="font-size:19px;">
+                {{ top_spender.get('name', 'No spender') }}
+            </div>
+
+            <div class="ts-kpi-meta">
+                ${{ "%.2f"|format(top_spender.get('expense', 0)|float) }}
+                spent
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         COMPARISON
+         ======================================================== -->
+
+    <section class="ts-comparison-grid">
+
+        <div class="ts-change-card">
+
+            <div class="ts-change-head">
+                <span class="ts-change-title">
+                    Income Change
+                </span>
+
+                <i class="bi bi-arrow-down-circle"></i>
+            </div>
+
+            {% set income_change_value = income_change|default(0, true)|float %}
+
+            <div class="ts-change-value
+                {% if income_change_value > 0 %}
+                    change-up
+                {% elif income_change_value < 0 %}
+                    change-down
+                {% else %}
+                    change-neutral
+                {% endif %}">
+                {{ "%+.1f"|format(income_change_value) }}%
+            </div>
+
+            <div class="ts-change-note">
+                Compared with previous period
+            </div>
+
+        </div>
+
+
+        <div class="ts-change-card">
+
+            <div class="ts-change-head">
+                <span class="ts-change-title">
+                    Expense Change
+                </span>
+
+                <i class="bi bi-arrow-up-circle"></i>
+            </div>
+
+            {% set expense_change_value = expense_change|default(0, true)|float %}
+
+            <div class="ts-change-value
+                {% if expense_change_value > 0 %}
+                    change-down
+                {% elif expense_change_value < 0 %}
+                    change-up
+                {% else %}
+                    change-neutral
+                {% endif %}">
+                {{ "%+.1f"|format(expense_change_value) }}%
+            </div>
+
+            <div class="ts-change-note">
+                Compared with previous period
+            </div>
+
+        </div>
+
+
+        <div class="ts-change-card">
+
+            <div class="ts-change-head">
+                <span class="ts-change-title">
+                    Savings Change
+                </span>
+
+                <i class="bi bi-piggy-bank"></i>
+            </div>
+
+            {% set savings_change_value = savings_change|default(0, true)|float %}
+
+            <div class="ts-change-value
+                {% if savings_change_value > 0 %}
+                    change-up
+                {% elif savings_change_value < 0 %}
+                    change-down
+                {% else %}
+                    change-neutral
+                {% endif %}">
+                {{ "%+.1f"|format(savings_change_value) }}%
+            </div>
+
+            <div class="ts-change-note">
+                Compared with previous period
+            </div>
+
+        </div>
+
+
+        <div class="ts-change-card">
+
+            <div class="ts-change-head">
+                <span class="ts-change-title">
+                    Expense Rate Change
+                </span>
+
+                <i class="bi bi-percent"></i>
+            </div>
+
+            {% set rate_change_value = expense_rate_change|default(0, true)|float %}
+
+            <div class="ts-change-value
+                {% if rate_change_value > 0 %}
+                    change-down
+                {% elif rate_change_value < 0 %}
+                    change-up
+                {% else %}
+                    change-neutral
+                {% endif %}">
+                {{ "%+.1f"|format(rate_change_value) }}%
+            </div>
+
+            <div class="ts-change-note">
+                Lower is generally better
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HEALTH + PROGRESS
+         ======================================================== -->
+
+    <section class="ts-health-grid">
+
+        <div class="ts-panel">
+
+            <div class="ts-section-title">
+                <i class="bi bi-heart-pulse-fill"></i>
+                <h2>Spending Health</h2>
+            </div>
+
+            <div class="ts-health-main">
+
+                <div class="ts-health-ring"
+                     style="--expense-progress: {{ expense_progress|default(0, true)|float }};">
+
+                    <span>
+                        {{ "%.0f"|format(expense_progress|default(0, true)|float) }}%
+                    </span>
+
+                </div>
+
+                <div class="ts-health-content">
+
+                    <h3>
+                        {{ expense_health|default('No Data', true) }}
+                    </h3>
+
+                    <p>
+                        Your expense rate is
+                        <strong>
+                            {{ "%.1f"|format(expense_rate|default(0, true)|float) }}%
+                        </strong>
+                        of your income.
+                    </p>
+
+                    <p>
+                        Total spending:
+                        <strong>
+                            ${{ "%.2f"|format(total_expense|default(0, true)|float) }}
+                        </strong>
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="ts-panel">
+
+            <div class="ts-section-title">
+                <i class="bi bi-bar-chart-fill"></i>
+                <h2>Financial Progress</h2>
+            </div>
+
+
+            <div class="ts-progress-row">
+
+                <div class="ts-progress-label">
+
+                    <span>Expense Rate</span>
+
+                    <span>
+                        {{ "%.1f"|format(expense_rate|default(0, true)|float) }}%
+                    </span>
+
+                </div>
+
+                <div class="ts-progress-track">
+
+                    <div class="ts-progress-bar progress-danger"
+                         style="width: {{ [expense_progress|default(0, true)|float, 100]|min }}%;">
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="ts-progress-row">
+
+                <div class="ts-progress-label">
+
+                    <span>Saving Rate</span>
+
+                    <span>
+                        {{ "%.1f"|format(saving_rate|default(0, true)|float) }}%
+                    </span>
+
+                </div>
+
+                <div class="ts-progress-track">
+
+                    <div class="ts-progress-bar progress-success"
+                         style="width: {{ [saving_progress|default(0, true)|float, 100]|min }}%;">
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="ts-progress-row">
+
+                <div class="ts-progress-label">
+
+                    <span>Top Spender Share</span>
+
+                    {% set hs = highest_spender|default({}, true) %}
+
+                    <span>
+                        {{ "%.1f"|format(hs.get('share', 0)|float) }}%
+                    </span>
+
+                </div>
+
+                <div class="ts-progress-track">
+
+                    <div class="ts-progress-bar progress-primary"
+                         style="width: {{ [hs.get('share', 0)|float, 100]|min }}%;">
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         HIGHLIGHTS
+         ======================================================== -->
+
+    <section class="ts-highlight-grid">
+
+        <div class="ts-highlight highlight-danger">
+
+            <div class="ts-highlight-top">
+
+                <div class="ts-highlight-icon">
+                    <i class="bi bi-calendar-x"></i>
+                </div>
+
+                <h4>
+                    Highest Expense Day
+                </h4>
+
+            </div>
+
+            {% set highest_day = highest_expense_day|default({}, true) %}
+
+            <div class="ts-highlight-value">
+                ${{ "%.2f"|format(highest_day.get('expense', 0)|float) }}
+            </div>
+
+            <div class="ts-highlight-meta">
+                {{ highest_day.get('label', 'No data') }}
+            </div>
+
+        </div>
+
+
+        <div class="ts-highlight highlight-warning">
+
+            <div class="ts-highlight-top">
+
+                <div class="ts-highlight-icon">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+
+                <h4>
+                    Largest Expense
+                </h4>
+
+            </div>
+
+            {% set highest_tx = highest_expense_transaction|default({}, true) %}
+
+            <div class="ts-highlight-value">
+                ${{ "%.2f"|format(highest_tx.get('amount', 0)|float) }}
+            </div>
+
+            <div class="ts-highlight-meta">
+                {{ highest_tx.get('category', 'No category') }}
+                —
+                {{ highest_tx.get('item', 'No item') }}
+            </div>
+
+        </div>
+
+
+        <div class="ts-highlight highlight-primary">
+
+            <div class="ts-highlight-top">
+
+                <div class="ts-highlight-icon">
+                    <i class="bi bi-trophy-fill"></i>
+                </div>
+
+                <h4>
+                    #1 Top Spender
+                </h4>
+
+            </div>
+
+            <div class="ts-highlight-value">
+
+                {% set first_spender = highest_spender|default({}, true) %}
+
+                {{ first_spender.get('name', 'No spender') }}
+
+            </div>
+
+            <div class="ts-highlight-meta">
+
+                ${{ "%.2f"|format(first_spender.get('expense', 0)|float) }}
+
+                —
+                {{ "%.1f"|format(first_spender.get('share', 0)|float) }}%
+                of spending
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         CHARTS
+         ======================================================== -->
+
+    <section class="ts-chart-grid">
+
+        <!-- TOP SPENDERS -->
+
+        <div class="ts-chart-card">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Top Spenders
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Spending by account
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="topSpendersChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- SHARE -->
+
+        <div class="ts-chart-card">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Spending Share
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Percentage of total expense
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="spenderShareChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- DAILY SPENDING -->
+
+        <div class="ts-chart-card full">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Daily Spending Analysis
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Income, expenses and net savings by day
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="dailySpendingChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- CUMULATIVE EXPENSE -->
+
+        <div class="ts-chart-card">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Cumulative Spending
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Accumulated expense over time
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="cumulativeExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- CATEGORY -->
+
+        <div class="ts-chart-card">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Expense by Category
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Categories with highest spending
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="categoryExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- ACCOUNT -->
+
+        <div class="ts-chart-card full">
+
+            <div class="ts-chart-header">
+
+                <div>
+                    <h3 class="ts-chart-title">
+                        Account Spending Comparison
+                    </h3>
+
+                    <p class="ts-chart-subtitle">
+                        Expense amount by account
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="ts-chart-container">
+                <canvas id="accountExpenseChart"></canvas>
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP SPENDER RANKING
+         ======================================================== -->
+
+    <section id="topSpendersSection"
+             class="ts-ranking-card">
+
+        <div class="ts-section-title">
+
+            <i class="bi bi-trophy-fill"></i>
+
+            <h2>
+                Top Spender Ranking
+            </h2>
+
+        </div>
+
+        {% set top_spenders_list = top_spenders|default([], true) %}
+
+        {% if top_spenders_list %}
+
+            <div class="ts-ranking-list">
+
+                {% for spender in top_spenders_list %}
+
+                    <div class="ts-rank-row">
+
+                        <div class="ts-rank-number">
+                            #{{ loop.index }}
+                        </div>
+
+                        <div>
+
+                            <div class="ts-rank-name">
+                                {{ spender.get('name', 'Unknown Account') }}
+                            </div>
+
+                            <div class="ts-rank-meta">
+
+                                {{ spender.get('type', 'Account') }}
+
+                                {% if spender.get('transactions', 0) %}
+                                    ·
+                                    {{ spender.get('transactions', 0) }}
+                                    transactions
+                                {% endif %}
+
+                                {% if spender.get('balance') is not none %}
+                                    · Balance:
+                                    ${{ "%.2f"|format(spender.get('balance', 0)|float) }}
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                        <div class="ts-rank-amount">
+
+                            ${{ "%.2f"|format(spender.get('expense', 0)|float) }}
+
+                            <div class="ts-rank-share">
+
+                                {{ "%.1f"|format(spender.get('share', 0)|float) }}%
+                                share
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div class="ts-empty">
+
+                <i class="bi bi-trophy"></i>
+
+                No spender data found for this period.
+
+            </div>
+
+        {% endif %}
+
+    </section>
+
+
+    <!-- ========================================================
+         TOP LISTS
+         ======================================================== -->
+
+    <section class="ts-lists-grid">
+
+        <!-- TOP EXPENSE CATEGORIES -->
+
+        <div class="ts-list-card">
+
+            <div class="ts-section-title">
+
+                <i class="bi bi-tags-fill"></i>
+
+                <h2>
+                    Top Expense Categories
+                </h2>
+
+            </div>
+
+            {% set expense_categories_list = top_expense_categories|default([], true) %}
+
+            {% if expense_categories_list %}
+
+                <div class="ts-list">
+
+                    {% for row in expense_categories_list[:10] %}
+
+                        <div class="ts-list-item">
+
+                            <div class="ts-list-left">
+
+                                <div class="ts-list-name">
+                                    {{ row.get('name', 'Uncategorized') }}
+                                </div>
+
+                                <div class="ts-list-meta">
+
+                                    {{ row.get('transactions', 0) }}
+                                    transactions
+
+                                </div>
+
+                            </div>
+
+                            <div class="ts-list-value">
+
+                                ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="ts-empty">
+                    No category data.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- TOP EXPENSE ITEMS -->
+
+        <div class="ts-list-card">
+
+            <div class="ts-section-title">
+
+                <i class="bi bi-box-seam-fill"></i>
+
+                <h2>
+                    Top Expense Items
+                </h2>
+
+            </div>
+
+            {% set expense_items_list = top_expense_items|default([], true) %}
+
+            {% if expense_items_list %}
+
+                <div class="ts-list">
+
+                    {% for row in expense_items_list[:10] %}
+
+                        <div class="ts-list-item">
+
+                            <div class="ts-list-left">
+
+                                <div class="ts-list-name">
+                                    {{ row.get('name', 'Unknown Item') }}
+                                </div>
+
+                                <div class="ts-list-meta">
+
+                                    {{ row.get('transactions', 0) }}
+                                    transactions
+
+                                </div>
+
+                            </div>
+
+                            <div class="ts-list-value">
+
+                                ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="ts-empty">
+                    No item data.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- TOP EXPENSE DAYS -->
+
+        <div class="ts-list-card">
+
+            <div class="ts-section-title">
+
+                <i class="bi bi-calendar-week-fill"></i>
+
+                <h2>
+                    Top Expense Days
+                </h2>
+
+            </div>
+
+            {% set expense_days_list = top_expense_days|default([], true) %}
+
+            {% if expense_days_list %}
+
+                <div class="ts-list">
+
+                    {% for row in expense_days_list[:10] %}
+
+                        <div class="ts-list-item">
+
+                            <div class="ts-list-left">
+
+                                <div class="ts-list-name">
+                                    {{ row.get('label', row.get('date', 'Unknown Date')) }}
+                                </div>
+
+                                <div class="ts-list-meta">
+
+                                    {{ row.get('transactions', 0) }}
+                                    transactions
+
+                                </div>
+
+                            </div>
+
+                            <div class="ts-list-value">
+
+                                ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <div class="ts-empty">
+                    No daily data.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 1 - TOP SPENDERS
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Top Spenders Table
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Ranked accounts by total expense.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="ts-table-wrap">
+
+                <table id="topSpendersTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Balance</th>
+                            <th>Expense</th>
+                            <th>Transactions</th>
+                            <th>Average</th>
+                            <th>Share</th>
+                            <th>Currency</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in top_spenders_list %}
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Unknown') }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ row.get('type', '-') }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('balance', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    <strong style="color:#dc2626;">
+                                        ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('average', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('share', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ row.get('currency', '$') }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 2 - CATEGORY
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Category Spending Analysis
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Expense performance by category.
+                    </p>
+
+                </div>
+
+            </div>
+
+            {% set category_rows = category_summary|default([], true) %}
+
+            <div class="ts-table-wrap">
+
+                <table id="categoryTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Expense Share</th>
+                            <th>Expense Rate</th>
+                            <th>Saving Rate</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in category_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Uncategorized') }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td style="color:#dc2626;font-weight:800;">
+                                    ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_share', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 3 - TOP EXPENSE CATEGORIES
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Top Expense Categories
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Highest spending categories.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="ts-table-wrap">
+
+                <table id="topExpenseCategoriesTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Category</th>
+                            <th>Expense</th>
+                            <th>Share</th>
+                            <th>Transactions</th>
+                            <th>Expense Rate</th>
+                            <th>Net Saving</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in expense_categories_list %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Uncategorized') }}
+                                    </strong>
+                                </td>
+
+                                <td style="color:#dc2626;font-weight:800;">
+                                    ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_share', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 4 - ITEMS
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Item Spending Analysis
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Expense performance by individual item.
+                    </p>
+
+                </div>
+
+            </div>
+
+            {% set item_rows = item_summary|default([], true) %}
+
+            <div class="ts-table-wrap">
+
+                <table id="itemTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Expense Rate</th>
+                            <th>Saving Rate</th>
+                            <th>Total</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in item_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    <strong>
+                                        {{ row.get('name', 'Unknown Item') }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td style="color:#dc2626;font-weight:800;">
+                                    ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('saving_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('total', 0)|float) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 5 - DAILY SPENDING
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Daily Spending
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Day-by-day spending activity.
+                    </p>
+
+                </div>
+
+            </div>
+
+            {% set daily_rows = daily_data|default([], true) %}
+
+            <div class="ts-table-wrap">
+
+                <table id="dailyTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Income</th>
+                            <th>Expense</th>
+                            <th>Net Saving</th>
+                            <th>Expense Rate</th>
+                            <th>Cumulative Expense</th>
+                            <th>Transactions</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in daily_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    {{ row.get('label', row.get('date', '-')) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td style="color:#dc2626;font-weight:800;">
+                                    ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('cumulative_expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 6 - TOP EXPENSE DAYS
+         ======================================================== -->
+
+    <section class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Top Expense Days
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Days with the highest spending.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="ts-table-wrap">
+
+                <table id="topExpenseDaysTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Expense</th>
+                            <th>Income</th>
+                            <th>Net Saving</th>
+                            <th>Transactions</th>
+                            <th>Expense Rate</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in expense_days_list %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                <td>
+                                    {{ row.get('label', row.get('date', '-')) }}
+                                </td>
+
+                                <td style="color:#dc2626;font-weight:800;">
+                                    ${{ "%.2f"|format(row.get('expense', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('income', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    ${{ "%.2f"|format(row.get('net_saving', 0)|float) }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('transactions', 0) }}
+                                </td>
+
+                                <td>
+                                    {{ "%.1f"|format(row.get('expense_rate', 0)|float) }}%
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         TABLE 7 - FINANCIAL TRANSACTIONS
+         ======================================================== -->
+
+    <section id="transactionsSection"
+             class="ts-table-section">
+
+        <div class="ts-table-card">
+
+            <div class="ts-table-header">
+
+                <div>
+
+                    <h2 class="ts-table-title">
+                        Full Financial Transactions
+                    </h2>
+
+                    <p class="ts-table-desc">
+                        Complete transaction records included in this report.
+                    </p>
+
+                </div>
+
+            </div>
+
+            {% set transaction_rows = financial_transactions|default([], true) %}
+
+            <div class="ts-table-wrap">
+
+                <table id="transactionsTable"
+                       class="display nowrap"
+                       style="width:100%;">
+
+                    <thead>
+
+                        <tr>
+                            <th>#</th>
+                            <th>Date</th>
+                            <th>Account</th>
+                            <th>Category</th>
+                            <th>Item</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Reference</th>
+                            <th>Description</th>
+                            <th>Note</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in transaction_rows %}
+
+                            <tr>
+
+                                <td>
+                                    {{ loop.index }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('date', '-') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('account', '-') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('category', '-') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('item', '-') }}
+                                </td>
+
+                                <td>
+
+                                    {% set tx_type = row.get('transaction_type', '')|lower %}
+
+                                    {% if tx_type == 'expense' %}
+
+                                        <span class="ts-badge badge-expense">
+                                            Expense
+                                        </span>
+
+                                    {% elif tx_type == 'income' %}
+
+                                        <span class="ts-badge badge-income">
+                                            Income
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="ts-badge badge-primary">
+                                            {{ row.get('transaction_type', '-') }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    <strong
+                                        style="
+                                        color:
+                                        {% if tx_type == 'expense' %}
+                                            #dc2626
+                                        {% else %}
+                                            #16a34a
+                                        {% endif %};
+                                        ">
+
+                                        ${{ "%.2f"|format(row.get('amount', 0)|float) }}
+
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    {% set status_value = row.get('status', '') %}
+
+                                    {% if status_value in [true, 'true', 'True', 'completed', 'Completed', 1] %}
+
+                                        <span class="ts-badge badge-success">
+                                            Completed
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="ts-badge badge-inactive">
+                                            {{ status_value|default('Inactive', true) }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ row.get('reference', '-') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('description', '-') }}
+                                </td>
+
+                                <td>
+                                    {{ row.get('note', '-') }}
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ========================================================
+         FOOTER
+         ======================================================== -->
+
+    <div class="ts-footer">
+
+        Top Spenders Financial Report ·
+        {{ custom_range_label|default('Selected Period', true) }}
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/1.13.11/css/jquery.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/responsive/2.5.0/css/responsive.dataTables.min.css">
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<script>
+/* ============================================================
+   SAFE DATA FROM FLASK
+   ============================================================ */
+
+const spenderSummary =
+    {{ spender_summary|default([], true)|tojson|safe }};
+
+const topSpenders =
+    {{ top_spenders|default([], true)|tojson|safe }};
+
+const categorySummary =
+    {{ category_summary|default([], true)|tojson|safe }};
+
+const itemSummary =
+    {{ item_summary|default([], true)|tojson|safe }};
+
+const dailyData =
+    {{ daily_data|default([], true)|tojson|safe }};
+
+const financialTransactions =
+    {{ financial_transactions|default([], true)|tojson|safe }};
+
+const topExpenseCategories =
+    {{ top_expense_categories|default([], true)|tojson|safe }};
+
+const topExpenseItems =
+    {{ top_expense_items|default([], true)|tojson|safe }};
+
+const topExpenseDays =
+    {{ top_expense_days|default([], true)|tojson|safe }};
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function money(value) {
+    const number = Number(value || 0);
+
+    return "$" + number.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+
+function escapeHtml(value) {
+
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+
+/* ============================================================
+   SCROLL
+   ============================================================ */
+
+function scrollToSection(id) {
+
+    const element = document.getElementById(id);
+
+    if (!element) {
+        return;
+    }
+
+    element.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
+}
+
+
+/* ============================================================
+   QUICK DATE RANGE
+   ============================================================ */
+
+function formatDateInput(date) {
+
+    const year = date.getFullYear();
+
+    const month = String(
+        date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+        date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+function setQuickRange(days) {
+
+    const end = new Date();
+
+    const start = new Date();
+
+    start.setDate(
+        end.getDate() - (days - 1)
+    );
+
+    document.getElementById("start_date").value =
+        formatDateInput(start);
+
+    document.getElementById("end_date").value =
+        formatDateInput(end);
+}
+
+
+function setCurrentMonth() {
+
+    const today = new Date();
+
+    const start = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1
+    );
+
+    document.getElementById("start_date").value =
+        formatDateInput(start);
+
+    document.getElementById("end_date").value =
+        formatDateInput(today);
+}
+
+
+/* ============================================================
+   JSON EXPORT
+   ============================================================ */
+
+function jsonExportButton(filename) {
+
+    return {
+        text: "JSON",
+
+        action: function(e, dt) {
+
+            const data = dt
+                .rows({
+                    search: "applied"
+                })
+                .data()
+                .toArray();
+
+            const blob = new Blob(
+                [
+                    JSON.stringify(
+                        data,
+                        null,
+                        2
+                    )
+                ],
+                {
+                    type: "application/json"
+                }
+            );
+
+            const url =
+                URL.createObjectURL(blob);
+
+            const a =
+                document.createElement("a");
+
+            a.href = url;
+
+            a.download = filename;
+
+            document.body.appendChild(a);
+
+            a.click();
+
+            a.remove();
+
+            URL.revokeObjectURL(url);
+        }
+    };
+}
+
+
+/* ============================================================
+   DATATABLE CONFIG
+   ============================================================ */
+
+function createDataTable(
+    selector,
+    filename
+) {
+
+    return $(selector).DataTable({
+
+        responsive: true,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 15, 25, 50, 100, -1],
+            [10, 15, 25, 50, 100, "All"]
+        ],
+
+        order: [],
+
+        dom:
+            '<"dt-top"lfB>' +
+            'rt' +
+            '<"dt-bottom"ip>',
+
+        buttons: [
+
+            {
+                extend: "copyHtml5",
+                text: "Copy"
+            },
+
+            {
+                extend: "csvHtml5",
+                text: "CSV",
+                title: filename
+            },
+
+            {
+                extend: "excelHtml5",
+                text: "Excel",
+                title: filename
+            },
+
+            {
+                extend: "pdfHtml5",
+                text: "PDF",
+                title: filename,
+                orientation: "landscape",
+                pageSize: "A4"
+            },
+
+            {
+                extend: "print",
+                text: "Print",
+                title: filename
+            },
+
+            jsonExportButton(
+                filename + ".json"
+            )
+
+        ],
+
+        language: {
+
+            search: "Search:",
+
+            lengthMenu:
+                "Show _MENU_ rows",
+
+            info:
+                "Showing _START_ to _END_ of _TOTAL_",
+
+            infoEmpty:
+                "No records",
+
+            zeroRecords:
+                "No matching records found",
+
+            paginate: {
+                previous: "‹",
+                next: "›"
+            }
+
+        }
+
+    });
+}
+
+
+/* ============================================================
+   INITIALIZE TABLES
+   ============================================================ */
+
+$(document).ready(function() {
+
+    createDataTable(
+        "#topSpendersTable",
+        "top-spenders"
+    );
+
+    createDataTable(
+        "#categoryTable",
+        "category-spending"
+    );
+
+    createDataTable(
+        "#topExpenseCategoriesTable",
+        "top-expense-categories"
+    );
+
+    createDataTable(
+        "#itemTable",
+        "item-spending"
+    );
+
+    createDataTable(
+        "#dailyTable",
+        "daily-spending"
+    );
+
+    createDataTable(
+        "#topExpenseDaysTable",
+        "top-expense-days"
+    );
+
+    createDataTable(
+        "#transactionsTable",
+        "financial-transactions"
+    );
+
+});
+
+
+/* ============================================================
+   CHART DEFAULTS
+   ============================================================ */
+
+Chart.defaults.font.family =
+    "Inter, Arial, sans-serif";
+
+Chart.defaults.font.size = 11;
+
+Chart.defaults.color =
+    "#64748b";
+
+Chart.defaults.borderColor =
+    "#e5e7eb";
+
+
+/* ============================================================
+   TOP SPENDERS BAR CHART
+   ============================================================ */
+
+const spenderLabels =
+    topSpenders.map(
+        row => row.name || "Unknown"
+    );
+
+const spenderExpenses =
+    topSpenders.map(
+        row => Number(row.expense || 0)
+    );
+
+
+new Chart(
+    document.getElementById(
+        "topSpendersChart"
+    ),
+    {
+
+        type: "bar",
+
+        data: {
+
+            labels: spenderLabels,
+
+            datasets: [
+
+                {
+                    label: "Expense",
+
+                    data: spenderExpenses,
+
+                    backgroundColor:
+                        "#dc2626",
+
+                    borderRadius: 7,
+
+                    borderSkipped: false
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            indexAxis: "y",
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            return " Expense: " +
+                                money(
+                                    context.raw
+                                );
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                x: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(value) {
+                            return money(value);
+                        }
+
+                    }
+
+                },
+
+                y: {
+
+                    grid: {
+                        display: false
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   SPENDER SHARE DOUGHNUT
+   ============================================================ */
+
+new Chart(
+    document.getElementById(
+        "spenderShareChart"
+    ),
+    {
+
+        type: "doughnut",
+
+        data: {
+
+            labels: spenderLabels,
+
+            datasets: [
+
+                {
+
+                    data: spenderExpenses,
+
+                    backgroundColor: [
+                        "#dc2626",
+                        "#2563eb",
+                        "#16a34a",
+                        "#7c3aed",
+                        "#d97706",
+                        "#0891b2",
+                        "#db2777",
+                        "#4f46e5",
+                        "#65a30d",
+                        "#ea580c"
+                    ],
+
+                    borderWidth: 2,
+
+                    borderColor: "#ffffff"
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            cutout: "62%",
+
+            plugins: {
+
+                legend: {
+
+                    position: "bottom",
+
+                    labels: {
+
+                        usePointStyle: true,
+
+                        padding: 12
+
+                    }
+
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            const total =
+                                context.dataset.data
+                                    .reduce(
+                                        (sum, value) =>
+                                            sum + Number(value || 0),
+                                        0
+                                    );
+
+                            const value =
+                                Number(context.raw || 0);
+
+                            const percent =
+                                total > 0
+                                    ? value / total * 100
+                                    : 0;
+
+                            return (
+                                " " +
+                                context.label +
+                                ": " +
+                                money(value) +
+                                " (" +
+                                percent.toFixed(1) +
+                                "%)"
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   DAILY SPENDING CHART
+   ============================================================ */
+
+const dailyLabels =
+    dailyData.map(
+        row => row.label || row.date || ""
+    );
+
+const dailyIncome =
+    dailyData.map(
+        row => Number(row.income || 0)
+    );
+
+const dailyExpense =
+    dailyData.map(
+        row => Number(row.expense || 0)
+    );
+
+const dailySaving =
+    dailyData.map(
+        row => Number(row.net_saving || 0)
+    );
+
+
+new Chart(
+    document.getElementById(
+        "dailySpendingChart"
+    ),
+    {
+
+        type: "line",
+
+        data: {
+
+            labels: dailyLabels,
+
+            datasets: [
+
+                {
+                    label: "Income",
+
+                    data: dailyIncome,
+
+                    borderColor: "#16a34a",
+
+                    backgroundColor:
+                        "rgba(22,163,74,.08)",
+
+                    tension: .35,
+
+                    fill: true,
+
+                    pointRadius: 2
+
+                },
+
+                {
+                    label: "Expense",
+
+                    data: dailyExpense,
+
+                    borderColor: "#dc2626",
+
+                    backgroundColor:
+                        "rgba(220,38,38,.07)",
+
+                    tension: .35,
+
+                    fill: true,
+
+                    pointRadius: 2
+
+                },
+
+                {
+                    label: "Net Saving",
+
+                    data: dailySaving,
+
+                    borderColor: "#2563eb",
+
+                    backgroundColor:
+                        "rgba(37,99,235,.05)",
+
+                    tension: .35,
+
+                    fill: false,
+
+                    pointRadius: 2
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            interaction: {
+
+                intersect: false,
+
+                mode: "index"
+
+            },
+
+            plugins: {
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            return (
+                                " " +
+                                context.dataset.label +
+                                ": " +
+                                money(context.raw)
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(value) {
+                            return money(value);
+                        }
+
+                    }
+
+                },
+
+                x: {
+
+                    ticks: {
+
+                        maxRotation: 45,
+
+                        minRotation: 0
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   CUMULATIVE EXPENSE
+   ============================================================ */
+
+const cumulativeExpense =
+    dailyData.map(
+        row =>
+            Number(
+                row.cumulative_expense || 0
+            )
+    );
+
+
+new Chart(
+    document.getElementById(
+        "cumulativeExpenseChart"
+    ),
+    {
+
+        type: "line",
+
+        data: {
+
+            labels: dailyLabels,
+
+            datasets: [
+
+                {
+
+                    label: "Cumulative Expense",
+
+                    data: cumulativeExpense,
+
+                    borderColor: "#dc2626",
+
+                    backgroundColor:
+                        "rgba(220,38,38,.10)",
+
+                    fill: true,
+
+                    tension: .35,
+
+                    pointRadius: 2
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            return (
+                                " Cumulative: " +
+                                money(context.raw)
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(value) {
+                            return money(value);
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   CATEGORY EXPENSE CHART
+   ============================================================ */
+
+const categoryLabels =
+    topExpenseCategories.map(
+        row => row.name || "Unknown"
+    );
+
+const categoryExpenses =
+    topExpenseCategories.map(
+        row => Number(row.expense || 0)
+    );
+
+
+new Chart(
+    document.getElementById(
+        "categoryExpenseChart"
+    ),
+    {
+
+        type: "bar",
+
+        data: {
+
+            labels: categoryLabels,
+
+            datasets: [
+
+                {
+
+                    label: "Expense",
+
+                    data: categoryExpenses,
+
+                    backgroundColor:
+                        "#f97316",
+
+                    borderRadius: 7
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            return (
+                                " Expense: " +
+                                money(context.raw)
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(value) {
+                            return money(value);
+                        }
+
+                    }
+
+                },
+
+                x: {
+
+                    ticks: {
+
+                        maxRotation: 45,
+
+                        minRotation: 0
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   ACCOUNT EXPENSE CHART
+   ============================================================ */
+
+const accountLabels =
+    spenderSummary.map(
+        row => row.name || "Unknown"
+    );
+
+const accountExpenses =
+    spenderSummary.map(
+        row => Number(row.expense || 0)
+    );
+
+
+new Chart(
+    document.getElementById(
+        "accountExpenseChart"
+    ),
+    {
+
+        type: "bar",
+
+        data: {
+
+            labels: accountLabels,
+
+            datasets: [
+
+                {
+
+                    label: "Account Expense",
+
+                    data: accountExpenses,
+
+                    backgroundColor:
+                        "#2563eb",
+
+                    borderRadius: 7
+
+                }
+
+            ]
+
+        },
+
+        options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+
+                tooltip: {
+
+                    callbacks: {
+
+                        label: function(context) {
+
+                            return (
+                                " Expense: " +
+                                money(context.raw)
+                            );
+
+                        }
+
+                    }
+
+                }
+
+            },
+
+            scales: {
+
+                y: {
+
+                    beginAtZero: true,
+
+                    ticks: {
+
+                        callback: function(value) {
+                            return money(value);
+                        }
+
+                    }
+
+                },
+
+                x: {
+
+                    ticks: {
+
+                        maxRotation: 45,
+
+                        minRotation: 0
+
+                    }
+
+                }
+
+            }
+
+        }
+
+    }
+);
+
+
+/* ============================================================
+   PREVENT EMPTY INVALID DATE RANGE
+   ============================================================ */
+
+const startDateInput =
+    document.getElementById("start_date");
+
+const endDateInput =
+    document.getElementById("end_date");
+
+
+if (startDateInput && endDateInput) {
+
+    startDateInput.addEventListener(
+        "change",
+        function() {
+
+            if (
+                endDateInput.value &&
+                this.value > endDateInput.value
+            ) {
+
+                endDateInput.value =
+                    this.value;
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   TABLE ROW COUNT ANIMATION
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        document
+            .querySelectorAll(".ts-kpi-value")
+            .forEach(function(element) {
+
+                element.style.opacity = "0";
+
+                setTimeout(function() {
+
+                    element.style.transition =
+                        "opacity .5s ease";
+
+                    element.style.opacity = "1";
+
+                }, 100);
+
+            });
+
+    }
+);
+</script>
+
+{% endblock %}

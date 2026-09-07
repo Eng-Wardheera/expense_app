@@ -1,0 +1,3079 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Transaction By Date Report{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   TRANSACTION BY DATE REPORT
+   ============================================================ */
+
+.date-report-page {
+    padding-bottom: 30px;
+}
+
+
+/* ============================================================
+   REPORT CARD
+   ============================================================ */
+
+.report-card {
+    background: #ffffff;
+    border: 1px solid #e8edf3;
+    border-radius: 12px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, .035);
+}
+
+.report-card-header {
+    padding: 15px 18px;
+    border-bottom: 1px solid #eef2f7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+}
+
+.report-card-body {
+    padding: 18px;
+}
+
+.report-card-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #1f2937;
+}
+
+.report-card-description {
+    margin: 4px 0 0;
+    font-size: 10px;
+    color: #9ca3af;
+    font-weight: 500;
+}
+
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.date-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.date-summary-card {
+    position: relative;
+    background: #ffffff;
+    border: 1px solid #e8edf3;
+    border-radius: 11px;
+    padding: 15px;
+    overflow: hidden;
+}
+
+.date-summary-label {
+    font-size: 9px;
+    color: #9ca3af;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 5px;
+}
+
+.date-summary-value {
+    font-size: 19px;
+    color: #1f2937;
+    font-weight: 900;
+    line-height: 1.2;
+}
+
+.date-summary-sub {
+    margin-top: 5px;
+    font-size: 9px;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.date-summary-income {
+    color: #059669;
+}
+
+.date-summary-expense {
+    color: #dc2626;
+}
+
+.date-summary-net-profit {
+    color: #059669;
+}
+
+.date-summary-net-loss {
+    color: #dc2626;
+}
+
+.date-summary-balanced {
+    color: #6b7280;
+}
+
+
+/* ============================================================
+   DATE FILTER
+   ============================================================ */
+
+.date-filter-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    padding: 12px;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+}
+
+.date-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.date-filter-label {
+    font-size: 9px;
+    color: #6b7280;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.date-filter-select {
+    height: 34px;
+    min-width: 190px;
+    border: 1px solid #dfe5ec;
+    border-radius: 7px;
+    background: #ffffff;
+    padding: 0 30px 0 9px;
+    font-size: 10px;
+    color: #374151;
+    outline: none;
+    cursor: pointer;
+}
+
+.date-filter-select:focus {
+    border-color: #9ca3af;
+    box-shadow: 0 0 0 2px rgba(107, 114, 128, .08);
+}
+
+
+/* ============================================================
+   DATE BREAKDOWN
+   ============================================================ */
+
+.date-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.date-card {
+    border: 1px solid #e8edf3;
+    border-radius: 11px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.date-card-header {
+    padding: 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.date-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.date-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 900;
+    color: #1f2937;
+}
+
+.date-name-icon {
+    width: 27px;
+    height: 27px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef2ff;
+    color: #4f46e5;
+}
+
+.date-total {
+    font-size: 13px;
+    font-weight: 900;
+    color: #1f2937;
+    white-space: nowrap;
+}
+
+.date-transactions-count {
+    margin-top: 4px;
+    font-size: 8px;
+    color: #9ca3af;
+    font-weight: 700;
+}
+
+
+/* ============================================================
+   DATE SUMMARY
+   ============================================================ */
+
+.date-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 12px;
+}
+
+.date-stat {
+    background: #ffffff;
+    border: 1px solid #edf0f4;
+    border-radius: 7px;
+    padding: 8px;
+    min-width: 0;
+}
+
+.date-stat-label {
+    font-size: 7px;
+    color: #9ca3af;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.date-stat-value {
+    font-size: 10px;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date-stat-value.income {
+    color: #059669;
+}
+
+.date-stat-value.expense {
+    color: #dc2626;
+}
+
+.date-stat-value.positive {
+    color: #059669;
+}
+
+.date-stat-value.negative {
+    color: #dc2626;
+}
+
+.date-stat-value.zero {
+    color: #6b7280;
+}
+
+
+/* ============================================================
+   DATE RESULT BADGE
+   ============================================================ */
+
+.date-result-badge {
+    margin-top: 10px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.result-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 800;
+}
+
+.result-badge.profit {
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+
+.result-badge.loss {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.result-badge.balanced {
+    color: #4b5563;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+}
+
+
+/* ============================================================
+   ACCOUNT / CATEGORY / ITEM
+   ============================================================ */
+
+.date-breakdown-body {
+    padding: 14px;
+}
+
+.breakdown-title {
+    font-size: 9px;
+    font-weight: 900;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    margin-bottom: 9px;
+}
+
+.account-section {
+    border: 1px solid #eef2f7;
+    border-radius: 8px;
+    margin-bottom: 9px;
+    overflow: hidden;
+}
+
+.account-section-header {
+    padding: 9px;
+    background: #ffffff;
+    border-bottom: 1px solid #f0f2f5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.account-section-name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.account-section-total {
+    font-size: 10px;
+    font-weight: 900;
+    color: #374151;
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   CATEGORY
+   ============================================================ */
+
+.category-section {
+    margin: 8px;
+    border: 1px solid #eef2f7;
+    border-radius: 7px;
+    overflow: hidden;
+}
+
+.category-section-header {
+    padding: 8px;
+    background: #fafbfc;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.category-name {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.category-total {
+    font-size: 9px;
+    font-weight: 900;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.category-mini-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.category-mini-stat {
+    font-size: 7px;
+    font-weight: 800;
+}
+
+.category-mini-stat.income {
+    color: #059669;
+}
+
+.category-mini-stat.expense {
+    color: #dc2626;
+}
+
+.category-mini-stat.net-positive {
+    color: #059669;
+}
+
+.category-mini-stat.net-negative {
+    color: #dc2626;
+}
+
+.category-mini-stat.net-zero {
+    color: #6b7280;
+}
+
+
+/* ============================================================
+   ITEMS
+   ============================================================ */
+
+.items-wrapper {
+    padding: 0 8px 8px;
+}
+
+.item-heading-row {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.5fr)
+        repeat(4, minmax(55px, 1fr));
+    gap: 7px;
+    padding: 6px 0;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.item-row {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.5fr)
+        repeat(4, minmax(55px, 1fr));
+    align-items: center;
+    gap: 7px;
+    padding: 7px 0;
+    border-bottom: 1px dashed #e5e7eb;
+}
+
+.item-row:last-child {
+    border-bottom: 0;
+}
+
+.item-heading {
+    font-size: 7px;
+    color: #9ca3af;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.item-value {
+    text-align: right;
+    font-size: 8px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.item-value.income {
+    color: #059669;
+}
+
+.item-value.expense {
+    color: #dc2626;
+}
+
+.item-value.positive {
+    color: #059669;
+}
+
+.item-value.negative {
+    color: #dc2626;
+}
+
+.item-value.zero {
+    color: #6b7280;
+}
+
+.item-name {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    font-size: 8px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.item-name span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.transaction-table-card {
+    margin-top: 18px;
+}
+
+.transaction-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#dateTransactionTable {
+    width: 100% !important;
+}
+
+#dateTransactionTable thead th {
+    background: #f8fafc;
+    color: #6b7280;
+    font-size: 8px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: .25px;
+    white-space: nowrap;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#dateTransactionTable tbody td {
+    font-size: 9px;
+    color: #374151;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.transaction-account {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 130px;
+}
+
+.transaction-account-icon {
+    width: 25px;
+    height: 25px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #4b5563;
+    flex-shrink: 0;
+}
+
+.transaction-account-name {
+    font-size: 9px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.transaction-category {
+    font-size: 9px;
+    font-weight: 700;
+    color: #374151;
+}
+
+.transaction-item {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 9px;
+    color: #6b7280;
+}
+
+.transaction-description {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 8px;
+    color: #9ca3af;
+}
+
+.transaction-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    font-size: 7px;
+    font-weight: 900;
+}
+
+.transaction-type.income {
+    color: #047857;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+}
+
+.transaction-type.expense {
+    color: #b91c1c;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.transaction-amount {
+    font-size: 9px;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.transaction-amount.income {
+    color: #059669;
+}
+
+.transaction-amount.expense {
+    color: #dc2626;
+}
+
+.transaction-status {
+    display: inline-flex;
+    padding: 4px 7px;
+    border-radius: 999px;
+    font-size: 7px;
+    font-weight: 900;
+}
+
+.transaction-status.completed {
+    color: #047857;
+    background: #ecfdf5;
+}
+
+.transaction-status.pending {
+    color: #b45309;
+    background: #fffbeb;
+}
+
+.transaction-status.failed {
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 45px 20px;
+}
+
+.empty-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 10px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f3f4f6;
+    color: #9ca3af;
+}
+
+.empty-state h5 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+
+/* ============================================================
+   NO RESULT
+   ============================================================ */
+
+.date-no-result {
+    display: none;
+    text-align: center;
+    padding: 35px 20px;
+}
+
+.date-no-result-icon {
+    width: 45px;
+    height: 45px;
+    margin: 0 auto 9px;
+    border-radius: 11px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.date-no-result h5 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+}
+
+.date-no-result p {
+    margin: 0;
+    font-size: 10px;
+    color: #9ca3af;
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #ffffff !important;
+    }
+
+    .no-print,
+    .sidebar,
+    .navbar,
+    .topbar,
+    .page-header,
+    button,
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    .report-card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+        margin-bottom: 12px;
+    }
+
+    .date-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .transaction-table-card {
+        break-before: auto;
+    }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1000px) {
+
+    .date-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .date-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .report-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .report-card-body {
+        padding: 12px;
+    }
+
+    .date-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .date-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .category-mini-stats {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .item-heading-row,
+    .item-row {
+        min-width: 450px;
+    }
+
+    .items-wrapper {
+        overflow-x: auto;
+    }
+
+}
+
+
+@media (max-width: 500px) {
+
+    .date-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .date-filter-box {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .date-filter-group {
+        width: 100%;
+    }
+
+    .date-filter-select {
+        flex: 1;
+        width: 100%;
+        min-width: 0;
+    }
+
+}
+
+</style>
+
+
+<div class="date-report-page">
+
+
+    <!-- ============================================================
+         PAGE HEADER
+         ============================================================ -->
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <div>
+
+            <div style="
+                font-size:10px;
+                color:#9ca3af;
+                font-weight:700;
+                margin-bottom:4px;
+            ">
+
+                Home
+                /
+                Reports
+                /
+                Transaction By Date
+
+            </div>
+
+
+            <h2 style="
+                margin:0;
+                font-size:20px;
+                font-weight:900;
+                color:#1f2937;
+            ">
+
+                Transaction By Date
+
+            </h2>
+
+
+            <p style="
+                margin:4px 0 0;
+                font-size:10px;
+                color:#9ca3af;
+            ">
+
+                Complete income and expense analysis grouped by date.
+
+            </p>
+
+        </div>
+
+
+        <div class="no-print">
+
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary"
+                onclick="window.print()"
+            >
+
+                <i
+                    data-feather="printer"
+                    style="width:13px;height:13px;"
+                ></i>
+
+                Print Report
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ============================================================
+         GLOBAL SUMMARY
+         ============================================================ -->
+
+    {% set report_total_income =
+        total_income|default(0, true)|float
+    %}
+
+    {% set report_total_expense =
+        total_expense|default(0, true)|float
+    %}
+
+    {% set report_net_total =
+        net_total|default(0, true)|float
+    %}
+
+    {% set report_total_flow =
+        total_flow|default(
+            report_total_income + report_total_expense,
+            true
+        )|float
+    %}
+
+    {% set report_transactions =
+        total_transactions|default(0, true)|int
+    %}
+
+
+    <div class="date-summary-grid">
+
+
+        <!-- TOTAL TRANSACTIONS -->
+
+        <div class="date-summary-card">
+
+            <div class="date-summary-label">
+                Transactions
+            </div>
+
+            <div class="date-summary-value">
+                {{ report_transactions }}
+            </div>
+
+            <div class="date-summary-sub">
+                {{ date_count|default(0) }} Days
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL INCOME -->
+
+        <div class="date-summary-card">
+
+            <div class="date-summary-label">
+                Total Income
+            </div>
+
+            <div class="
+                date-summary-value
+                date-summary-income
+            ">
+
+                + {{ currency|default('USD') }}
+
+                {{ "%.2f"|format(report_total_income) }}
+
+            </div>
+
+            <div class="date-summary-sub">
+
+                {{ income_transactions|default(0) }}
+                income transactions
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL EXPENSE -->
+
+        <div class="date-summary-card">
+
+            <div class="date-summary-label">
+                Total Expense
+            </div>
+
+            <div class="
+                date-summary-value
+                date-summary-expense
+            ">
+
+                - {{ currency|default('USD') }}
+
+                {{ "%.2f"|format(report_total_expense) }}
+
+            </div>
+
+            <div class="date-summary-sub">
+
+                {{ expense_transactions|default(0) }}
+                expense transactions
+
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+
+        <div class="date-summary-card">
+
+            <div class="date-summary-label">
+                Net Profit / Loss
+            </div>
+
+            <div class="
+                date-summary-value
+
+                {% if report_net_total > 0 %}
+                    date-summary-net-profit
+                {% elif report_net_total < 0 %}
+                    date-summary-net-loss
+                {% else %}
+                    date-summary-balanced
+                {% endif %}
+            ">
+
+                {% if report_net_total > 0 %}
+
+                    + {{ currency|default('USD') }}
+
+                    {{ "%.2f"|format(report_net_total|abs) }}
+
+                {% elif report_net_total < 0 %}
+
+                    - {{ currency|default('USD') }}
+
+                    {{ "%.2f"|format(report_net_total|abs) }}
+
+                {% else %}
+
+                    {{ currency|default('USD') }}
+
+                    0.00
+
+                {% endif %}
+
+            </div>
+
+            <div class="date-summary-sub">
+
+                {% if report_net_total > 0 %}
+                    Profit
+                {% elif report_net_total < 0 %}
+                    Loss
+                {% else %}
+                    Balanced
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ============================================================
+         DATE FILTER
+         ============================================================ -->
+
+    <div class="date-filter-box no-print">
+
+
+        <div class="date-filter-group">
+
+            <span class="date-filter-label">
+
+                Search Date
+
+            </span>
+
+
+            <!-- ====================================================
+                 DATE SELECT
+                 ==================================================== -->
+
+            <select
+                id="dateSearch"
+                class="date-filter-select"
+            >
+
+                <option value="">
+
+                    Select Date
+
+                </option>
+
+
+                {% if transaction_by_date %}
+
+                    {% for date, date_data
+                        in transaction_by_date.items() %}
+
+                        <option value="{{ date|e }}">
+
+                            {{ date }}
+
+                        </option>
+
+                    {% endfor %}
+
+                {% endif %}
+
+            </select>
+
+        </div>
+
+
+        <div class="date-filter-group">
+
+
+            <button
+                type="button"
+                class="btn btn-sm btn-light"
+                id="clearDateSearch"
+            >
+
+                <i
+                    data-feather="x"
+                    style="width:12px;height:12px;"
+                ></i>
+
+                Clear
+
+            </button>
+
+
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                onclick="window.print()"
+            >
+
+                <i
+                    data-feather="printer"
+                    style="width:12px;height:12px;"
+                ></i>
+
+                Print
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ============================================================
+         DATE BREAKDOWN
+         ============================================================ -->
+
+    <div class="report-card">
+
+
+        <div class="report-card-header">
+
+
+            <div>
+
+                <h3 class="report-card-title">
+
+                    <i
+                        data-feather="calendar"
+                        style="width:16px;"
+                    ></i>
+
+                    Date Breakdown
+
+                </h3>
+
+
+                <p class="report-card-description">
+
+                    Every date with income, expense, net result,
+                    account, category and item analysis.
+
+                </p>
+
+            </div>
+
+
+            <span class="badge bg-light text-dark no-print">
+
+                {{ date_count|default(0) }}
+
+                Dates
+
+            </span>
+
+
+        </div>
+
+
+        <div class="report-card-body">
+
+
+            {% if transaction_by_date %}
+
+
+                <div
+                    id="dateGrid"
+                    class="date-grid"
+                >
+
+
+                    {% for date, date_data
+                        in transaction_by_date.items() %}
+
+
+                        {% set date_total =
+                            date_data['total']
+                            |default(0, true)|float
+                        %}
+
+                        {% set date_income =
+                            date_data['income']
+                            |default(0, true)|float
+                        %}
+
+                        {% set date_expense =
+                            date_data['expense']
+                            |default(0, true)|float
+                        %}
+
+                        {% set date_net =
+                            date_data['net']
+                            |default(0, true)|float
+                        %}
+
+                        {% set date_transactions =
+                            date_data['transaction_count']
+                            |default(0, true)|int
+                        %}
+
+
+                        <!-- ==================================================
+                             DATE CARD
+                             ================================================== -->
+
+                        <div
+                            class="date-card"
+                            data-report-date="{{ date|e }}"
+                        >
+
+
+                            <!-- DATE HEADER -->
+
+                            <div class="date-card-header">
+
+
+                                <div class="date-header-top">
+
+
+                                    <div>
+
+
+                                        <div class="date-name">
+
+
+                                            <span class="date-name-icon">
+
+                                                <i
+                                                    data-feather="calendar"
+                                                    style="
+                                                        width:14px;
+                                                        height:14px;
+                                                    "
+                                                ></i>
+
+                                            </span>
+
+
+                                            {{ date }}
+
+
+                                        </div>
+
+
+                                        <div class="
+                                            date-transactions-count
+                                        ">
+
+                                            {{ date_transactions }}
+
+                                            Transaction{% if date_transactions != 1 %}s{% endif %}
+
+                                        </div>
+
+
+                                    </div>
+
+
+                                    <div class="date-total">
+
+                                        {{ currency|default('USD') }}
+
+                                        {{ "%.2f"|format(date_total) }}
+
+                                    </div>
+
+
+                                </div>
+
+
+                                <!-- DATE SUMMARY -->
+
+                                <div class="date-stats">
+
+
+                                    <!-- INCOME -->
+
+                                    <div class="date-stat">
+
+                                        <div class="date-stat-label">
+
+                                            Income
+
+                                        </div>
+
+
+                                        <div class="
+                                            date-stat-value
+                                            income
+                                        ">
+
+                                            +
+
+                                            {{ currency|default('USD') }}
+
+                                            {{ "%.2f"|format(date_income) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- EXPENSE -->
+
+                                    <div class="date-stat">
+
+                                        <div class="date-stat-label">
+
+                                            Expense
+
+                                        </div>
+
+
+                                        <div class="
+                                            date-stat-value
+                                            expense
+                                        ">
+
+                                            -
+
+                                            {{ currency|default('USD') }}
+
+                                            {{ "%.2f"|format(date_expense) }}
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <!-- NET -->
+
+                                    <div class="date-stat">
+
+                                        <div class="date-stat-label">
+
+                                            Net
+
+                                        </div>
+
+
+                                        <div class="
+                                            date-stat-value
+
+                                            {% if date_net > 0 %}
+                                                positive
+                                            {% elif date_net < 0 %}
+                                                negative
+                                            {% else %}
+                                                zero
+                                            {% endif %}
+                                        ">
+
+
+                                            {% if date_net > 0 %}
+
+                                                +
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "%.2f"|format(
+                                                    date_net|abs
+                                                ) }}
+
+                                            {% elif date_net < 0 %}
+
+                                                -
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "%.2f"|format(
+                                                    date_net|abs
+                                                ) }}
+
+                                            {% else %}
+
+                                                {{ currency|default('USD') }}
+
+                                                0.00
+
+                                            {% endif %}
+
+
+                                        </div>
+
+                                    </div>
+
+
+                                </div>
+
+
+                                <!-- RESULT -->
+
+                                <div class="date-result-badge">
+
+
+                                    {% if date_net > 0 %}
+
+
+                                        <span class="
+                                            result-badge
+                                            profit
+                                        ">
+
+                                            <i
+                                                data-feather="trending-up"
+                                                style="
+                                                    width:11px;
+                                                    height:11px;
+                                                "
+                                            ></i>
+
+                                            Net Profit
+
+                                        </span>
+
+
+                                    {% elif date_net < 0 %}
+
+
+                                        <span class="
+                                            result-badge
+                                            loss
+                                        ">
+
+                                            <i
+                                                data-feather="trending-down"
+                                                style="
+                                                    width:11px;
+                                                    height:11px;
+                                                "
+                                            ></i>
+
+                                            Net Loss
+
+                                        </span>
+
+
+                                    {% else %}
+
+
+                                        <span class="
+                                            result-badge
+                                            balanced
+                                        ">
+
+                                            <i
+                                                data-feather="minus"
+                                                style="
+                                                    width:11px;
+                                                    height:11px;
+                                                "
+                                            ></i>
+
+                                            Balanced
+
+                                        </span>
+
+
+                                    {% endif %}
+
+
+                                </div>
+
+
+                            </div>
+
+
+                            <!-- ==================================================
+                                 ACCOUNT / CATEGORY / ITEM
+                                 ================================================== -->
+
+                            <div class="date-breakdown-body">
+
+
+                                <div class="breakdown-title">
+
+                                    Account / Category / Item
+
+                                </div>
+
+
+                                {% if date_data['accounts'] %}
+
+
+                                    {% for account, account_data
+                                        in date_data['accounts'].items() %}
+
+
+                                        {% set account_total =
+                                            account_data['total']
+                                            |default(0, true)|float
+                                        %}
+
+                                        {% set account_income =
+                                            account_data['income']
+                                            |default(0, true)|float
+                                        %}
+
+                                        {% set account_expense =
+                                            account_data['expense']
+                                            |default(0, true)|float
+                                        %}
+
+                                        {% set account_net =
+                                            account_data['net']
+                                            |default(0, true)|float
+                                        %}
+
+
+                                        <div class="account-section">
+
+
+                                            <!-- ACCOUNT -->
+
+                                            <div class="
+                                                account-section-header
+                                            ">
+
+
+                                                <div>
+
+
+                                                    <div class="
+                                                        account-section-name
+                                                    ">
+
+                                                        <i
+                                                            data-feather="credit-card"
+                                                            style="
+                                                                width:11px;
+                                                                height:11px;
+                                                            "
+                                                        ></i>
+
+                                                        {{ account }}
+
+                                                    </div>
+
+
+                                                    <div class="
+                                                        category-mini-stats
+                                                    ">
+
+
+                                                        <span class="
+                                                            category-mini-stat
+                                                            income
+                                                        ">
+
+                                                            Income:
+
+                                                            +
+
+                                                            {{ currency|default('USD') }}
+
+                                                            {{ "%.2f"|format(
+                                                                account_income
+                                                            ) }}
+
+                                                        </span>
+
+
+                                                        <span class="
+                                                            category-mini-stat
+                                                            expense
+                                                        ">
+
+                                                            Expense:
+
+                                                            -
+
+                                                            {{ currency|default('USD') }}
+
+                                                            {{ "%.2f"|format(
+                                                                account_expense
+                                                            ) }}
+
+                                                        </span>
+
+
+                                                        <span class="
+                                                            category-mini-stat
+
+                                                            {% if account_net > 0 %}
+                                                                net-positive
+                                                            {% elif account_net < 0 %}
+                                                                net-negative
+                                                            {% else %}
+                                                                net-zero
+                                                            {% endif %}
+                                                        ">
+
+
+                                                            {% if account_net > 0 %}
+
+                                                                Net Profit:
+
+                                                                +
+
+                                                            {% elif account_net < 0 %}
+
+                                                                Net Loss:
+
+                                                                -
+
+                                                            {% else %}
+
+                                                                Net:
+
+                                                            {% endif %}
+
+
+                                                            {{ currency|default('USD') }}
+
+                                                            {{ "%.2f"|format(
+                                                                account_net|abs
+                                                            ) }}
+
+
+                                                        </span>
+
+
+                                                    </div>
+
+
+                                                </div>
+
+
+                                                <div class="
+                                                    account-section-total
+                                                ">
+
+                                                    {{ currency|default('USD') }}
+
+                                                    {{ "%.2f"|format(
+                                                        account_total
+                                                    ) }}
+
+                                                </div>
+
+
+                                            </div>
+
+
+                                            <!-- CATEGORIES -->
+
+                                            {% if account_data['categories'] %}
+
+
+                                                {% for category, category_data
+                                                    in account_data['categories'].items() %}
+
+
+                                                    {% set category_total =
+                                                        category_data['total']
+                                                        |default(0, true)|float
+                                                    %}
+
+                                                    {% set category_income =
+                                                        category_data['income']
+                                                        |default(0, true)|float
+                                                    %}
+
+                                                    {% set category_expense =
+                                                        category_data['expense']
+                                                        |default(0, true)|float
+                                                    %}
+
+                                                    {% set category_net =
+                                                        category_data['net']
+                                                        |default(0, true)|float
+                                                    %}
+
+
+                                                    <div class="
+                                                        category-section
+                                                    ">
+
+
+                                                        <div class="
+                                                            category-section-header
+                                                        ">
+
+
+                                                            <div
+                                                                style="
+                                                                    min-width:0;
+                                                                "
+                                                            >
+
+
+                                                                <div class="
+                                                                    category-name
+                                                                ">
+
+                                                                    <i
+                                                                        data-feather="folder"
+                                                                        style="
+                                                                            width:11px;
+                                                                            height:11px;
+                                                                        "
+                                                                    ></i>
+
+                                                                    {{ category }}
+
+                                                                </div>
+
+
+                                                                <div class="
+                                                                    category-mini-stats
+                                                                ">
+
+
+                                                                    <span style="
+                                                                        font-size:7px;
+                                                                        color:#374151;
+                                                                        font-weight:800;
+                                                                    ">
+
+                                                                        Total:
+
+                                                                        {{ currency|default('USD') }}
+
+                                                                        {{ "%.2f"|format(
+                                                                            category_total
+                                                                        ) }}
+
+                                                                    </span>
+
+
+                                                                    <span class="
+                                                                        category-mini-stat
+                                                                        income
+                                                                    ">
+
+                                                                        Income:
+
+                                                                        +
+
+                                                                        {{ currency|default('USD') }}
+
+                                                                        {{ "%.2f"|format(
+                                                                            category_income
+                                                                        ) }}
+
+                                                                    </span>
+
+
+                                                                    <span class="
+                                                                        category-mini-stat
+                                                                        expense
+                                                                    ">
+
+                                                                        Expense:
+
+                                                                        -
+
+                                                                        {{ currency|default('USD') }}
+
+                                                                        {{ "%.2f"|format(
+                                                                            category_expense
+                                                                        ) }}
+
+                                                                    </span>
+
+
+                                                                    <span class="
+                                                                        category-mini-stat
+
+                                                                        {% if category_net > 0 %}
+                                                                            net-positive
+                                                                        {% elif category_net < 0 %}
+                                                                            net-negative
+                                                                        {% else %}
+                                                                            net-zero
+                                                                        {% endif %}
+                                                                    ">
+
+
+                                                                        {% if category_net > 0 %}
+
+                                                                            Net Profit:
+
+                                                                            +
+
+                                                                        {% elif category_net < 0 %}
+
+                                                                            Net Loss:
+
+                                                                            -
+
+                                                                        {% else %}
+
+                                                                            Net:
+
+                                                                        {% endif %}
+
+
+                                                                        {{ currency|default('USD') }}
+
+                                                                        {{ "%.2f"|format(
+                                                                            category_net|abs
+                                                                        ) }}
+
+
+                                                                    </span>
+
+
+                                                                </div>
+
+
+                                                            </div>
+
+
+                                                            <div class="
+                                                                category-total
+                                                            ">
+
+                                                                {{ currency|default('USD') }}
+
+                                                                {{ "%.2f"|format(
+                                                                    category_total
+                                                                ) }}
+
+                                                            </div>
+
+
+                                                        </div>
+
+
+                                                        <!-- ITEMS -->
+
+                                                        <div class="
+                                                            items-wrapper
+                                                        ">
+
+
+                                                            {% if category_data['items'] %}
+
+
+                                                                <div class="
+                                                                    item-heading-row
+                                                                ">
+
+
+                                                                    <div class="
+                                                                        item-heading
+                                                                    ">
+
+                                                                        Item
+
+                                                                    </div>
+
+
+                                                                    <div class="
+                                                                        item-heading
+                                                                    ">
+
+                                                                        Total
+
+                                                                    </div>
+
+
+                                                                    <div class="
+                                                                        item-heading
+                                                                    ">
+
+                                                                        Income
+
+                                                                    </div>
+
+
+                                                                    <div class="
+                                                                        item-heading
+                                                                    ">
+
+                                                                        Expense
+
+                                                                    </div>
+
+
+                                                                    <div class="
+                                                                        item-heading
+                                                                    ">
+
+                                                                        Net
+
+                                                                    </div>
+
+
+                                                                </div>
+
+
+                                                                {% for item, item_data
+                                                                    in category_data['items'].items() %}
+
+
+                                                                    {% set item_total =
+                                                                        item_data['total']
+                                                                        |default(0, true)|float
+                                                                    %}
+
+                                                                    {% set item_income =
+                                                                        item_data['income']
+                                                                        |default(0, true)|float
+                                                                    %}
+
+                                                                    {% set item_expense =
+                                                                        item_data['expense']
+                                                                        |default(0, true)|float
+                                                                    %}
+
+                                                                    {% set item_net =
+                                                                        item_data['net']
+                                                                        |default(0, true)|float
+                                                                    %}
+
+
+                                                                    <div class="
+                                                                        item-row
+                                                                    ">
+
+
+                                                                        <div class="
+                                                                            item-name
+                                                                        ">
+
+
+                                                                            <i
+                                                                                data-feather="corner-down-right"
+                                                                                style="
+                                                                                    width:9px;
+                                                                                    height:9px;
+                                                                                "
+                                                                            ></i>
+
+
+                                                                            <span>
+
+                                                                                {{ item }}
+
+                                                                            </span>
+
+
+                                                                        </div>
+
+
+                                                                        <!-- TOTAL -->
+
+                                                                        <div class="
+                                                                            item-value
+                                                                        ">
+
+                                                                            {{ currency|default('USD') }}
+
+                                                                            {{ "%.2f"|format(
+                                                                                item_total
+                                                                            ) }}
+
+                                                                        </div>
+
+
+                                                                        <!-- INCOME -->
+
+                                                                        <div class="
+                                                                            item-value
+                                                                            income
+                                                                        ">
+
+                                                                            +
+
+                                                                            {{ currency|default('USD') }}
+
+                                                                            {{ "%.2f"|format(
+                                                                                item_income
+                                                                            ) }}
+
+                                                                        </div>
+
+
+                                                                        <!-- EXPENSE -->
+
+                                                                        <div class="
+                                                                            item-value
+                                                                            expense
+                                                                        ">
+
+                                                                            -
+
+                                                                            {{ currency|default('USD') }}
+
+                                                                            {{ "%.2f"|format(
+                                                                                item_expense
+                                                                            ) }}
+
+                                                                        </div>
+
+
+                                                                        <!-- NET -->
+
+                                                                        <div class="
+                                                                            item-value
+
+                                                                            {% if item_net > 0 %}
+                                                                                positive
+                                                                            {% elif item_net < 0 %}
+                                                                                negative
+                                                                            {% else %}
+                                                                                zero
+                                                                            {% endif %}
+                                                                        ">
+
+
+                                                                            {% if item_net > 0 %}
+
+                                                                                +
+
+                                                                            {% elif item_net < 0 %}
+
+                                                                                -
+
+                                                                            {% endif %}
+
+
+                                                                            {{ currency|default('USD') }}
+
+                                                                            {{ "%.2f"|format(
+                                                                                item_net|abs
+                                                                            ) }}
+
+
+                                                                        </div>
+
+
+                                                                    </div>
+
+
+                                                                {% endfor %}
+
+
+                                                            {% else %}
+
+
+                                                                <div style="
+                                                                    font-size:8px;
+                                                                    color:#9ca3af;
+                                                                    padding:7px 0;
+                                                                ">
+
+                                                                    No items available.
+
+                                                                </div>
+
+
+                                                            {% endif %}
+
+
+                                                        </div>
+
+
+                                                    </div>
+
+
+                                                {% endfor %}
+
+
+                                            {% else %}
+
+
+                                                <div style="
+                                                    padding:9px;
+                                                    font-size:8px;
+                                                    color:#9ca3af;
+                                                ">
+
+                                                    No categories available.
+
+                                                </div>
+
+
+                                            {% endif %}
+
+
+                                        </div>
+
+
+                                    {% endfor %}
+
+
+                                {% else %}
+
+
+                                    <div style="
+                                        padding:12px 0;
+                                        font-size:9px;
+                                        color:#9ca3af;
+                                    ">
+
+                                        No account data available.
+
+                                    </div>
+
+
+                                {% endif %}
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    {% endfor %}
+
+
+                </div>
+
+
+                <!-- ====================================================
+                     NO DATE RESULT
+                     ==================================================== -->
+
+                <div
+                    id="dateNoResult"
+                    class="date-no-result"
+                >
+
+                    <div class="date-no-result-icon">
+
+                        <i
+                            data-feather="calendar-off"
+                            style="width:20px;height:20px;"
+                        ></i>
+
+                    </div>
+
+                    <h5>
+                        No Matching Date
+                    </h5>
+
+                    <p>
+                        There are no transactions available for the
+                        selected date.
+                    </p>
+
+                </div>
+
+
+            {% else %}
+
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <i data-feather="calendar"></i>
+
+                    </div>
+
+                    <h5>
+                        No Date Data
+                    </h5>
+
+                    <p>
+                        No income or expense transactions are available.
+                    </p>
+
+                </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ============================================================
+         TRANSACTION TABLE
+         ============================================================ -->
+
+    <div class="
+        report-card
+        transaction-table-card
+    ">
+
+
+        <div class="report-card-header">
+
+
+            <div>
+
+                <h3 class="report-card-title">
+
+                    <i
+                        data-feather="list"
+                        style="width:16px;"
+                    ></i>
+
+                    Transaction Details
+
+                </h3>
+
+
+                <p class="report-card-description">
+
+                    Complete transaction records grouped by date.
+
+                </p>
+
+            </div>
+
+
+            <span class="badge bg-light text-dark no-print">
+
+                {{ report_transactions }}
+
+                Transactions
+
+            </span>
+
+
+        </div>
+
+
+        <div class="report-card-body">
+
+
+            {% if transactions %}
+
+
+                <div class="transaction-table-wrapper">
+
+
+                    <table
+                        id="dateTransactionTable"
+                        class="table table-hover align-middle"
+                    >
+
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    #
+                                </th>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Account
+                                </th>
+
+                                <th>
+                                    Category
+                                </th>
+
+                                <th>
+                                    Item
+                                </th>
+
+                                <th>
+                                    Type
+                                </th>
+
+                                <th class="text-end">
+                                    Amount
+                                </th>
+
+                                <th>
+                                    Description
+                                </th>
+
+                                <th>
+                                    Status
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+
+                            {% for transaction in transactions %}
+
+
+                                {% set transaction_amount =
+                                    transaction.amount
+                                    |default(0, true)|float
+                                %}
+
+
+                                <tr
+                                    data-transaction-date="{% if transaction.report_date is defined %}{{ transaction.report_date|e }}{% elif transaction.date %}{% if transaction.date.strftime is defined %}{{ transaction.date.strftime('%Y-%m-%d')|e }}{% else %}{{ transaction.date|string|e }}{% endif %}{% endif %}"
+                                >
+
+
+                                    <!-- NUMBER -->
+
+                                    <td>
+
+                                        {{ loop.index }}
+
+                                    </td>
+
+
+                                    <!-- DATE -->
+
+                                    <td>
+
+                                        {% if transaction.date
+                                            and transaction.date.strftime is defined %}
+
+                                            {{ transaction.date.strftime(
+                                                '%Y-%m-%d %H:%M'
+                                            ) }}
+
+                                        {% else %}
+
+                                            {{ transaction.date|default('—') }}
+
+                                        {% endif %}
+
+                                    </td>
+
+
+                                    <!-- ACCOUNT -->
+
+                                    <td>
+
+                                        <div class="
+                                            transaction-account
+                                        ">
+
+
+                                            <span class="
+                                                transaction-account-icon
+                                            ">
+
+                                                <i
+                                                    data-feather="credit-card"
+                                                    style="
+                                                        width:12px;
+                                                        height:12px;
+                                                    "
+                                                ></i>
+
+                                            </span>
+
+
+                                            <span class="
+                                                transaction-account-name
+                                            ">
+
+                                                {{
+                                                    transaction.account_name
+                                                    or transaction.account
+                                                    or 'Unknown Account'
+                                                }}
+
+                                            </span>
+
+
+                                        </div>
+
+                                    </td>
+
+
+                                    <!-- CATEGORY -->
+
+                                    <td>
+
+                                        <span class="
+                                            transaction-category
+                                        ">
+
+                                            {{
+                                                transaction.category
+                                                or 'Uncategorized'
+                                            }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- ITEM -->
+
+                                    <td>
+
+                                        <span class="
+                                            transaction-item
+                                        ">
+
+                                            {{
+                                                transaction.item
+                                                or '—'
+                                            }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- TYPE -->
+
+                                    <td>
+
+
+                                        {% if transaction.transaction_type
+                                            == 'income' %}
+
+
+                                            <span class="
+                                                transaction-type
+                                                income
+                                            ">
+
+                                                <i
+                                                    data-feather="arrow-down-left"
+                                                    style="
+                                                        width:9px;
+                                                        height:9px;
+                                                    "
+                                                ></i>
+
+                                                Income
+
+                                            </span>
+
+
+                                        {% else %}
+
+
+                                            <span class="
+                                                transaction-type
+                                                expense
+                                            ">
+
+                                                <i
+                                                    data-feather="arrow-up-right"
+                                                    style="
+                                                        width:9px;
+                                                        height:9px;
+                                                    "
+                                                ></i>
+
+                                                Expense
+
+                                            </span>
+
+
+                                        {% endif %}
+
+
+                                    </td>
+
+
+                                    <!-- AMOUNT -->
+
+                                    <td
+                                        class="text-end"
+                                        data-order="{{ transaction_amount }}"
+                                    >
+
+
+                                        {% if transaction.transaction_type
+                                            == 'income' %}
+
+
+                                            <span class="
+                                                transaction-amount
+                                                income
+                                            ">
+
+                                                +
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "%.2f"|format(
+                                                    transaction_amount
+                                                ) }}
+
+                                            </span>
+
+
+                                        {% else %}
+
+
+                                            <span class="
+                                                transaction-amount
+                                                expense
+                                            ">
+
+                                                -
+
+                                                {{ currency|default('USD') }}
+
+                                                {{ "%.2f"|format(
+                                                    transaction_amount
+                                                ) }}
+
+                                            </span>
+
+
+                                        {% endif %}
+
+
+                                    </td>
+
+
+                                    <!-- DESCRIPTION -->
+
+                                    <td>
+
+                                        <span class="
+                                            transaction-description
+                                        ">
+
+                                            {{
+                                                transaction.description
+                                                or transaction.note
+                                                or '—'
+                                            }}
+
+                                        </span>
+
+                                    </td>
+
+
+                                    <!-- STATUS -->
+
+                                    <td>
+
+
+                                        {% set transaction_status =
+                                            transaction.status
+                                            |default('Completed')
+                                        %}
+
+
+                                        {% set status_lower =
+                                            transaction_status|lower
+                                        %}
+
+
+                                        {% if status_lower in [
+                                            'completed',
+                                            'complete',
+                                            'paid',
+                                            'success'
+                                        ] %}
+
+
+                                            <span class="
+                                                transaction-status
+                                                completed
+                                            ">
+
+                                                {{ transaction_status }}
+
+                                            </span>
+
+
+                                        {% elif status_lower in [
+                                            'pending',
+                                            'processing'
+                                        ] %}
+
+
+                                            <span class="
+                                                transaction-status
+                                                pending
+                                            ">
+
+                                                {{ transaction_status }}
+
+                                            </span>
+
+
+                                        {% else %}
+
+
+                                            <span class="
+                                                transaction-status
+                                                failed
+                                            ">
+
+                                                {{ transaction_status }}
+
+                                            </span>
+
+
+                                        {% endif %}
+
+
+                                    </td>
+
+
+                                </tr>
+
+
+                            {% endfor %}
+
+
+                        </tbody>
+
+
+                        <tfoot>
+
+                            <tr>
+
+                                <th
+                                    colspan="6"
+                                    class="text-end"
+                                    style="
+                                        font-size:10px;
+                                        font-weight:900;
+                                    "
+                                >
+
+                                    Total Flow
+
+                                </th>
+
+
+                                <th
+                                    class="text-end"
+                                    style="
+                                        font-size:10px;
+                                        font-weight:900;
+                                    "
+                                >
+
+                                    {{ currency|default('USD') }}
+
+                                    {{ "%.2f"|format(
+                                        report_total_flow
+                                    ) }}
+
+                                </th>
+
+
+                                <th colspan="2"></th>
+
+                            </tr>
+
+                        </tfoot>
+
+
+                    </table>
+
+
+                </div>
+
+
+            {% else %}
+
+
+                <div class="empty-state">
+
+                    <div class="empty-icon">
+
+                        <i data-feather="file-text"></i>
+
+                    </div>
+
+                    <h5>
+                        No Transactions
+                    </h5>
+
+                    <p>
+                        No transaction records are available.
+                    </p>
+
+                </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+
+    /* ========================================================
+       FEATHER ICONS
+       ======================================================== */
+
+    if (typeof feather !== "undefined") {
+
+        feather.replace();
+
+    }
+
+
+    /* ========================================================
+       DATATABLE
+       ======================================================== */
+
+    let table = null;
+
+
+    if (
+        typeof $ !== "undefined" &&
+        $.fn.DataTable &&
+        $("#dateTransactionTable").length
+    ) {
+
+
+        table = $("#dateTransactionTable").DataTable({
+
+            pageLength: 25,
+
+            lengthMenu: [
+                [10, 25, 50, 100, -1],
+                [10, 25, 50, 100, "All"]
+            ],
+
+            order: [
+                [1, "desc"]
+            ],
+
+            responsive: true,
+
+            autoWidth: false,
+
+            columnDefs: [
+
+                {
+                    targets: 0,
+                    orderable: false
+                },
+
+                {
+                    targets: 6,
+                    type: "num"
+                }
+
+            ],
+
+            language: {
+
+                search: "Search:",
+
+                lengthMenu:
+                    "Show _MENU_ transactions",
+
+                info:
+                    "Showing _START_ to _END_ of _TOTAL_ transactions",
+
+                infoEmpty:
+                    "No transactions available",
+
+                zeroRecords:
+                    "No matching transactions found",
+
+                paginate: {
+
+                    first: "First",
+
+                    last: "Last",
+
+                    next: "Next",
+
+                    previous: "Previous"
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /* ========================================================
+       DATE SELECT
+       ======================================================== */
+
+    const dateSelect = document.getElementById("dateSearch");
+
+    const dateCards = document.querySelectorAll(
+        ".date-card"
+    );
+
+    const noDateResult = document.getElementById(
+        "dateNoResult"
+    );
+
+
+    function filterDate(selectedDate) {
+
+
+        /* ====================================================
+           DATE BREAKDOWN FILTER
+           ==================================================== */
+
+        let visibleCards = 0;
+
+
+        dateCards.forEach(function (card) {
+
+            const cardDate =
+                card.getAttribute("data-report-date");
+
+
+            if (
+                selectedDate === "" ||
+                cardDate === selectedDate
+            ) {
+
+                card.style.display = "";
+
+                visibleCards++;
+
+            } else {
+
+                card.style.display = "none";
+
+            }
+
+        });
+
+
+        /* ====================================================
+           NO RESULT MESSAGE
+           ==================================================== */
+
+        if (noDateResult) {
+
+            if (
+                selectedDate !== "" &&
+                visibleCards === 0
+            ) {
+
+                noDateResult.style.display = "block";
+
+            } else {
+
+                noDateResult.style.display = "none";
+
+            }
+
+        }
+
+
+        /* ====================================================
+           TRANSACTION TABLE FILTER
+           ==================================================== */
+
+        if (table) {
+
+            if (selectedDate === "") {
+
+                table
+                    .column(1)
+                    .search("")
+                    .draw();
+
+            } else {
+
+                /*
+                 * Exact date match.
+                 *
+                 * ^ = beginning
+                 * date = selected date
+                 * .* = time after date
+                 * $ = end
+                 */
+
+                const escapedDate =
+                    selectedDate.replace(
+                        /[-\/\\^$*+?.()|[\]{}]/g,
+                        "\\$&"
+                    );
+
+
+                table
+                    .column(1)
+                    .search(
+                        "^" +
+                        escapedDate +
+                        ".*$",
+                        true,
+                        false
+                    )
+                    .draw();
+
+            }
+
+        }
+
+    }
+
+
+    /* ========================================================
+       CHANGE DATE
+       ======================================================== */
+
+    if (dateSelect) {
+
+        dateSelect.addEventListener(
+            "change",
+            function () {
+
+                filterDate(
+                    this.value
+                );
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       CLEAR DATE
+       ======================================================== */
+
+    const clearButton =
+        document.getElementById(
+            "clearDateSearch"
+        );
+
+
+    if (clearButton) {
+
+        clearButton.addEventListener(
+            "click",
+            function () {
+
+                if (dateSelect) {
+
+                    dateSelect.value = "";
+
+                }
+
+                filterDate("");
+
+            }
+        );
+
+    }
+
+
+    /* ========================================================
+       PRINT FUNCTION
+       ======================================================== */
+
+    window.printDateReport = function () {
+
+        window.print();
+
+    };
+
+
+});
+
+</script>
+
+{% endblock %}

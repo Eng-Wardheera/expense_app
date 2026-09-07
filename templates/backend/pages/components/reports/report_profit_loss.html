@@ -1,0 +1,3945 @@
+{% extends "backend/home/base.html" %}
+
+{% block title %}Profit & Loss Report{% endblock %}
+
+{% block content %}
+
+<div class="pl-report">
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <header class="pl-header">
+
+        <div class="pl-header-left">
+
+            <div class="pl-eyebrow">
+                <i class="fas fa-chart-line"></i>
+                FINANCIAL MANAGEMENT
+            </div>
+
+            <h1>Profit & Loss Report</h1>
+
+            <p>
+                Detailed income, expense and profitability analysis
+                for <strong>{{ custom_range_label }}</strong>
+            </p>
+
+        </div>
+
+
+        <div class="pl-header-actions">
+
+            <button type="button"
+                    class="pl-btn pl-btn-dark"
+                    onclick="printFullReport()">
+
+                <i class="fas fa-print"></i>
+                Print / PDF
+
+            </button>
+
+
+            <button type="button"
+                    class="pl-btn pl-btn-outline"
+                    onclick="exportFullCSV()">
+
+                <i class="fas fa-file-csv"></i>
+                Export CSV
+
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =========================================================
+         FILTER PANEL
+    ========================================================== -->
+
+    <section class="pl-filter-card">
+
+        <div class="pl-filter-heading">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    REPORT CONTROL
+                </span>
+
+                <h2>
+                    <i class="fas fa-sliders"></i>
+                    Filters
+                </h2>
+
+            </div>
+
+
+            <div class="pl-period-badge">
+
+                <i class="fas fa-calendar"></i>
+
+                {{ custom_range_label }}
+
+            </div>
+
+        </div>
+
+
+        <form method="GET"
+              action="{{ url_for('main.report_profit_loss') }}"
+              class="pl-filter-form">
+
+
+            <!-- START DATE -->
+
+            <div class="pl-field">
+
+                <label>
+                    Start Date
+                </label>
+
+                <div class="pl-input-icon">
+
+                    <i class="fas fa-calendar-days"></i>
+
+                    <input
+                        type="date"
+                        name="start_date"
+                        value="{{ start_date_value or start_date }}"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- END DATE -->
+
+            <div class="pl-field">
+
+                <label>
+                    End Date
+                </label>
+
+                <div class="pl-input-icon">
+
+                    <i class="fas fa-calendar-days"></i>
+
+                    <input
+                        type="date"
+                        name="end_date"
+                        value="{{ end_date_value or end_date }}"
+                        required
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- CATEGORY -->
+
+            <div class="pl-field">
+
+                <label>
+                    Category
+                </label>
+
+                <select name="category">
+
+                    <option value="">
+                        All Categories
+                    </option>
+
+                    {% for category in category_options %}
+
+                    <option value="{{ category }}"
+                        {% if category_filter|lower == category|lower %}
+                            selected
+                        {% endif %}>
+
+                        {{ category }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- ACCOUNT -->
+
+            <div class="pl-field">
+
+                <label>
+                    Account
+                </label>
+
+                <select name="account">
+
+                    <option value="">
+                        All Accounts
+                    </option>
+
+                    {% for account in account_options %}
+
+                    <option value="{{ account }}"
+                        {% if account_filter|lower == account|lower %}
+                            selected
+                        {% endif %}>
+
+                        {{ account }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- TYPE -->
+
+            <div class="pl-field">
+
+                <label>
+                    Transaction Type
+                </label>
+
+                <select name="transaction_type">
+
+                    <option value="">
+                        All Transactions
+                    </option>
+
+                    <option value="income"
+                        {% if transaction_type == "income" %}
+                            selected
+                        {% endif %}>
+                        Income
+                    </option>
+
+                    <option value="expense"
+                        {% if transaction_type == "expense" %}
+                            selected
+                        {% endif %}>
+                        Expense
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <!-- ACTIONS -->
+
+            <div class="pl-filter-actions">
+
+                <button type="submit"
+                        class="pl-btn pl-btn-primary">
+
+                    <i class="fas fa-filter"></i>
+
+                    Apply
+
+                </button>
+
+
+                <a href="{{ url_for('main.report_profit_loss') }}"
+                   class="pl-btn pl-btn-light">
+
+                    <i class="fas fa-rotate-left"></i>
+
+                    Reset
+
+                </a>
+
+            </div>
+
+        </form>
+
+
+        <!-- QUICK RANGES -->
+
+        <div class="pl-quick-ranges">
+
+            <span>
+                Quick Range:
+            </span>
+
+            <button type="button"
+                    onclick="setPLRange('today')">
+                Today
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('yesterday')">
+                Yesterday
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('7days')">
+                Last 7 Days
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('30days')">
+                Last 30 Days
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('month')">
+                This Month
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('lastmonth')">
+                Last Month
+            </button>
+
+            <button type="button"
+                    onclick="setPLRange('year')">
+                This Year
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         MAIN P&L KPI CARDS
+    ========================================================== -->
+
+    <section class="pl-kpi-grid">
+
+
+        <!-- INCOME -->
+
+        <div class="pl-kpi income">
+
+            <div class="pl-kpi-icon">
+
+                <i class="fas fa-arrow-trend-up"></i>
+
+            </div>
+
+            <div class="pl-kpi-content">
+
+                <span>
+                    Total Income
+                </span>
+
+                <strong>
+                    ${{ "%.2f"|format(total_income or 0) }}
+                </strong>
+
+                <small>
+                    {{ income_count or 0 }} income transactions
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- EXPENSE -->
+
+        <div class="pl-kpi expense">
+
+            <div class="pl-kpi-icon">
+
+                <i class="fas fa-arrow-trend-down"></i>
+
+            </div>
+
+            <div class="pl-kpi-content">
+
+                <span>
+                    Total Expense
+                </span>
+
+                <strong>
+                    ${{ "%.2f"|format(total_expense or 0) }}
+                </strong>
+
+                <small>
+                    {{ expense_count or 0 }} expense transactions
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- NET -->
+
+        <div class="pl-kpi net">
+
+            <div class="pl-kpi-icon">
+
+                <i class="fas fa-scale-balanced"></i>
+
+            </div>
+
+            <div class="pl-kpi-content">
+
+                <span>
+                    Net Profit / Loss
+                </span>
+
+                <strong class="{% if net_profit < 0 %}pl-negative{% else %}pl-positive{% endif %}">
+
+                    ${{ "%.2f"|format(net_profit or 0) }}
+
+                </strong>
+
+                <small>
+
+                    {% if net_profit >= 0 %}
+                        Profitable Period
+                    {% else %}
+                        Loss-Making Period
+                    {% endif %}
+
+                </small>
+
+            </div>
+
+        </div>
+
+
+        <!-- TRANSACTIONS -->
+
+        <div class="pl-kpi transactions">
+
+            <div class="pl-kpi-icon">
+
+                <i class="fas fa-receipt"></i>
+
+            </div>
+
+            <div class="pl-kpi-content">
+
+                <span>
+                    Total Transactions
+                </span>
+
+                <strong>
+                    {{ total_transactions or 0 }}
+                </strong>
+
+                <small>
+                    All financial records
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         PROFITABILITY METRICS
+    ========================================================== -->
+
+    <section class="pl-metrics-grid">
+
+
+        <div class="pl-metric">
+
+            <div class="pl-metric-icon">
+                <i class="fas fa-percent"></i>
+            </div>
+
+            <div>
+
+                <span>
+                    Profit Margin
+                </span>
+
+                <strong>
+                    {{ "%.2f"|format(profit_margin or 0) }}%
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-metric">
+
+            <div class="pl-metric-icon">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+
+            <div>
+
+                <span>
+                    Expense Ratio
+                </span>
+
+                <strong>
+                    {{ "%.2f"|format(expense_ratio or 0) }}%
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-metric">
+
+            <div class="pl-metric-icon">
+                <i class="fas fa-calculator"></i>
+            </div>
+
+            <div>
+
+                <span>
+                    Average Transaction
+                </span>
+
+                <strong>
+                    ${{ "%.2f"|format(average_transaction or 0) }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-metric">
+
+            <div class="pl-metric-icon">
+                <i class="fas fa-arrow-up-right-dots"></i>
+            </div>
+
+            <div>
+
+                <span>
+                    Highest Transaction
+                </span>
+
+                <strong>
+                    ${{ "%.2f"|format(highest_transaction or 0) }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-metric">
+
+            <div class="pl-metric-icon">
+                <i class="fas fa-arrow-down-wide-short"></i>
+            </div>
+
+            <div>
+
+                <span>
+                    Lowest Transaction
+                </span>
+
+                <strong>
+                    ${{ "%.2f"|format(lowest_transaction or 0) }}
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         PROFIT / LOSS STATUS
+    ========================================================== -->
+
+    <section class="pl-status-card
+        {% if net_profit >= 0 %}
+            profit
+        {% else %}
+            loss
+        {% endif %}">
+
+        <div class="pl-status-icon">
+
+            {% if net_profit >= 0 %}
+
+                <i class="fas fa-circle-check"></i>
+
+            {% else %}
+
+                <i class="fas fa-circle-exclamation"></i>
+
+            {% endif %}
+
+        </div>
+
+
+        <div class="pl-status-content">
+
+            {% if net_profit >= 0 %}
+
+                <strong>
+                    Profitable Period
+                </strong>
+
+                <p>
+                    Your income exceeded your expenses by
+                    <b>
+                        ${{ "%.2f"|format(net_profit or 0) }}
+                    </b>
+                    during this reporting period.
+                </p>
+
+            {% else %}
+
+                <strong>
+                    Loss-Making Period
+                </strong>
+
+                <p>
+                    Your expenses exceeded your income by
+                    <b>
+                        ${{ "%.2f"|format(net_profit|abs) }}
+                    </b>
+                    during this reporting period.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         HIGH EXPENSE WARNING
+    ========================================================== -->
+
+    {% if expense_ratio >= 80 %}
+
+    <section class="pl-warning">
+
+        <div class="pl-warning-icon">
+
+            <i class="fas fa-triangle-exclamation"></i>
+
+        </div>
+
+        <div>
+
+            <strong>
+                High Expense Ratio
+            </strong>
+
+            <p>
+                Expenses currently represent
+                <b>{{ "%.2f"|format(expense_ratio or 0) }}%</b>
+                of total income.
+                Consider reviewing your expense categories.
+            </p>
+
+        </div>
+
+    </section>
+
+    {% endif %}
+
+
+    <!-- =========================================================
+         PREVIOUS PERIOD COMPARISON
+    ========================================================== -->
+
+    <section class="pl-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    PERIOD COMPARISON
+                </span>
+
+                <h2>
+                    Previous Period Analysis
+                </h2>
+
+            </div>
+
+            <span class="pl-section-note">
+                {{ previous_range_label }}
+            </span>
+
+        </div>
+
+
+        <div class="pl-comparison-grid">
+
+
+            <!-- INCOME CHANGE -->
+
+            <div class="pl-comparison-card">
+
+                <span>
+                    Income Change
+                </span>
+
+                <strong class="
+                    {% if income_change >= 0 %}
+                        positive-change
+                    {% else %}
+                        negative-change
+                    {% endif %}
+                ">
+
+                    {% if income_change >= 0 %}
+                        ↑
+                    {% else %}
+                        ↓
+                    {% endif %}
+
+                    {{ "%.2f"|format(income_change or 0) }}%
+
+                </strong>
+
+                <small>
+                    Previous:
+                    ${{ "%.2f"|format(previous_income or 0) }}
+                </small>
+
+            </div>
+
+
+            <!-- EXPENSE CHANGE -->
+
+            <div class="pl-comparison-card">
+
+                <span>
+                    Expense Change
+                </span>
+
+                <strong class="
+                    {% if expense_change <= 0 %}
+                        positive-change
+                    {% else %}
+                        negative-change
+                    {% endif %}
+                ">
+
+                    {% if expense_change >= 0 %}
+                        ↑
+                    {% else %}
+                        ↓
+                    {% endif %}
+
+                    {{ "%.2f"|format(expense_change or 0) }}%
+
+                </strong>
+
+                <small>
+                    Previous:
+                    ${{ "%.2f"|format(previous_expense or 0) }}
+                </small>
+
+            </div>
+
+
+            <!-- NET CHANGE -->
+
+            <div class="pl-comparison-card">
+
+                <span>
+                    Net Profit Change
+                </span>
+
+                <strong class="
+                    {% if net_change >= 0 %}
+                        positive-change
+                    {% else %}
+                        negative-change
+                    {% endif %}
+                ">
+
+                    {% if net_change >= 0 %}
+                        ↑
+                    {% else %}
+                        ↓
+                    {% endif %}
+
+                    {{ "%.2f"|format(net_change or 0) }}%
+
+                </strong>
+
+                <small>
+                    Previous:
+                    ${{ "%.2f"|format(previous_net or 0) }}
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         CHARTS
+    ========================================================== -->
+
+    <section class="pl-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    VISUAL ANALYTICS
+                </span>
+
+                <h2>
+                    Profit & Loss Analytics
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-chart-grid">
+
+
+            <!-- MONTHLY -->
+
+            <div class="pl-chart-card wide">
+
+                <div class="pl-chart-header">
+
+                    <div>
+
+                        <h3>
+                            Monthly Profit & Loss
+                        </h3>
+
+                        <span>
+                            Income vs Expense vs Net
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="pl-chart-wrapper">
+
+                    <canvas id="plMonthlyChart"></canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- DONUT -->
+
+            <div class="pl-chart-card">
+
+                <div class="pl-chart-header">
+
+                    <div>
+
+                        <h3>
+                            Income vs Expense
+                        </h3>
+
+                        <span>
+                            Financial distribution
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="pl-donut-wrapper">
+
+                    <canvas id="plIncomeExpenseChart"></canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- DAILY -->
+
+            <div class="pl-chart-card wide">
+
+                <div class="pl-chart-header">
+
+                    <div>
+
+                        <h3>
+                            Daily Financial Movement
+                        </h3>
+
+                        <span>
+                            Daily income, expenses and net result
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="pl-chart-wrapper">
+
+                    <canvas id="plDailyChart"></canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- CATEGORY -->
+
+            <div class="pl-chart-card">
+
+                <div class="pl-chart-header">
+
+                    <div>
+
+                        <h3>
+                            Category Performance
+                        </h3>
+
+                        <span>
+                            Category income and expenses
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="pl-chart-wrapper">
+
+                    <canvas id="plCategoryChart"></canvas>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACCOUNT -->
+
+            <div class="pl-chart-card">
+
+                <div class="pl-chart-header">
+
+                    <div>
+
+                        <h3>
+                            Account Performance
+                        </h3>
+
+                        <span>
+                            Account financial movement
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="pl-chart-wrapper">
+
+                    <canvas id="plAccountChart"></canvas>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         DAILY BREAKDOWN
+    ========================================================== -->
+
+    <section class="pl-section pl-table-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    DAILY REPORT
+                </span>
+
+                <h2>
+                    Daily Profit & Loss
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-table-container">
+
+            <table id="plDailyTable"
+                   class="display nowrap pl-table"
+                   style="width:100%">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Net</th>
+
+                        <th>Transactions</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in daily_data %}
+
+                    <tr>
+
+                        <td>
+                            {{ row["date"] }}
+                        </td>
+
+                        <td data-order="{{ row["income"] or 0 }}">
+
+                            <span class="pl-income-text">
+                                ${{ "%.2f"|format(row["income"] or 0) }}
+                            </span>
+
+                        </td>
+
+                        <td data-order="{{ row["expense"] or 0 }}">
+
+                            <span class="pl-expense-text">
+                                ${{ "%.2f"|format(row["expense"] or 0) }}
+                            </span>
+
+                        </td>
+
+                        <td data-order="{{ row["net"] or 0 }}">
+
+                            <span class="
+                                {% if row["net"] < 0 %}
+                                    pl-loss-text
+                                {% else %}
+                                    pl-profit-text
+                                {% endif %}
+                            ">
+
+                                ${{ "%.2f"|format(row["net"] or 0) }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         CATEGORY SUMMARY
+    ========================================================== -->
+
+    <section class="pl-section pl-table-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    CATEGORY ANALYSIS
+                </span>
+
+                <h2>
+                    Category Profit & Loss
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-table-container">
+
+            <table id="plCategoryTable"
+                   class="display nowrap pl-table"
+                   style="width:100%">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Category</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Net</th>
+
+                        <th>Transactions</th>
+
+                        <th>Average</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in categories %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row["name"] }}
+                            </strong>
+                        </td>
+
+                        <td data-order="{{ row["income"] or 0 }}">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["expense"] or 0 }}">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["net"] or 0 }}">
+
+                            <span class="
+                                {% if row["net"] < 0 %}
+                                    pl-loss-text
+                                {% else %}
+                                    pl-profit-text
+                                {% endif %}
+                            ">
+
+                                ${{ "%.2f"|format(row["net"] or 0) }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td data-order="{{ row["average"] or 0 }}">
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ACCOUNT SUMMARY
+    ========================================================== -->
+
+    <section class="pl-section pl-table-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    ACCOUNT ANALYSIS
+                </span>
+
+                <h2>
+                    Account Profit & Loss
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-table-container">
+
+            <table id="plAccountTable"
+                   class="display nowrap pl-table"
+                   style="width:100%">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Account</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Net</th>
+
+                        <th>Transactions</th>
+
+                        <th>Average</th>
+
+                        <th>Highest</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in accounts %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row["name"] }}
+                            </strong>
+                        </td>
+
+                        <td data-order="{{ row["income"] or 0 }}">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["expense"] or 0 }}">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["net"] or 0 }}">
+
+                            <span class="
+                                {% if row["net"] < 0 %}
+                                    pl-loss-text
+                                {% else %}
+                                    pl-profit-text
+                                {% endif %}
+                            ">
+
+                                ${{ "%.2f"|format(row["net"] or 0) }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td data-order="{{ row["average"] or 0 }}">
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["highest"] or 0 }}">
+                            ${{ "%.2f"|format(row["highest"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ITEM SUMMARY
+    ========================================================== -->
+
+    <section class="pl-section pl-table-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    ITEM ANALYSIS
+                </span>
+
+                <h2>
+                    Item Profit & Loss
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-table-container">
+
+            <table id="plItemTable"
+                   class="display nowrap pl-table"
+                   style="width:100%">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Item</th>
+
+                        <th>Income</th>
+
+                        <th>Expense</th>
+
+                        <th>Net</th>
+
+                        <th>Transactions</th>
+
+                        <th>Average</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in items %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ row["name"] }}
+                            </strong>
+                        </td>
+
+                        <td data-order="{{ row["income"] or 0 }}">
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["expense"] or 0 }}">
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </td>
+
+                        <td data-order="{{ row["net"] or 0 }}">
+
+                            <span class="
+                                {% if row["net"] < 0 %}
+                                    pl-loss-text
+                                {% else %}
+                                    pl-profit-text
+                                {% endif %}
+                            ">
+
+                                ${{ "%.2f"|format(row["net"] or 0) }}
+
+                            </span>
+
+                        </td>
+
+                        <td>
+                            {{ row["transaction_count"] or 0 }}
+                        </td>
+
+                        <td data-order="{{ row["average"] or 0 }}">
+                            ${{ "%.2f"|format(row["average"] or 0) }}
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         TOP INCOME / EXPENSE / ITEMS
+    ========================================================== -->
+
+    <section class="pl-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    TOP PERFORMANCE
+                </span>
+
+                <h2>
+                    Financial Leaders
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="pl-top-grid">
+
+
+            <!-- TOP INCOME -->
+
+            <div class="pl-top-card">
+
+                <div class="pl-top-title">
+
+                    <div class="pl-top-icon income">
+                        <i class="fas fa-arrow-trend-up"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Top Income Categories
+                        </h3>
+
+                        <span>
+                            Highest income sources
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                {% for row in top_income_categories %}
+
+                <div class="pl-progress-row">
+
+                    <div class="pl-progress-info">
+
+                        <span>
+                            {{ row["name"] }}
+                        </span>
+
+                        <strong>
+                            ${{ "%.2f"|format(row["income"] or 0) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="pl-progress-track">
+
+                        {% set max_income =
+                            top_income_categories[0]["income"]
+                            if top_income_categories
+                            else 1
+                        %}
+
+                        <div class="pl-progress-fill income"
+                             style="width: {{
+                                ((row["income"] / max_income) * 100)
+                                if max_income else 0
+                             }}%">
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {% else %}
+
+                <div class="pl-empty">
+                    No income data available.
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- TOP EXPENSE -->
+
+            <div class="pl-top-card">
+
+                <div class="pl-top-title">
+
+                    <div class="pl-top-icon expense">
+                        <i class="fas fa-arrow-trend-down"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Top Expense Categories
+                        </h3>
+
+                        <span>
+                            Highest expense sources
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                {% for row in top_expense_categories %}
+
+                <div class="pl-progress-row">
+
+                    <div class="pl-progress-info">
+
+                        <span>
+                            {{ row["name"] }}
+                        </span>
+
+                        <strong>
+                            ${{ "%.2f"|format(row["expense"] or 0) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="pl-progress-track">
+
+                        {% set max_expense =
+                            top_expense_categories[0]["expense"]
+                            if top_expense_categories
+                            else 1
+                        %}
+
+                        <div class="pl-progress-fill expense"
+                             style="width: {{
+                                ((row["expense"] / max_expense) * 100)
+                                if max_expense else 0
+                             }}%">
+                        </div>
+
+                    </div>
+
+                </div>
+
+                {% else %}
+
+                <div class="pl-empty">
+                    No expense data available.
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- TOP ITEMS -->
+
+            <div class="pl-top-card">
+
+                <div class="pl-top-title">
+
+                    <div class="pl-top-icon neutral">
+                        <i class="fas fa-ranking-star"></i>
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            Top Items
+                        </h3>
+
+                        <span>
+                            Highest transaction items
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                {% for row in top_items %}
+
+                <div class="pl-top-item">
+
+                    <div class="pl-rank">
+                        {{ loop.index }}
+                    </div>
+
+                    <div class="pl-top-item-name">
+
+                        <strong>
+                            {{ row["name"] }}
+                        </strong>
+
+                        <small>
+                            {{ row["transaction_count"] or 0 }}
+                            transactions
+                        </small>
+
+                    </div>
+
+                    <strong class="pl-top-item-value">
+
+                        ${{ "%.2f"|format(
+                            row["total"]
+                            if row.get("total") is not none
+                            else (
+                                (row["income"] or 0)
+                                +
+                                (row["expense"] or 0)
+                            )
+                        ) }}
+
+                    </strong>
+
+                </div>
+
+                {% else %}
+
+                <div class="pl-empty">
+                    No item data available.
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         FINANCIAL TRANSACTIONS
+    ========================================================== -->
+
+    <section class="pl-section pl-table-section">
+
+        <div class="pl-section-header">
+
+            <div>
+
+                <span class="pl-section-kicker">
+                    TRANSACTION LEDGER
+                </span>
+
+                <h2>
+                    Financial Transactions
+                </h2>
+
+            </div>
+
+            <span class="pl-record-count">
+                {{ total_transactions or 0 }} records
+            </span>
+
+        </div>
+
+
+        <div class="pl-table-container">
+
+            <table id="plTransactionsTable"
+                   class="display nowrap pl-table"
+                   style="width:100%">
+
+                <thead>
+
+                    <tr>
+
+                        <th>#</th>
+
+                        <th>Date</th>
+
+                        <th>Account</th>
+
+                        <th>Category</th>
+
+                        <th>Item</th>
+
+                        <th>Type</th>
+
+                        <th>Amount</th>
+
+                        <th>Status</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    {% for row in financial_transactions %}
+
+                    <tr>
+
+                        <td>
+                            {{ loop.index }}
+                        </td>
+
+                        <td data-order="{{ row["date"] }}">
+
+                            {{ row["date"] }}
+
+                        </td>
+
+                        <td>
+
+                            {{ row["account"] or "—" }}
+
+                        </td>
+
+                        <td>
+
+                            {{ row["category"] or "—" }}
+
+                        </td>
+
+                        <td>
+
+                            {{ row["item"] or "—" }}
+
+                        </td>
+
+                        <td>
+
+                            {% if row["transaction_type"]|lower == "income" %}
+
+                            <span class="pl-type income">
+
+                                <i class="fas fa-arrow-down"></i>
+
+                                Income
+
+                            </span>
+
+                            {% else %}
+
+                            <span class="pl-type expense">
+
+                                <i class="fas fa-arrow-up"></i>
+
+                                Expense
+
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td data-order="{{ row["amount"] or 0 }}">
+
+                            {% if row["transaction_type"]|lower == "income" %}
+
+                            <strong class="pl-income-text">
+
+                                +${{ "%.2f"|format(row["amount"] or 0) }}
+
+                            </strong>
+
+                            {% else %}
+
+                            <strong class="pl-expense-text">
+
+                                -${{ "%.2f"|format(row["amount"] or 0) }}
+
+                            </strong>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% set status =
+                                row["status"]|string|lower
+                            %}
+
+                            {% if status in [
+                                "true",
+                                "completed",
+                                "success",
+                                "active"
+                            ] %}
+
+                            <span class="pl-status success">
+
+                                <i class="fas fa-check"></i>
+
+                                Completed
+
+                            </span>
+
+                            {% else %}
+
+                            <span class="pl-status pending">
+
+                                {{ row["status"] }}
+
+                            </span>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         REPORT FOOTER
+    ========================================================== -->
+
+    <footer class="pl-footer">
+
+        <div>
+
+            <strong>
+                Profit & Loss Report
+            </strong>
+
+            <span>
+                Financial Management System
+            </span>
+
+        </div>
+
+        <div>
+
+            <span>
+                Reporting Period
+            </span>
+
+            <strong>
+                {{ custom_range_label }}
+            </strong>
+
+        </div>
+
+    </footer>
+
+</div>
+
+
+<!-- =============================================================
+     DATATABLE LIBRARIES
+============================================================= -->
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/2.3.3/css/dataTables.dataTables.min.css">
+
+<link rel="stylesheet"
+      href="https://cdn.datatables.net/buttons/3.2.5/css/buttons.dataTables.min.css">
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="https://cdn.datatables.net/2.3.3/js/dataTables.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/dataTables.buttons.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.dataTables.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/pdfmake.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.20/vfs_fonts.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.html5.min.js"></script>
+
+<script src="https://cdn.datatables.net/buttons/3.2.5/js/buttons.print.min.js"></script>
+
+
+<!-- =============================================================
+     CSS
+============================================================= -->
+
+<style>
+
+.pl-report {
+    width: 100%;
+    max-width: 1750px;
+    margin: auto;
+    padding: 25px;
+    color: #172033;
+}
+
+.pl-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 25px;
+    margin-bottom: 25px;
+}
+
+.pl-eyebrow,
+.pl-section-kicker {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #6b7280;
+}
+
+.pl-header h1 {
+    margin: 7px 0;
+    font-size: 35px;
+    font-weight: 850;
+}
+
+.pl-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.pl-header-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.pl-btn {
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 16px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 750;
+    transition: .2s ease;
+}
+
+.pl-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pl-btn-primary,
+.pl-btn-dark {
+    background: #111827;
+    color: #fff;
+}
+
+.pl-btn-outline {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #111827;
+}
+
+.pl-btn-light {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+
+/* =========================================================
+   FILTER
+========================================================= */
+
+.pl-filter-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 17px;
+    padding: 20px;
+    margin-bottom: 22px;
+}
+
+.pl-filter-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.pl-filter-heading h2 {
+    margin: 4px 0 0;
+    font-size: 19px;
+}
+
+.pl-period-badge {
+    background: #f3f4f6;
+    border-radius: 30px;
+    padding: 8px 13px;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.pl-filter-form {
+    display: grid;
+    grid-template-columns:
+        repeat(5, minmax(150px, 1fr))
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.pl-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pl-field label {
+    font-size: 11px;
+    font-weight: 800;
+    color: #4b5563;
+}
+
+.pl-field input,
+.pl-field select {
+    height: 43px;
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 9px;
+    padding: 0 11px;
+    background: #fff;
+    outline: none;
+    color: #111827;
+}
+
+.pl-field input:focus,
+.pl-field select:focus {
+    border-color: #111827;
+    box-shadow: 0 0 0 3px rgba(17,24,39,.06);
+}
+
+.pl-input-icon {
+    position: relative;
+}
+
+.pl-input-icon i {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.pl-input-icon input {
+    padding-left: 34px;
+}
+
+.pl-filter-actions {
+    display: flex;
+    gap: 7px;
+}
+
+.pl-quick-ranges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 16px;
+}
+
+.pl-quick-ranges span {
+    font-size: 11px;
+    font-weight: 850;
+    margin-right: 5px;
+}
+
+.pl-quick-ranges button {
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.pl-quick-ranges button:hover {
+    background: #111827;
+    color: white;
+}
+
+
+/* =========================================================
+   KPI
+========================================================= */
+
+.pl-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.pl-kpi {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 19px;
+    display: flex;
+    gap: 14px;
+}
+
+.pl-kpi-icon {
+    width: 49px;
+    height: 49px;
+    flex: 0 0 49px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: #f3f4f6;
+}
+
+.pl-kpi-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.pl-kpi-content span {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.pl-kpi-content strong {
+    font-size: 25px;
+    line-height: 1.1;
+}
+
+.pl-kpi-content small {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   METRICS
+========================================================= */
+
+.pl-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 11px;
+    margin-bottom: 20px;
+}
+
+.pl-metric {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 13px;
+    padding: 14px;
+}
+
+.pl-metric-icon {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+}
+
+.pl-metric span,
+.pl-metric strong {
+    display: block;
+}
+
+.pl-metric span {
+    color: #6b7280;
+    font-size: 10px;
+    margin-bottom: 3px;
+}
+
+.pl-metric strong {
+    font-size: 17px;
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.pl-status-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 18px;
+}
+
+.pl-status-card.profit {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+}
+
+.pl-status-card.loss {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.pl-status-icon {
+    width: 43px;
+    height: 43px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #fff;
+}
+
+.pl-status-card.profit .pl-status-icon {
+    color: #15803d;
+}
+
+.pl-status-card.loss .pl-status-icon {
+    color: #dc2626;
+}
+
+.pl-status-content strong {
+    display: block;
+}
+
+.pl-status-content p {
+    margin: 4px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   WARNING
+========================================================= */
+
+.pl-warning {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 14px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.pl-warning-icon {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.pl-warning p {
+    margin: 3px 0 0;
+    color: #9a3412;
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.pl-section {
+    margin-top: 30px;
+}
+
+.pl-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 15px;
+    margin-bottom: 13px;
+}
+
+.pl-section-header h2 {
+    margin: 4px 0 0;
+    font-size: 21px;
+}
+
+.pl-section-note,
+.pl-record-count {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   COMPARISON
+========================================================= */
+
+.pl-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.pl-comparison-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 17px;
+}
+
+.pl-comparison-card span {
+    display: block;
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.pl-comparison-card strong {
+    display: block;
+    font-size: 24px;
+    margin: 5px 0;
+}
+
+.pl-comparison-card small {
+    color: #9ca3af;
+}
+
+
+/* =========================================================
+   CHARTS
+========================================================= */
+
+.pl-chart-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 15px;
+}
+
+.pl-chart-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+    min-height: 350px;
+}
+
+.pl-chart-card.wide {
+    min-height: 390px;
+}
+
+.pl-chart-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.pl-chart-header h3 {
+    margin: 0 0 3px;
+    font-size: 14px;
+}
+
+.pl-chart-header span {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+.pl-chart-wrapper {
+    position: relative;
+    height: 295px;
+}
+
+.pl-donut-wrapper {
+    position: relative;
+    height: 285px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.pl-table-container {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 15px;
+    padding: 10px;
+    overflow-x: auto;
+}
+
+.pl-table {
+    width: 100% !important;
+}
+
+.pl-table thead th {
+    background: #f8fafc !important;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.pl-table tbody td {
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.pl-table tbody tr:hover {
+    background: #f9fafb;
+}
+
+
+/* =========================================================
+   DATATABLE PAGINATION
+========================================================= */
+
+.dt-container {
+    padding: 5px 3px;
+}
+
+.dt-layout-row {
+    margin: 10px 0 !important;
+    align-items: center !important;
+}
+
+.dt-search input,
+.dt-length select {
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 7px 9px !important;
+    outline: none !important;
+}
+
+.dt-search input:focus {
+    border-color: #111827 !important;
+}
+
+.dt-button {
+    border: 1px solid #d1d5db !important;
+    background: #fff !important;
+    color: #111827 !important;
+    border-radius: 7px !important;
+    padding: 6px 9px !important;
+    font-size: 11px !important;
+    font-weight: 750 !important;
+}
+
+.dt-button:hover {
+    background: #111827 !important;
+    color: #fff !important;
+}
+
+.dt-paging-button {
+    border-radius: 7px !important;
+    margin: 2px !important;
+    font-size: 11px !important;
+}
+
+.dt-paging-button.current {
+    background: #111827 !important;
+    color: #fff !important;
+}
+
+
+/* =========================================================
+   TYPES / STATUS
+========================================================= */
+
+.pl-type,
+.pl-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.pl-type.income {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pl-type.expense {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.pl-status.success {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.pl-status.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.pl-income-text,
+.pl-profit-text,
+.pl-positive {
+    color: #15803d !important;
+}
+
+.pl-expense-text,
+.pl-loss-text,
+.pl-negative {
+    color: #dc2626 !important;
+}
+
+.positive-change {
+    color: #15803d;
+}
+
+.negative-change {
+    color: #dc2626;
+}
+
+
+/* =========================================================
+   TOP CARDS
+========================================================= */
+
+.pl-top-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.pl-top-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+}
+
+.pl-top-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 17px;
+}
+
+.pl-top-title h3 {
+    margin: 0 0 2px;
+    font-size: 14px;
+}
+
+.pl-top-title span {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.pl-top-icon {
+    width: 39px;
+    height: 39px;
+    display: grid;
+    place-items: center;
+    border-radius: 10px;
+}
+
+.pl-top-icon.income {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.pl-top-icon.expense {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.pl-top-icon.neutral {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.pl-progress-row {
+    margin-bottom: 14px;
+}
+
+.pl-progress-info {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+    font-size: 11px;
+}
+
+.pl-progress-track {
+    height: 7px;
+    border-radius: 20px;
+    background: #f3f4f6;
+    overflow: hidden;
+}
+
+.pl-progress-fill {
+    height: 100%;
+    border-radius: inherit;
+}
+
+.pl-progress-fill.income {
+    background: #16a34a;
+}
+
+.pl-progress-fill.expense {
+    background: #dc2626;
+}
+
+.pl-top-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.pl-top-item:last-child {
+    border-bottom: 0;
+}
+
+.pl-rank {
+    width: 29px;
+    height: 29px;
+    display: grid;
+    place-items: center;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-weight: 850;
+    font-size: 11px;
+}
+
+.pl-top-item-name {
+    flex: 1;
+}
+
+.pl-top-item-name strong,
+.pl-top-item-name small {
+    display: block;
+}
+
+.pl-top-item-name strong {
+    font-size: 12px;
+}
+
+.pl-top-item-name small {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.pl-top-item-value {
+    font-size: 12px;
+}
+
+.pl-empty {
+    text-align: center;
+    color: #9ca3af;
+    padding: 20px;
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.pl-footer {
+    margin-top: 35px;
+    padding: 18px 0;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.pl-footer strong,
+.pl-footer span {
+    display: block;
+}
+
+.pl-footer strong {
+    color: #111827;
+    margin-bottom: 3px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 1250px) {
+
+    .pl-filter-form {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .pl-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pl-metrics-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .pl-top-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 950px) {
+
+    .pl-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pl-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 700px) {
+
+    .pl-report {
+        padding: 12px;
+    }
+
+    .pl-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .pl-header h1 {
+        font-size: 27px;
+    }
+
+    .pl-header-actions {
+        width: 100%;
+    }
+
+    .pl-header-actions .pl-btn {
+        flex: 1;
+    }
+
+    .pl-filter-form {
+        grid-template-columns: 1fr;
+    }
+
+    .pl-filter-actions {
+        width: 100%;
+    }
+
+    .pl-filter-actions .pl-btn {
+        flex: 1;
+    }
+
+    .pl-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pl-metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pl-filter-heading {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pl-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .pl-chart-card,
+    .pl-chart-card.wide {
+        min-height: 300px;
+    }
+
+    .pl-chart-wrapper {
+        height: 245px;
+    }
+
+    .pl-donut-wrapper {
+        height: 240px;
+    }
+
+}
+
+
+@media (max-width: 450px) {
+
+    .pl-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pl-footer {
+        flex-direction: column;
+    }
+
+}
+
+
+/* =========================================================
+   PRINT
+========================================================= */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .pl-report {
+        max-width: none;
+        padding: 0;
+    }
+
+    .pl-header-actions,
+    .pl-filter-card,
+    .pl-quick-ranges,
+    .dt-layout-row,
+    .dt-buttons,
+    .dt-search,
+    .dt-length,
+    .dt-paging {
+        display: none !important;
+    }
+
+    .pl-kpi,
+    .pl-metric,
+    .pl-chart-card,
+    .pl-top-card,
+    .pl-comparison-card,
+    .pl-table-container {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .pl-section {
+        break-inside: avoid;
+    }
+
+    .pl-table {
+        font-size: 8px !important;
+    }
+
+    .pl-chart-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+}
+
+</style>
+
+
+<!-- =============================================================
+     JAVASCRIPT
+============================================================= -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+
+    /* =========================================================
+       DATATABLE CONFIG
+    ========================================================= */
+
+    const plDataTableConfig = {
+
+        responsive: true,
+
+        pageLength: 10,
+
+        lengthMenu: [
+            [10, 25, 50, 100, -1],
+            [10, 25, 50, 100, "All"]
+        ],
+
+        order: [],
+
+        layout: {
+
+            topStart: {
+
+                buttons: [
+
+                    {
+                        extend: "copy",
+                        text: '<i class="fas fa-copy"></i> Copy'
+                    },
+
+                    {
+                        extend: "csv",
+                        text: '<i class="fas fa-file-csv"></i> CSV'
+                    },
+
+                    {
+                        extend: "excel",
+                        text: '<i class="fas fa-file-excel"></i> Excel'
+                    },
+
+                    {
+                        extend: "pdf",
+                        text: '<i class="fas fa-file-pdf"></i> PDF',
+
+                        title:
+                            "Profit & Loss Report",
+
+                        orientation:
+                            "landscape",
+
+                        pageSize:
+                            "A4"
+                    },
+
+                    {
+                        extend: "print",
+                        text: '<i class="fas fa-print"></i> Print'
+                    }
+
+                ]
+
+            },
+
+            topEnd: "search",
+
+            bottomStart: "info",
+
+            bottomEnd: "paging"
+
+        },
+
+        language: {
+
+            search: "Search:",
+
+            searchPlaceholder:
+                "Search records...",
+
+            lengthMenu:
+                "Show _MENU_",
+
+            info:
+                "Showing _START_ to _END_ of _TOTAL_ records",
+
+            infoEmpty:
+                "Showing 0 to 0 of 0 records",
+
+            zeroRecords:
+                "No matching records found",
+
+            emptyTable:
+                "No data available",
+
+            paginate: {
+
+                first: "First",
+
+                last: "Last",
+
+                next: "Next",
+
+                previous: "Previous"
+
+            }
+
+        }
+
+    };
+
+
+    /* =========================================================
+       INITIALIZE TABLES
+    ========================================================= */
+
+    const tables = [
+
+        "#plDailyTable",
+
+        "#plCategoryTable",
+
+        "#plAccountTable",
+
+        "#plItemTable",
+
+        "#plTransactionsTable"
+
+    ];
+
+
+    tables.forEach(function (selector) {
+
+        const element =
+            document.querySelector(selector);
+
+        if (!element) {
+            return;
+        }
+
+        new DataTable(
+            selector,
+            plDataTableConfig
+        );
+
+    });
+
+
+    /* =========================================================
+       DATA FROM FLASK
+    ========================================================= */
+
+    const monthlyData =
+        {{ monthly_data | tojson | safe }};
+
+    const dailyData =
+        {{ daily_data | tojson | safe }};
+
+    const categoryData =
+        {{ categories | tojson | safe }};
+
+    const accountData =
+        {{ accounts | tojson | safe }};
+
+
+    /* =========================================================
+       MONTHLY CHART
+    ========================================================= */
+
+    const monthlyCanvas =
+        document.getElementById(
+            "plMonthlyChart"
+        );
+
+
+    if (monthlyCanvas) {
+
+        new Chart(
+
+            monthlyCanvas,
+
+            {
+
+                type: "line",
+
+                data: {
+
+                    labels:
+                        monthlyData.map(
+                            item =>
+                                item.label ||
+                                item.month ||
+                                ""
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label: "Income",
+
+                            data:
+                                monthlyData.map(
+                                    item =>
+                                        Number(
+                                            item.income || 0
+                                        )
+                                ),
+
+                            borderWidth: 2,
+
+                            tension: .35,
+
+                            fill: false
+
+                        },
+
+                        {
+
+                            label: "Expense",
+
+                            data:
+                                monthlyData.map(
+                                    item =>
+                                        Number(
+                                            item.expense || 0
+                                        )
+                                ),
+
+                            borderWidth: 2,
+
+                            tension: .35,
+
+                            fill: false
+
+                        },
+
+                        {
+
+                            label: "Net Profit / Loss",
+
+                            data:
+                                monthlyData.map(
+                                    item =>
+                                        Number(
+                                            item.net || 0
+                                        )
+                                ),
+
+                            borderWidth: 2,
+
+                            tension: .35,
+
+                            fill: false
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    interaction: {
+
+                        mode: "index",
+
+                        intersect: false
+
+                    },
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom"
+
+                        }
+
+                    },
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            ticks: {
+
+                                callback: function (value) {
+
+                                    return "$" +
+                                        Number(
+                                            value
+                                        ).toLocaleString();
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+    /* =========================================================
+       INCOME EXPENSE DONUT
+    ========================================================= */
+
+    const donutCanvas =
+        document.getElementById(
+            "plIncomeExpenseChart"
+        );
+
+
+    if (donutCanvas) {
+
+        new Chart(
+
+            donutCanvas,
+
+            {
+
+                type: "doughnut",
+
+                data: {
+
+                    labels: [
+
+                        "Income",
+
+                        "Expense"
+
+                    ],
+
+                    datasets: [
+
+                        {
+
+                            data: [
+
+                                Number(
+                                    {{ total_income or 0 }}
+                                ),
+
+                                Number(
+                                    {{ total_expense or 0 }}
+                                )
+
+                            ],
+
+                            borderWidth: 0
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    cutout: "68%",
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom"
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+    /* =========================================================
+       DAILY CHART
+    ========================================================= */
+
+    const dailyCanvas =
+        document.getElementById(
+            "plDailyChart"
+        );
+
+
+    if (dailyCanvas) {
+
+        new Chart(
+
+            dailyCanvas,
+
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        dailyData.map(
+                            item =>
+                                item.date || ""
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label: "Income",
+
+                            data:
+                                dailyData.map(
+                                    item =>
+                                        Number(
+                                            item.income || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        },
+
+                        {
+
+                            label: "Expense",
+
+                            data:
+                                dailyData.map(
+                                    item =>
+                                        Number(
+                                            item.expense || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        },
+
+                        {
+
+                            type: "line",
+
+                            label: "Net",
+
+                            data:
+                                dailyData.map(
+                                    item =>
+                                        Number(
+                                            item.net || 0
+                                        )
+                                ),
+
+                            borderWidth: 2,
+
+                            tension: .35,
+
+                            fill: false
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    interaction: {
+
+                        mode: "index",
+
+                        intersect: false
+
+                    },
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom"
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+    /* =========================================================
+       CATEGORY CHART
+    ========================================================= */
+
+    const categoryCanvas =
+        document.getElementById(
+            "plCategoryChart"
+        );
+
+
+    if (categoryCanvas) {
+
+        new Chart(
+
+            categoryCanvas,
+
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        categoryData.map(
+                            item =>
+                                item.name || ""
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label: "Income",
+
+                            data:
+                                categoryData.map(
+                                    item =>
+                                        Number(
+                                            item.income || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        },
+
+                        {
+
+                            label: "Expense",
+
+                            data:
+                                categoryData.map(
+                                    item =>
+                                        Number(
+                                            item.expense || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    indexAxis: "y",
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom"
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+
+    /* =========================================================
+       ACCOUNT CHART
+    ========================================================= */
+
+    const accountCanvas =
+        document.getElementById(
+            "plAccountChart"
+        );
+
+
+    if (accountCanvas) {
+
+        new Chart(
+
+            accountCanvas,
+
+            {
+
+                type: "bar",
+
+                data: {
+
+                    labels:
+                        accountData.map(
+                            item =>
+                                item.name || ""
+                        ),
+
+                    datasets: [
+
+                        {
+
+                            label: "Income",
+
+                            data:
+                                accountData.map(
+                                    item =>
+                                        Number(
+                                            item.income || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        },
+
+                        {
+
+                            label: "Expense",
+
+                            data:
+                                accountData.map(
+                                    item =>
+                                        Number(
+                                            item.expense || 0
+                                        )
+                                ),
+
+                            borderWidth: 1
+
+                        }
+
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    plugins: {
+
+                        legend: {
+
+                            position: "bottom"
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+});
+
+
+/* =============================================================
+   DATE HELPERS
+============================================================= */
+
+function plFormatDate(date) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
+
+    const day =
+        String(
+            date.getDate()
+        ).padStart(2, "0");
+
+    return (
+        year +
+        "-" +
+        month +
+        "-" +
+        day
+    );
+
+}
+
+
+/* =============================================================
+   QUICK RANGE
+============================================================= */
+
+function setPLRange(type) {
+
+    const today =
+        new Date();
+
+    let start =
+        new Date(today);
+
+    let end =
+        new Date(today);
+
+
+    if (type === "today") {
+
+        start =
+            new Date(today);
+
+        end =
+            new Date(today);
+
+    }
+
+
+    else if (type === "yesterday") {
+
+        start =
+            new Date(today);
+
+        start.setDate(
+            start.getDate() - 1
+        );
+
+        end =
+            new Date(start);
+
+    }
+
+
+    else if (type === "7days") {
+
+        start =
+            new Date(today);
+
+        start.setDate(
+            start.getDate() - 6
+        );
+
+    }
+
+
+    else if (type === "30days") {
+
+        start =
+            new Date(today);
+
+        start.setDate(
+            start.getDate() - 29
+        );
+
+    }
+
+
+    else if (type === "month") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                1
+            );
+
+    }
+
+
+    else if (type === "lastmonth") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                today.getMonth() - 1,
+                1
+            );
+
+        end =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                0
+            );
+
+    }
+
+
+    else if (type === "year") {
+
+        start =
+            new Date(
+                today.getFullYear(),
+                0,
+                1
+            );
+
+    }
+
+
+    const startInput =
+        document.querySelector(
+            'input[name="start_date"]'
+        );
+
+    const endInput =
+        document.querySelector(
+            'input[name="end_date"]'
+        );
+
+
+    if (startInput) {
+
+        startInput.value =
+            plFormatDate(start);
+
+    }
+
+
+    if (endInput) {
+
+        endInput.value =
+            plFormatDate(end);
+
+    }
+
+}
+
+
+/* =============================================================
+   PRINT FULL REPORT
+============================================================= */
+
+function printFullReport() {
+
+    window.print();
+
+}
+
+
+/* =============================================================
+   FULL CSV
+============================================================= */
+
+function csvEscape(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+
+        return "";
+
+    }
+
+    value =
+        String(value);
+
+    if (
+        value.includes(",") ||
+        value.includes('"') ||
+        value.includes("\n")
+    ) {
+
+        return '"' +
+            value.replace(
+                /"/g,
+                '""'
+            ) +
+            '"';
+
+    }
+
+    return value;
+
+}
+
+
+function exportFullCSV() {
+
+    const tables =
+        document.querySelectorAll(
+            ".pl-table"
+        );
+
+    let csv =
+        "PROFIT & LOSS REPORT\n";
+
+    csv +=
+        "Period," +
+        csvEscape(
+            "{{ custom_range_label }}"
+        ) +
+        "\n\n";
+
+
+    tables.forEach(function(table) {
+
+        const section =
+            table.closest(
+                ".pl-table-section"
+            );
+
+
+        const heading =
+            section
+            ?.querySelector("h2");
+
+
+        if (heading) {
+
+            csv +=
+                csvEscape(
+                    heading.innerText
+                ) +
+                "\n";
+
+        }
+
+
+        const rows =
+            table.querySelectorAll(
+                "tr"
+            );
+
+
+        rows.forEach(function(row) {
+
+            const cells =
+                row.querySelectorAll(
+                    "th,td"
+                );
+
+
+            const values =
+                Array.from(cells)
+                    .map(function(cell) {
+
+                        return csvEscape(
+                            cell.innerText
+                        );
+
+                    });
+
+
+            csv +=
+                values.join(",") +
+                "\n";
+
+        });
+
+
+        csv += "\n";
+
+    });
+
+
+    const blob =
+        new Blob(
+
+            [csv],
+
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+
+        );
+
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+
+    link.href =
+        url;
+
+    link.download =
+        "profit-loss-report.csv";
+
+
+    document.body.appendChild(
+        link
+    );
+
+    link.click();
+
+    document.body.removeChild(
+        link
+    );
+
+
+    URL.revokeObjectURL(
+        url
+    );
+
+}
+
+</script>
+
+{% endblock %}

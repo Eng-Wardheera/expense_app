@@ -1,0 +1,3829 @@
+
+{% extends "backend/home/base.html" %}
+
+{% block title %}
+Category Performance Report
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   CATEGORY PERFORMANCE REPORT
+   ADVANCED FINANCIAL ANALYTICS DASHBOARD
+   ============================================================ */
+
+:root {
+    --cp-primary: #2563eb;
+    --cp-primary-dark: #1d4ed8;
+    --cp-success: #16a34a;
+    --cp-success-soft: #dcfce7;
+    --cp-danger: #dc2626;
+    --cp-danger-soft: #fee2e2;
+    --cp-warning: #f59e0b;
+    --cp-warning-soft: #fef3c7;
+    --cp-purple: #7c3aed;
+    --cp-purple-soft: #ede9fe;
+    --cp-cyan: #0891b2;
+    --cp-cyan-soft: #cffafe;
+
+    --cp-bg: #f5f7fb;
+    --cp-card: #ffffff;
+    --cp-border: #e5e7eb;
+    --cp-text: #111827;
+    --cp-muted: #6b7280;
+    --cp-soft: #f8fafc;
+
+    --cp-shadow:
+        0 10px 30px rgba(15, 23, 42, .07);
+
+    --cp-radius: 18px;
+}
+
+.category-report-page {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--cp-bg);
+    padding: 24px;
+    color: var(--cp-text);
+}
+
+/* ============================================================
+   TOP HEADER
+   ============================================================ */
+
+.cp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.cp-title-area {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.cp-title-icon {
+    width: 58px;
+    height: 58px;
+    border-radius: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #7c3aed
+        );
+    box-shadow:
+        0 12px 25px rgba(37, 99, 235, .25);
+}
+
+.cp-title-icon i {
+    width: 27px;
+    height: 27px;
+}
+
+.cp-title-area h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+}
+
+.cp-title-area p {
+    margin: 4px 0 0;
+    color: var(--cp-muted);
+    font-size: 13px;
+}
+
+.cp-actions {
+    display: flex;
+    gap: 9px;
+    flex-wrap: wrap;
+}
+
+.cp-btn {
+    border: 1px solid var(--cp-border);
+    background: #fff;
+    color: var(--cp-text);
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: .2s ease;
+}
+
+.cp-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 15px rgba(15,23,42,.08);
+}
+
+.cp-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.cp-btn.primary {
+    color: #fff;
+    border-color: var(--cp-primary);
+    background: var(--cp-primary);
+}
+
+.cp-btn.primary:hover {
+    background: var(--cp-primary-dark);
+}
+
+/* ============================================================
+   FILTER PANEL
+   ============================================================ */
+
+.cp-filter-card {
+    background: var(--cp-card);
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    box-shadow: var(--cp-shadow);
+    padding: 18px;
+    margin-bottom: 22px;
+}
+
+.cp-filter-grid {
+    display: grid;
+    grid-template-columns:
+        1.5fr
+        1fr
+        1fr
+        1.2fr
+        auto;
+    gap: 12px;
+    align-items: end;
+}
+
+.cp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.cp-field label {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--cp-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.cp-field input,
+.cp-field select {
+    width: 100%;
+    height: 43px;
+    border: 1px solid var(--cp-border);
+    background: #fff;
+    color: var(--cp-text);
+    border-radius: 10px;
+    padding: 0 12px;
+    outline: none;
+    transition: .2s ease;
+}
+
+.cp-field input:focus,
+.cp-field select:focus {
+    border-color: var(--cp-primary);
+    box-shadow:
+        0 0 0 3px rgba(37,99,235,.10);
+}
+
+.cp-filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ============================================================
+   KPI GRID
+   ============================================================ */
+
+.cp-kpi-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.cp-kpi {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 19px;
+    box-shadow: var(--cp-shadow);
+}
+
+.cp-kpi::after {
+    content: "";
+    position: absolute;
+    right: -28px;
+    top: -28px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: rgba(37,99,235,.06);
+}
+
+.cp-kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cp-kpi-label {
+    color: var(--cp-muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.cp-kpi-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cp-kpi-icon i {
+    width: 19px;
+    height: 19px;
+}
+
+.cp-kpi-value {
+    margin-top: 11px;
+    font-size: 25px;
+    font-weight: 850;
+    letter-spacing: -.7px;
+}
+
+.cp-kpi-meta {
+    margin-top: 7px;
+    color: var(--cp-muted);
+    font-size: 11px;
+}
+
+.cp-income .cp-kpi-icon {
+    color: var(--cp-success);
+    background: var(--cp-success-soft);
+}
+
+.cp-expense .cp-kpi-icon {
+    color: var(--cp-danger);
+    background: var(--cp-danger-soft);
+}
+
+.cp-profit .cp-kpi-icon {
+    color: var(--cp-purple);
+    background: var(--cp-purple-soft);
+}
+
+.cp-transactions .cp-kpi-icon {
+    color: var(--cp-primary);
+    background: #dbeafe;
+}
+
+/* ============================================================
+   HEALTH / RATIO CARDS
+   ============================================================ */
+
+.cp-ratio-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.cp-ratio-card {
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    padding: 18px;
+    box-shadow: var(--cp-shadow);
+}
+
+.cp-ratio-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cp-ratio-title {
+    font-weight: 800;
+    font-size: 13px;
+}
+
+.cp-ratio-value {
+    font-size: 20px;
+    font-weight: 850;
+}
+
+.cp-progress {
+    height: 10px;
+    background: #edf2f7;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 13px;
+}
+
+.cp-progress-bar {
+    height: 100%;
+    border-radius: inherit;
+    width: 0;
+    transition: width 1.2s cubic-bezier(.2,.8,.2,1);
+}
+
+.cp-progress-income {
+    background:
+        linear-gradient(
+            90deg,
+            #22c55e,
+            #16a34a
+        );
+}
+
+.cp-progress-expense {
+    background:
+        linear-gradient(
+            90deg,
+            #fb7185,
+            #dc2626
+        );
+}
+
+.cp-progress-profit {
+    background:
+        linear-gradient(
+            90deg,
+            #8b5cf6,
+            #6d28d9
+        );
+}
+
+.cp-ratio-footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 9px;
+    font-size: 11px;
+    color: var(--cp-muted);
+}
+
+/* ============================================================
+   CHART GRID
+   ============================================================ */
+
+.cp-chart-grid {
+    display: grid;
+    grid-template-columns:
+        2fr 1fr;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.cp-chart-grid.equal {
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+}
+
+.cp-card {
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: var(--cp-radius);
+    box-shadow: var(--cp-shadow);
+    overflow: hidden;
+}
+
+.cp-card-header {
+    padding: 17px 19px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #eef0f4;
+}
+
+.cp-card-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 850;
+}
+
+.cp-card-header p {
+    margin: 3px 0 0;
+    color: var(--cp-muted);
+    font-size: 11px;
+}
+
+.cp-chart-tools {
+    display: flex;
+    gap: 5px;
+}
+
+.cp-mini-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--cp-border);
+    background: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cp-mini-btn:hover {
+    background: var(--cp-soft);
+}
+
+.cp-mini-btn i {
+    width: 15px;
+    height: 15px;
+}
+
+.cp-chart-body {
+    padding: 16px;
+    height: 370px;
+}
+
+.cp-chart-body.small {
+    height: 330px;
+}
+
+/* ============================================================
+   DONUT CENTER
+   ============================================================ */
+
+.cp-donut-wrap {
+    height: 100%;
+    position: relative;
+}
+
+.cp-donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.cp-donut-center strong {
+    font-size: 25px;
+    font-weight: 850;
+}
+
+.cp-donut-center span {
+    color: var(--cp-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   INSIGHT STRIP
+   ============================================================ */
+
+.cp-insight-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0,1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+}
+
+.cp-insight {
+    border-radius: 15px;
+    padding: 15px;
+    border: 1px solid var(--cp-border);
+    background: #fff;
+}
+
+.cp-insight-label {
+    font-size: 10px;
+    color: var(--cp-muted);
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.cp-insight-value {
+    margin-top: 6px;
+    font-size: 16px;
+    font-weight: 850;
+    word-break: break-word;
+}
+
+.cp-insight-number {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--cp-muted);
+}
+
+/* ============================================================
+   SECTION HEADER
+   ============================================================ */
+
+.cp-section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 28px 0 13px;
+    gap: 12px;
+}
+
+.cp-section-head h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 850;
+}
+
+.cp-section-head span {
+    color: var(--cp-muted);
+    font-size: 11px;
+}
+
+/* ============================================================
+   TOP TABLE
+   ============================================================ */
+
+.cp-table-wrap {
+    overflow-x: auto;
+}
+
+.cp-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 850px;
+}
+
+.cp-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 850;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 12px 13px;
+    text-align: left;
+    border-bottom: 1px solid var(--cp-border);
+}
+
+.cp-table td {
+    padding: 13px;
+    border-bottom: 1px solid #eef1f5;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.cp-table tr:hover td {
+    background: #fafcff;
+}
+
+.cp-name {
+    font-weight: 800;
+}
+
+.cp-sub {
+    display: block;
+    color: var(--cp-muted);
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.cp-money {
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.cp-money.income {
+    color: var(--cp-success);
+}
+
+.cp-money.expense {
+    color: var(--cp-danger);
+}
+
+.cp-money.positive {
+    color: var(--cp-success);
+}
+
+.cp-money.negative {
+    color: var(--cp-danger);
+}
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.cp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.cp-badge.green {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.cp-badge.red {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.cp-badge.blue {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.cp-badge.purple {
+    background: #ede9fe;
+    color: #6d28d9;
+}
+
+.cp-badge.gray {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+/* ============================================================
+   MINI BAR
+   ============================================================ */
+
+.cp-mini-bar {
+    height: 7px;
+    background: #edf1f5;
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 100px;
+}
+
+.cp-mini-fill {
+    height: 100%;
+    border-radius: inherit;
+}
+
+.cp-mini-fill.income {
+    background: #22c55e;
+}
+
+.cp-mini-fill.expense {
+    background: #ef4444;
+}
+
+.cp-mini-fill.net {
+    background: #7c3aed;
+}
+
+/* ============================================================
+   CATEGORY CARDS
+   ============================================================ */
+
+.cp-category-list {
+    display: grid;
+    gap: 13px;
+}
+
+.cp-category-card {
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 5px 18px rgba(15,23,42,.04);
+}
+
+.cp-category-header {
+    padding: 16px;
+    display: grid;
+    grid-template-columns:
+        1.7fr
+        1fr
+        1fr
+        1fr
+        auto;
+    gap: 15px;
+    align-items: center;
+    cursor: pointer;
+}
+
+.cp-category-header:hover {
+    background: #fbfdff;
+}
+
+.cp-category-title {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+}
+
+.cp-category-icon {
+    width: 39px;
+    height: 39px;
+    flex: 0 0 39px;
+    border-radius: 11px;
+    background: #eff6ff;
+    color: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cp-category-icon i {
+    width: 18px;
+    height: 18px;
+}
+
+.cp-category-title strong {
+    font-size: 13px;
+}
+
+.cp-category-title small {
+    display: block;
+    color: var(--cp-muted);
+    font-size: 10px;
+    margin-top: 3px;
+}
+
+.cp-category-stat label {
+    display: block;
+    color: var(--cp-muted);
+    font-size: 9px;
+    text-transform: uppercase;
+    font-weight: 800;
+}
+
+.cp-category-stat strong {
+    display: block;
+    margin-top: 3px;
+    font-size: 13px;
+}
+
+.cp-category-chevron {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cp-category-chevron i {
+    width: 16px;
+    height: 16px;
+    transition: .25s ease;
+}
+
+.cp-category-card.open
+.cp-category-chevron i {
+    transform: rotate(180deg);
+}
+
+.cp-category-details {
+    display: none;
+    border-top: 1px solid var(--cp-border);
+    background: #fafcff;
+    padding: 16px;
+}
+
+.cp-category-card.open
+.cp-category-details {
+    display: block;
+}
+
+.cp-category-progress-grid {
+    display: grid;
+    grid-template-columns:
+        repeat(3,1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.cp-detail-box {
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.cp-detail-box label {
+    display: block;
+    color: var(--cp-muted);
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.cp-detail-box strong {
+    display: block;
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+/* ============================================================
+   ITEMS
+   ============================================================ */
+
+.cp-items-title {
+    font-size: 12px;
+    font-weight: 850;
+    margin: 5px 0 10px;
+}
+
+.cp-items {
+    display: grid;
+    gap: 9px;
+}
+
+.cp-item {
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: 11px;
+    overflow: hidden;
+}
+
+.cp-item-header {
+    display: grid;
+    grid-template-columns:
+        1.7fr
+        1fr
+        1fr
+        1fr
+        auto;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 13px;
+    cursor: pointer;
+}
+
+.cp-item-header:hover {
+    background: #fbfdff;
+}
+
+.cp-item-name {
+    font-weight: 750;
+    font-size: 11px;
+}
+
+.cp-item-stat {
+    font-size: 10px;
+    color: var(--cp-muted);
+}
+
+.cp-item-stat strong {
+    color: var(--cp-text);
+    margin-left: 3px;
+}
+
+.cp-item-details {
+    display: none;
+    padding: 12px;
+    border-top: 1px solid var(--cp-border);
+    background: #f8fafc;
+}
+
+.cp-item.open .cp-item-details {
+    display: block;
+}
+
+/* ============================================================
+   TRANSACTION TABLE
+   ============================================================ */
+
+.cp-transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+}
+
+.cp-transaction-table th {
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #64748b;
+    padding: 8px;
+    text-align: left;
+}
+
+.cp-transaction-table td {
+    padding: 8px;
+    border-top: 1px solid #e8edf3;
+    font-size: 10px;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.cp-empty {
+    text-align: center;
+    padding: 55px 20px;
+    color: var(--cp-muted);
+}
+
+.cp-empty-icon {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 12px;
+    border-radius: 16px;
+    background: #eef2ff;
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cp-empty-icon i {
+    width: 26px;
+    height: 26px;
+}
+
+.cp-empty strong {
+    display: block;
+    color: var(--cp-text);
+    margin-bottom: 5px;
+}
+
+/* ============================================================
+   REPORT FOOTER
+   ============================================================ */
+
+.cp-footer {
+    margin-top: 25px;
+    background: #fff;
+    border: 1px solid var(--cp-border);
+    border-radius: 14px;
+    padding: 13px 16px;
+    color: var(--cp-muted);
+    font-size: 10px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1200px) {
+
+    .cp-kpi-grid {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .cp-chart-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cp-insight-grid {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .cp-filter-grid {
+        grid-template-columns:
+            repeat(2,1fr);
+    }
+
+    .cp-category-header {
+        grid-template-columns:
+            1.5fr 1fr 1fr auto;
+    }
+
+    .cp-category-header
+    .cp-category-stat:nth-child(4) {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+
+    .category-report-page {
+        padding: 13px;
+    }
+
+    .cp-title-area h1 {
+        font-size: 20px;
+    }
+
+    .cp-kpi-grid,
+    .cp-ratio-grid,
+    .cp-insight-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cp-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cp-actions {
+        width: 100%;
+    }
+
+    .cp-actions .cp-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .cp-chart-body {
+        height: 300px;
+    }
+
+    .cp-chart-body.small {
+        height: 280px;
+    }
+
+    .cp-category-header {
+        grid-template-columns: 1fr auto;
+    }
+
+    .cp-category-header
+    .cp-category-stat {
+        display: none;
+    }
+
+    .cp-category-progress-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cp-item-header {
+        grid-template-columns: 1fr auto;
+    }
+
+    .cp-item-stat {
+        display: none;
+    }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+    body {
+        background: #fff !important;
+    }
+
+    .category-report-page {
+        padding: 0;
+        background: #fff;
+    }
+
+    .cp-actions,
+    .cp-filter-card,
+    .cp-chart-tools,
+    .cp-mini-btn {
+        display: none !important;
+    }
+
+    .cp-card,
+    .cp-kpi,
+    .cp-ratio-card,
+    .cp-category-card,
+    .cp-insight {
+        box-shadow: none !important;
+        break-inside: avoid;
+    }
+
+    .cp-chart-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cp-category-details,
+    .cp-item-details {
+        display: block !important;
+    }
+}
+
+</style>
+
+
+<div class="category-report-page">
+
+    <!-- ========================================================
+         HEADER
+         ======================================================== -->
+
+    <div class="cp-header">
+
+        <div class="cp-title-area">
+
+            <div class="cp-title-icon">
+                <i data-feather="bar-chart-3"></i>
+            </div>
+
+            <div>
+                <h1>Category Performance</h1>
+
+                <p>
+                    Advanced financial performance,
+                    category analytics & profitability report
+                </p>
+            </div>
+
+        </div>
+
+        <div class="cp-actions">
+
+            <button
+                type="button"
+                class="cp-btn"
+                onclick="window.print()"
+            >
+                <i data-feather="printer"></i>
+                Print
+            </button>
+
+            <button
+                type="button"
+                class="cp-btn"
+                onclick="exportCategoryCSV()"
+            >
+                <i data-feather="download"></i>
+                Export CSV
+            </button>
+
+            <button
+                type="button"
+                class="cp-btn primary"
+                onclick="window.location.reload()"
+            >
+                <i data-feather="refresh-cw"></i>
+                Refresh
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FILTERS
+         ======================================================== -->
+
+    <div class="cp-filter-card">
+
+        <form
+            method="GET"
+            action="{{ url_for('main.report_category_performance') }}"
+        >
+
+            <div class="cp-filter-grid">
+
+                <div class="cp-field">
+
+                    <label>
+                        Category
+                    </label>
+
+                    <select name="category_filter">
+
+                        <option value="">
+                            All Categories
+                        </option>
+
+                        {% for option in category_options|default([]) %}
+
+                            <option
+                                value="{{ option }}"
+                                {% if category_filter == option %}
+                                    selected
+                                {% endif %}
+                            >
+                                {{ option }}
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="cp-field">
+
+                    <label>
+                        Start Date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="start_date"
+                        value="{{ start_date|default('') }}"
+                    >
+
+                </div>
+
+
+                <div class="cp-field">
+
+                    <label>
+                        End Date
+                    </label>
+
+                    <input
+                        type="date"
+                        name="end_date"
+                        value="{{ end_date|default('') }}"
+                    >
+
+                </div>
+
+
+                <div class="cp-field">
+
+                    <label>
+                        Report Mode
+                    </label>
+
+                    <select id="viewMode">
+
+                        <option value="dashboard">
+                            Dashboard
+                        </option>
+
+                        <option value="categories">
+                            Categories
+                        </option>
+
+                        <option value="items">
+                            Items
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="cp-filter-actions">
+
+                    <button
+                        type="submit"
+                        class="cp-btn primary"
+                    >
+                        <i data-feather="filter"></i>
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('main.report_category_performance') }}"
+                        class="cp-btn"
+                    >
+                        <i data-feather="x"></i>
+                        Reset
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+
+    <!-- ========================================================
+         KPI CARDS
+         ======================================================== -->
+
+    <div class="cp-kpi-grid">
+
+        <!-- Income -->
+
+        <div class="cp-kpi cp-income">
+
+            <div class="cp-kpi-top">
+
+                <span class="cp-kpi-label">
+                    Total Income
+                </span>
+
+                <div class="cp-kpi-icon">
+                    <i data-feather="trending-up"></i>
+                </div>
+
+            </div>
+
+            <div class="cp-kpi-value">
+                ${{ "%.2f"|format(total_income|default(0)) }}
+            </div>
+
+            <div class="cp-kpi-meta">
+                {{ income_count|default(0) }}
+                income transactions
+            </div>
+
+        </div>
+
+
+        <!-- Expense -->
+
+        <div class="cp-kpi cp-expense">
+
+            <div class="cp-kpi-top">
+
+                <span class="cp-kpi-label">
+                    Total Expense
+                </span>
+
+                <div class="cp-kpi-icon">
+                    <i data-feather="trending-down"></i>
+                </div>
+
+            </div>
+
+            <div class="cp-kpi-value">
+                ${{ "%.2f"|format(total_expense|default(0)) }}
+            </div>
+
+            <div class="cp-kpi-meta">
+                {{ expense_count|default(0) }}
+                expense transactions
+            </div>
+
+        </div>
+
+
+        <!-- Net -->
+
+        <div class="cp-kpi cp-profit">
+
+            <div class="cp-kpi-top">
+
+                <span class="cp-kpi-label">
+                    Net Profit / Loss
+                </span>
+
+                <div class="cp-kpi-icon">
+                    <i data-feather="activity"></i>
+                </div>
+
+            </div>
+
+            <div
+                class="cp-kpi-value"
+                style="
+                color:
+                {% if net_profit|default(0) >= 0 %}
+                    #16a34a
+                {% else %}
+                    #dc2626
+                {% endif %}
+                "
+            >
+                ${{ "%.2f"|format(net_profit|default(0)) }}
+            </div>
+
+            <div class="cp-kpi-meta">
+
+                {% if net_profit|default(0) >= 0 %}
+                    Positive financial result
+                {% else %}
+                    Negative financial result
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+        <!-- Transactions -->
+
+        <div class="cp-kpi cp-transactions">
+
+            <div class="cp-kpi-top">
+
+                <span class="cp-kpi-label">
+                    Transactions
+                </span>
+
+                <div class="cp-kpi-icon">
+                    <i data-feather="layers"></i>
+                </div>
+
+            </div>
+
+            <div class="cp-kpi-value">
+                {{ total_transactions|default(0) }}
+            </div>
+
+            <div class="cp-kpi-meta">
+                Avg:
+                ${{ "%.2f"|format(average_transaction|default(0)) }}
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         FINANCIAL RATIOS
+         ======================================================== -->
+
+    <div class="cp-ratio-grid">
+
+        <!-- Profit Margin -->
+
+        <div class="cp-ratio-card">
+
+            <div class="cp-ratio-head">
+
+                <span class="cp-ratio-title">
+                    Profit Margin
+                </span>
+
+                <strong class="cp-ratio-value">
+                    {{ "%.1f"|format(profit_margin|default(0)) }}%
+                </strong>
+
+            </div>
+
+            <div class="cp-progress">
+
+                <div
+                    class="cp-progress-bar cp-progress-profit"
+                    data-progress="{{ [profit_margin|default(0), 100]|min }}"
+                ></div>
+
+            </div>
+
+            <div class="cp-ratio-footer">
+
+                <span>
+                    Net profit / income
+                </span>
+
+                <span>
+                    {% if profit_margin|default(0) >= 50 %}
+                        Excellent
+                    {% elif profit_margin|default(0) >= 20 %}
+                        Healthy
+                    {% elif profit_margin|default(0) >= 0 %}
+                        Moderate
+                    {% else %}
+                        Loss
+                    {% endif %}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Expense Ratio -->
+
+        <div class="cp-ratio-card">
+
+            <div class="cp-ratio-head">
+
+                <span class="cp-ratio-title">
+                    Expense Ratio
+                </span>
+
+                <strong class="cp-ratio-value">
+                    {{ "%.1f"|format(expense_ratio|default(0)) }}%
+                </strong>
+
+            </div>
+
+            <div class="cp-progress">
+
+                <div
+                    class="cp-progress-bar cp-progress-expense"
+                    data-progress="{{ [expense_ratio|default(0), 100]|min }}"
+                ></div>
+
+            </div>
+
+            <div class="cp-ratio-footer">
+
+                <span>
+                    Expense / income
+                </span>
+
+                <span>
+                    {% if expense_ratio|default(0) <= 50 %}
+                        Controlled
+                    {% elif expense_ratio|default(0) <= 80 %}
+                        Watch
+                    {% else %}
+                        High
+                    {% endif %}
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <!-- Financial Efficiency -->
+
+        <div class="cp-ratio-card">
+
+            {% set efficiency = 100 - expense_ratio|default(0) %}
+
+            <div class="cp-ratio-head">
+
+                <span class="cp-ratio-title">
+                    Financial Efficiency
+                </span>
+
+                <strong class="cp-ratio-value">
+                    {{ "%.1f"|format([efficiency, 100]|min) }}%
+                </strong>
+
+            </div>
+
+            <div class="cp-progress">
+
+                <div
+                    class="cp-progress-bar cp-progress-income"
+                    data-progress="{{ [[efficiency, 0]|max, 100]|min }}"
+                ></div>
+
+            </div>
+
+            <div class="cp-ratio-footer">
+
+                <span>
+                    Income retained
+                </span>
+
+                <span>
+                    {% if efficiency >= 50 %}
+                        Strong
+                    {% elif efficiency >= 20 %}
+                        Average
+                    {% else %}
+                        Weak
+                    {% endif %}
+                </span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         INSIGHTS
+         ======================================================== -->
+
+    <div class="cp-insight-grid">
+
+        <div class="cp-insight">
+
+            <div class="cp-insight-label">
+                Highest Transaction
+            </div>
+
+            <div class="cp-insight-value">
+                ${{ "%.2f"|format(highest_transaction|default(0)) }}
+            </div>
+
+            <div class="cp-insight-number">
+                Maximum single transaction
+            </div>
+
+        </div>
+
+
+        <div class="cp-insight">
+
+            <div class="cp-insight-label">
+                Lowest Transaction
+            </div>
+
+            <div class="cp-insight-value">
+                ${{ "%.2f"|format(lowest_transaction|default(0)) }}
+            </div>
+
+            <div class="cp-insight-number">
+                Minimum transaction
+            </div>
+
+        </div>
+
+
+        <div class="cp-insight">
+
+            <div class="cp-insight-label">
+                Categories
+            </div>
+
+            <div class="cp-insight-value">
+                {{ categories|default([])|length }}
+            </div>
+
+            <div class="cp-insight-number">
+                Active report categories
+            </div>
+
+        </div>
+
+
+        <div class="cp-insight">
+
+            <div class="cp-insight-label">
+                Items
+            </div>
+
+            <div class="cp-insight-value">
+                {{ top_items|default([])|length }}+
+            </div>
+
+            <div class="cp-insight-number">
+                Ranked item performance
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         MONTHLY PERFORMANCE
+         ======================================================== -->
+
+    <div class="cp-chart-grid">
+
+        <div class="cp-card">
+
+            <div class="cp-card-header">
+
+                <div>
+
+                    <h3>
+                        Monthly Financial Performance
+                    </h3>
+
+                    <p>
+                        Income, expense and net movement over time
+                    </p>
+
+                </div>
+
+                <div class="cp-chart-tools">
+
+                    <button
+                        class="cp-mini-btn"
+                        onclick="downloadChart('monthlyChart','monthly-performance')"
+                        title="Download chart"
+                    >
+                        <i data-feather="download"></i>
+                    </button>
+
+                    <button
+                        class="cp-mini-btn"
+                        onclick="fullscreenChart('monthlyChart')"
+                        title="Fullscreen"
+                    >
+                        <i data-feather="maximize-2"></i>
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="cp-chart-body">
+
+                <canvas id="monthlyChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <!-- Movement donut -->
+
+        <div class="cp-card">
+
+            <div class="cp-card-header">
+
+                <div>
+
+                    <h3>
+                        Money Distribution
+                    </h3>
+
+                    <p>
+                        Income vs expense
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="cp-chart-body small">
+
+                <div class="cp-donut-wrap">
+
+                    <canvas id="moneyDistributionChart"></canvas>
+
+                    <div class="cp-donut-center">
+
+                        <strong>
+                            {{ total_transactions|default(0) }}
+                        </strong>
+
+                        <span>
+                            Transactions
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY & ACCOUNT CHARTS
+         ======================================================== -->
+
+    <div class="cp-chart-grid equal">
+
+        <div class="cp-card">
+
+            <div class="cp-card-header">
+
+                <div>
+
+                    <h3>
+                        Category Performance
+                    </h3>
+
+                    <p>
+                        Top categories by financial movement
+                    </p>
+
+                </div>
+
+                <button
+                    class="cp-mini-btn"
+                    onclick="fullscreenChart('categoryChart')"
+                >
+                    <i data-feather="maximize-2"></i>
+                </button>
+
+            </div>
+
+            <div class="cp-chart-body">
+
+                <canvas id="categoryChart"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <div class="cp-card">
+
+            <div class="cp-card-header">
+
+                <div>
+
+                    <h3>
+                        Account Performance
+                    </h3>
+
+                    <p>
+                        Income, expense and net by account
+                    </p>
+
+                </div>
+
+                <button
+                    class="cp-mini-btn"
+                    onclick="fullscreenChart('accountChart')"
+                >
+                    <i data-feather="maximize-2"></i>
+                </button>
+
+            </div>
+
+            <div class="cp-chart-body">
+
+                <canvas id="accountChart"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP EXPENSE CATEGORIES
+         ======================================================== -->
+
+    <div class="cp-section-head">
+
+        <div>
+
+            <h2>
+                Top Expense Categories
+            </h2>
+
+            <span>
+                Categories ranked by expense volume
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="cp-card">
+
+        {% if top_expense_categories|default([]) %}
+
+            <div class="cp-table-wrap">
+
+                <table
+                    class="cp-table"
+                    id="categoryExpenseTable"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Rank
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Income
+                            </th>
+
+                            <th>
+                                Expense
+                            </th>
+
+                            <th>
+                                Net
+                            </th>
+
+                            <th>
+                                Expense Weight
+                            </th>
+
+                            <th>
+                                Transactions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% set max_category_expense =
+                        top_expense_categories
+                        |map(attribute='expense')
+                        |max
+                        |default(1)
+                    %}
+
+                    {% for category in top_expense_categories %}
+
+                        <tr>
+
+                            <td>
+
+                                <span class="cp-badge blue">
+                                    #{{ loop.index }}
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <span class="cp-name">
+                                    {{ category.name }}
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <span class="cp-money income">
+                                    ${{ "%.2f"|format(category.income|default(0)) }}
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <span class="cp-money expense">
+                                    ${{ "%.2f"|format(category.expense|default(0)) }}
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <span class="
+                                    cp-money
+                                    {% if category.net|default(0) >= 0 %}
+                                        positive
+                                    {% else %}
+                                        negative
+                                    {% endif %}
+                                ">
+
+                                    ${{ "%.2f"|format(category.net|default(0)) }}
+
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <div class="cp-mini-bar">
+
+                                    <div
+                                        class="cp-mini-fill expense"
+                                        style="
+                                        width:
+                                        {{ ((category.expense|default(0) / max_category_expense) * 100)
+                                           if max_category_expense
+                                           else 0 }}%;
+                                        "
+                                    ></div>
+
+                                </div>
+
+                            </td>
+
+                            <td>
+
+                                <span class="cp-badge gray">
+                                    {{ category.transaction_count|default(0) }}
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="cp-empty">
+
+                <div class="cp-empty-icon">
+                    <i data-feather="folder-open"></i>
+                </div>
+
+                <strong>
+                    No category data
+                </strong>
+
+                No category performance data is available.
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         TOP ITEMS
+         ======================================================== -->
+
+    <div class="cp-section-head">
+
+        <div>
+
+            <h2>
+                Top Performing Items
+            </h2>
+
+            <span>
+                Highest activity items across categories
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <div class="cp-card">
+
+        {% if top_items|default([]) %}
+
+            <div class="cp-table-wrap">
+
+                <table
+                    class="cp-table"
+                    id="topItemsTable"
+                >
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                #
+                            </th>
+
+                            <th>
+                                Item
+                            </th>
+
+                            <th>
+                                Category
+                            </th>
+
+                            <th>
+                                Income
+                            </th>
+
+                            <th>
+                                Expense
+                            </th>
+
+                            <th>
+                                Net
+                            </th>
+
+                            <th>
+                                Average
+                            </th>
+
+                            <th>
+                                Margin
+                            </th>
+
+                            <th>
+                                Transactions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    {% for item in top_items %}
+
+                        <tr>
+
+                            <td>
+                                <span class="cp-badge purple">
+                                    {{ loop.index }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="cp-name">
+                                    {{ item.name }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="cp-badge blue">
+                                    {{ item.category }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="cp-money income">
+                                    ${{ "%.2f"|format(item.income|default(0)) }}
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="cp-money expense">
+                                    ${{ "%.2f"|format(item.expense|default(0)) }}
+                                </span>
+                            </td>
+
+                            <td>
+
+                                <span class="
+                                    cp-money
+                                    {% if item.net|default(0) >= 0 %}
+                                        positive
+                                    {% else %}
+                                        negative
+                                    {% endif %}
+                                ">
+                                    ${{ "%.2f"|format(item.net|default(0)) }}
+                                </span>
+
+                            </td>
+
+                            <td>
+                                ${{ "%.2f"|format(item.average|default(0)) }}
+                            </td>
+
+                            <td>
+
+                                <span class="
+                                    cp-badge
+                                    {% if item.profit_margin|default(0) >= 0 %}
+                                        green
+                                    {% else %}
+                                        red
+                                    {% endif %}
+                                ">
+
+                                    {{ "%.1f"|format(item.profit_margin|default(0)) }}%
+
+                                </span>
+
+                            </td>
+
+                            <td>
+                                {{ item.transaction_count|default(0) }}
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="cp-empty">
+
+                <div class="cp-empty-icon">
+                    <i data-feather="package"></i>
+                </div>
+
+                <strong>
+                    No items found
+                </strong>
+
+                There are no item performance records.
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         CATEGORY PERFORMANCE DETAILS
+         ======================================================== -->
+
+    <div class="cp-section-head">
+
+        <div>
+
+            <h2>
+                Detailed Category Analytics
+            </h2>
+
+            <span>
+                Expand categories to inspect items and transactions
+            </span>
+
+        </div>
+
+        <span>
+            {{ categories|default([])|length }}
+            categories
+        </span>
+
+    </div>
+
+
+    <div class="cp-category-list">
+
+    {% if categories|default([]) %}
+
+        {% for category in categories %}
+
+            {% set category_income =
+                category.get('income', 0)
+            %}
+
+            {% set category_expense =
+                category.get('expense', 0)
+            %}
+
+            {% set category_net =
+                category.get('net', 0)
+            %}
+
+            {% set category_items =
+                category.get('items', [])
+            %}
+
+            {% set category_count =
+                category.get('transaction_count', 0)
+            %}
+
+            {% set category_margin =
+                category.get('profit_margin', 0)
+            %}
+
+            {% set category_income_share =
+                category.get('income_share', 0)
+            %}
+
+            {% set category_expense_share =
+                category.get('expense_share', 0)
+            %}
+
+
+            <div
+                class="cp-category-card"
+                data-category="{{ category.name|lower }}"
+            >
+
+                <!-- CATEGORY HEADER -->
+
+                <div
+                    class="cp-category-header"
+                    onclick="toggleCategory(this)"
+                >
+
+                    <div class="cp-category-title">
+
+                        <div class="cp-category-icon">
+                            <i data-feather="folder"></i>
+                        </div>
+
+                        <div>
+
+                            <strong>
+                                {{ category.name }}
+                            </strong>
+
+                            <small>
+                                {{ category_count }}
+                                transactions ·
+                                {{ category_items|length }}
+                                items
+                            </small>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="cp-category-stat">
+
+                        <label>
+                            Income
+                        </label>
+
+                        <strong style="color:#16a34a;">
+                            ${{ "%.2f"|format(category_income) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="cp-category-stat">
+
+                        <label>
+                            Expense
+                        </label>
+
+                        <strong style="color:#dc2626;">
+                            ${{ "%.2f"|format(category_expense) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="cp-category-stat">
+
+                        <label>
+                            Net
+                        </label>
+
+                        <strong
+                            style="
+                            color:
+                            {% if category_net >= 0 %}
+                                #16a34a
+                            {% else %}
+                                #dc2626
+                            {% endif %}
+                            "
+                        >
+                            ${{ "%.2f"|format(category_net) }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="cp-category-chevron">
+
+                        <i data-feather="chevron-down"></i>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CATEGORY DETAILS -->
+
+                <div class="cp-category-details">
+
+                    <div class="cp-category-progress-grid">
+
+                        <!-- Income Share -->
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Income Share
+                            </label>
+
+                            <strong>
+                                {{ "%.1f"|format(category_income_share) }}%
+                            </strong>
+
+                            <div class="cp-progress">
+
+                                <div
+                                    class="cp-progress-bar cp-progress-income"
+                                    data-progress="{{ [category_income_share,100]|min }}"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Expense Share -->
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Expense Share
+                            </label>
+
+                            <strong>
+                                {{ "%.1f"|format(category_expense_share) }}%
+                            </strong>
+
+                            <div class="cp-progress">
+
+                                <div
+                                    class="cp-progress-bar cp-progress-expense"
+                                    data-progress="{{ [category_expense_share,100]|min }}"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Profit Margin -->
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Profit Margin
+                            </label>
+
+                            <strong>
+                                {{ "%.1f"|format(category_margin) }}%
+                            </strong>
+
+                            <div class="cp-progress">
+
+                                <div
+                                    class="cp-progress-bar cp-progress-profit"
+                                    data-progress="{{ [[category_margin,0]|max,100]|min }}"
+                                ></div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- CATEGORY STATS -->
+
+                    <div class="cp-category-progress-grid">
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Average
+                            </label>
+
+                            <strong>
+                                ${{ "%.2f"|format(category.get('average',0)) }}
+                            </strong>
+
+                        </div>
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Highest
+                            </label>
+
+                            <strong style="color:#dc2626;">
+                                ${{ "%.2f"|format(category.get('highest',0)) }}
+                            </strong>
+
+                        </div>
+
+                        <div class="cp-detail-box">
+
+                            <label>
+                                Lowest
+                            </label>
+
+                            <strong style="color:#16a34a;">
+                                ${{ "%.2f"|format(category.get('lowest',0)) }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ITEMS -->
+
+                    <div class="cp-items-title">
+                        Items Performance
+                    </div>
+
+
+                    <div class="cp-items">
+
+                    {% if category_items %}
+
+                        {% for item in category_items %}
+
+                            {% set item_transactions =
+                                item.get('transactions', [])
+                            %}
+
+                            <div class="cp-item">
+
+                                <div
+                                    class="cp-item-header"
+                                    onclick="toggleItem(this)"
+                                >
+
+                                    <div>
+
+                                        <div class="cp-item-name">
+                                            {{ item.get('name','Unspecified Item') }}
+                                        </div>
+
+                                    </div>
+
+
+                                    <div class="cp-item-stat">
+
+                                        Income:
+                                        <strong style="color:#16a34a;">
+                                            ${{ "%.2f"|format(item.get('income',0)) }}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div class="cp-item-stat">
+
+                                        Expense:
+                                        <strong style="color:#dc2626;">
+                                            ${{ "%.2f"|format(item.get('expense',0)) }}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div class="cp-item-stat">
+
+                                        Net:
+                                        <strong>
+                                            ${{ "%.2f"|format(item.get('net',0)) }}
+                                        </strong>
+
+                                    </div>
+
+
+                                    <div>
+
+                                        <span class="cp-badge gray">
+
+                                            {{ item.get('transaction_count',0) }}
+
+                                            Tx
+
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+
+                                <!-- ITEM DETAILS -->
+
+                                <div class="cp-item-details">
+
+                                    <div class="cp-category-progress-grid">
+
+                                        <div class="cp-detail-box">
+
+                                            <label>
+                                                Average
+                                            </label>
+
+                                            <strong>
+                                                ${{ "%.2f"|format(item.get('average',0)) }}
+                                            </strong>
+
+                                        </div>
+
+                                        <div class="cp-detail-box">
+
+                                            <label>
+                                                Highest
+                                            </label>
+
+                                            <strong>
+                                                ${{ "%.2f"|format(item.get('highest',0)) }}
+                                            </strong>
+
+                                        </div>
+
+                                        <div class="cp-detail-box">
+
+                                            <label>
+                                                Profit Margin
+                                            </label>
+
+                                            <strong>
+                                                {{ "%.1f"|format(item.get('profit_margin',0)) }}%
+                                            </strong>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {% if item_transactions %}
+
+                                        <div class="cp-table-wrap">
+
+                                            <table class="cp-transaction-table">
+
+                                                <thead>
+
+                                                    <tr>
+
+                                                        <th>
+                                                            Date
+                                                        </th>
+
+                                                        <th>
+                                                            Account
+                                                        </th>
+
+                                                        <th>
+                                                            Type
+                                                        </th>
+
+                                                        <th>
+                                                            Amount
+                                                        </th>
+
+                                                        <th>
+                                                            Status
+                                                        </th>
+
+                                                    </tr>
+
+                                                </thead>
+
+                                                <tbody>
+
+                                                {% for tx in item_transactions %}
+
+                                                    <tr>
+
+                                                        <td>
+                                                            {{ tx.get('date','') }}
+                                                        </td>
+
+                                                        <td>
+                                                            {{ tx.get('account','Unknown Account') }}
+                                                        </td>
+
+                                                        <td>
+
+                                                            {% if tx.get('transaction_type','')|lower == 'income' %}
+
+                                                                <span class="cp-badge green">
+                                                                    Income
+                                                                </span>
+
+                                                            {% else %}
+
+                                                                <span class="cp-badge red">
+                                                                    Expense
+                                                                </span>
+
+                                                            {% endif %}
+
+                                                        </td>
+
+                                                        <td>
+
+                                                            <strong>
+                                                                ${{ "%.2f"|format(tx.get('amount',0)) }}
+                                                            </strong>
+
+                                                        </td>
+
+                                                        <td>
+
+                                                            <span class="cp-badge gray">
+                                                                {{ tx.get('status','Completed') }}
+                                                            </span>
+
+                                                        </td>
+
+                                                    </tr>
+
+                                                {% endfor %}
+
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+
+                                    {% else %}
+
+                                        <div class="cp-empty">
+                                            No item transactions.
+                                        </div>
+
+                                    {% endif %}
+
+                                </div>
+
+                            </div>
+
+                        {% endfor %}
+
+                    {% else %}
+
+                        <div class="cp-empty">
+                            No items available for this category.
+                        </div>
+
+                    {% endif %}
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+    {% else %}
+
+        <div class="cp-card">
+
+            <div class="cp-empty">
+
+                <div class="cp-empty-icon">
+                    <i data-feather="bar-chart"></i>
+                </div>
+
+                <strong>
+                    No category performance data
+                </strong>
+
+                Try changing your date or category filters.
+
+            </div>
+
+        </div>
+
+    {% endif %}
+
+    </div>
+
+
+    <!-- ========================================================
+         REPORT FOOTER
+         ======================================================== -->
+
+    <div class="cp-footer">
+
+        <span>
+            Category Performance Report
+        </span>
+
+        <span>
+            {{ categories|default([])|length }}
+            categories ·
+            {{ total_transactions|default(0) }}
+            transactions
+        </span>
+
+        <span>
+            Generated:
+            <span id="generatedTime"></span>
+        </span>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     CHART.JS
+     ============================================================ -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+
+<script>
+
+/* ============================================================
+   SERVER DATA
+   ============================================================ */
+
+const monthlyData =
+    {{ monthly_chart|default([])|tojson|safe }};
+
+const categoryData =
+    {{ categories|default([])|tojson|safe }};
+
+const accountData =
+    {{ account_chart|default([])|tojson|safe }};
+
+const topExpenseData =
+    {{ top_expense_categories|default([])|tojson|safe }};
+
+const topItemData =
+    {{ top_items|default([])|tojson|safe }};
+
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+
+function money(value) {
+
+    const number = Number(value || 0);
+
+    return "$" + number.toLocaleString(
+        undefined,
+        {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    );
+}
+
+
+function chartFont() {
+
+    return {
+        family:
+            "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"
+    };
+}
+
+
+/* ============================================================
+   FEATHER
+   ============================================================ */
+
+if (window.feather) {
+    feather.replace();
+}
+
+
+/* ============================================================
+   PROGRESS ANIMATION
+   ============================================================ */
+
+document
+    .querySelectorAll("[data-progress]")
+    .forEach(function(bar) {
+
+        const value =
+            Number(bar.dataset.progress || 0);
+
+        setTimeout(function() {
+
+            bar.style.width =
+                Math.max(
+                    0,
+                    Math.min(100, value)
+                ) + "%";
+
+        }, 150);
+
+    });
+
+
+/* ============================================================
+   MONTHLY CHART
+   ============================================================ */
+
+const monthlyCanvas =
+    document.getElementById("monthlyChart");
+
+let monthlyChart = null;
+
+if (monthlyCanvas) {
+
+    monthlyChart = new Chart(
+        monthlyCanvas,
+        {
+            type: "line",
+
+            data: {
+
+                labels:
+                    monthlyData.map(
+                        x => x.label
+                    ),
+
+                datasets: [
+
+                    {
+                        label: "Income",
+
+                        data:
+                            monthlyData.map(
+                                x => x.income
+                            ),
+
+                        borderColor:
+                            "#16a34a",
+
+                        backgroundColor:
+                            "rgba(22,163,74,.10)",
+
+                        borderWidth: 3,
+
+                        tension: .35,
+
+                        fill: true,
+
+                        pointRadius: 3,
+
+                        pointHoverRadius: 6
+                    },
+
+                    {
+                        label: "Expense",
+
+                        data:
+                            monthlyData.map(
+                                x => x.expense
+                            ),
+
+                        borderColor:
+                            "#dc2626",
+
+                        backgroundColor:
+                            "rgba(220,38,38,.08)",
+
+                        borderWidth: 3,
+
+                        tension: .35,
+
+                        fill: true,
+
+                        pointRadius: 3,
+
+                        pointHoverRadius: 6
+                    },
+
+                    {
+                        label: "Net",
+
+                        data:
+                            monthlyData.map(
+                                x => x.net
+                            ),
+
+                        borderColor:
+                            "#7c3aed",
+
+                        backgroundColor:
+                            "rgba(124,58,237,.05)",
+
+                        borderWidth: 3,
+
+                        borderDash: [6,4],
+
+                        tension: .35,
+
+                        fill: false,
+
+                        pointRadius: 3,
+
+                        pointHoverRadius: 6
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                interaction: {
+                    mode: "index",
+                    intersect: false
+                },
+
+                plugins: {
+
+                    legend: {
+                        position: "bottom",
+
+                        labels: {
+                            usePointStyle: true,
+                            padding: 18,
+                            font: chartFont()
+                        }
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label:
+                                function(context) {
+
+                                    return (
+                                        " " +
+                                        context.dataset.label +
+                                        ": " +
+                                        money(context.raw)
+                                    );
+
+                                }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+                        grid: {
+                            display: false
+                        },
+
+                        ticks: {
+                            font: chartFont()
+                        }
+                    },
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            font: chartFont(),
+
+                            callback:
+                                function(value) {
+
+                                    return money(value);
+
+                                }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   MONEY DISTRIBUTION
+   ============================================================ */
+
+const distributionCanvas =
+    document.getElementById(
+        "moneyDistributionChart"
+    );
+
+if (distributionCanvas) {
+
+    new Chart(
+        distributionCanvas,
+        {
+            type: "doughnut",
+
+            data: {
+
+                labels: [
+                    "Income",
+                    "Expense"
+                ],
+
+                datasets: [
+
+                    {
+                        data: [
+
+                            Number(
+                                {{ total_income|default(0) }}
+                            ),
+
+                            Number(
+                                {{ total_expense|default(0) }}
+                            )
+
+                        ],
+
+                        backgroundColor: [
+                            "#16a34a",
+                            "#dc2626"
+                        ],
+
+                        borderWidth: 0,
+
+                        hoverOffset: 8
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                cutout: "72%",
+
+                plugins: {
+
+                    legend: {
+
+                        position: "bottom",
+
+                        labels: {
+                            usePointStyle: true,
+                            padding: 18,
+                            font: chartFont()
+                        }
+
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label:
+                                function(context) {
+
+                                    return (
+                                        " " +
+                                        context.label +
+                                        ": " +
+                                        money(context.raw)
+                                    );
+
+                                }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CATEGORY CHART
+   ============================================================ */
+
+const categoryCanvas =
+    document.getElementById(
+        "categoryChart"
+    );
+
+if (categoryCanvas) {
+
+    const chartCategories =
+        categoryData
+        .slice(0, 10);
+
+    new Chart(
+        categoryCanvas,
+        {
+            type: "bar",
+
+            data: {
+
+                labels:
+                    chartCategories.map(
+                        x => x.name
+                    ),
+
+                datasets: [
+
+                    {
+                        label: "Income",
+
+                        data:
+                            chartCategories.map(
+                                x => x.income
+                            ),
+
+                        backgroundColor:
+                            "#22c55e",
+
+                        borderRadius: 7
+                    },
+
+                    {
+                        label: "Expense",
+
+                        data:
+                            chartCategories.map(
+                                x => x.expense
+                            ),
+
+                        backgroundColor:
+                            "#ef4444",
+
+                        borderRadius: 7
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+                        position: "bottom",
+
+                        labels: {
+                            usePointStyle: true,
+                            font: chartFont()
+                        }
+                    },
+
+                    tooltip: {
+
+                        callbacks: {
+
+                            label:
+                                function(context) {
+
+                                    return (
+                                        " " +
+                                        context.dataset.label +
+                                        ": " +
+                                        money(context.raw)
+                                    );
+
+                                }
+
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        stacked: false,
+
+                        grid: {
+                            display: false
+                        },
+
+                        ticks: {
+                            font: chartFont(),
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+
+                    },
+
+                    y: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            font: chartFont(),
+
+                            callback:
+                                function(value) {
+
+                                    return money(value);
+
+                                }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   ACCOUNT CHART
+   ============================================================ */
+
+const accountCanvas =
+    document.getElementById(
+        "accountChart"
+    );
+
+if (accountCanvas) {
+
+    const chartAccounts =
+        accountData.slice(0, 10);
+
+    new Chart(
+        accountCanvas,
+        {
+            type: "bar",
+
+            data: {
+
+                labels:
+                    chartAccounts.map(
+                        x => x.name
+                    ),
+
+                datasets: [
+
+                    {
+                        label: "Income",
+
+                        data:
+                            chartAccounts.map(
+                                x => x.income
+                            ),
+
+                        backgroundColor:
+                            "#16a34a",
+
+                        borderRadius: 6
+                    },
+
+                    {
+                        label: "Expense",
+
+                        data:
+                            chartAccounts.map(
+                                x => x.expense
+                            ),
+
+                        backgroundColor:
+                            "#dc2626",
+
+                        borderRadius: 6
+                    },
+
+                    {
+                        label: "Net",
+
+                        data:
+                            chartAccounts.map(
+                                x => x.net
+                            ),
+
+                        backgroundColor:
+                            "#7c3aed",
+
+                        borderRadius: 6
+                    }
+
+                ]
+
+            },
+
+            options: {
+
+                indexAxis: "y",
+
+                responsive: true,
+
+                maintainAspectRatio: false,
+
+                plugins: {
+
+                    legend: {
+
+                        position: "bottom",
+
+                        labels: {
+                            usePointStyle: true,
+                            font: chartFont()
+                        }
+
+                    }
+
+                },
+
+                scales: {
+
+                    x: {
+
+                        beginAtZero: true,
+
+                        ticks: {
+
+                            font: chartFont(),
+
+                            callback:
+                                function(value) {
+
+                                    return money(value);
+
+                                }
+
+                        }
+
+                    },
+
+                    y: {
+
+                        grid: {
+                            display: false
+                        },
+
+                        ticks: {
+                            font: chartFont()
+                        }
+
+                    }
+
+                }
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   CATEGORY TOGGLE
+   ============================================================ */
+
+function toggleCategory(header) {
+
+    const card =
+        header.closest(
+            ".cp-category-card"
+        );
+
+    if (!card) {
+        return;
+    }
+
+    card.classList.toggle("open");
+
+    setTimeout(
+        function() {
+
+            if (window.feather) {
+                feather.replace();
+            }
+
+        },
+        50
+    );
+}
+
+
+/* ============================================================
+   ITEM TOGGLE
+   ============================================================ */
+
+function toggleItem(header) {
+
+    const item =
+        header.closest(".cp-item");
+
+    if (!item) {
+        return;
+    }
+
+    item.classList.toggle("open");
+}
+
+
+/* ============================================================
+   CHART DOWNLOAD
+   ============================================================ */
+
+function downloadChart(
+    chartId,
+    filename
+) {
+
+    const canvas =
+        document.getElementById(chartId);
+
+    if (!canvas) {
+        return;
+    }
+
+    const link =
+        document.createElement("a");
+
+    link.download =
+        filename + ".png";
+
+    link.href =
+        canvas.toDataURL("image/png");
+
+    link.click();
+}
+
+
+/* ============================================================
+   FULLSCREEN CHART
+   ============================================================ */
+
+function fullscreenChart(chartId) {
+
+    const canvas =
+        document.getElementById(chartId);
+
+    if (!canvas) {
+        return;
+    }
+
+    const container =
+        canvas.closest(".cp-chart-body");
+
+    if (!container) {
+        return;
+    }
+
+    if (container.requestFullscreen) {
+
+        container.requestFullscreen();
+
+    } else if (container.webkitRequestFullscreen) {
+
+        container.webkitRequestFullscreen();
+
+    }
+
+}
+
+
+/* ============================================================
+   CSV EXPORT
+   ============================================================ */
+
+function exportCategoryCSV() {
+
+    const rows = [];
+
+    rows.push([
+        "Category",
+        "Income",
+        "Expense",
+        "Net",
+        "Transactions",
+        "Average",
+        "Highest",
+        "Lowest",
+        "Income Share %",
+        "Expense Share %",
+        "Profit Margin %"
+    ]);
+
+
+    categoryData.forEach(
+        function(category) {
+
+            rows.push([
+
+                category.name,
+
+                category.income,
+
+                category.expense,
+
+                category.net,
+
+                category.transaction_count,
+
+                category.average,
+
+                category.highest,
+
+                category.lowest,
+
+                category.income_share,
+
+                category.expense_share,
+
+                category.profit_margin
+
+            ]);
+
+        }
+    );
+
+
+    const csv =
+        rows
+        .map(
+            row =>
+                row.map(
+                    value =>
+                        '"' +
+                        String(
+                            value ?? ""
+                        )
+                        .replace(
+                            /"/g,
+                            '""'
+                        ) +
+                        '"'
+                ).join(",")
+        )
+        .join("\n");
+
+
+    const blob =
+        new Blob(
+            [csv],
+            {
+                type:
+                    "text/csv;charset=utf-8;"
+            }
+        );
+
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
+
+    link.href = url;
+
+    link.download =
+        "category-performance-report.csv";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+}
+
+
+/* ============================================================
+   VIEW MODE
+   ============================================================ */
+
+const viewMode =
+    document.getElementById(
+        "viewMode"
+    );
+
+if (viewMode) {
+
+    viewMode.addEventListener(
+        "change",
+        function() {
+
+            const value =
+                this.value;
+
+            const dashboardElements =
+                document.querySelectorAll(
+                    ".cp-kpi-grid, .cp-ratio-grid, .cp-insight-grid, .cp-chart-grid"
+                );
+
+            const categorySection =
+                document.querySelector(
+                    ".cp-category-list"
+                );
+
+            const tables =
+                document.querySelectorAll(
+                    ".cp-card"
+                );
+
+
+            if (value === "dashboard") {
+
+                dashboardElements
+                    .forEach(
+                        el => {
+                            el.style.display = "";
+                        }
+                    );
+
+                if (categorySection) {
+                    categorySection.style.display = "";
+                }
+
+            }
+
+
+            if (value === "categories") {
+
+                dashboardElements
+                    .forEach(
+                        el => {
+                            el.style.display = "none";
+                        }
+                    );
+
+                if (categorySection) {
+                    categorySection.style.display = "";
+                }
+
+            }
+
+
+            if (value === "items") {
+
+                dashboardElements
+                    .forEach(
+                        el => {
+                            el.style.display = "none";
+                        }
+                    );
+
+                if (categorySection) {
+                    categorySection.style.display = "";
+                }
+
+                document
+                    .querySelectorAll(".cp-category-card")
+                    .forEach(
+                        card => {
+                            card.classList.add("open");
+                        }
+                    );
+
+            }
+
+        }
+    );
+
+}
+
+
+/* ============================================================
+   GENERATED TIME
+   ============================================================ */
+
+const generatedTime =
+    document.getElementById(
+        "generatedTime"
+    );
+
+if (generatedTime) {
+
+    generatedTime.textContent =
+        new Date().toLocaleString(
+            undefined,
+            {
+                year: "numeric",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+}
+
+
+/* ============================================================
+   OPEN FIRST CATEGORY
+   ============================================================ */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        const firstCategory =
+            document.querySelector(
+                ".cp-category-card"
+            );
+
+        if (firstCategory) {
+            firstCategory.classList.add("open");
+        }
+
+        if (window.feather) {
+            feather.replace();
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}
