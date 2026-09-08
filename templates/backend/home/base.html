@@ -550,7 +550,7 @@
 
         /*
          * IMPORTANT:
-         * Mouse hover -> popup
+         * Desktop mouse hover -> popup
          */
 
         .ai-message:hover
@@ -569,7 +569,7 @@
 
 
         /*
-         * JS mobile open
+         * Mobile / touch JS open
          */
 
         .ai-message.actions-open
@@ -1136,7 +1136,7 @@
 
 
             /*
-             * Mobile popup is slightly smaller.
+             * Mobile popup.
              */
 
             .ai-message-actions {
@@ -1599,7 +1599,7 @@
 
             /* ========================================================
                STATE
-               ======================================================== */
+            ======================================================== */
 
             let conversationHistory = [];
 
@@ -1613,7 +1613,7 @@
 
             /* ========================================================
                FEATHER
-               ======================================================== */
+            ======================================================== */
 
             function refreshIcons() {
 
@@ -1634,7 +1634,7 @@
 
             /* ========================================================
                OPEN CHAT
-               ======================================================== */
+            ======================================================== */
 
             button.addEventListener(
                 "click",
@@ -1664,7 +1664,7 @@
 
             /* ========================================================
                CLOSE CHAT
-               ======================================================== */
+            ======================================================== */
 
             close.addEventListener(
                 "click",
@@ -1683,7 +1683,7 @@
 
             /* ========================================================
                ESCAPE
-               ======================================================== */
+            ======================================================== */
 
             document.addEventListener(
                 "keydown",
@@ -1718,7 +1718,7 @@
 
             /* ========================================================
                MESSAGE ID
-               ======================================================== */
+            ======================================================== */
 
             function createMessageId() {
 
@@ -1737,7 +1737,7 @@
 
             /* ========================================================
                CURRENT TIME
-               ======================================================== */
+            ======================================================== */
 
             function getTime() {
 
@@ -1756,7 +1756,7 @@
 
             /* ========================================================
                CLOSE ALL POPUPS
-               ======================================================== */
+            ======================================================== */
 
             function closeAllMenus() {
 
@@ -1780,7 +1780,7 @@
 
             /* ========================================================
                ADD MESSAGE
-               ======================================================== */
+            ======================================================== */
 
             function addMessage(
                 text,
@@ -1820,12 +1820,17 @@
                     messageId;
 
 
+                message.dataset.messageType =
+                    type;
+
+
                 if (
-                    historyIndex !== null
+                    historyIndex !== null &&
+                    historyIndex !== undefined
                 ) {
 
                     message.dataset.historyIndex =
-                        historyIndex;
+                        String(historyIndex);
 
                 }
 
@@ -1848,7 +1853,7 @@
 
                 /* ====================================================
                    MOBILE MORE
-                   ==================================================== */
+                ==================================================== */
 
                 const moreButton =
                     document.createElement(
@@ -1877,6 +1882,8 @@
                 moreButton.addEventListener(
                     "click",
                     function (event) {
+
+                        event.preventDefault();
 
                         event.stopPropagation();
 
@@ -1907,7 +1914,7 @@
 
                 /* ====================================================
                    CONTENT
-                   ==================================================== */
+                ==================================================== */
 
                 const content =
                     document.createElement(
@@ -1920,13 +1927,13 @@
 
 
                 content.textContent =
-                    text;
+                    String(text);
 
 
 
                 /* ====================================================
                    ACTIONS
-                   ==================================================== */
+                ==================================================== */
 
                 const actions =
                     document.createElement(
@@ -1941,7 +1948,7 @@
 
                 /* ====================================================
                    USER -> EDIT
-                   ==================================================== */
+                ==================================================== */
 
                 if (
                     type === "user"
@@ -1984,7 +1991,10 @@
                         "click",
                         function (event) {
 
+                            event.preventDefault();
+
                             event.stopPropagation();
+
 
                             startEdit(
                                 messageId
@@ -2005,7 +2015,7 @@
                 /* ====================================================
                    DELETE FOR ME
                    USER + AI
-                   ==================================================== */
+                ==================================================== */
 
                 const deleteButton =
                     document.createElement(
@@ -2044,7 +2054,10 @@
                     "click",
                     function (event) {
 
+                        event.preventDefault();
+
                         event.stopPropagation();
+
 
                         deleteForMe(
                             messageId
@@ -2062,7 +2075,7 @@
 
                 /* ====================================================
                    TIME
-                   ==================================================== */
+                ==================================================== */
 
                 const time =
                     document.createElement(
@@ -2081,7 +2094,7 @@
 
                 /* ====================================================
                    APPEND
-                   ==================================================== */
+                ==================================================== */
 
                 inner.appendChild(
                     moreButton
@@ -2127,7 +2140,7 @@
 
             /* ========================================================
                SCROLL
-               ======================================================== */
+            ======================================================== */
 
             function scrollBottom() {
 
@@ -2145,8 +2158,95 @@
 
 
             /* ========================================================
+               REMOVE HISTORY INDEX
+               AND REINDEX REMAINING MESSAGES
+            ======================================================== */
+
+            function removeHistoryItem(
+                historyIndex
+            ) {
+
+                if (
+                    Number.isNaN(
+                        historyIndex
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                if (
+                    historyIndex < 0 ||
+                    historyIndex >=
+                        conversationHistory.length
+                ) {
+
+                    return;
+
+                }
+
+
+                conversationHistory.splice(
+                    historyIndex,
+                    1
+                );
+
+
+                /*
+                 * Re-index all visible messages
+                 * after deleted history item.
+                 */
+
+                messages
+                    .querySelectorAll(
+                        ".ai-message[data-history-index]"
+                    )
+                    .forEach(
+                        function (item) {
+
+                            const currentIndex =
+                                parseInt(
+                                    item.dataset.historyIndex,
+                                    10
+                                );
+
+
+                            if (
+                                Number.isNaN(
+                                    currentIndex
+                                )
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            if (
+                                currentIndex >
+                                historyIndex
+                            ) {
+
+                                item.dataset.historyIndex =
+                                    String(
+                                        currentIndex - 1
+                                    );
+
+                            }
+
+                        }
+                    );
+
+            }
+
+
+
+            /* ========================================================
                DELETE FOR ME
-               ======================================================== */
+               UI + conversationHistory
+            ======================================================== */
 
             function deleteForMe(
                 messageId
@@ -2165,6 +2265,30 @@
                 }
 
 
+                /*
+                 * If currently editing this message,
+                 * cancel editing first.
+                 */
+
+                if (
+                    editingMessageId ===
+                    messageId
+                ) {
+
+                    editingMessageId =
+                        null;
+
+                    editingBar.classList.remove(
+                        "active"
+                    );
+
+                }
+
+
+                /*
+                 * Get history index.
+                 */
+
                 const historyIndex =
                     parseInt(
                         message.dataset.historyIndex,
@@ -2182,80 +2306,30 @@
                     )
                 ) {
 
-                    if (
-                        historyIndex >= 0 &&
-                        historyIndex <
-                        conversationHistory.length
-                    ) {
-
-                        conversationHistory.splice(
-                            historyIndex,
-                            1
-                        );
-
-
-                        /*
-                         * Re-index remaining
-                         * messages.
-                         */
-
-                        document
-                            .querySelectorAll(
-                                ".ai-message[data-history-index]"
-                            )
-                            .forEach(
-                                function (item) {
-
-                                    const index =
-                                        parseInt(
-                                            item.dataset.historyIndex,
-                                            10
-                                        );
-
-
-                                    if (
-                                        !Number.isNaN(index) &&
-                                        index > historyIndex
-                                    ) {
-
-                                        item.dataset.historyIndex =
-                                            index - 1;
-
-                                    }
-
-                                }
-                            );
-
-                    }
+                    removeHistoryItem(
+                        historyIndex
+                    );
 
                 }
 
 
                 /*
-                 * Cancel editing if
-                 * deleted message is editing.
-                 */
-
-                if (
-                    editingMessageId ===
-                    messageId
-                ) {
-
-                    cancelEdit();
-
-                }
-
-
-                /*
-                 * Remove from screen.
+                 * Remove UI.
                  */
 
                 message.remove();
 
 
                 /*
-                 * Show welcome again
-                 * if no messages.
+                 * Close popup.
+                 */
+
+                closeAllMenus();
+
+
+                /*
+                 * If no messages remain,
+                 * restore welcome.
                  */
 
                 const remaining =
@@ -2270,6 +2344,9 @@
 
                     showWelcome();
 
+                    suggestions.style.display =
+                        "flex";
+
                 }
 
             }
@@ -2278,7 +2355,7 @@
 
             /* ========================================================
                SHOW WELCOME
-               ======================================================== */
+            ======================================================== */
 
             function showWelcome() {
 
@@ -2331,8 +2408,76 @@
 
 
             /* ========================================================
-               START EDIT
+               FIND NEXT AI RESPONSE
                ======================================================== */
+
+            function findNextAssistantMessage(
+                userMessage
+            ) {
+
+                if (!userMessage) {
+
+                    return null;
+
+                }
+
+
+                let current =
+                    userMessage.nextElementSibling;
+
+
+                while (current) {
+
+                    if (
+                        current.id ===
+                        "aiTypingMessage"
+                    ) {
+
+                        current =
+                            current.nextElementSibling;
+
+                        continue;
+
+                    }
+
+
+                    if (
+                        current.classList.contains(
+                            "user"
+                        )
+                    ) {
+
+                        return null;
+
+                    }
+
+
+                    if (
+                        current.classList.contains(
+                            "assistant"
+                        )
+                    ) {
+
+                        return current;
+
+                    }
+
+
+                    current =
+                        current.nextElementSibling;
+
+                }
+
+
+                return null;
+
+            }
+
+
+
+            /* ========================================================
+               START EDIT
+            ======================================================== */
 
             function startEdit(
                 messageId
@@ -2380,7 +2525,7 @@
 
 
                 /*
-                 * Put text into textarea.
+                 * Put user message into textarea.
                  */
 
                 input.value =
@@ -2390,9 +2535,8 @@
                 autoResize();
 
 
-
                 /*
-                 * Save editing ID.
+                 * Save editing message ID.
                  */
 
                 editingMessageId =
@@ -2400,7 +2544,7 @@
 
 
                 /*
-                 * Show edit bar.
+                 * Show editing bar.
                  */
 
                 editingBar.classList.add(
@@ -2434,7 +2578,9 @@
                     input.selectionEnd =
                         input.value.length;
 
-                } catch (e) {
+                }
+
+                catch (e) {
 
                     /* Ignore */
 
@@ -2446,7 +2592,7 @@
 
             /* ========================================================
                CANCEL EDIT
-               ======================================================== */
+            ======================================================== */
 
             function cancelEdit() {
 
@@ -2479,7 +2625,7 @@
 
             /* ========================================================
                UPDATE MESSAGE
-               ======================================================== */
+            ======================================================== */
 
             function updateMessage(
                 messageId,
@@ -2523,29 +2669,119 @@
 
 
             /* ========================================================
-               REMOVE OLD AI RESPONSES AFTER EDIT
-               ======================================================== */
+               REMOVE ONLY THE OLD AI RESPONSE
+               BELONGING TO EDITED USER MESSAGE
+            ======================================================== */
 
-            function removeAssistantMessagesAfter(
+            function removeOldAssistantResponse(
                 userMessage
             ) {
 
-                const allMessages =
-                    Array.from(
-                        messages.querySelectorAll(
-                            ".ai-message"
-                        )
-                    );
-
-
-                const userIndex =
-                    allMessages.indexOf(
+                const assistantMessage =
+                    findNextAssistantMessage(
                         userMessage
                     );
 
 
+                if (!assistantMessage) {
+
+                    return null;
+
+                }
+
+
+                const historyIndex =
+                    parseInt(
+                        assistantMessage.dataset.historyIndex,
+                        10
+                    );
+
+
+                /*
+                 * Remove AI history.
+                 */
+
                 if (
-                    userIndex === -1
+                    !Number.isNaN(
+                        historyIndex
+                    )
+                ) {
+
+                    removeHistoryItem(
+                        historyIndex
+                    );
+
+                }
+
+
+                /*
+                 * Remove AI UI.
+                 */
+
+                assistantMessage.remove();
+
+
+                return assistantMessage;
+
+            }
+
+
+
+            /* ========================================================
+               REBUILD HISTORY INDEXES
+               ======================================================== */
+
+            function rebuildHistoryIndexes() {
+
+                messages
+                    .querySelectorAll(
+                        ".ai-message[data-history-index]"
+                    )
+                    .forEach(
+                        function (item) {
+
+                            const index =
+                                parseInt(
+                                    item.dataset.historyIndex,
+                                    10
+                                );
+
+
+                            if (
+                                Number.isNaN(
+                                    index
+                                )
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            if (
+                                index >=
+                                conversationHistory.length
+                            ) {
+
+                                delete item.dataset.historyIndex;
+
+                            }
+
+                        }
+                    );
+
+            }
+
+
+
+            /* ========================================================
+               LIMIT HISTORY TO 20
+            ======================================================== */
+
+            function limitConversationHistory() {
+
+                if (
+                    conversationHistory.length <= 20
                 ) {
 
                     return;
@@ -2553,75 +2789,68 @@
                 }
 
 
-                /*
-                 * Delete all assistant
-                 * messages after edited user.
-                 */
-
-                for (
-                    let i =
-                        allMessages.length - 1;
-                    i > userIndex;
-                    i--
-                ) {
-
-                    const item =
-                        allMessages[i];
+                const removeCount =
+                    conversationHistory.length -
+                    20;
 
 
-                    if (
-                        item.classList.contains(
-                            "assistant"
-                        )
-                    ) {
-
-                        item.remove();
-
-                    }
-
-                }
-
-            }
-
-
-
-            /* ========================================================
-               REBUILD HISTORY INDEX
-               ======================================================== */
-
-            function rebuildHistoryIndexes() {
-
-                const allMessages =
-                    Array.from(
-                        messages.querySelectorAll(
-                            ".ai-message"
-                        )
+                conversationHistory =
+                    conversationHistory.slice(
+                        removeCount
                     );
 
 
                 /*
-                 * The visible messages correspond
-                 * directly to conversation history.
+                 * Recalculate history indexes
+                 * for visible messages.
                  */
 
-                allMessages.forEach(
-                    function (
-                        item,
-                        index
-                    ) {
+                messages
+                    .querySelectorAll(
+                        ".ai-message[data-history-index]"
+                    )
+                    .forEach(
+                        function (item) {
 
-                        if (
-                            index <
-                            conversationHistory.length
-                        ) {
+                            const oldIndex =
+                                parseInt(
+                                    item.dataset.historyIndex,
+                                    10
+                                );
 
-                            item.dataset.historyIndex =
-                                index;
+
+                            if (
+                                Number.isNaN(
+                                    oldIndex
+                                )
+                            ) {
+
+                                return;
+
+                            }
+
+
+                            if (
+                                oldIndex <
+                                removeCount
+                            ) {
+
+                                delete item.dataset.historyIndex;
+
+                            }
+
+                            else {
+
+                                item.dataset.historyIndex =
+                                    String(
+                                        oldIndex -
+                                        removeCount
+                                    );
+
+                            }
 
                         }
-
-                    }
-                );
+                    );
 
             }
 
@@ -2629,7 +2858,7 @@
 
             /* ========================================================
                SHOW TYPING
-               ======================================================== */
+            ======================================================== */
 
             function showTyping() {
 
@@ -2683,7 +2912,7 @@
 
             /* ========================================================
                HIDE TYPING
-               ======================================================== */
+            ======================================================== */
 
             function hideTyping() {
 
@@ -2705,7 +2934,7 @@
 
             /* ========================================================
                SEND MESSAGE
-               ======================================================== */
+            ======================================================== */
 
             async function sendMessage() {
 
@@ -2740,7 +2969,7 @@
 
                 /* ====================================================
                    EDIT MODE
-                   ==================================================== */
+                ==================================================== */
 
                 if (
                     editingMessageId !== null
@@ -2767,6 +2996,10 @@
                     }
 
 
+                    /*
+                     * Get old user history index.
+                     */
+
                     const historyIndex =
                         parseInt(
                             message.dataset.historyIndex,
@@ -2775,7 +3008,18 @@
 
 
                     /*
-                     * Update visible message.
+                     * Find the old AI response
+                     * before changing history indexes.
+                     */
+
+                    const oldAssistant =
+                        findNextAssistantMessage(
+                            message
+                        );
+
+
+                    /*
+                     * Update user visible message.
                      */
 
                     updateMessage(
@@ -2785,7 +3029,7 @@
 
 
                     /*
-                     * Update history.
+                     * Update user history.
                      */
 
                     if (
@@ -2806,41 +3050,40 @@
 
 
                     /*
-                     * Remove old AI responses.
-                     */
-
-                    removeAssistantMessagesAfter(
-                        message
-                    );
-
-
-                    /*
-                     * Remove corresponding
-                     * assistant history.
-                     *
-                     * Since the old assistant response
-                     * normally comes immediately after
-                     * the edited user message, remove
-                     * everything after this user message.
+                     * Remove ONLY the old AI answer.
                      */
 
                     if (
-                        !Number.isNaN(
-                            historyIndex
-                        )
+                        oldAssistant
                     ) {
 
-                        conversationHistory =
-                            conversationHistory.slice(
-                                0,
-                                historyIndex + 1
+                        const assistantHistoryIndex =
+                            parseInt(
+                                oldAssistant.dataset.historyIndex,
+                                10
                             );
+
+
+                        if (
+                            !Number.isNaN(
+                                assistantHistoryIndex
+                            )
+                        ) {
+
+                            removeHistoryItem(
+                                assistantHistoryIndex
+                            );
+
+                        }
+
+
+                        oldAssistant.remove();
 
                     }
 
 
                     /*
-                     * Clear edit mode.
+                     * Editing finished.
                      */
 
                     editingMessageId =
@@ -2852,6 +3095,10 @@
                     );
 
 
+                    /*
+                     * Clear textarea.
+                     */
+
                     input.value =
                         "";
 
@@ -2859,11 +3106,27 @@
                     autoResize();
 
 
+                    closeAllMenus();
+
+
+                    /*
+                     * Make sure message history
+                     * indexes are still correct.
+                     */
+
                     rebuildHistoryIndexes();
 
 
                     /*
-                     * Ask AI again.
+                     * Hide suggestions.
+                     */
+
+                    suggestions.style.display =
+                        "none";
+
+
+                    /*
+                     * Show typing.
                      */
 
                     showTyping();
@@ -2908,27 +3171,29 @@
 
                 /* ====================================================
                    NORMAL MESSAGE
-                   ==================================================== */
+                ==================================================== */
 
                 const historyIndex =
                     conversationHistory.length;
 
 
                 /*
-                 * Add user history first.
+                 * Add user to history FIRST.
                  */
 
                 conversationHistory.push({
 
-                    role: "user",
+                    role:
+                        "user",
 
-                    content: text
+                    content:
+                        text
 
                 });
 
 
                 /*
-                 * Add visible user message.
+                 * Add user UI.
                  */
 
                 addMessage(
@@ -2939,7 +3204,7 @@
 
 
                 /*
-                 * Clear textarea.
+                 * Clear input.
                  */
 
                 input.value =
@@ -2958,7 +3223,7 @@
 
 
                 /*
-                 * Typing.
+                 * Show typing.
                  */
 
                 showTyping();
@@ -3000,7 +3265,7 @@
 
             /* ========================================================
                AI REQUEST
-               ======================================================== */
+            ======================================================== */
 
             async function requestAI(
                 text
@@ -3083,8 +3348,8 @@
 
 
                     /*
-                     * Support different
-                     * backend response names.
+                     * Support different backend
+                     * response names.
                      */
 
                     const answer =
@@ -3135,28 +3400,11 @@
 
 
                     /*
-                     * Keep maximum 20 history entries.
+                     * Keep maximum 20
+                     * history records.
                      */
 
-                    if (
-                        conversationHistory.length >
-                        20
-                    ) {
-
-                        const removeCount =
-                            conversationHistory.length -
-                            20;
-
-
-                        conversationHistory =
-                            conversationHistory.slice(
-                                removeCount
-                            );
-
-
-                        rebuildHistoryIndexes();
-
-                    }
+                    limitConversationHistory();
 
                 }
 
@@ -3182,7 +3430,7 @@
 
             /* ========================================================
                SEND BUTTON
-               ======================================================== */
+            ======================================================== */
 
             send.addEventListener(
                 "click",
@@ -3193,7 +3441,7 @@
 
             /* ========================================================
                ENTER
-               ======================================================== */
+            ======================================================== */
 
             input.addEventListener(
                 "keydown",
@@ -3223,7 +3471,7 @@
 
             /* ========================================================
                AUTO RESIZE
-               ======================================================== */
+            ======================================================== */
 
             function autoResize() {
 
@@ -3249,7 +3497,7 @@
 
             /* ========================================================
                QUICK QUESTIONS
-               ======================================================== */
+            ======================================================== */
 
             document
                 .querySelectorAll(
@@ -3291,7 +3539,7 @@
 
             /* ========================================================
                CLICK OUTSIDE POPUP
-               ======================================================== */
+            ======================================================== */
 
             document.addEventListener(
                 "click",
@@ -3314,7 +3562,7 @@
 
             /* ========================================================
                INITIAL
-               ======================================================== */
+            ======================================================== */
 
             autoResize();
 
