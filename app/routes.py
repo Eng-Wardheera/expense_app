@@ -115498,6 +115498,1325 @@ def ai_get_user_profile():
             )
     }
 
+
+# ============================================================
+# PERSON LEDGER
+# ============================================================
+#
+# PERSON SOURCES
+#
+# transactions:
+#   1. person_name
+#   2. description
+#   3. note
+#
+# person_opening_transactions:
+#   1. person_name
+#   2. description
+#   3. note
+#
+# IMPORTANT:
+#
+# Each field is read independently.
+#
+# Example:
+#
+# person_name  = "Asad"
+# description  = "Ahmed"
+# note         = "Hassan"
+#
+# This creates:
+#
+# Asad
+# Ahmed
+# Hassan
+#
+# They are NOT forced to be the same person.
+#
+# "By Asad"
+# "by Asad"
+# "BY ASAD"
+# "By: Asad"
+#
+# ALL become:
+#
+# Asad
+#
+# Same person is case-insensitive:
+#
+# Asad
+# asad
+# ASAD
+# By Asad
+#
+# ALL = same person.
+#
+# If the SAME normalized person appears in multiple fields
+# of ONE record, that record is counted only ONCE.
+#
+# ============================================================
+
+
+def ai_normalize_person_name(value):
+
+    if value is None:
+        return ""
+
+    try:
+        value = str(value).strip()
+    except Exception:
+        return ""
+
+    if not value:
+        return ""
+
+    # --------------------------------------------------------
+    # Normalize whitespace
+    # --------------------------------------------------------
+
+    value = re.sub(
+        r"\s+",
+        " ",
+        value
+    ).strip()
+
+    # --------------------------------------------------------
+    # Remove ONLY leading "By"
+    #
+    # Supported:
+    #
+    # By Asad
+    # by Asad
+    # BY ASAD
+    # By: Asad
+    # by:Asad
+    # --------------------------------------------------------
+
+    value = re.sub(
+        r"^\s*by\b\s*:?\s*",
+        "",
+        value,
+        flags=re.IGNORECASE
+    ).strip()
+
+    if not value:
+        return ""
+
+    # --------------------------------------------------------
+    # Final whitespace cleanup
+    # --------------------------------------------------------
+
+    value = re.sub(
+        r"\s+",
+        " ",
+        value
+    ).strip()
+
+    return value
+
+
+def ai_person_key(value):
+
+    name = ai_normalize_person_name(value)
+
+    if not name:
+        return ""
+
+    # Case-insensitive matching
+    return name.casefold()
+
+
+def ai_add_person_record(
+    person_map,
+    person_name,
+    transaction_type,
+    amount,
+    source,
+    record_id,
+    record,
+    date_value=None
+):
+
+    """
+    Add one person reference into the Person Ledger.
+
+    person_name:
+        Candidate person name.
+
+    transaction_type:
+        income / expense
+
+    source:
+        transactions
+        person_opening_transactions
+
+    record_id:
+        MongoDB _id
+
+    IMPORTANT:
+    Caller handles same-person deduplication within one record.
+    """
+
+    normalized_name = ai_normalize_person_name(
+        person_name
+    )
+
+    person_key = ai_person_key(
+        normalized_name
+    )
+
+    if not person_key:
+        return None
+
+    amount = ai_safe_float(
+        amount
+    )
+
+    transaction_type = (
+        str(
+            transaction_type or ""
+        )
+        .strip()
+        .lower()
+    )
+
+    if transaction_type not in (
+        "income",
+        "expense"
+    ):
+        return None
+
+    # --------------------------------------------------------
+    # Create person
+    # --------------------------------------------------------
+
+    if person_key not in person_map:
+
+        person_map[person_key] = {
+
+            "person_name":
+                normalized_name,
+
+            "person_key":
+                person_key,
+
+            "income":
+                0.0,
+
+            "expense":
+                0.0,
+
+            "opening_income":
+                0.0,
+
+            "opening_expense":
+                0.0,
+
+            "transaction_income":
+                0.0,
+
+            "transaction_expense":
+                0.0,
+
+            "income_count":
+                0,
+
+            "expense_count":
+                0,
+
+            "opening_income_count":
+                0,
+
+            "opening_expense_count":
+                0,
+
+            "transaction_income_count":
+                0,
+
+            "transaction_expense_count":
+                0,
+
+            "references":
+                [],
+
+            "transactions":
+                []
+
+        }
+
+    person = person_map[
+        person_key
+    ]
+
+    # --------------------------------------------------------
+    # Keep first useful display name
+    # --------------------------------------------------------
+
+    if (
+        not person.get("person_name")
+        and normalized_name
+    ):
+
+        person["person_name"] = (
+            normalized_name
+        )
+
+    # --------------------------------------------------------
+    # Income / Expense
+    # --------------------------------------------------------
+
+    if transaction_type == "income":
+
+        person["income"] += amount
+
+        person["income_count"] += 1
+
+        if source == "transactions":
+
+            person["transaction_income"] += amount
+
+            person[
+                "transaction_income_count"
+            ] += 1
+
+        elif source == "person_opening_transactions":
+
+            person["opening_income"] += amount
+
+            person[
+                "opening_income_count"
+            ] += 1
+
+    elif transaction_type == "expense":
+
+        person["expense"] += amount
+
+        person["expense_count"] += 1
+
+        if source == "transactions":
+
+            person["transaction_expense"] += amount
+
+            person[
+                "transaction_expense_count"
+            ] += 1
+
+        elif source == "person_opening_transactions":
+
+            person["opening_expense"] += amount
+
+            person[
+                "opening_expense_count"
+            ] += 1
+
+    # --------------------------------------------------------
+    # Reference
+    # --------------------------------------------------------
+
+    person["references"].append({
+
+        "source":
+            source,
+
+        "record_id":
+            str(record_id)
+            if record_id is not None
+            else None,
+
+        "transaction_type":
+            transaction_type,
+
+        "amount":
+            amount,
+
+        "date":
+            ai_date_to_string(
+                date_value
+            )
+
+    })
+
+    # --------------------------------------------------------
+    # Ledger transaction
+    # --------------------------------------------------------
+
+    person["transactions"].append({
+
+        "source":
+            source,
+
+        "record_id":
+            str(record_id)
+            if record_id is not None
+            else None,
+
+        "person_name":
+            normalized_name,
+
+        "transaction_type":
+            transaction_type,
+
+        "amount":
+            amount,
+
+        "item":
+            record.get("item"),
+
+        "category":
+            record.get("category"),
+
+        "description":
+            record.get("description"),
+
+        "note":
+            record.get("note"),
+
+        "date":
+            ai_date_to_string(
+                date_value
+            ),
+
+        "status":
+            record.get("status"),
+
+        "reference_no":
+            record.get("reference_no")
+
+    })
+
+    return person_key
+
+
+# ============================================================
+# GET FULL PERSON LEDGER CONTEXT
+# ============================================================
+
+def ai_get_person_ledger_context():
+
+    try:
+
+        user_ids = ai_get_user_ids()
+
+        if not user_ids:
+
+            return {
+
+                "persons": [],
+
+                "person_summary": [],
+
+                "person_ledger_transactions": [],
+
+                "person_opening_transactions": [],
+
+                "summary": {}
+
+            }
+
+        user_query = {
+
+            "user_id": {
+
+                "$in": user_ids
+
+            }
+
+        }
+
+        # ====================================================
+        # LOAD NORMAL TRANSACTIONS
+        # ====================================================
+
+        transactions = list(
+
+            mongo.db.transactions.find(
+                user_query
+            )
+            .sort(
+                "date",
+                -1
+            )
+            .limit(500)
+        )
+
+        # ====================================================
+        # LOAD PERSON OPENING TRANSACTIONS
+        # ====================================================
+
+        person_openings = list(
+
+            mongo.db.person_opening_transactions.find(
+                user_query
+            )
+            .sort(
+                "date",
+                -1
+            )
+            .limit(300)
+        )
+
+        # ====================================================
+        # PERSON MAP
+        #
+        # key:
+        # case-insensitive normalized name
+        #
+        # Example:
+        #
+        # Asad
+        # asad
+        # ASAD
+        # By Asad
+        #
+        # => same key
+        # ====================================================
+
+        person_map = {}
+
+        # ====================================================
+        # FULL LEDGER
+        # ====================================================
+
+        person_ledger_transactions = []
+
+        person_opening_summary = []
+
+        # ====================================================
+        # TOTALS
+        # ====================================================
+
+        total_person_income = 0.0
+        total_person_expense = 0.0
+
+        total_person_opening_income = 0.0
+        total_person_opening_expense = 0.0
+
+        total_person_transaction_income = 0.0
+        total_person_transaction_expense = 0.0
+
+        person_income_count = 0
+        person_expense_count = 0
+
+        # ====================================================
+        # NORMAL TRANSACTIONS
+        # ====================================================
+
+        for tx in transactions:
+
+            transaction_type = (
+
+                tx.get(
+                    "transaction_type"
+                )
+
+                or
+
+                tx.get(
+                    "type"
+                )
+
+                or
+
+                ""
+
+            )
+
+            transaction_type = str(
+                transaction_type
+            ).strip().lower()
+
+            if transaction_type not in (
+                "income",
+                "expense"
+            ):
+                continue
+
+            amount = ai_safe_float(
+                tx.get(
+                    "amount"
+                )
+            )
+
+            tx_id = tx.get(
+                "_id"
+            )
+
+            tx_date = tx.get(
+                "date"
+            )
+
+            # ------------------------------------------------
+            # IMPORTANT
+            #
+            # Read each field independently.
+            #
+            # person_name
+            # description
+            # note
+            #
+            # can contain DIFFERENT people.
+            # ------------------------------------------------
+
+            candidates = [
+
+                tx.get(
+                    "person_name"
+                ),
+
+                tx.get(
+                    "description"
+                ),
+
+                tx.get(
+                    "note"
+                )
+
+            ]
+
+            # ------------------------------------------------
+            # Deduplicate SAME PERSON within ONE transaction.
+            #
+            # Example:
+            #
+            # person_name = Asad
+            # description = asad
+            # note = By Asad
+            #
+            # Only ONE Asad reference.
+            # ------------------------------------------------
+
+            record_person_keys = set()
+
+            record_persons = []
+
+            for candidate in candidates:
+
+                normalized_name = (
+                    ai_normalize_person_name(
+                        candidate
+                    )
+                )
+
+                person_key = (
+                    ai_person_key(
+                        normalized_name
+                    )
+                )
+
+                if not person_key:
+                    continue
+
+                if person_key in record_person_keys:
+                    continue
+
+                record_person_keys.add(
+                    person_key
+                )
+
+                record_persons.append(
+                    normalized_name
+                )
+
+            # ------------------------------------------------
+            # If there is no person candidate,
+            # this is NOT added to Person Ledger.
+            # ------------------------------------------------
+
+            if not record_persons:
+                continue
+
+            # ------------------------------------------------
+            # Add each independent person.
+            # ------------------------------------------------
+
+            for person_name in record_persons:
+
+                ai_add_person_record(
+
+                    person_map=person_map,
+
+                    person_name=person_name,
+
+                    transaction_type=transaction_type,
+
+                    amount=amount,
+
+                    source="transactions",
+
+                    record_id=tx_id,
+
+                    record=tx,
+
+                    date_value=tx_date
+
+                )
+
+                # ------------------------------------------------
+                # Global person totals
+                # ------------------------------------------------
+
+                if transaction_type == "income":
+
+                    total_person_income += amount
+
+                    total_person_transaction_income += amount
+
+                    person_income_count += 1
+
+                elif transaction_type == "expense":
+
+                    total_person_expense += amount
+
+                    total_person_transaction_expense += amount
+
+                    person_expense_count += 1
+
+                # ------------------------------------------------
+                # Detailed ledger row
+                # ------------------------------------------------
+
+                person_ledger_transactions.append({
+
+                    "id":
+                        str(tx_id),
+
+                    "source":
+                        "transactions",
+
+                    "person_name":
+                        person_name,
+
+                    "transaction_type":
+                        transaction_type,
+
+                    "amount":
+                        amount,
+
+                    "category":
+                        tx.get(
+                            "category"
+                        ),
+
+                    "item":
+                        tx.get(
+                            "item"
+                        ),
+
+                    "description":
+                        tx.get(
+                            "description"
+                        ),
+
+                    "note":
+                        tx.get(
+                            "note"
+                        ),
+
+                    "date":
+                        ai_date_to_string(
+                            tx_date
+                        ),
+
+                    "status":
+                        tx.get(
+                            "status"
+                        ),
+
+                    "reference_no":
+                        tx.get(
+                            "reference_no"
+                        )
+
+                })
+
+        # ====================================================
+        # PERSON OPENING TRANSACTIONS
+        # ====================================================
+
+        for opening in person_openings:
+
+            transaction_type = (
+
+                opening.get(
+                    "transaction_type"
+                )
+
+                or
+
+                opening.get(
+                    "type"
+                )
+
+                or
+
+                ""
+
+            )
+
+            transaction_type = str(
+                transaction_type
+            ).strip().lower()
+
+            if transaction_type not in (
+                "income",
+                "expense"
+            ):
+                continue
+
+            amount = ai_safe_float(
+                opening.get(
+                    "amount"
+                )
+            )
+
+            opening_id = opening.get(
+                "_id"
+            )
+
+            opening_date = opening.get(
+                "date"
+            )
+
+            # ------------------------------------------------
+            # IMPORTANT
+            #
+            # Opening transaction ALSO reads:
+            #
+            # person_name
+            # description
+            # note
+            #
+            # independently.
+            # ------------------------------------------------
+
+            candidates = [
+
+                opening.get(
+                    "person_name"
+                ),
+
+                opening.get(
+                    "description"
+                ),
+
+                opening.get(
+                    "note"
+                )
+
+            ]
+
+            # ------------------------------------------------
+            # Same person only once per opening record
+            # ------------------------------------------------
+
+            record_person_keys = set()
+
+            record_persons = []
+
+            for candidate in candidates:
+
+                normalized_name = (
+                    ai_normalize_person_name(
+                        candidate
+                    )
+                )
+
+                person_key = (
+                    ai_person_key(
+                        normalized_name
+                    )
+                )
+
+                if not person_key:
+                    continue
+
+                if person_key in record_person_keys:
+                    continue
+
+                record_person_keys.add(
+                    person_key
+                )
+
+                record_persons.append(
+                    normalized_name
+                )
+
+            if not record_persons:
+                continue
+
+            # ------------------------------------------------
+            # Add to Person Ledger
+            # ------------------------------------------------
+
+            for person_name in record_persons:
+
+                ai_add_person_record(
+
+                    person_map=person_map,
+
+                    person_name=person_name,
+
+                    transaction_type=transaction_type,
+
+                    amount=amount,
+
+                    source="person_opening_transactions",
+
+                    record_id=opening_id,
+
+                    record=opening,
+
+                    date_value=opening_date
+
+                )
+
+                # ------------------------------------------------
+                # Opening totals
+                # ------------------------------------------------
+
+                if transaction_type == "income":
+
+                    total_person_income += amount
+
+                    total_person_opening_income += amount
+
+                elif transaction_type == "expense":
+
+                    total_person_expense += amount
+
+                    total_person_opening_expense += amount
+
+                # ------------------------------------------------
+                # Opening detail
+                # ------------------------------------------------
+
+                person_opening_summary.append({
+
+                    "id":
+                        str(opening_id),
+
+                    "source":
+                        "person_opening_transactions",
+
+                    "person_name":
+                        person_name,
+
+                    "transaction_type":
+                        transaction_type,
+
+                    "amount":
+                        amount,
+
+                    "item":
+                        opening.get(
+                            "item"
+                        ),
+
+                    "category":
+                        opening.get(
+                            "category"
+                        ),
+
+                    "description":
+                        opening.get(
+                            "description"
+                        ),
+
+                    "note":
+                        opening.get(
+                            "note"
+                        ),
+
+                    "date":
+                        ai_date_to_string(
+                            opening_date
+                        ),
+
+                    "status":
+                        opening.get(
+                            "status"
+                        ),
+
+                    "reference_no":
+                        opening.get(
+                            "reference_no"
+                        )
+
+                })
+
+        # ====================================================
+        # PERSON SUMMARY
+        # ====================================================
+
+        person_summary = []
+
+        for person_key, person in person_map.items():
+
+            income = ai_safe_float(
+                person.get(
+                    "income"
+                )
+            )
+
+            expense = ai_safe_float(
+                person.get(
+                    "expense"
+                )
+            )
+
+            opening_income = ai_safe_float(
+                person.get(
+                    "opening_income"
+                )
+            )
+
+            opening_expense = ai_safe_float(
+                person.get(
+                    "opening_expense"
+                )
+            )
+
+            transaction_income = ai_safe_float(
+                person.get(
+                    "transaction_income"
+                )
+            )
+
+            transaction_expense = ai_safe_float(
+                person.get(
+                    "transaction_expense"
+                )
+            )
+
+            person_summary.append({
+
+                "person_name":
+                    person.get(
+                        "person_name"
+                    ),
+
+                "person_key":
+                    person_key,
+
+                "income":
+                    round(
+                        income,
+                        2
+                    ),
+
+                "expense":
+                    round(
+                        expense,
+                        2
+                    ),
+
+                "net":
+                    round(
+                        income - expense,
+                        2
+                    ),
+
+                "opening_income":
+                    round(
+                        opening_income,
+                        2
+                    ),
+
+                "opening_expense":
+                    round(
+                        opening_expense,
+                        2
+                    ),
+
+                "opening_net":
+                    round(
+                        opening_income
+                        -
+                        opening_expense,
+                        2
+                    ),
+
+                "transaction_income":
+                    round(
+                        transaction_income,
+                        2
+                    ),
+
+                "transaction_expense":
+                    round(
+                        transaction_expense,
+                        2
+                    ),
+
+                "transaction_net":
+                    round(
+                        transaction_income
+                        -
+                        transaction_expense,
+                        2
+                    ),
+
+                "income_count":
+                    person.get(
+                        "income_count",
+                        0
+                    ),
+
+                "expense_count":
+                    person.get(
+                        "expense_count",
+                        0
+                    ),
+
+                "opening_income_count":
+                    person.get(
+                        "opening_income_count",
+                        0
+                    ),
+
+                "opening_expense_count":
+                    person.get(
+                        "opening_expense_count",
+                        0
+                    ),
+
+                "transaction_income_count":
+                    person.get(
+                        "transaction_income_count",
+                        0
+                    ),
+
+                "transaction_expense_count":
+                    person.get(
+                        "transaction_expense_count",
+                        0
+                    ),
+
+                "reference_count":
+                    len(
+                        person.get(
+                            "references",
+                            []
+                        )
+                    )
+
+            })
+
+        # ====================================================
+        # SORT PEOPLE
+        # ====================================================
+
+        person_summary.sort(
+
+            key=lambda x: (
+                str(
+                    x.get(
+                        "person_name"
+                    )
+                    or ""
+                ).casefold()
+            )
+
+        )
+
+        # ====================================================
+        # SORT LEDGER
+        # ====================================================
+
+        person_ledger_transactions.sort(
+
+            key=lambda x: (
+                str(
+                    x.get(
+                        "date"
+                    )
+                    or ""
+                )
+            ),
+
+            reverse=True
+
+        )
+
+        person_opening_summary.sort(
+
+            key=lambda x: (
+                str(
+                    x.get(
+                        "date"
+                    )
+                    or ""
+                )
+            ),
+
+            reverse=True
+
+        )
+
+        # ====================================================
+        # SUMMARY
+        # ====================================================
+
+        person_ledger_summary = {
+
+            "person_count":
+                len(person_summary),
+
+            "total_person_income":
+                round(
+                    total_person_income,
+                    2
+                ),
+
+            "total_person_expense":
+                round(
+                    total_person_expense,
+                    2
+                ),
+
+            "total_person_net":
+                round(
+                    total_person_income
+                    -
+                    total_person_expense,
+                    2
+                ),
+
+            # ----------------------------------------------
+            # OPENING
+            # ----------------------------------------------
+
+            "total_person_opening_income":
+                round(
+                    total_person_opening_income,
+                    2
+                ),
+
+            "total_person_opening_expense":
+                round(
+                    total_person_opening_expense,
+                    2
+                ),
+
+            "total_person_opening_net":
+                round(
+                    total_person_opening_income
+                    -
+                    total_person_opening_expense,
+                    2
+                ),
+
+            # ----------------------------------------------
+            # NORMAL TRANSACTIONS
+            # ----------------------------------------------
+
+            "total_person_transaction_income":
+                round(
+                    total_person_transaction_income,
+                    2
+                ),
+
+            "total_person_transaction_expense":
+                round(
+                    total_person_transaction_expense,
+                    2
+                ),
+
+            "total_person_transaction_net":
+                round(
+                    total_person_transaction_income
+                    -
+                    total_person_transaction_expense,
+                    2
+                ),
+
+            "person_income_count":
+                person_income_count,
+
+            "person_expense_count":
+                person_expense_count,
+
+            "person_opening_record_count":
+                len(
+                    person_openings
+                ),
+
+            "person_transaction_record_count":
+                len(
+                    transactions
+                ),
+
+            "person_ledger_row_count":
+                len(
+                    person_ledger_transactions
+                ),
+
+            "person_opening_row_count":
+                len(
+                    person_opening_summary
+                )
+
+        }
+
+        # ====================================================
+        # RETURN
+        # ====================================================
+
+        return {
+
+            "persons":
+                person_summary,
+
+            "person_summary":
+                person_summary,
+
+            "person_ledger_transactions":
+                person_ledger_transactions,
+
+            "person_opening_transactions":
+                person_opening_summary,
+
+            "person_ledger_summary":
+                person_ledger_summary,
+
+            "summary":
+                person_ledger_summary
+
+        }
+
+    except Exception as e:
+
+        print(
+            "AI PERSON LEDGER ERROR:",
+            repr(e)
+        )
+
+        return {
+
+            "persons": [],
+
+            "person_summary": [],
+
+            "person_ledger_transactions": [],
+
+            "person_opening_transactions": [],
+
+            "person_ledger_summary": {
+
+                "person_count": 0,
+
+                "total_person_income": 0.0,
+
+                "total_person_expense": 0.0,
+
+                "total_person_net": 0.0
+
+            },
+
+            "summary": {}
+
+        }
+
 # ============================================================
 # GET MAAREYE OWNER / SUPERADMIN
 # ============================================================
@@ -115688,6 +117007,7 @@ Login:
 https://maareye.vercel.app/login
 """
 
+
 # ============================================================
 # FINANCIAL CONTEXT
 # ============================================================
@@ -115695,6 +117015,10 @@ https://maareye.vercel.app/login
 def ai_get_financial_context():
 
     try:
+
+        # ====================================================
+        # USER IDS
+        # ====================================================
 
         user_ids = ai_get_user_ids()
 
@@ -115705,7 +117029,9 @@ def ai_get_financial_context():
         user_query = {
 
             "user_id": {
+
                 "$in": user_ids
+
             }
 
         }
@@ -115724,6 +117050,7 @@ def ai_get_financial_context():
                 -1
             )
             .limit(100)
+
         )
 
         # ====================================================
@@ -115740,6 +117067,7 @@ def ai_get_financial_context():
                 -1
             )
             .limit(500)
+
         )
 
         # ====================================================
@@ -115756,6 +117084,7 @@ def ai_get_financial_context():
                 -1
             )
             .limit(100)
+
         )
 
         # ====================================================
@@ -115772,6 +117101,7 @@ def ai_get_financial_context():
                 -1
             )
             .limit(300)
+
         )
 
         # ====================================================
@@ -115788,10 +117118,19 @@ def ai_get_financial_context():
                 -1
             )
             .limit(300)
+
         )
 
         # ====================================================
-        # PERSON OPENINGS
+        # PERSON OPENING TRANSACTIONS
+        # ====================================================
+        #
+        # IMPORTANT:
+        #
+        # Person opening transactions are handled together
+        # with normal transactions by the FULL PERSON LEDGER
+        # function below.
+        #
         # ====================================================
 
         person_openings = list(
@@ -115804,6 +117143,7 @@ def ai_get_financial_context():
                 -1
             )
             .limit(300)
+
         )
 
         # ====================================================
@@ -115817,9 +117157,11 @@ def ai_get_financial_context():
         for account in accounts:
 
             balance = ai_safe_float(
+
                 account.get(
                     "balance"
                 )
+
             )
 
             total_account_balance += balance
@@ -115878,9 +117220,11 @@ def ai_get_financial_context():
         for tx in transactions:
 
             amount = ai_safe_float(
+
                 tx.get(
                     "amount"
                 )
+
             )
 
             tx_type = str(
@@ -115893,12 +117237,20 @@ def ai_get_financial_context():
             ).strip().lower()
 
             category = (
+
                 tx.get(
                     "category"
                 )
+
                 or
+
                 "Uncategorized"
+
             )
+
+            # ------------------------------------------------
+            # INCOME
+            # ------------------------------------------------
 
             if tx_type == "income":
 
@@ -115912,9 +117264,16 @@ def ai_get_financial_context():
                         category,
                         0.0
                     )
-                    + amount
+
+                    +
+
+                    amount
 
                 )
+
+            # ------------------------------------------------
+            # EXPENSE
+            # ------------------------------------------------
 
             elif tx_type == "expense":
 
@@ -115928,9 +117287,16 @@ def ai_get_financial_context():
                         category,
                         0.0
                     )
-                    + amount
+
+                    +
+
+                    amount
 
                 )
+
+            # ------------------------------------------------
+            # TRANSACTION SUMMARY
+            # ------------------------------------------------
 
             transaction_summary.append({
 
@@ -116084,12 +117450,17 @@ def ai_get_financial_context():
             })
 
         # ====================================================
-        # NET
+        # NET INCOME
         # ====================================================
 
         net_income = (
+
             total_income
-            - total_expense
+
+            -
+
+            total_expense
+
         )
 
         # ====================================================
@@ -116208,7 +117579,9 @@ def ai_get_financial_context():
                     transfer.get(
                         "from_account_name"
                     )
+
                     or
+
                     str(
                         transfer.get(
                             "from_account",
@@ -116220,7 +117593,9 @@ def ai_get_financial_context():
                     transfer.get(
                         "to_account_name"
                     )
+
                     or
+
                     str(
                         transfer.get(
                             "to_account",
@@ -116261,28 +117636,558 @@ def ai_get_financial_context():
             })
 
         # ====================================================
-        # PERSON OPENINGS
+        # FULL PERSON LEDGER
         # ====================================================
+        #
+        # COMBINES:
+        #
+        #   transactions
+        #
+        # +
+        #
+        #   person_opening_transactions
+        #
+        # PERSON SOURCES:
+        #
+        # transactions:
+        #
+        #   person_name
+        #   description
+        #   note
+        #
+        # person_opening_transactions:
+        #
+        #   person_name
+        #   description
+        #   note
+        #
+        # Each field is read independently.
+        #
+        # ====================================================
+
+        person_map = {}
+
+        person_ledger_transactions = []
 
         person_opening_summary = []
 
-        person_totals = {}
+        # ====================================================
+        # PERSON TOTALS
+        # ====================================================
 
-        for opening in person_openings:
+        total_person_income = 0.0
 
-            person_name = (
+        total_person_expense = 0.0
 
-                opening.get(
-                    "person_name"
+        total_person_opening_income = 0.0
+
+        total_person_opening_expense = 0.0
+
+        total_person_transaction_income = 0.0
+
+        total_person_transaction_expense = 0.0
+
+        person_income_count = 0
+
+        person_expense_count = 0
+
+        # ====================================================
+        # LOCAL NORMALIZER
+        # ====================================================
+
+        def normalize_person(value):
+
+            if value is None:
+
+                return ""
+
+            try:
+
+                value = str(
+                    value
+                ).strip()
+
+            except Exception:
+
+                return ""
+
+            if not value:
+
+                return ""
+
+            # ----------------------------------------------
+            # Normalize spaces
+            # ----------------------------------------------
+
+            value = re.sub(
+
+                r"\s+",
+                " ",
+                value
+
+            ).strip()
+
+            # ----------------------------------------------
+            # Remove ONLY leading By
+            #
+            # By Asad
+            # by Asad
+            # BY ASAD
+            # By: Asad
+            # by:Asad
+            # ----------------------------------------------
+
+            value = re.sub(
+
+                r"^\s*by\b\s*:?\s*",
+
+                "",
+
+                value,
+
+                flags=re.IGNORECASE
+
+            ).strip()
+
+            if not value:
+
+                return ""
+
+            value = re.sub(
+
+                r"\s+",
+                " ",
+                value
+
+            ).strip()
+
+            return value
+
+        # ====================================================
+        # PERSON KEY
+        # ====================================================
+
+        def person_key(value):
+
+            normalized = normalize_person(
+                value
+            )
+
+            if not normalized:
+
+                return ""
+
+            return normalized.casefold()
+
+        # ====================================================
+        # CREATE PERSON
+        # ====================================================
+
+        def ensure_person(
+            normalized_name,
+            key
+        ):
+
+            if key not in person_map:
+
+                person_map[key] = {
+
+                    "person_name":
+                        normalized_name,
+
+                    "person_key":
+                        key,
+
+                    "income":
+                        0.0,
+
+                    "expense":
+                        0.0,
+
+                    "opening_income":
+                        0.0,
+
+                    "opening_expense":
+                        0.0,
+
+                    "transaction_income":
+                        0.0,
+
+                    "transaction_expense":
+                        0.0,
+
+                    "income_count":
+                        0,
+
+                    "expense_count":
+                        0,
+
+                    "opening_income_count":
+                        0,
+
+                    "opening_expense_count":
+                        0,
+
+                    "transaction_income_count":
+                        0,
+
+                    "transaction_expense_count":
+                        0,
+
+                    "reference_count":
+                        0
+
+                }
+
+            return person_map[key]
+
+        # ====================================================
+        # ADD PERSON TRANSACTION
+        # ====================================================
+
+        def add_person_transaction(
+
+            normalized_name,
+
+            key,
+
+            transaction_type,
+
+            amount,
+
+            source,
+
+            record,
+
+            record_id,
+
+            date_value
+
+        ):
+
+            person = ensure_person(
+
+                normalized_name,
+
+                key
+
+            )
+
+            # ----------------------------------------------
+            # Income
+            # ----------------------------------------------
+
+            if transaction_type == "income":
+
+                person["income"] += amount
+
+                person["income_count"] += 1
+
+                person["reference_count"] += 1
+
+                if source == "transactions":
+
+                    person[
+                        "transaction_income"
+                    ] += amount
+
+                    person[
+                        "transaction_income_count"
+                    ] += 1
+
+                elif (
+                    source
+                    ==
+                    "person_opening_transactions"
+                ):
+
+                    person[
+                        "opening_income"
+                    ] += amount
+
+                    person[
+                        "opening_income_count"
+                    ] += 1
+
+            # ----------------------------------------------
+            # Expense
+            # ----------------------------------------------
+
+            elif transaction_type == "expense":
+
+                person["expense"] += amount
+
+                person["expense_count"] += 1
+
+                person["reference_count"] += 1
+
+                if source == "transactions":
+
+                    person[
+                        "transaction_expense"
+                    ] += amount
+
+                    person[
+                        "transaction_expense_count"
+                    ] += 1
+
+                elif (
+                    source
+                    ==
+                    "person_opening_transactions"
+                ):
+
+                    person[
+                        "opening_expense"
+                    ] += amount
+
+                    person[
+                        "opening_expense_count"
+                    ] += 1
+
+        # ====================================================
+        # NORMAL TRANSACTIONS → PERSON LEDGER
+        # ====================================================
+
+        for tx in transactions:
+
+            tx_type = (
+
+                tx.get(
+                    "transaction_type"
                 )
 
                 or
 
-                "Unknown Person"
+                tx.get(
+                    "type"
+                )
+
+                or
+
+                ""
 
             )
 
-            transaction_type = (
+            tx_type = str(
+                tx_type
+            ).strip().lower()
+
+            if tx_type not in (
+                "income",
+                "expense"
+            ):
+
+                continue
+
+            amount = ai_safe_float(
+
+                tx.get(
+                    "amount"
+                )
+
+            )
+
+            tx_id = tx.get(
+                "_id"
+            )
+
+            tx_date = tx.get(
+                "date"
+            )
+
+            # ----------------------------------------------
+            # IMPORTANT:
+            #
+            # ALL THREE ARE INDEPENDENT.
+            # ----------------------------------------------
+
+            candidates = [
+
+                tx.get(
+                    "person_name"
+                ),
+
+                tx.get(
+                    "description"
+                ),
+
+                tx.get(
+                    "note"
+                )
+
+            ]
+
+            # ----------------------------------------------
+            # SAME PERSON DEDUPLICATION
+            #
+            # Asad
+            # asad
+            # By Asad
+            #
+            # inside same transaction = ONE Asad
+            # ----------------------------------------------
+
+            seen_people = set()
+
+            record_people = []
+
+            for candidate in candidates:
+
+                normalized_name = normalize_person(
+                    candidate
+                )
+
+                key = person_key(
+                    normalized_name
+                )
+
+                if not key:
+
+                    continue
+
+                if key in seen_people:
+
+                    continue
+
+                seen_people.add(
+                    key
+                )
+
+                record_people.append({
+
+                    "name":
+                        normalized_name,
+
+                    "key":
+                        key
+
+                })
+
+            # ----------------------------------------------
+            # ADD EACH PERSON
+            # ----------------------------------------------
+
+            for person in record_people:
+
+                normalized_name = person[
+                    "name"
+                ]
+
+                key = person[
+                    "key"
+                ]
+
+                add_person_transaction(
+
+                    normalized_name,
+
+                    key,
+
+                    tx_type,
+
+                    amount,
+
+                    "transactions",
+
+                    tx,
+
+                    tx_id,
+
+                    tx_date
+
+                )
+
+                # ------------------------------------------
+                # Global Person Ledger totals
+                # ------------------------------------------
+
+                if tx_type == "income":
+
+                    total_person_income += amount
+
+                    total_person_transaction_income += amount
+
+                    person_income_count += 1
+
+                elif tx_type == "expense":
+
+                    total_person_expense += amount
+
+                    total_person_transaction_expense += amount
+
+                    person_expense_count += 1
+
+                # ------------------------------------------
+                # Detailed Person Ledger row
+                # ------------------------------------------
+
+                person_ledger_transactions.append({
+
+                    "id":
+                        str(
+                            tx_id
+                        ),
+
+                    "source":
+                        "transactions",
+
+                    "person_name":
+                        normalized_name,
+
+                    "person_key":
+                        key,
+
+                    "transaction_type":
+                        tx_type,
+
+                    "amount":
+                        amount,
+
+                    "category":
+                        tx.get(
+                            "category"
+                        ),
+
+                    "item":
+                        tx.get(
+                            "item"
+                        ),
+
+                    "description":
+                        tx.get(
+                            "description"
+                        ),
+
+                    "note":
+                        tx.get(
+                            "note"
+                        ),
+
+                    "date":
+                        ai_date_to_string(
+                            tx_date
+                        ),
+
+                    "status":
+                        tx.get(
+                            "status"
+                        ),
+
+                    "reference_no":
+                        tx.get(
+                            "reference_no"
+                        )
+
+                })
+
+        # ====================================================
+        # PERSON OPENING TRANSACTIONS → PERSON LEDGER
+        # ====================================================
+
+        for opening in person_openings:
+
+            opening_type = (
 
                 opening.get(
                     "transaction_type"
@@ -116300,88 +118205,205 @@ def ai_get_financial_context():
 
             )
 
-            transaction_type = (
-                str(
-                    transaction_type
-                )
-                .strip()
-                .lower()
-            )
+            opening_type = str(
+                opening_type
+            ).strip().lower()
+
+            if opening_type not in (
+                "income",
+                "expense"
+            ):
+
+                continue
 
             amount = ai_safe_float(
+
                 opening.get(
                     "amount"
                 )
+
             )
 
-            if person_name not in person_totals:
+            opening_id = opening.get(
+                "_id"
+            )
 
-                person_totals[person_name] = {
+            opening_date = opening.get(
+                "date"
+            )
 
-                    "income": 0.0,
+            # ----------------------------------------------
+            # ALL THREE OPENING SOURCES ARE INDEPENDENT
+            # ----------------------------------------------
 
-                    "expense": 0.0
+            candidates = [
 
-                }
+                opening.get(
+                    "person_name"
+                ),
 
-            if transaction_type == "income":
+                opening.get(
+                    "description"
+                ),
 
-                person_totals[
-                    person_name
-                ]["income"] += amount
+                opening.get(
+                    "note"
+                )
 
-            elif transaction_type == "expense":
+            ]
 
-                person_totals[
-                    person_name
-                ]["expense"] += amount
+            # ----------------------------------------------
+            # SAME PERSON DEDUPLICATION
+            # ----------------------------------------------
 
-            person_opening_summary.append({
+            seen_people = set()
 
-                "id":
-                    str(
-                        opening.get(
-                            "_id"
-                        )
-                    ),
+            record_people = []
 
-                "person_name":
-                    person_name,
+            for candidate in candidates:
 
-                "transaction_type":
-                    transaction_type,
+                normalized_name = normalize_person(
+                    candidate
+                )
 
-                "amount":
+                key = person_key(
+                    normalized_name
+                )
+
+                if not key:
+
+                    continue
+
+                if key in seen_people:
+
+                    continue
+
+                seen_people.add(
+                    key
+                )
+
+                record_people.append({
+
+                    "name":
+                        normalized_name,
+
+                    "key":
+                        key
+
+                })
+
+            # ----------------------------------------------
+            # ADD EACH OPENING PERSON
+            # ----------------------------------------------
+
+            for person in record_people:
+
+                normalized_name = person[
+                    "name"
+                ]
+
+                key = person[
+                    "key"
+                ]
+
+                add_person_transaction(
+
+                    normalized_name,
+
+                    key,
+
+                    opening_type,
+
                     amount,
 
-                "item":
-                    opening.get(
-                        "item"
-                    ),
+                    "person_opening_transactions",
 
-                "description":
-                    opening.get(
-                        "description"
-                    ),
+                    opening,
 
-                "note":
-                    opening.get(
-                        "note"
-                    ),
+                    opening_id,
 
-                "date":
-                    ai_date_to_string(
+                    opening_date
+
+                )
+
+                # ------------------------------------------
+                # Opening totals
+                # ------------------------------------------
+
+                if opening_type == "income":
+
+                    total_person_income += amount
+
+                    total_person_opening_income += amount
+
+                elif opening_type == "expense":
+
+                    total_person_expense += amount
+
+                    total_person_opening_expense += amount
+
+                # ------------------------------------------
+                # Opening detailed row
+                # ------------------------------------------
+
+                person_opening_summary.append({
+
+                    "id":
+                        str(
+                            opening_id
+                        ),
+
+                    "source":
+                        "person_opening_transactions",
+
+                    "person_name":
+                        normalized_name,
+
+                    "person_key":
+                        key,
+
+                    "transaction_type":
+                        opening_type,
+
+                    "amount":
+                        amount,
+
+                    "category":
                         opening.get(
-                            "date"
+                            "category"
+                        ),
+
+                    "item":
+                        opening.get(
+                            "item"
+                        ),
+
+                    "description":
+                        opening.get(
+                            "description"
+                        ),
+
+                    "note":
+                        opening.get(
+                            "note"
+                        ),
+
+                    "date":
+                        ai_date_to_string(
+                            opening_date
+                        ),
+
+                    "status":
+                        opening.get(
+                            "status"
+                        ),
+
+                    "reference_no":
+                        opening.get(
+                            "reference_no"
                         )
-                    ),
 
-                "reference_no":
-                    opening.get(
-                        "reference_no"
-                    )
-
-            })
+                })
 
         # ====================================================
         # PERSON SUMMARY
@@ -116389,42 +118411,372 @@ def ai_get_financial_context():
 
         person_summary = []
 
-        for name, values in person_totals.items():
+        for key, values in person_map.items():
+
+            income = ai_safe_float(
+
+                values.get(
+                    "income"
+                )
+
+            )
+
+            expense = ai_safe_float(
+
+                values.get(
+                    "expense"
+                )
+
+            )
+
+            opening_income = ai_safe_float(
+
+                values.get(
+                    "opening_income"
+                )
+
+            )
+
+            opening_expense = ai_safe_float(
+
+                values.get(
+                    "opening_expense"
+                )
+
+            )
+
+            transaction_income = ai_safe_float(
+
+                values.get(
+                    "transaction_income"
+                )
+
+            )
+
+            transaction_expense = ai_safe_float(
+
+                values.get(
+                    "transaction_expense"
+                )
+
+            )
 
             person_summary.append({
 
                 "person_name":
-                    name,
+                    values.get(
+                        "person_name"
+                    ),
+
+                "person_key":
+                    key,
+
+                # ------------------------------------------
+                # Combined
+                # ------------------------------------------
 
                 "income":
-                    values["income"],
+                    round(
+                        income,
+                        2
+                    ),
 
                 "expense":
-                    values["expense"],
+                    round(
+                        expense,
+                        2
+                    ),
 
                 "net":
-                    (
-                        values["income"]
+                    round(
+                        income
                         -
-                        values["expense"]
+                        expense,
+                        2
+                    ),
+
+                # ------------------------------------------
+                # Opening
+                # ------------------------------------------
+
+                "opening_income":
+                    round(
+                        opening_income,
+                        2
+                    ),
+
+                "opening_expense":
+                    round(
+                        opening_expense,
+                        2
+                    ),
+
+                "opening_net":
+                    round(
+                        opening_income
+                        -
+                        opening_expense,
+                        2
+                    ),
+
+                # ------------------------------------------
+                # Normal transactions
+                # ------------------------------------------
+
+                "transaction_income":
+                    round(
+                        transaction_income,
+                        2
+                    ),
+
+                "transaction_expense":
+                    round(
+                        transaction_expense,
+                        2
+                    ),
+
+                "transaction_net":
+                    round(
+                        transaction_income
+                        -
+                        transaction_expense,
+                        2
+                    ),
+
+                # ------------------------------------------
+                # Counts
+                # ------------------------------------------
+
+                "income_count":
+                    values.get(
+                        "income_count",
+                        0
+                    ),
+
+                "expense_count":
+                    values.get(
+                        "expense_count",
+                        0
+                    ),
+
+                "opening_income_count":
+                    values.get(
+                        "opening_income_count",
+                        0
+                    ),
+
+                "opening_expense_count":
+                    values.get(
+                        "opening_expense_count",
+                        0
+                    ),
+
+                "transaction_income_count":
+                    values.get(
+                        "transaction_income_count",
+                        0
+                    ),
+
+                "transaction_expense_count":
+                    values.get(
+                        "transaction_expense_count",
+                        0
+                    ),
+
+                "reference_count":
+                    values.get(
+                        "reference_count",
+                        0
                     )
 
             })
 
         # ====================================================
-        # RECENT TRANSACTIONS
+        # SORT PERSONS
+        # ====================================================
+
+        person_summary.sort(
+
+            key=lambda item:
+
+                str(
+                    item.get(
+                        "person_name"
+                    )
+                    or ""
+                ).casefold()
+
+        )
+
+        # ====================================================
+        # SORT PERSON LEDGER
+        # ====================================================
+
+        person_ledger_transactions.sort(
+
+            key=lambda item:
+
+                str(
+                    item.get(
+                        "date"
+                    )
+                    or ""
+                ),
+
+            reverse=True
+
+        )
+
+        person_opening_summary.sort(
+
+            key=lambda item:
+
+                str(
+                    item.get(
+                        "date"
+                    )
+                    or ""
+                ),
+
+            reverse=True
+
+        )
+
+        # ====================================================
+        # PERSON LEDGER SUMMARY
+        # ====================================================
+
+        person_ledger_summary = {
+
+            "person_count":
+                len(
+                    person_summary
+                ),
+
+            # ----------------------------------------------
+            # COMBINED
+            # ----------------------------------------------
+
+            "total_person_income":
+                round(
+                    total_person_income,
+                    2
+                ),
+
+            "total_person_expense":
+                round(
+                    total_person_expense,
+                    2
+                ),
+
+            "total_person_net":
+                round(
+                    total_person_income
+                    -
+                    total_person_expense,
+                    2
+                ),
+
+            # ----------------------------------------------
+            # OPENING
+            # ----------------------------------------------
+
+            "total_person_opening_income":
+                round(
+                    total_person_opening_income,
+                    2
+                ),
+
+            "total_person_opening_expense":
+                round(
+                    total_person_opening_expense,
+                    2
+                ),
+
+            "total_person_opening_net":
+                round(
+                    total_person_opening_income
+                    -
+                    total_person_opening_expense,
+                    2
+                ),
+
+            # ----------------------------------------------
+            # NORMAL TRANSACTIONS
+            # ----------------------------------------------
+
+            "total_person_transaction_income":
+                round(
+                    total_person_transaction_income,
+                    2
+                ),
+
+            "total_person_transaction_expense":
+                round(
+                    total_person_transaction_expense,
+                    2
+                ),
+
+            "total_person_transaction_net":
+                round(
+                    total_person_transaction_income
+                    -
+                    total_person_transaction_expense,
+                    2
+                ),
+
+            # ----------------------------------------------
+            # COUNTS
+            # ----------------------------------------------
+
+            "person_income_count":
+                person_income_count,
+
+            "person_expense_count":
+                person_expense_count,
+
+            "person_opening_record_count":
+                len(
+                    person_openings
+                ),
+
+            "person_transaction_record_count":
+                len(
+                    transactions
+                ),
+
+            "person_ledger_row_count":
+                len(
+                    person_ledger_transactions
+                ),
+
+            "person_opening_row_count":
+                len(
+                    person_opening_summary
+                )
+
+        }
+
+        # ====================================================
+        # RECENT DATA
         # ====================================================
 
         recent_transactions = (
+
             transaction_summary[:30]
+
         )
 
         recent_saving_transactions = (
+
             saving_transaction_summary[:20]
+
         )
 
         recent_transfers = (
+
             transfer_summary[:20]
+
         )
 
         # ====================================================
@@ -116432,6 +118784,10 @@ def ai_get_financial_context():
         # ====================================================
 
         return {
+
+            # =================================================
+            # GENERAL SUMMARY
+            # =================================================
 
             "summary": {
 
@@ -116478,10 +118834,14 @@ def ai_get_financial_context():
                     ),
 
                 "account_count":
-                    len(accounts),
+                    len(
+                        accounts
+                    ),
 
                 "transaction_count":
-                    len(transactions),
+                    len(
+                        transactions
+                    ),
 
                 "income_count":
                     income_count,
@@ -116490,7 +118850,9 @@ def ai_get_financial_context():
                     expense_count,
 
                 "savings_count":
-                    len(savings),
+                    len(
+                        savings
+                    ),
 
                 "saving_transaction_count":
                     len(
@@ -116505,15 +118867,115 @@ def ai_get_financial_context():
                 "person_opening_count":
                     len(
                         person_openings
+                    ),
+
+                # =========================================
+                # PERSON LEDGER
+                # =========================================
+
+                "person_count":
+                    person_ledger_summary.get(
+                        "person_count",
+                        0
+                    ),
+
+                "total_person_income":
+                    person_ledger_summary.get(
+                        "total_person_income",
+                        0.0
+                    ),
+
+                "total_person_expense":
+                    person_ledger_summary.get(
+                        "total_person_expense",
+                        0.0
+                    ),
+
+                "total_person_net":
+                    person_ledger_summary.get(
+                        "total_person_net",
+                        0.0
+                    ),
+
+                "total_person_opening_income":
+                    person_ledger_summary.get(
+                        "total_person_opening_income",
+                        0.0
+                    ),
+
+                "total_person_opening_expense":
+                    person_ledger_summary.get(
+                        "total_person_opening_expense",
+                        0.0
+                    ),
+
+                "total_person_opening_net":
+                    person_ledger_summary.get(
+                        "total_person_opening_net",
+                        0.0
+                    ),
+
+                "total_person_transaction_income":
+                    person_ledger_summary.get(
+                        "total_person_transaction_income",
+                        0.0
+                    ),
+
+                "total_person_transaction_expense":
+                    person_ledger_summary.get(
+                        "total_person_transaction_expense",
+                        0.0
+                    ),
+
+                "total_person_transaction_net":
+                    person_ledger_summary.get(
+                        "total_person_transaction_net",
+                        0.0
+                    ),
+
+                "person_income_count":
+                    person_ledger_summary.get(
+                        "person_income_count",
+                        0
+                    ),
+
+                "person_expense_count":
+                    person_ledger_summary.get(
+                        "person_expense_count",
+                        0
+                    ),
+
+                "person_ledger_row_count":
+                    person_ledger_summary.get(
+                        "person_ledger_row_count",
+                        0
+                    ),
+
+                "person_opening_row_count":
+                    person_ledger_summary.get(
+                        "person_opening_row_count",
+                        0
                     )
 
             },
 
+            # =================================================
+            # ACCOUNTS
+            # =================================================
+
             "accounts":
                 account_summary,
 
+            # =================================================
+            # SAVINGS
+            # =================================================
+
             "savings":
                 savings_summary,
+
+            # =================================================
+            # CATEGORIES
+            # =================================================
 
             "income_by_category":
                 income_by_category,
@@ -116521,20 +118983,61 @@ def ai_get_financial_context():
             "expense_by_category":
                 expense_by_category,
 
+            # =================================================
+            # RECENT TRANSACTIONS
+            # =================================================
+
             "recent_transactions":
                 recent_transactions,
+
+            # =================================================
+            # RECENT SAVINGS
+            # =================================================
 
             "recent_saving_transactions":
                 recent_saving_transactions,
 
+            # =================================================
+            # RECENT TRANSFERS
+            # =================================================
+
             "recent_transfers":
                 recent_transfers,
+
+            # =================================================
+            # PERSONS
+            # =================================================
+            #
+            # Combined opening + normal transactions
+            #
+            # =================================================
 
             "persons":
                 person_summary,
 
+            "person_summary":
+                person_summary,
+
+            # =================================================
+            # FULL PERSON LEDGER TRANSACTIONS
+            # =================================================
+
+            "person_ledger_transactions":
+                person_ledger_transactions[:500],
+
+            # =================================================
+            # PERSON OPENING TRANSACTIONS
+            # =================================================
+
             "person_opening_transactions":
-                person_opening_summary[:50]
+                person_opening_summary[:300],
+
+            # =================================================
+            # PERSON LEDGER SUMMARY
+            # =================================================
+
+            "person_ledger_summary":
+                person_ledger_summary
 
         }
 
@@ -116546,7 +119049,6 @@ def ai_get_financial_context():
         )
 
         return {}
-
 
 # ============================================================
 # CHAT HISTORY
@@ -116978,7 +119480,6 @@ contact information.
 # Logged-in users receive their own MongoDB data.
 #
 # ============================================================
-
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -117012,6 +119513,14 @@ def ai_assistant():
             or []
         )
 
+        # ----------------------------------------------------
+        # Validate history
+        # ----------------------------------------------------
+
+        if not isinstance(history, list):
+
+            history = []
+
         if not message:
 
             return jsonify({
@@ -117028,6 +119537,11 @@ def ai_assistant():
         # ====================================================
 
         if not GEMINI_API_KEY:
+
+            print(
+                "MAAREYE AI ERROR: "
+                "GEMINI_API_KEY is missing."
+            )
 
             return jsonify({
 
@@ -117046,6 +119560,11 @@ def ai_assistant():
 
         if not gemini_client:
 
+            print(
+                "MAAREYE AI ERROR: "
+                "Gemini client is not initialized."
+            )
+
             return jsonify({
 
                 "success": False,
@@ -117060,7 +119579,7 @@ def ai_assistant():
         # LOGIN STATUS
         # ====================================================
 
-        is_logged_in = (
+        is_logged_in = bool(
 
             current_user is not None
 
@@ -117109,20 +119628,88 @@ def ai_assistant():
                 }), 401
 
             # ------------------------------------------------
-            # REAL MONGODB PROFILE
+            # USER PROFILE
             # ------------------------------------------------
 
-            user_profile_result = (
-                ai_get_user_profile()
-            )
+            try:
+
+                user_profile_result = (
+                    ai_get_user_profile()
+                    or {}
+                )
+
+            except Exception as profile_error:
+
+                print(
+                    "MAAREYE AI PROFILE ERROR:"
+                )
+
+                print(
+                    repr(profile_error)
+                )
+
+                user_profile_result = {}
 
             # ------------------------------------------------
-            # REAL FINANCIAL DATA
+            # FINANCIAL CONTEXT
+            #
+            # IMPORTANT:
+            #
+            # ai_get_financial_context()
+            # MUST contain:
+            #
+            # financial_context.person_summary
+            # financial_context.person_ledger_transactions
+            # financial_context.person_opening_transactions
+            # financial_context.person_ledger_summary
+            #
+            # The Person Ledger combines:
+            #
+            # 1. transactions
+            # 2. person_opening_transactions
+            #
+            # Person sources:
+            #
+            # transactions:
+            #   - person_name
+            #   - description
+            #   - note
+            #
+            # opening:
+            #   - person_name
+            #   - description
+            #   - note
+            #
+            # independently.
             # ------------------------------------------------
 
-            financial_context = (
-                ai_get_financial_context()
-            )
+            try:
+
+                financial_context = (
+                    ai_get_financial_context()
+                    or {}
+                )
+
+            except Exception as financial_error:
+
+                print(
+                    "MAAREYE AI FINANCIAL CONTEXT ERROR:"
+                )
+
+                print(
+                    repr(financial_error)
+                )
+
+                return jsonify({
+
+                    "success": False,
+
+                    "answer":
+                        "Xogta maaliyadeed ee Maareye "
+                        "lama akhrin karin hadda. "
+                        "Fadlan isku day mar kale."
+
+                }), 500
 
         # ====================================================
         # GUEST
@@ -117138,9 +119725,24 @@ def ai_assistant():
         # OWNER
         # ====================================================
 
-        owner = (
-            ai_get_owner()
-        )
+        try:
+
+            owner = (
+                ai_get_owner()
+                or {}
+            )
+
+        except Exception as owner_error:
+
+            print(
+                "MAAREYE AI OWNER ERROR:"
+            )
+
+            print(
+                repr(owner_error)
+            )
+
+            owner = {}
 
         # ====================================================
         # SYSTEM INSTRUCTION
@@ -117163,19 +119765,265 @@ def ai_assistant():
         )
 
         # ====================================================
-        # PROMPT
+        # PERSON LEDGER SAFETY CHECK
+        #
+        # This makes sure Gemini explicitly receives the
+        # required Person Ledger rules even if
+        # ai_build_system_instruction() is later modified.
         # ====================================================
 
-        prompt = ai_build_prompt(
+        person_ledger_instruction = """
 
-            message,
+============================================================
+PERSON LEDGER — STRICT RULES
+============================================================
 
-            history
+When answering questions about:
+
+- Persons
+- Person Ledger
+- people
+- person balances
+- person payments
+- amounts owed to/from a person
+- person reports
+- money given to a person
+- money received from a person
+
+use ONLY the supplied:
+
+financial_context.person_summary
+
+financial_context.person_ledger_transactions
+
+financial_context.person_opening_transactions
+
+financial_context.person_ledger_summary
+
+The Person Ledger combines TWO MongoDB collections:
+
+1. transactions
+2. person_opening_transactions
+
+============================================================
+NORMAL TRANSACTIONS — PERSON SOURCES
+============================================================
+
+For transactions, these fields are independent person sources:
+
+1. transactions.person_name
+2. transactions.description
+3. transactions.note
+
+They MUST NOT automatically be considered the same person.
+
+Example:
+
+person_name = "Asad"
+description = "Ahmed"
+note = "Hassan"
+
+This means:
+
+Asad
+Ahmed
+Hassan
+
+are three independent person references.
+
+============================================================
+OPENING TRANSACTIONS — PERSON SOURCES
+============================================================
+
+For person_opening_transactions, these fields are also
+independent:
+
+1. person_opening_transactions.person_name
+2. person_opening_transactions.description
+3. person_opening_transactions.note
+
+Do NOT use only person_name.
+
+============================================================
+PERSON NAME NORMALIZATION
+============================================================
+
+These represent the SAME person:
+
+Asad
+asad
+ASAD
+AsAd
+By Asad
+by Asad
+BY ASAD
+By: Asad
+by:Asad
+
+The leading "By" prefix must be ignored.
+
+Therefore:
+
+"By Asad" = "Asad"
+
+Matching is case-insensitive.
+
+Never create a separate person called:
+
+"By Asad"
+
+when "Asad" already exists.
+
+============================================================
+SAME PERSON IN SAME RECORD
+============================================================
+
+If the same normalized person appears in multiple fields of
+the SAME underlying record, count that record ONLY ONCE for
+that person.
+
+Example:
+
+person_name = "Asad"
+description = "asad"
+note = "By Asad"
+
+This is ONE person:
+
+Asad
+
+Do NOT multiply the amount by 3.
+
+============================================================
+DIFFERENT PEOPLE IN SAME RECORD
+============================================================
+
+If different fields contain different normalized people:
+
+person_name = "Asad"
+description = "Ahmed"
+note = "Hassan"
+
+the transaction applies independently to:
+
+Asad
+Ahmed
+Hassan
+
+Do NOT merge them.
+
+============================================================
+PERSON BALANCE
+============================================================
+
+For one person:
+
+Net = Income - Expense
+
+Always normalize the requested person name before matching.
+
+If the requested person does not exist in the supplied
+Person Ledger context, say that the person was not found.
+
+Never invent a person's balance.
+
+============================================================
+OPENING + NORMAL TRANSACTIONS
+============================================================
+
+Always consider BOTH:
+
+1. person_opening_transactions
+2. transactions
+
+for every Person Ledger question.
+
+Never answer a Person Ledger question from only one source.
+
+============================================================
+PERSON LEDGER TOTALS
+============================================================
+
+Use:
+
+person_ledger_summary.total_person_income
+
+person_ledger_summary.total_person_expense
+
+person_ledger_summary.total_person_net
+
+person_ledger_summary.total_person_opening_income
+
+person_ledger_summary.total_person_opening_expense
+
+person_ledger_summary.total_person_opening_net
+
+person_ledger_summary.total_person_transaction_income
+
+person_ledger_summary.total_person_transaction_expense
+
+person_ledger_summary.total_person_transaction_net
+
+Do NOT invent these totals.
+
+============================================================
+IMPORTANT
+============================================================
+
+Person Ledger totals are person-reference totals.
+
+If one transaction references multiple different people,
+that transaction can legitimately contribute to each person's
+ledger.
+
+Therefore Person Ledger totals can be greater than global
+transaction totals.
+
+Do not treat Person Ledger totals as the same thing as the
+overall cash-flow totals.
+
+============================================================
+"""
+
+        # ----------------------------------------------------
+        # Combine system instruction safely
+        # ----------------------------------------------------
+
+        system_instruction = (
+
+            str(
+                system_instruction
+                or ""
+            )
+
+            +
+
+            "\n\n"
+
+            +
+
+            person_ledger_instruction
 
         )
 
         # ====================================================
-        # ADD REAL CONTEXT TO PROMPT
+        # PROMPT
+        # ====================================================
+
+        prompt = (
+
+            ai_build_prompt(
+
+                message,
+
+                history
+
+            )
+
+        )
+
+        # ====================================================
+        # REAL CONTEXT
         # ====================================================
 
         context_text = f"""
@@ -117205,11 +120053,40 @@ OWNER CONTACT
 
 {ai_json(owner)}
 
+============================================================
+END OF MAAREYE CONTEXT
+============================================================
+
+IMPORTANT:
+
+The MongoDB context above is the source of truth.
+
+Do not invent financial data.
+
+Do not invent account balances.
+
+Do not invent transactions.
+
+Do not invent persons.
+
+Do not invent person balances.
+
+For Person Ledger questions, use the supplied Person Ledger
+fields and follow the Person Ledger normalization and
+deduplication rules exactly.
+
 """
+
+        # ====================================================
+        # FINAL PROMPT
+        # ====================================================
 
         final_prompt = (
 
-            prompt
+            str(
+                prompt
+                or ""
+            )
 
             +
 
@@ -117336,7 +120213,7 @@ OWNER CONTACT
         )
 
         # ====================================================
-        # QUOTA
+        # QUOTA / RATE LIMIT
         # ====================================================
 
         if (
@@ -117359,6 +120236,11 @@ OWNER CONTACT
             "rate limit"
             in error_lower
 
+            or
+
+            "too many requests"
+            in error_lower
+
         ):
 
             return jsonify({
@@ -117373,7 +120255,7 @@ OWNER CONTACT
             }), 429
 
         # ====================================================
-        # AUTHENTICATION
+        # GEMINI AUTHENTICATION
         # ====================================================
 
         if (
@@ -117396,6 +120278,16 @@ OWNER CONTACT
             "authentication"
             in error_lower
 
+            or
+
+            "invalid api key"
+            in error_lower
+
+            or
+
+            "invalid_argument"
+            in error_lower
+
         ):
 
             return jsonify({
@@ -117409,7 +120301,7 @@ OWNER CONTACT
             }), 500
 
         # ====================================================
-        # DATABASE
+        # DATABASE / MONGODB
         # ====================================================
 
         if (
@@ -117427,6 +120319,26 @@ OWNER CONTACT
             "objectid"
             in error_lower
 
+            or
+
+            "pymongo"
+            in error_lower
+
+            or
+
+            "bson"
+            in error_lower
+
+            or
+
+            "duplicate key"
+            in error_lower
+
+            or
+
+            "cursor"
+            in error_lower
+
         ):
 
             return jsonify({
@@ -117438,6 +120350,32 @@ OWNER CONTACT
                     "Fadlan isku day mar kale."
 
             }), 500
+
+        # ====================================================
+        # REQUEST / JSON ERROR
+        # ====================================================
+
+        if (
+
+            "json"
+            in error_lower
+
+            or
+
+            "request"
+            in error_lower
+
+        ):
+
+            return jsonify({
+
+                "success": False,
+
+                "answer":
+                    "Codsiga AI Assistant-ka lama fahmin. "
+                    "Fadlan isku day mar kale."
+
+            }), 400
 
         # ====================================================
         # GENERAL ERROR
@@ -117452,9 +120390,6 @@ OWNER CONTACT
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
-
-
 
 
 @bp.route("/reports/weekly")
