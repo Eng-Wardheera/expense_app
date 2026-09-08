@@ -1,136 +1,4149 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register | Secure Dashboard</title>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Secure account registration"
+    >
+
+    <title>Register | Dashboard</title>
+
+
+    <!-- =====================================================
+         TAILWIND
+    ====================================================== -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .dark .glass { background: rgba(30, 41, 59, 0.8); }
-    </style>
-</head>
-<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex items-center justify-center p-4">
 
-    <main class="w-full max-w-md">
-        <div class="glass p-8 rounded-3xl shadow-2xl space-y-6">
-            <div class="text-center">
-                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white">Create Account</h1>
-                <p class="text-gray-500 dark:text-gray-300 mt-2">Join us and start your journey</p>
-            </div>
 
-            <form id="regForm" action="{{ url_for('main.register') }}" method="POST" class="space-y-4">
-                <div class="relative">
-                    <input id="username" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                        type="text" name="username" placeholder="Username" required />
-                    <div id="suggestionBox" class="hidden mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                        <p class="text-xs text-red-600 dark:text-red-400 font-bold mb-1">Username is taken. Try these:</p>
-                        <div id="suggestions" class="flex gap-2"></div>
-                    </div>
-                </div>
-                
-                <input class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                    type="text" name="fullname" placeholder="Fullname" required />
-                <input class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                    type="email" name="email" placeholder="Email address" required />
-                
-                <div class="relative">
-                    <input id="password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                        type="password" name="password" placeholder="Password" required />
-                    <button type="button" onclick="togglePass('password', 'eyeIcon1')" class="absolute right-4 top-4 text-gray-400">
-                        <i id="eyeIcon1" class="fas fa-eye"></i>
-                    </button>
-                    <div class="mt-2 h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-                        <div id="strengthBar" class="h-full w-0 transition-all duration-300"></div>
-                    </div>
-                </div>
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
 
-                <div class="relative">
-                    <input id="confirm_password" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                        type="password" name="password_confirmation" placeholder="Confirm Password" required />
-                    <button type="button" onclick="togglePass('confirm_password', 'eyeIcon2')" class="absolute right-4 top-4 text-gray-400">
-                        <i id="eyeIcon2" class="fas fa-eye"></i>
-                    </button>
-                </div>
-                
-                <button type="submit" class="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                    Register Account
-                </button>
-            </form>
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
 
-            <div class="text-center text-sm text-gray-600 dark:text-gray-400">
-                Already have an account? <a href="{{ url_for('main.login') }}" class="text-indigo-600 font-bold hover:underline">Login</a>
-            </div>
-        </div>
-    </main>
+
+    <!-- =====================================================
+         SWEETALERT2
+    ====================================================== -->
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <!-- =====================================================
+         TAILWIND CONFIG
+    ====================================================== -->
+
     <script>
-        // Password Toggle
-        function togglePass(inputId, iconId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            if (input.type === "password") {
-                input.type = "text";
-                icon.className = "fas fa-eye-slash";
-            } else {
-                input.type = "password";
-                icon.className = "fas fa-eye";
+
+        tailwind.config = {
+
+            darkMode: "class",
+
+            theme: {
+
+                extend: {
+
+                    colors: {
+
+                        primary: "#4f46e5",
+
+                        secondary: "#7c3aed"
+
+                    }
+
+                }
+
             }
-        }
 
-        // Strength Meter
-        const passwordInput = document.getElementById('password');
-        const strengthBar = document.getElementById('strengthBar');
-        passwordInput.addEventListener('input', () => {
-            const val = passwordInput.value;
-            let strength = 0;
-            if (val.length >= 8) strength++;
-            if (/[A-Z]/.test(val)) strength++;
-            if (/[0-9]/.test(val)) strength++;
-            if (/[^A-Za-z0-9]/.test(val)) strength++;
-            const widths = ["0%", "25%", "50%", "75%", "100%"];
-            const colors = ["bg-red-500", "bg-orange-500", "bg-yellow-500", "bg-blue-500", "bg-green-500"];
-            strengthBar.style.width = widths[strength];
-            strengthBar.className = `h-full transition-all duration-300 ${colors[strength]}`;
-        });
+        };
 
-        // Username Check
-        const usernameInput = document.getElementById('username');
-        const suggestionBox = document.getElementById('suggestionBox');
-        const suggestionsDiv = document.getElementById('suggestions');
-
-        usernameInput.addEventListener('blur', async () => {
-            const val = usernameInput.value;
-            if (val.length < 3) return;
-            const res = await fetch('/check-username', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: val})
-            });
-            const data = await res.json();
-            if (data.taken) {
-                suggestionBox.classList.remove('hidden');
-                suggestionsDiv.innerHTML = '';
-                data.suggestions.forEach(s => {
-                    const btn = document.createElement('span');
-                    btn.className = "text-[10px] bg-indigo-100 text-indigo-700 px-2 py-1 rounded cursor-pointer hover:bg-indigo-200";
-                    btn.innerText = s;
-                    btn.onclick = () => { usernameInput.value = s; suggestionBox.classList.add('hidden'); };
-                    suggestionsDiv.appendChild(btn);
-                });
-            } else {
-                suggestionBox.classList.add('hidden');
-            }
-        });
-
-        // Flash
-        const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
-        if (flashMessages.length > 0) {
-            const [category, message] = flashMessages[0];
-            Swal.fire({ toast: true, position: 'top-end', icon: category === "success" ? "success" : "error", title: message, showConfirmButton: false, timer: 3000, timerProgressBar: true });
-        }
     </script>
+
+
+    <!-- =====================================================
+         CSS
+    ====================================================== -->
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+        }
+
+
+        /* =====================================================
+           BACKGROUND
+        ====================================================== */
+
+        .register-background {
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 20%,
+                    rgba(99, 102, 241, 0.35),
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(168, 85, 247, 0.35),
+                    transparent 35%
+                ),
+
+                linear-gradient(
+                    135deg,
+                    #eef2ff 0%,
+                    #f5f3ff 50%,
+                    #faf5ff 100%
+                );
+
+        }
+
+
+        .dark .register-background {
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 20%,
+                    rgba(79, 70, 229, 0.25),
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(124, 58, 237, 0.25),
+                    transparent 35%
+                ),
+
+                #020617;
+
+        }
+
+
+        /* =====================================================
+           GLASS CARD
+        ====================================================== */
+
+        .glass-card {
+
+            background:
+                rgba(255, 255, 255, 0.94);
+
+            backdrop-filter:
+                blur(24px);
+
+            -webkit-backdrop-filter:
+                blur(24px);
+
+            border:
+                1px solid rgba(255, 255, 255, 0.70);
+
+            box-shadow:
+                0 30px 80px
+                rgba(15, 23, 42, 0.16);
+
+        }
+
+
+        .dark .glass-card {
+
+            background:
+                rgba(15, 23, 42, 0.94);
+
+            border-color:
+                rgba(255, 255, 255, 0.08);
+
+            box-shadow:
+                0 30px 80px
+                rgba(0, 0, 0, 0.50);
+
+        }
+
+
+        /* =====================================================
+           LEFT PANEL
+        ====================================================== */
+
+        .left-panel {
+
+            background:
+
+                linear-gradient(
+                    145deg,
+                    #312e81 0%,
+                    #4f46e5 50%,
+                    #7c3aed 100%
+                );
+
+        }
+
+
+        /* =====================================================
+           DECORATIVE CIRCLES
+        ====================================================== */
+
+        .circle-one {
+
+            position: absolute;
+
+            width: 240px;
+            height: 240px;
+
+            border-radius: 9999px;
+
+            background:
+                rgba(255, 255, 255, 0.08);
+
+            top: -100px;
+            right: -100px;
+
+            pointer-events: none;
+
+        }
+
+
+        .circle-two {
+
+            position: absolute;
+
+            width: 320px;
+            height: 320px;
+
+            border-radius: 9999px;
+
+            background:
+                rgba(255, 255, 255, 0.06);
+
+            bottom: -150px;
+            left: -130px;
+
+            pointer-events: none;
+
+        }
+
+
+        .circle-three {
+
+            position: absolute;
+
+            width: 100px;
+            height: 100px;
+
+            border-radius: 9999px;
+
+            border:
+                1px solid rgba(255, 255, 255, 0.12);
+
+            top: 45%;
+            right: 8%;
+
+            pointer-events: none;
+
+        }
+
+
+        /* =====================================================
+           INPUT
+        ====================================================== */
+
+        .register-input {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .register-input:focus {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 0 0 4px
+                rgba(79, 70, 229, 0.10);
+
+        }
+
+
+        .input-error {
+
+            border-color:
+                #ef4444 !important;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(239, 68, 68, 0.10) !important;
+
+        }
+
+
+        .input-success {
+
+            border-color:
+                #22c55e !important;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(34, 197, 94, 0.10) !important;
+
+        }
+
+
+        /* =====================================================
+           USERNAME STATUS
+        ====================================================== */
+
+        .username-status {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            margin-top: 5px;
+
+            font-size: 11px;
+
+            min-height: 18px;
+
+        }
+
+
+        .username-loading {
+            color: #64748b;
+        }
+
+
+        .username-available {
+            color: #16a34a;
+        }
+
+
+        .username-taken {
+            color: #dc2626;
+        }
+
+
+        .username-invalid {
+            color: #dc2626;
+        }
+
+
+        /* =====================================================
+           SUGGESTIONS
+        ====================================================== */
+
+        .suggestions-container {
+
+            display: none;
+
+            margin-top: 8px;
+
+            padding: 10px;
+
+            border-radius: 14px;
+
+            border: 1px solid #fecaca;
+
+            background: #fef2f2;
+
+        }
+
+
+        .dark .suggestions-container {
+
+            background: rgba(127, 29, 29, 0.16);
+
+            border-color:
+                rgba(248, 113, 113, 0.25);
+
+        }
+
+
+        .suggestions-title {
+
+            font-size: 11px;
+
+            font-weight: 700;
+
+            color: #dc2626;
+
+            margin-bottom: 7px;
+
+        }
+
+
+        .suggestion-btn {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            padding:
+                7px 10px;
+
+            margin:
+                2px;
+
+            border-radius: 10px;
+
+            background: white;
+
+            border: 1px solid #e2e8f0;
+
+            color: #334155;
+
+            font-size: 12px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .suggestion-btn:hover {
+
+            border-color: #4f46e5;
+
+            color: #4f46e5;
+
+            transform:
+                translateY(-1px);
+
+        }
+
+
+        .dark .suggestion-btn {
+
+            background: #0f172a;
+
+            border-color: #334155;
+
+            color: #e2e8f0;
+
+        }
+
+
+        .dark .suggestion-btn:hover {
+
+            border-color: #818cf8;
+
+            color: #818cf8;
+
+        }
+
+
+        /* =====================================================
+           BUTTON
+        ====================================================== */
+
+        .register-button {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .register-button:hover:not(:disabled) {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 14px 30px
+                rgba(79, 70, 229, 0.25);
+
+        }
+
+
+        .register-button:active:not(:disabled) {
+
+            transform:
+                scale(0.98);
+
+        }
+
+
+        /* =====================================================
+           FEATURE CARD
+        ====================================================== */
+
+        .feature-card {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .feature-card:hover {
+
+            background:
+                rgba(255, 255, 255, 0.14);
+
+            transform:
+                translateX(3px);
+
+        }
+
+
+        /* =====================================================
+           PASSWORD STRENGTH
+        ====================================================== */
+
+        .strength-bar {
+
+            transition:
+                width 0.3s ease,
+                background-color 0.3s ease;
+
+        }
+
+
+        /* =====================================================
+           PASSWORD RULE
+        ====================================================== */
+
+        .password-rule {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                7px;
+
+            font-size:
+                11px;
+
+            transition:
+                color 0.2s ease;
+
+        }
+
+
+        .password-rule i {
+
+            width:
+                13px;
+
+            text-align:
+                center;
+
+        }
+
+
+        /* =====================================================
+           SPINNER
+        ====================================================== */
+
+        .spinner {
+
+            animation:
+                spin 0.8s linear infinite;
+
+        }
+
+
+        @keyframes spin {
+
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ====================================================== */
+
+        @media (max-width: 1023px) {
+
+            .left-panel {
+                display: none;
+            }
+
+        }
+
+
+        @media (max-width: 640px) {
+
+            .glass-card {
+
+                border-radius:
+                    1.5rem;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body
+    class="
+        register-background
+        min-h-screen
+        flex
+        items-center
+        justify-center
+        p-4
+        sm:p-6
+    "
+>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="w-full max-w-6xl">
+
+
+        <!-- =====================================================
+             CARD
+        ====================================================== -->
+
+        <div
+            class="
+                glass-card
+                overflow-hidden
+                rounded-[2rem]
+                grid
+                grid-cols-1
+                lg:grid-cols-2
+                min-h-[720px]
+            "
+        >
+
+
+            <!-- =================================================
+                 LEFT
+            ================================================== -->
+
+            <section
+                class="
+                    left-panel
+                    relative
+                    overflow-hidden
+                    p-8
+                    sm:p-10
+                    lg:p-14
+                    text-white
+                    flex
+                    flex-col
+                    justify-between
+                "
+            >
+
+                <div class="circle-one"></div>
+
+                <div class="circle-two"></div>
+
+                <div class="circle-three"></div>
+
+
+                <div class="relative z-10">
+
+                    <div
+                        class="
+                            inline-flex
+                            items-center
+                            justify-center
+                            w-14
+                            h-14
+                            rounded-2xl
+                            bg-white/15
+                            backdrop-blur-md
+                            border
+                            border-white/20
+                            mb-7
+                        "
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-user-plus
+                                text-2xl
+                            "
+                        ></i>
+
+                    </div>
+
+
+                    <h1
+                        class="
+                            text-4xl
+                            sm:text-5xl
+                            font-black
+                            leading-tight
+                        "
+                    >
+
+                        Create
+
+                        <br>
+
+                        <span class="text-indigo-200">
+                            Account.
+                        </span>
+
+                    </h1>
+
+
+                    <p
+                        class="
+                            mt-6
+                            text-indigo-100
+                            text-base
+                            lg:text-lg
+                            leading-8
+                            max-w-md
+                        "
+                    >
+
+                        Create your secure account and
+                        get access to your dashboard,
+                        account management, and all
+                        available features.
+
+                    </p>
+
+                </div>
+
+
+                <!-- FEATURES -->
+
+                <div
+                    class="
+                        relative
+                        z-10
+                        space-y-4
+                        mt-10
+                    "
+                >
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-shield-halved
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Secure Account
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Your account is protected.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-key
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Strong Password
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Create a secure password.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-user-shield
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Account Protection
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Your information stays protected.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="
+                        relative
+                        z-10
+                        mt-10
+                        text-sm
+                        text-indigo-200
+                    "
+                >
+
+                    © 2026 All rights reserved.
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 RIGHT
+            ================================================== -->
+
+            <section
+                class="
+                    p-7
+                    sm:p-10
+                    lg:p-12
+                    flex
+                    flex-col
+                    justify-center
+                    bg-white
+                    dark:bg-slate-900
+                "
+            >
+
+
+                <!-- HEADER -->
+
+                <div class="mb-7">
+
+                    <div
+                        class="
+                            inline-flex
+                            items-center
+                            justify-center
+                            w-12
+                            h-12
+                            rounded-2xl
+                            bg-indigo-50
+                            dark:bg-indigo-500/10
+                            text-indigo-600
+                            dark:text-indigo-400
+                            mb-5
+                        "
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-user-plus
+                                text-xl
+                            "
+                        ></i>
+
+                    </div>
+
+
+                    <h2
+                        class="
+                            text-3xl
+                            sm:text-4xl
+                            font-black
+                            tracking-tight
+                            text-slate-900
+                            dark:text-white
+                        "
+                    >
+
+                        Create Account
+
+                    </h2>
+
+
+                    <p
+                        class="
+                            mt-2
+                            text-slate-500
+                            dark:text-slate-400
+                        "
+                    >
+
+                        Fill in your details to create your account.
+
+                    </p>
+
+                </div>
+
+
+                <!-- =================================================
+                     FORM
+                ================================================== -->
+
+                <form
+                    id="regForm"
+                    action="{{ url_for('main.register') }}"
+                    method="POST"
+                    class="space-y-4"
+                    autocomplete="on"
+                    novalidate
+                >
+
+
+                    <!-- CSRF -->
+
+                    {% if csrf_token is defined %}
+
+                    <input
+                        type="hidden"
+                        name="csrf_token"
+                        value="{{ csrf_token() }}"
+                    >
+
+                    {% endif %}
+
+
+                    <!-- =================================================
+                         USERNAME
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="username"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+                            Username
+                        </label>
+
+
+                        <div class="relative">
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i class="fa-solid fa-user"></i>
+
+                            </div>
+
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                value="{{ request.form.get('username', '') }}"
+                                placeholder="Choose a username"
+                                autocomplete="username"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                minlength="3"
+                                maxlength="30"
+                                required
+                                class="
+                                    register-input
+                                    w-full
+                                    pl-11
+                                    pr-12
+                                    py-3
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+                            <!-- CHECK ICON -->
+
+                            <div
+                                id="usernameCheckIcon"
+                                class="
+                                    absolute
+                                    right-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    hidden
+                                "
+                            >
+
+                                <i
+                                    id="usernameCheckIconInner"
+                                    class="fa-solid"
+                                ></i>
+
+                            </div>
+
+                        </div>
+
+
+                        <p
+                            id="usernameHelp"
+                            class="
+                                mt-1
+                                text-xs
+                                text-slate-400
+                            "
+                        >
+                            3–30 characters. Must start with a letter. Letters, numbers, underscore and dot only.
+                        </p>
+
+
+                        <!-- USERNAME STATUS -->
+
+                        <div
+                            id="usernameStatus"
+                            class="username-status"
+                        ></div>
+
+
+                        <!-- SUGGESTIONS -->
+
+                        <div
+                            id="suggestionsContainer"
+                            class="suggestions-container"
+                        >
+
+                            <div class="suggestions-title">
+
+                                <i class="fa-solid fa-lightbulb mr-1"></i>
+
+                                Username already taken. Try one of these:
+
+                            </div>
+
+                            <div
+                                id="suggestionsList"
+                                class="flex flex-wrap"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         FULL NAME
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="fullname"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+                            Full Name
+                        </label>
+
+
+                        <div class="relative">
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i class="fa-solid fa-id-card"></i>
+
+                            </div>
+
+
+                            <input
+                                type="text"
+                                id="fullname"
+                                name="fullname"
+                                value="{{ request.form.get('fullname', '') }}"
+                                placeholder="Enter your full name"
+                                autocomplete="name"
+                                minlength="2"
+                                maxlength="100"
+                                required
+                                class="
+                                    register-input
+                                    w-full
+                                    pl-11
+                                    pr-4
+                                    py-3
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+                        </div>
+
+
+                        <p
+                            id="fullnameHelp"
+                            class="
+                                mt-1
+                                text-xs
+                                text-slate-400
+                            "
+                        >
+                            Letters, spaces, hyphens and apostrophes only. Numbers are not allowed.
+                        </p>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         EMAIL
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="email"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+                            Email Address
+                        </label>
+
+
+                        <div class="relative">
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i class="fa-solid fa-envelope"></i>
+
+                            </div>
+
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value="{{ request.form.get('email', '') }}"
+                                placeholder="Enter your email"
+                                autocomplete="email"
+                                maxlength="254"
+                                required
+                                class="
+                                    register-input
+                                    w-full
+                                    pl-11
+                                    pr-4
+                                    py-3
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+                        </div>
+
+
+                        <p
+                            id="emailHelp"
+                            class="
+                                mt-1
+                                text-xs
+                                text-slate-400
+                            "
+                        >
+                            Enter a valid email address.
+                        </p>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         PASSWORD
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="password"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+                            Password
+                        </label>
+
+
+                        <div class="relative">
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i class="fa-solid fa-lock"></i>
+
+                            </div>
+
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Create a password"
+                                autocomplete="new-password"
+                                minlength="8"
+                                maxlength="128"
+                                required
+                                class="
+                                    register-input
+                                    w-full
+                                    pl-11
+                                    pr-12
+                                    py-3
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+
+                            <button
+                                type="button"
+                                id="passwordToggle"
+                                aria-label="Show password"
+                                class="
+                                    absolute
+                                    right-3
+                                    top-1/2
+                                    -translate-y-1/2
+                                    w-10
+                                    h-10
+                                    rounded-xl
+                                    flex
+                                    items-center
+                                    justify-center
+                                    text-slate-400
+                                    hover:text-indigo-600
+                                    hover:bg-indigo-50
+                                    dark:hover:bg-slate-800
+                                    transition
+                                "
+                            >
+
+                                <i
+                                    id="eyeIcon1"
+                                    class="fa-solid fa-eye"
+                                ></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <!-- STRENGTH -->
+
+                        <div class="mt-2">
+
+                            <div
+                                class="
+                                    h-1.5
+                                    w-full
+                                    rounded-full
+                                    overflow-hidden
+                                    bg-slate-200
+                                    dark:bg-slate-700
+                                "
+                            >
+
+                                <div
+                                    id="strengthBar"
+                                    class="
+                                        strength-bar
+                                        h-full
+                                        w-0
+                                        rounded-full
+                                    "
+                                ></div>
+
+                            </div>
+
+
+                            <p
+                                id="strengthText"
+                                class="
+                                    mt-1
+                                    text-xs
+                                    text-slate-400
+                                "
+                            >
+                                Password strength
+                            </p>
+
+                        </div>
+
+
+                        <!-- PASSWORD RULES -->
+
+                        <div
+                            class="
+                                mt-3
+                                grid
+                                grid-cols-1
+                                sm:grid-cols-2
+                                gap-1
+                            "
+                        >
+
+                            <div
+                                id="ruleLength"
+                                class="password-rule text-slate-400"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                <span>8+ characters</span>
+
+                            </div>
+
+
+                            <div
+                                id="ruleUpper"
+                                class="password-rule text-slate-400"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                <span>Uppercase letter</span>
+
+                            </div>
+
+
+                            <div
+                                id="ruleLower"
+                                class="password-rule text-slate-400"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                <span>Lowercase letter</span>
+
+                            </div>
+
+
+                            <div
+                                id="ruleNumber"
+                                class="password-rule text-slate-400"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                <span>Number</span>
+
+                            </div>
+
+
+                            <div
+                                id="ruleSpecial"
+                                class="password-rule text-slate-400"
+                            >
+
+                                <i class="fa-solid fa-circle-xmark"></i>
+
+                                <span>Special character</span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         CONFIRM PASSWORD
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="confirm_password"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+                            Confirm Password
+                        </label>
+
+
+                        <div class="relative">
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i class="fa-solid fa-lock"></i>
+
+                            </div>
+
+
+                            <input
+                                type="password"
+                                id="confirm_password"
+                                name="password_confirmation"
+                                placeholder="Confirm your password"
+                                autocomplete="new-password"
+                                maxlength="128"
+                                required
+                                class="
+                                    register-input
+                                    w-full
+                                    pl-11
+                                    pr-12
+                                    py-3
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+
+                            <button
+                                type="button"
+                                id="confirmPasswordToggle"
+                                aria-label="Show password"
+                                class="
+                                    absolute
+                                    right-3
+                                    top-1/2
+                                    -translate-y-1/2
+                                    w-10
+                                    h-10
+                                    rounded-xl
+                                    flex
+                                    items-center
+                                    justify-center
+                                    text-slate-400
+                                    hover:text-indigo-600
+                                    hover:bg-indigo-50
+                                    dark:hover:bg-slate-800
+                                    transition
+                                "
+                            >
+
+                                <i
+                                    id="eyeIcon2"
+                                    class="fa-solid fa-eye"
+                                ></i>
+
+                            </button>
+
+                        </div>
+
+
+                        <p
+                            id="matchText"
+                            class="hidden mt-1 text-xs"
+                        ></p>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         TERMS
+                    ================================================== -->
+
+                    <div
+                        class="
+                            flex
+                            items-start
+                            gap-3
+                            pt-1
+                        "
+                    >
+
+                        <input
+                            type="checkbox"
+                            id="terms"
+                            name="terms"
+                            value="1"
+                            required
+                            class="
+                                mt-1
+                                w-4
+                                h-4
+                                rounded
+                                border-slate-300
+                                text-indigo-600
+                                focus:ring-indigo-500
+                                cursor-pointer
+                            "
+                        >
+
+
+                        <label
+                            for="terms"
+                            class="
+                                text-xs
+                                leading-5
+                                text-slate-500
+                                dark:text-slate-400
+                                cursor-pointer
+                            "
+                        >
+
+                            I agree to the
+
+                            <span
+                                class="
+                                    font-bold
+                                    text-indigo-600
+                                    dark:text-indigo-400
+                                "
+                            >
+                                Terms & Conditions
+                            </span>
+
+                            and
+
+                            <span
+                                class="
+                                    font-bold
+                                    text-indigo-600
+                                    dark:text-indigo-400
+                                "
+                            >
+                                Privacy Policy
+                            </span>.
+
+                        </label>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         BUTTON
+                    ================================================== -->
+
+                    <button
+                        type="submit"
+                        id="registerButton"
+                        class="
+                            register-button
+                            w-full
+                            py-4
+                            rounded-2xl
+                            bg-indigo-600
+                            hover:bg-indigo-700
+                            text-white
+                            font-bold
+                            flex
+                            items-center
+                            justify-center
+                            gap-3
+                            shadow-lg
+                            shadow-indigo-500/20
+                            disabled:opacity-60
+                            disabled:cursor-not-allowed
+                        "
+                    >
+
+                        <i
+                            id="buttonIcon"
+                            class="fa-solid fa-user-plus"
+                        ></i>
+
+
+                        <i
+                            id="loadingIcon"
+                            class="
+                                fa-solid
+                                fa-spinner
+                                spinner
+                                hidden
+                            "
+                        ></i>
+
+
+                        <span id="btnText">
+                            Create Account
+                        </span>
+
+                    </button>
+
+                </form>
+
+
+                <!-- DIVIDER -->
+
+                <div
+                    class="
+                        flex
+                        items-center
+                        gap-4
+                        my-6
+                    "
+                >
+
+                    <div
+                        class="
+                            flex-1
+                            border-t
+                            border-slate-200
+                            dark:border-slate-700
+                        "
+                    ></div>
+
+
+                    <span
+                        class="
+                            text-xs
+                            font-bold
+                            text-slate-400
+                            uppercase
+                        "
+                    >
+                        OR
+                    </span>
+
+
+                    <div
+                        class="
+                            flex-1
+                            border-t
+                            border-slate-200
+                            dark:border-slate-700
+                        "
+                    ></div>
+
+                </div>
+
+
+                <!-- LOGIN -->
+
+                <div
+                    class="
+                        text-center
+                        text-sm
+                        text-slate-500
+                        dark:text-slate-400
+                    "
+                >
+
+                    Already have an account?
+
+                    <a
+                        href="{{ url_for('main.login') }}"
+                        class="
+                            ml-1
+                            font-bold
+                            text-indigo-600
+                            dark:text-indigo-400
+                            hover:underline
+                        "
+                    >
+                        Login
+                    </a>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+
+    <!-- ============================================================
+         JAVASCRIPT
+    ============================================================= -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+
+                /* =================================================
+                   ELEMENTS
+                ================================================== */
+
+                const form =
+                    document.getElementById("regForm");
+
+                const username =
+                    document.getElementById("username");
+
+                const fullname =
+                    document.getElementById("fullname");
+
+                const email =
+                    document.getElementById("email");
+
+                const password =
+                    document.getElementById("password");
+
+                const confirmPassword =
+                    document.getElementById(
+                        "confirm_password"
+                    );
+
+                const terms =
+                    document.getElementById("terms");
+
+                const passwordToggle =
+                    document.getElementById(
+                        "passwordToggle"
+                    );
+
+                const confirmPasswordToggle =
+                    document.getElementById(
+                        "confirmPasswordToggle"
+                    );
+
+                const eyeIcon1 =
+                    document.getElementById(
+                        "eyeIcon1"
+                    );
+
+                const eyeIcon2 =
+                    document.getElementById(
+                        "eyeIcon2"
+                    );
+
+                const strengthBar =
+                    document.getElementById(
+                        "strengthBar"
+                    );
+
+                const strengthText =
+                    document.getElementById(
+                        "strengthText"
+                    );
+
+                const matchText =
+                    document.getElementById(
+                        "matchText"
+                    );
+
+                const registerButton =
+                    document.getElementById(
+                        "registerButton"
+                    );
+
+                const buttonIcon =
+                    document.getElementById(
+                        "buttonIcon"
+                    );
+
+                const loadingIcon =
+                    document.getElementById(
+                        "loadingIcon"
+                    );
+
+                const btnText =
+                    document.getElementById(
+                        "btnText"
+                    );
+
+                const usernameStatus =
+                    document.getElementById(
+                        "usernameStatus"
+                    );
+
+                const suggestionsContainer =
+                    document.getElementById(
+                        "suggestionsContainer"
+                    );
+
+                const suggestionsList =
+                    document.getElementById(
+                        "suggestionsList"
+                    );
+
+                const usernameCheckIcon =
+                    document.getElementById(
+                        "usernameCheckIcon"
+                    );
+
+                const usernameCheckIconInner =
+                    document.getElementById(
+                        "usernameCheckIconInner"
+                    );
+
+
+                /* =================================================
+                   STATE
+                ================================================== */
+
+                let usernameAvailable = false;
+
+                let usernameChecking = false;
+
+                let usernameRequestId = 0;
+
+                let submitLocked = false;
+
+
+                /* =================================================
+                   DARK MODE
+                ================================================== */
+
+                try {
+
+                    const savedTheme =
+                        localStorage.getItem("theme");
+
+                    if (
+                        savedTheme === "dark"
+                    ) {
+
+                        document.documentElement
+                            .classList
+                            .add("dark");
+
+                    }
+
+                    else if (
+                        !savedTheme &&
+                        window.matchMedia(
+                            "(prefers-color-scheme: dark)"
+                        ).matches
+                    ) {
+
+                        document.documentElement
+                            .classList
+                            .add("dark");
+
+                    }
+
+                }
+
+                catch (error) {
+
+                    console.warn(
+                        "Theme detection error:",
+                        error
+                    );
+
+                }
+
+
+                /* =================================================
+                   INPUT STATES
+                ================================================== */
+
+                function markError(input) {
+
+                    input.classList.remove(
+                        "input-success"
+                    );
+
+                    input.classList.add(
+                        "input-error"
+                    );
+
+                }
+
+
+                function markSuccess(input) {
+
+                    input.classList.remove(
+                        "input-error"
+                    );
+
+                    input.classList.add(
+                        "input-success"
+                    );
+
+                }
+
+
+                function clearState(input) {
+
+                    input.classList.remove(
+                        "input-error",
+                        "input-success"
+                    );
+
+                }
+
+
+                /* =================================================
+                   SWEET ALERT
+                ================================================== */
+
+                function showValidation(
+                    title,
+                    text,
+                    icon = "warning"
+                ) {
+
+                    Swal.fire({
+
+                        icon: icon,
+
+                        title: title,
+
+                        text: text,
+
+                        confirmButtonColor:
+                            "#4f46e5",
+
+                        confirmButtonText:
+                            "OK",
+
+                        allowOutsideClick:
+                            false
+
+                    });
+
+                }
+
+
+                /* =================================================
+                   PASSWORD TOGGLE
+                ================================================== */
+
+                function togglePasswordField(
+                    input,
+                    icon,
+                    button
+                ) {
+
+                    if (
+                        input.type ===
+                        "password"
+                    ) {
+
+                        input.type =
+                            "text";
+
+                        icon.classList.remove(
+                            "fa-eye"
+                        );
+
+                        icon.classList.add(
+                            "fa-eye-slash"
+                        );
+
+                        button.setAttribute(
+                            "aria-label",
+                            "Hide password"
+                        );
+
+                    }
+
+                    else {
+
+                        input.type =
+                            "password";
+
+                        icon.classList.remove(
+                            "fa-eye-slash"
+                        );
+
+                        icon.classList.add(
+                            "fa-eye"
+                        );
+
+                        button.setAttribute(
+                            "aria-label",
+                            "Show password"
+                        );
+
+                    }
+
+                }
+
+
+                passwordToggle.addEventListener(
+                    "click",
+                    function () {
+
+                        togglePasswordField(
+                            password,
+                            eyeIcon1,
+                            passwordToggle
+                        );
+
+                    }
+                );
+
+
+                confirmPasswordToggle.addEventListener(
+                    "click",
+                    function () {
+
+                        togglePasswordField(
+                            confirmPassword,
+                            eyeIcon2,
+                            confirmPasswordToggle
+                        );
+
+                    }
+                );
+
+
+                /* =================================================
+                   USERNAME VALIDATION
+                   
+                   RULES:
+                   - 3 to 30 characters
+                   - MUST START WITH LETTER
+                   - Letters allowed
+                   - Numbers allowed AFTER first letter
+                   - Dot allowed
+                   - Underscore allowed
+                   - No spaces
+                   - No special characters
+                ================================================== */
+
+                function isValidUsername(
+                    value
+                ) {
+
+                    return /^[A-Za-z][A-Za-z0-9._]{2,29}$/
+                        .test(value);
+
+                }
+
+
+                function sanitizeUsername(
+                    value
+                ) {
+
+                    return value
+                        .replace(
+                            /[^a-zA-Z0-9._]/g,
+                            ""
+                        );
+
+                }
+
+
+                function resetUsernameStatus() {
+
+                    usernameAvailable =
+                        false;
+
+                    usernameChecking =
+                        false;
+
+                    usernameStatus.innerHTML =
+                        "";
+
+                    usernameCheckIcon.classList.add(
+                        "hidden"
+                    );
+
+                    suggestionsContainer.style.display =
+                        "none";
+
+                    suggestionsList.innerHTML =
+                        "";
+
+                }
+
+
+                function showUsernameLoading() {
+
+                    usernameChecking =
+                        true;
+
+                    usernameAvailable =
+                        false;
+
+                    usernameStatus.innerHTML = `
+
+                        <i class="
+                            fa-solid
+                            fa-spinner
+                            fa-spin
+                        "></i>
+
+                        Checking username...
+
+                    `;
+
+                    usernameStatus.className =
+                        "username-status username-loading";
+
+                    usernameCheckIcon.classList.remove(
+                        "hidden"
+                    );
+
+                    usernameCheckIconInner.className =
+                        "fa-solid fa-spinner fa-spin";
+
+                }
+
+
+                function showUsernameAvailable() {
+
+                    usernameChecking =
+                        false;
+
+                    usernameAvailable =
+                        true;
+
+                    usernameStatus.innerHTML = `
+
+                        <i class="
+                            fa-solid
+                            fa-circle-check
+                        "></i>
+
+                        Username is available.
+
+                    `;
+
+                    usernameStatus.className =
+                        "username-status username-available";
+
+                    usernameCheckIcon.classList.remove(
+                        "hidden"
+                    );
+
+                    usernameCheckIconInner.className =
+                        "fa-solid fa-circle-check";
+
+                    suggestionsContainer.style.display =
+                        "none";
+
+                }
+
+
+                function showUsernameTaken(
+                    suggestions
+                ) {
+
+                    usernameChecking =
+                        false;
+
+                    usernameAvailable =
+                        false;
+
+                    usernameStatus.innerHTML = `
+
+                        <i class="
+                            fa-solid
+                            fa-circle-xmark
+                        "></i>
+
+                        Username is already taken.
+
+                    `;
+
+                    usernameStatus.className =
+                        "username-status username-taken";
+
+                    usernameCheckIcon.classList.remove(
+                        "hidden"
+                    );
+
+                    usernameCheckIconInner.className =
+                        "fa-solid fa-circle-xmark";
+
+
+                    suggestionsList.innerHTML =
+                        "";
+
+
+                    if (
+                        Array.isArray(
+                            suggestions
+                        )
+                    ) {
+
+                        suggestions
+                            .slice(0, 3)
+                            .forEach(
+                                function (
+                                    suggestion
+                                ) {
+
+                                    const button =
+                                        document.createElement(
+                                            "button"
+                                        );
+
+                                    button.type =
+                                        "button";
+
+                                    button.className =
+                                        "suggestion-btn";
+
+                                    button.innerHTML = `
+
+                                        <i class="
+                                            fa-solid
+                                            fa-user-plus
+                                        "></i>
+
+                                        ${suggestion}
+
+                                    `;
+
+                                    button.addEventListener(
+                                        "click",
+                                        function () {
+
+                                            username.value =
+                                                suggestion;
+
+                                            username.dispatchEvent(
+                                                new Event(
+                                                    "input",
+                                                    {
+                                                        bubbles:
+                                                            true
+                                                    }
+                                                )
+                                            );
+
+                                            username.focus();
+
+                                        }
+                                    );
+
+                                    suggestionsList.appendChild(
+                                        button
+                                    );
+
+                                }
+                            );
+
+                    }
+
+
+                    suggestionsContainer.style.display =
+                        suggestionsList.children.length
+                            ? "block"
+                            : "none";
+
+                }
+
+
+                function showUsernameInvalid(
+                    message
+                ) {
+
+                    usernameChecking =
+                        false;
+
+                    usernameAvailable =
+                        false;
+
+                    usernameStatus.innerHTML = `
+
+                        <i class="
+                            fa-solid
+                            fa-circle-xmark
+                        "></i>
+
+                        ${message}
+
+                    `;
+
+                    usernameStatus.className =
+                        "username-status username-invalid";
+
+                    usernameCheckIcon.classList.remove(
+                        "hidden"
+                    );
+
+                    usernameCheckIconInner.className =
+                        "fa-solid fa-circle-xmark";
+
+                    suggestionsContainer.style.display =
+                        "none";
+
+                }
+
+
+                /* =================================================
+                   CHECK USERNAME API
+                ================================================== */
+
+                async function checkUsernameAvailability(
+                    value
+                ) {
+
+                    const currentRequest =
+                        ++usernameRequestId;
+
+                    showUsernameLoading();
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                "{{ url_for('main.check_username') }}",
+                                {
+
+                                    method:
+                                        "POST",
+
+                                    headers: {
+
+                                        "Content-Type":
+                                            "application/json",
+
+                                        "Accept":
+                                            "application/json",
+
+                                        "X-Requested-With":
+                                            "XMLHttpRequest"
+
+                                    },
+
+                                    body:
+                                        JSON.stringify({
+                                            username:
+                                                value
+                                        })
+
+                                }
+                            );
+
+
+                        if (
+                            currentRequest !==
+                            usernameRequestId
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        if (
+                            !response.ok
+                        ) {
+
+                            throw new Error(
+                                "Username check failed"
+                            );
+
+                        }
+
+
+                        const data =
+                            await response.json();
+
+
+                        if (
+                            currentRequest !==
+                            usernameRequestId
+                        ) {
+
+                            return;
+
+                        }
+
+
+                        if (
+                            data.taken
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showUsernameTaken(
+                                data.suggestions || []
+                            );
+
+                        }
+
+                        else {
+
+                            markSuccess(
+                                username
+                            );
+
+                            showUsernameAvailable();
+
+                        }
+
+                    }
+
+                    catch (error) {
+
+                        console.error(
+                            "Username check error:",
+                            error
+                        );
+
+                        usernameChecking =
+                            false;
+
+                        usernameAvailable =
+                            false;
+
+                        usernameStatus.innerHTML = `
+
+                            <i class="
+                                fa-solid
+                                fa-triangle-exclamation
+                            "></i>
+
+                            Unable to check username. Please try again.
+
+                        `;
+
+                        usernameStatus.className =
+                            "username-status username-invalid";
+
+                        usernameCheckIcon.classList.add(
+                            "hidden"
+                        );
+
+                    }
+
+                }
+
+
+                /* =================================================
+                   USERNAME INPUT
+                ================================================== */
+
+                username.addEventListener(
+                    "input",
+                    function () {
+
+                        const cleaned =
+                            sanitizeUsername(
+                                this.value
+                            );
+
+
+                        if (
+                            this.value !==
+                            cleaned
+                        ) {
+
+                            this.value =
+                                cleaned;
+
+                        }
+
+
+                        const value =
+                            this.value.trim();
+
+
+                        usernameAvailable =
+                            false;
+
+                        usernameRequestId++;
+
+
+                        suggestionsContainer.style.display =
+                            "none";
+
+
+                        if (!value) {
+
+                            clearState(
+                                username
+                            );
+
+                            resetUsernameStatus();
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * MUST START WITH LETTER
+                         */
+
+                        if (
+                            /^[0-9]/.test(
+                                value
+                            )
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showUsernameInvalid(
+                                "Username must start with a letter."
+                            );
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * LENGTH
+                         */
+
+                        if (
+                            value.length < 3
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showUsernameInvalid(
+                                "Username must contain at least 3 characters."
+                            );
+
+                            return;
+
+                        }
+
+
+                        if (
+                            value.length > 30
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showUsernameInvalid(
+                                "Username cannot exceed 30 characters."
+                            );
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * FORMAT
+                         */
+
+                        if (
+                            !isValidUsername(
+                                value
+                            )
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showUsernameInvalid(
+                                "Only letters, numbers, dots and underscores are allowed."
+                            );
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * VALID FORMAT
+                         * NOW CHECK DATABASE
+                         */
+
+                        clearState(
+                            username
+                        );
+
+                        checkUsernameAvailability(
+                            value
+                        );
+
+                    }
+                );
+
+
+                /* =================================================
+                   USERNAME BLUR
+                ================================================== */
+
+                username.addEventListener(
+                    "blur",
+                    function () {
+
+                        this.value =
+                            this.value.trim();
+
+                    }
+                );
+
+
+                /* =================================================
+                   FULL NAME
+                   
+                   Unicode letters supported.
+                   Numbers are removed.
+                ================================================== */
+
+                function isValidFullName(
+                    value
+                ) {
+
+                    return /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u
+                        .test(value);
+
+                }
+
+
+                fullname.addEventListener(
+                    "input",
+                    function () {
+
+                        const oldValue =
+                            this.value;
+
+
+                        let cleaned =
+                            oldValue.replace(
+                                /[^\p{L}\p{M} '\u2019-]/gu,
+                                ""
+                            );
+
+
+                        cleaned =
+                            cleaned.replace(
+                                /\s{2,}/g,
+                                " "
+                            );
+
+
+                        if (
+                            cleaned !==
+                            oldValue
+                        ) {
+
+                            this.value =
+                                cleaned;
+
+                        }
+
+
+                        const value =
+                            this.value.trim();
+
+
+                        if (!value) {
+
+                            clearState(
+                                fullname
+                            );
+
+                            return;
+
+                        }
+
+
+                        /*
+                         * If the user types
+                         * a valid name, green.
+                         */
+
+                        if (
+                            value.length >= 2 &&
+                            value.length <= 100 &&
+                            isValidFullName(
+                                value
+                            )
+                        ) {
+
+                            markSuccess(
+                                fullname
+                            );
+
+                        }
+
+                        else {
+
+                            clearState(
+                                fullname
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                fullname.addEventListener(
+                    "blur",
+                    function () {
+
+                        this.value =
+                            this.value
+                                .replace(
+                                    /\s+/g,
+                                    " "
+                                )
+                                .trim();
+
+                    }
+                );
+
+
+                /* =================================================
+                   EMAIL
+                ================================================== */
+
+                function isValidEmail(
+                    value
+                ) {
+
+                    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+                        .test(value);
+
+                }
+
+
+                email.addEventListener(
+                    "input",
+                    function () {
+
+                        this.value =
+                            this.value.replace(
+                                /\s/g,
+                                ""
+                            );
+
+
+                        const value =
+                            this.value.trim();
+
+
+                        if (!value) {
+
+                            clearState(
+                                email
+                            );
+
+                            return;
+
+                        }
+
+
+                        if (
+                            isValidEmail(
+                                value
+                            )
+                        ) {
+
+                            markSuccess(
+                                email
+                            );
+
+                        }
+
+                        else {
+
+                            markError(
+                                email
+                            );
+
+                        }
+
+                    }
+                );
+
+
+                email.addEventListener(
+                    "blur",
+                    function () {
+
+                        this.value =
+                            this.value
+                                .trim()
+                                .toLowerCase();
+
+                    }
+                );
+
+
+                /* =================================================
+                   PASSWORD RULE
+                ================================================== */
+
+                function updateRule(
+                    elementId,
+                    valid
+                ) {
+
+                    const element =
+                        document.getElementById(
+                            elementId
+                        );
+
+                    const icon =
+                        element.querySelector(
+                            "i"
+                        );
+
+
+                    if (valid) {
+
+                        element.classList.remove(
+                            "text-slate-400",
+                            "text-red-500"
+                        );
+
+                        element.classList.add(
+                            "text-green-500"
+                        );
+
+                        icon.classList.remove(
+                            "fa-circle-xmark"
+                        );
+
+                        icon.classList.add(
+                            "fa-circle-check"
+                        );
+
+                    }
+
+                    else {
+
+                        element.classList.remove(
+                            "text-green-500"
+                        );
+
+                        element.classList.add(
+                            "text-slate-400"
+                        );
+
+                        icon.classList.remove(
+                            "fa-circle-check"
+                        );
+
+                        icon.classList.add(
+                            "fa-circle-xmark"
+                        );
+
+                    }
+
+                }
+
+
+                /* =================================================
+                   PASSWORD STRENGTH
+                ================================================== */
+
+                function updatePasswordStrength() {
+
+                    const value =
+                        password.value;
+
+
+                    const hasLength =
+                        value.length >= 8;
+
+                    const hasUpper =
+                        /[A-Z]/.test(
+                            value
+                        );
+
+                    const hasLower =
+                        /[a-z]/.test(
+                            value
+                        );
+
+                    const hasNumber =
+                        /[0-9]/.test(
+                            value
+                        );
+
+                    const hasSpecial =
+                        /[^A-Za-z0-9]/.test(
+                            value
+                        );
+
+
+                    updateRule(
+                        "ruleLength",
+                        hasLength
+                    );
+
+                    updateRule(
+                        "ruleUpper",
+                        hasUpper
+                    );
+
+                    updateRule(
+                        "ruleLower",
+                        hasLower
+                    );
+
+                    updateRule(
+                        "ruleNumber",
+                        hasNumber
+                    );
+
+                    updateRule(
+                        "ruleSpecial",
+                        hasSpecial
+                    );
+
+
+                    let score = 0;
+
+
+                    if (hasLength)
+                        score++;
+
+                    if (hasUpper)
+                        score++;
+
+                    if (hasLower)
+                        score++;
+
+                    if (hasNumber)
+                        score++;
+
+                    if (hasSpecial)
+                        score++;
+
+
+                    if (!value) {
+
+                        strengthBar.style.width =
+                            "0%";
+
+                        strengthBar.style.backgroundColor =
+                            "transparent";
+
+                        strengthText.textContent =
+                            "Password strength";
+
+                        clearState(
+                            password
+                        );
+
+                        checkPasswordMatch();
+
+                        return;
+
+                    }
+
+
+                    if (score <= 2) {
+
+                        strengthBar.style.width =
+                            "30%";
+
+                        strengthBar.style.backgroundColor =
+                            "#ef4444";
+
+                        strengthText.textContent =
+                            "Weak password";
+
+                        markError(
+                            password
+                        );
+
+                    }
+
+                    else if (score <= 4) {
+
+                        strengthBar.style.width =
+                            "65%";
+
+                        strengthBar.style.backgroundColor =
+                            "#f59e0b";
+
+                        strengthText.textContent =
+                            "Medium password";
+
+                        clearState(
+                            password
+                        );
+
+                    }
+
+                    else {
+
+                        strengthBar.style.width =
+                            "100%";
+
+                        strengthBar.style.backgroundColor =
+                            "#22c55e";
+
+                        strengthText.textContent =
+                            "Strong password";
+
+                        markSuccess(
+                            password
+                        );
+
+                    }
+
+
+                    checkPasswordMatch();
+
+                }
+
+
+                password.addEventListener(
+                    "input",
+                    updatePasswordStrength
+                );
+
+
+                /* =================================================
+                   PASSWORD MATCH
+                ================================================== */
+
+                function checkPasswordMatch() {
+
+                    const passwordValue =
+                        password.value;
+
+                    const confirmValue =
+                        confirmPassword.value;
+
+
+                    if (!confirmValue) {
+
+                        matchText.classList.add(
+                            "hidden"
+                        );
+
+                        clearState(
+                            confirmPassword
+                        );
+
+                        return false;
+
+                    }
+
+
+                    matchText.classList.remove(
+                        "hidden"
+                    );
+
+
+                    if (
+                        passwordValue ===
+                        confirmValue
+                    ) {
+
+                        markSuccess(
+                            confirmPassword
+                        );
+
+
+                        matchText.textContent =
+                            "✓ Passwords match";
+
+
+                        matchText.classList.remove(
+                            "text-red-500"
+                        );
+
+                        matchText.classList.add(
+                            "text-green-500"
+                        );
+
+
+                        return true;
+
+                    }
+
+
+                    markError(
+                        confirmPassword
+                    );
+
+
+                    matchText.textContent =
+                        "✕ Passwords do not match";
+
+
+                    matchText.classList.remove(
+                        "text-green-500"
+                    );
+
+                    matchText.classList.add(
+                        "text-red-500"
+                    );
+
+
+                    return false;
+
+                }
+
+
+                confirmPassword.addEventListener(
+                    "input",
+                    checkPasswordMatch
+                );
+
+
+                /* =================================================
+                   FORM SUBMIT
+                ================================================== */
+
+                form.addEventListener(
+                    "submit",
+                    function (event) {
+
+                        event.preventDefault();
+
+
+                        if (submitLocked) {
+
+                            return;
+
+                        }
+
+
+                        const usernameValue =
+                            username.value.trim();
+
+                        const fullnameValue =
+                            fullname.value
+                                .replace(
+                                    /\s+/g,
+                                    " "
+                                )
+                                .trim();
+
+                        const emailValue =
+                            email.value
+                                .trim()
+                                .toLowerCase();
+
+                        const passwordValue =
+                            password.value;
+
+                        const confirmValue =
+                            confirmPassword.value;
+
+
+                        username.value =
+                            usernameValue;
+
+                        fullname.value =
+                            fullnameValue;
+
+                        email.value =
+                            emailValue;
+
+
+                        /* =================================================
+                           USERNAME REQUIRED
+                        ================================================== */
+
+                        if (!usernameValue) {
+
+                            markError(
+                                username
+                            );
+
+                            showValidation(
+                                "Username Required",
+                                "Please enter a username."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           USERNAME START LETTER
+                        ================================================== */
+
+                        if (
+                            !/^[A-Za-z]/.test(
+                                usernameValue
+                            )
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showValidation(
+                                "Invalid Username",
+                                "Username must start with a letter. Example: asad123."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           USERNAME LENGTH
+                        ================================================== */
+
+                        if (
+                            usernameValue.length < 3 ||
+                            usernameValue.length > 30
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showValidation(
+                                "Invalid Username",
+                                "Username must contain between 3 and 30 characters."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           USERNAME FORMAT
+                        ================================================== */
+
+                        if (
+                            !isValidUsername(
+                                usernameValue
+                            )
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showValidation(
+                                "Invalid Username",
+                                "Username must start with a letter and can only contain letters, numbers, dots and underscores."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           USERNAME CHECK STILL RUNNING
+                        ================================================== */
+
+                        if (
+                            usernameChecking
+                        ) {
+
+                            showValidation(
+                                "Please Wait",
+                                "Username availability is still being checked."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           USERNAME NOT AVAILABLE
+                        ================================================== */
+
+                        if (
+                            !usernameAvailable
+                        ) {
+
+                            markError(
+                                username
+                            );
+
+                            showValidation(
+                                "Username Not Available",
+                                "This username is already taken or has not been verified. Please choose another username."
+                            );
+
+                            username.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           FULL NAME REQUIRED
+                        ================================================== */
+
+                        if (!fullnameValue) {
+
+                            markError(
+                                fullname
+                            );
+
+                            showValidation(
+                                "Full Name Required",
+                                "Please enter your full name."
+                            );
+
+                            fullname.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           FULL NAME NUMBERS
+                        ================================================== */
+
+                        if (
+                            /[0-9]/.test(
+                                fullnameValue
+                            )
+                        ) {
+
+                            markError(
+                                fullname
+                            );
+
+                            showValidation(
+                                "Invalid Full Name",
+                                "Full Name cannot contain numbers."
+                            );
+
+                            fullname.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           FULL NAME FORMAT
+                        ================================================== */
+
+                        if (
+                            !isValidFullName(
+                                fullnameValue
+                            )
+                        ) {
+
+                            markError(
+                                fullname
+                            );
+
+                            showValidation(
+                                "Invalid Full Name",
+                                "Full Name can only contain letters, spaces, hyphens and apostrophes."
+                            );
+
+                            fullname.focus();
+
+                            return;
+
+                        }
+
+
+                        if (
+                            fullnameValue.length < 2 ||
+                            fullnameValue.length > 100
+                        ) {
+
+                            markError(
+                                fullname
+                            );
+
+                            showValidation(
+                                "Invalid Full Name",
+                                "Full Name must contain between 2 and 100 characters."
+                            );
+
+                            fullname.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           EMAIL REQUIRED
+                        ================================================== */
+
+                        if (!emailValue) {
+
+                            markError(
+                                email
+                            );
+
+                            showValidation(
+                                "Email Required",
+                                "Please enter your email address."
+                            );
+
+                            email.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           EMAIL FORMAT
+                        ================================================== */
+
+                        if (
+                            !isValidEmail(
+                                emailValue
+                            )
+                        ) {
+
+                            markError(
+                                email
+                            );
+
+                            showValidation(
+                                "Invalid Email",
+                                "Please enter a valid email address."
+                            );
+
+                            email.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           PASSWORD REQUIRED
+                        ================================================== */
+
+                        if (!passwordValue) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Password Required",
+                                "Please create a password."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           PASSWORD LENGTH
+                        ================================================== */
+
+                        if (
+                            passwordValue.length < 8
+                        ) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Password Too Short",
+                                "Password must contain at least 8 characters."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           UPPERCASE
+                        ================================================== */
+
+                        if (
+                            !/[A-Z]/.test(
+                                passwordValue
+                            )
+                        ) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Weak Password",
+                                "Password must contain at least one uppercase letter."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           LOWERCASE
+                        ================================================== */
+
+                        if (
+                            !/[a-z]/.test(
+                                passwordValue
+                            )
+                        ) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Weak Password",
+                                "Password must contain at least one lowercase letter."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           NUMBER
+                        ================================================== */
+
+                        if (
+                            !/[0-9]/.test(
+                                passwordValue
+                            )
+                        ) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Weak Password",
+                                "Password must contain at least one number."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           SPECIAL CHARACTER
+                        ================================================== */
+
+                        if (
+                            !/[^A-Za-z0-9]/.test(
+                                passwordValue
+                            )
+                        ) {
+
+                            markError(
+                                password
+                            );
+
+                            showValidation(
+                                "Weak Password",
+                                "Password must contain at least one special character."
+                            );
+
+                            password.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           CONFIRM PASSWORD
+                        ================================================== */
+
+                        if (!confirmValue) {
+
+                            markError(
+                                confirmPassword
+                            );
+
+                            showValidation(
+                                "Confirm Password",
+                                "Please confirm your password."
+                            );
+
+                            confirmPassword.focus();
+
+                            return;
+
+                        }
+
+
+                        if (
+                            passwordValue !==
+                            confirmValue
+                        ) {
+
+                            markError(
+                                confirmPassword
+                            );
+
+                            showValidation(
+                                "Passwords Do Not Match",
+                                "Both passwords must be exactly the same.",
+                                "error"
+                            );
+
+                            confirmPassword.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           TERMS
+                        ================================================== */
+
+                        if (
+                            !terms.checked
+                        ) {
+
+                            showValidation(
+                                "Terms Required",
+                                "Please agree to the Terms & Conditions and Privacy Policy."
+                            );
+
+                            terms.focus();
+
+                            return;
+
+                        }
+
+
+                        /* =================================================
+                           ALL VALID
+                        ================================================== */
+
+                        markSuccess(
+                            username
+                        );
+
+                        markSuccess(
+                            fullname
+                        );
+
+                        markSuccess(
+                            email
+                        );
+
+                        markSuccess(
+                            password
+                        );
+
+                        markSuccess(
+                            confirmPassword
+                        );
+
+
+                        /* =================================================
+                           LOCK SUBMIT
+                        ================================================== */
+
+                        submitLocked =
+                            true;
+
+                        registerButton.disabled =
+                            true;
+
+                        btnText.textContent =
+                            "Creating account...";
+
+                        buttonIcon.classList.add(
+                            "hidden"
+                        );
+
+                        loadingIcon.classList.remove(
+                            "hidden"
+                        );
+
+
+                        /* =================================================
+                           FINAL SUBMIT
+                        ================================================== */
+
+                        form.submit();
+
+                    }
+                );
+
+
+                /* =================================================
+                   FLASH MESSAGES
+                ================================================== */
+
+                const flashMessages =
+                    {{ get_flashed_messages(with_categories=True) | tojson }};
+
+
+                if (
+                    Array.isArray(
+                        flashMessages
+                    ) &&
+                    flashMessages.length > 0
+                ) {
+
+                    const [
+                        category,
+                        message
+                    ] =
+                        flashMessages[0];
+
+
+                    let icon =
+                        "info";
+
+
+                    if (
+                        category ===
+                        "success"
+                    ) {
+
+                        icon =
+                            "success";
+
+                    }
+
+                    else if (
+                        category === "danger" ||
+                        category === "error"
+                    ) {
+
+                        icon =
+                            "error";
+
+                    }
+
+                    else if (
+                        category === "warning"
+                    ) {
+
+                        icon =
+                            "warning";
+
+                    }
+
+
+                    Swal.fire({
+
+                        toast: true,
+
+                        position:
+                            "top-end",
+
+                        icon: icon,
+
+                        title: message,
+
+                        showConfirmButton:
+                            false,
+
+                        timer: 4000,
+
+                        timerProgressBar:
+                            true,
+
+                        background:
+                            document
+                                .documentElement
+                                .classList
+                                .contains("dark")
+                                ? "#0f172a"
+                                : "#ffffff",
+
+                        color:
+                            document
+                                .documentElement
+                                .classList
+                                .contains("dark")
+                                ? "#ffffff"
+                                : "#111827"
+
+                    });
+
+                }
+
+            }
+
+        );
+
+    </script>
+
+
+
+    <!-- ============================================================
+         SWEETALERT2
+         ============================================================ -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+    <!-- ============================================================
+         FLASH MESSAGE HANDLING
+         ============================================================ -->
+
+    <script>
+
+        const flashMessages =
+            {{ get_flashed_messages(with_categories=True) | tojson | safe }};
+
+
+        if (
+            flashMessages.length > 0
+        ) {
+
+            const [
+                category,
+                message
+            ] =
+                flashMessages[0];
+
+
+            const Toast =
+                Swal.mixin({
+
+                    toast: true,
+
+                    position:
+                        'top-end',
+
+                    showConfirmButton:
+                        false,
+
+                    timer:
+                        3000,
+
+                    timerProgressBar:
+                        true,
+
+                    background:
+                        '#fff',
+
+                    color:
+                        '#333',
+
+
+                    didOpen:
+                        (toast) => {
+
+                            toast.addEventListener(
+                                'mouseenter',
+                                Swal.stopTimer
+                            );
+
+
+                            toast.addEventListener(
+                                'mouseleave',
+                                Swal.resumeTimer
+                            );
+
+                        }
+
+                });
+
+
+            Toast.fire({
+
+                icon:
+                    category === "success"
+                        ? "success"
+                        : "info",
+
+                title:
+                    message
+
+            });
+
+        }
+
+    </script>
+
+
 </body>
+
 </html>
