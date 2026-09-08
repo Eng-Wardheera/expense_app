@@ -181,75 +181,650 @@ def index():
 
 
 
+
+
+
+
+
+# ============================================================
+# REGISTER / USERNAME / EMAIL VALIDATION
+# ============================================================
+
+# ============================================================
+# CHECK USERNAME
+# ============================================================
 @bp.route('/check-username', methods=['POST'])
 def check_username():
-    username = request.json.get('username')
-    user = mongo.db.users.find_one({"username": username})
-    
-    if user:
-        # Soo saar 3 magac oo kale
-        suggestions = [f"{username}{random.randint(10,99)}" for _ in range(3)]
-        return jsonify({"taken": True, "suggestions": suggestions})
-    
-    return jsonify({"taken": False})
 
+    # --------------------------------------------------------
+    # Get JSON safely
+    # --------------------------------------------------------
+    data = request.get_json(silent=True) or {}
+
+    username = (data.get('username') or '').strip()
+
+    # --------------------------------------------------------
+    # Empty username
+    # --------------------------------------------------------
+    if not username:
+        return jsonify({
+            "taken": False,
+            "valid": False,
+            "message": "Username is required.",
+            "suggestions": []
+        })
+
+    # --------------------------------------------------------
+    # ALWAYS convert to lowercase
+    #
+    # ASAD -> asad
+    # Asad -> asad
+    # aSaD -> asad
+    # --------------------------------------------------------
+    username = username.lower()
+
+    # --------------------------------------------------------
+    # Length: 3 - 30
+    # --------------------------------------------------------
+    if len(username) < 3 or len(username) > 30:
+        return jsonify({
+            "taken": False,
+            "valid": False,
+            "message": (
+                "Username-ku waa inuu u dhexeeyaa "
+                "3 ilaa 30 characters."
+            ),
+            "suggestions": []
+        })
+
+    # --------------------------------------------------------
+    # MUST start with a letter
+    #
+    # Allowed after first character:
+    # letters
+    # numbers
+    # underscore
+    # dot
+    #
+    # 134asad -> INVALID
+    # _asad   -> INVALID
+    # .asad   -> INVALID
+    # asad    -> VALID
+    # asad123 -> VALID
+    # --------------------------------------------------------
+    if not re.fullmatch(r'[a-z][a-z0-9._]{2,29}', username):
+        return jsonify({
+            "taken": False,
+            "valid": False,
+            "message": (
+                "Username-ku waa inuu ku bilaabmaa letter, "
+                "wuxuuna oggol yahay letters, numbers, "
+                "underscore (_) iyo dot (.)."
+            ),
+            "suggestions": []
+        })
+
+    # --------------------------------------------------------
+    # CASE-INSENSITIVE DATABASE CHECK
+    #
+    # ASAD = Asad = asad = aSaD
+    # --------------------------------------------------------
+    user = mongo.db.users.find_one({
+        "username": {
+            "$regex": f"^{re.escape(username)}$",
+            "$options": "i"
+        }
+    })
+
+    # --------------------------------------------------------
+    # Username already taken
+    # --------------------------------------------------------
+    if user:
+
+        suggestions = []
+        attempts = 0
+
+        while len(suggestions) < 3 and attempts < 100:
+            attempts += 1
+
+            suggestion = f"{username}{random.randint(10, 99)}"
+
+            # Prevent duplicate suggestions
+            if suggestion in suggestions:
+                continue
+
+            # Case-insensitive check
+            existing = mongo.db.users.find_one({
+                "username": {
+                    "$regex": f"^{re.escape(suggestion)}$",
+                    "$options": "i"
+                }
+            })
+
+            if not existing:
+                suggestions.append(suggestion)
+
+        return jsonify({
+            "taken": True,
+            "valid": True,
+            "username": username,
+            "message": "Username is already taken.",
+            "suggestions": suggestions
+        })
+
+    # --------------------------------------------------------
+    # Username available
+    # --------------------------------------------------------
+    return jsonify({
+        "taken": False,
+        "valid": True,
+        "username": username,
+        "message": "Username is available.",
+        "suggestions": []
+    })
+    
+# ============================================================
+# EMAIL DOMAIN / MX VALIDATION
+# ============================================================
 
 def is_valid_email_domain(email):
+
     try:
-        domain = email.split('@')[1]
-        # Waxaan hubineynaa in domain-ku leeyahay MX record (Mail Exchange)
-        records = dns.resolver.resolve(domain, 'MX')
-        return True if records else False
-    except:
+
+        if not email:
+            return False
+
+        # ----------------------------------------------------
+        # Extract domain safely
+        # ----------------------------------------------------
+        parts = email.strip().lower().split('@')
+
+        if len(parts) != 2:
+            return False
+
+        domain = parts[1].strip()
+
+        if not domain:
+            return False
+
+        # ----------------------------------------------------
+        # MX RECORD CHECK
+        # ----------------------------------------------------
+        records = dns.resolver.resolve(
+            domain,
+            'MX',
+            lifetime=5
+        )
+
+        return bool(records)
+
+    except (
+        dns.resolver.NoAnswer,
+        dns.resolver.NXDOMAIN,
+        dns.resolver.NoNameservers,
+        dns.resolver.Timeout
+    ):
+
         return False
+
+    except Exception as e:
+
+        print(
+            "EMAIL DOMAIN CHECK ERROR:",
+            repr(e)
+        )
+
+        return False
+
+
+# ============================================================
+# REGISTER
+# ============================================================
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
+
+    # --------------------------------------------------------
+    # Already logged in
+    # --------------------------------------------------------
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        return redirect(
+            url_for('main.dashboard')
+        )
+
+    # ========================================================
+    # POST
+    # ========================================================
 
     if request.method == 'POST':
-        username = request.form.get('username')
-        fullname = request.form.get('fullname')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('password_confirmation')
-        
-         # 1. Hubi in format-ku sax yahay (Regex)
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            flash("Fadlan geli email sax ah!", "danger")
-            return redirect(url_for('main.register'))
 
-        # 2. Hubi in domain-ku dhab ahaan u jiro (MX check)
+        # ----------------------------------------------------
+        # GET FORM VALUES SAFELY
+        # ----------------------------------------------------
+
+        username = (
+            request.form.get('username') or ''
+        ).strip()
+
+        fullname = (
+            request.form.get('fullname') or ''
+        ).strip()
+
+        email = (
+            request.form.get('email') or ''
+        ).strip().lower()
+
+        password = (
+            request.form.get('password') or ''
+        )
+
+        confirm_password = (
+            request.form.get('password_confirmation') or ''
+        )
+
+        terms = request.form.get('terms')
+
+        # ====================================================
+        # 1. USERNAME REQUIRED
+        # ====================================================
+
+        if not username:
+
+            flash(
+                "Fadlan geli username-ka!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 2. USERNAME LENGTH
+        # ====================================================
+
+        if len(username) < 3 or len(username) > 30:
+
+            flash(
+                "Username-ku waa inuu u dhexeeyaa 3 ilaa 30 characters!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 3. USERNAME CHARACTERS
+        # ====================================================
+
+        if not re.fullmatch(
+            r'[A-Za-z0-9._]+',
+            username
+        ):
+
+            flash(
+                "Username-ku wuxuu oggol yahay letters, numbers, underscore (_) iyo dot (.) oo keliya!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 4. FULL NAME REQUIRED
+        # ====================================================
+
+        if not fullname:
+
+            flash(
+                "Fadlan geli Full Name-ka!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 5. FULL NAME LENGTH
+        # ====================================================
+
+        if len(fullname) < 2 or len(fullname) > 100:
+
+            flash(
+                "Full Name-ku waa inuu u dhexeeyaa 2 ilaa 100 characters!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 6. FULL NAME VALIDATION
+        #
+        # Allowed:
+        # Letters
+        # Spaces
+        # Apostrophe
+        # Hyphen
+        #
+        # Numbers lama oggola.
+        # ====================================================
+
+        fullname_pattern = (
+            r"^[^\W\d_]+"
+            r"(?:[ '\u2019-][^\W\d_]+)*$"
+        )
+
+        if not re.fullmatch(
+            fullname_pattern,
+            fullname,
+            flags=re.UNICODE
+        ):
+
+            flash(
+                "Full Name-ku wuxuu oggol yahay letters, spaces, apostrophe iyo hyphen oo keliya. Numbers lama oggola!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 7. EMAIL REQUIRED
+        # ====================================================
+
+        if not email:
+
+            flash(
+                "Fadlan geli email-kaaga!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 8. EMAIL LENGTH
+        # ====================================================
+
+        if len(email) > 254:
+
+            flash(
+                "Email-ku aad ayuu u dheer yahay!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 9. EMAIL FORMAT
+        # ====================================================
+
+        email_pattern = (
+            r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+"
+            r"@"
+            r"[A-Za-z0-9]"
+            r"(?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+            r"(?:\.[A-Za-z0-9]"
+            r"(?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+        )
+
+        if not re.fullmatch(
+            email_pattern,
+            email
+        ):
+
+            flash(
+                "Fadlan geli email sax ah!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 10. EMAIL MX CHECK
+        # ====================================================
+
         if not is_valid_email_domain(email):
-            flash("Email-kan domain-kiisu ma jiro (Email does not exist)!", "danger")
-            return redirect(url_for('main.register'))
-        
-        # 3. Hubi haddii user-ku horey u jiray
-        if mongo.db.users.find_one({"email": email}):
-            flash("Email-kan horey ayaa loo isticmaalay!", "danger")
-            return redirect(url_for('main.register'))
 
-        # 4. Hubi username-ka inuu database-ka ku jiro mar kale
-        if mongo.db.users.find_one({"username": username}):
-            flash("Username-kan horey ayaa loo qaatay, fadlan mid kale dooro!", "danger")
-            return redirect(url_for('main.register'))
-        
-        # 5. Hubi xoogga password-ka (8 xaraf, 1 xaraf weyn, 1 lambar, 1 calaamad)
-        if not re.match(r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$", password):
-            flash("Password-ku waa inuu ka koobnaadaa ugu yaraan 8 xaraf, lambar, iyo calaamad!", "danger")
-            return redirect(url_for('main.register'))
-        
-        # 6. Hubi haddii passwords-ku isku mid yihiin
+            flash(
+                "Email-kan domain-kiisu ma jiro ama ma aqbalo email!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 11. TERMS REQUIRED
+        # ====================================================
+
+        if terms not in [
+            '1',
+            'true',
+            'on',
+            'yes'
+        ]:
+
+            flash(
+                "Fadlan aqbal Terms & Conditions-ka!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 12. PASSWORD REQUIRED
+        # ====================================================
+
+        if not password:
+
+            flash(
+                "Fadlan geli password-ka!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 13. PASSWORD LENGTH
+        # ====================================================
+
+        if len(password) < 8:
+
+            flash(
+                "Password-ku waa inuu leeyahay ugu yaraan 8 characters!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        if len(password) > 128:
+
+            flash(
+                "Password-ku kama badnaan karo 128 characters!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 14. PASSWORD UPPERCASE
+        # ====================================================
+
+        if not re.search(
+            r'[A-Z]',
+            password
+        ):
+
+            flash(
+                "Password-ku waa inuu leeyahay ugu yaraan hal uppercase letter!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 15. PASSWORD LOWERCASE
+        # ====================================================
+
+        if not re.search(
+            r'[a-z]',
+            password
+        ):
+
+            flash(
+                "Password-ku waa inuu leeyahay ugu yaraan hal lowercase letter!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 16. PASSWORD NUMBER
+        # ====================================================
+
+        if not re.search(
+            r'\d',
+            password
+        ):
+
+            flash(
+                "Password-ku waa inuu leeyahay ugu yaraan hal number!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 17. PASSWORD SPECIAL CHARACTER
+        # ====================================================
+
+        if not re.search(
+            r'[^A-Za-z0-9]',
+            password
+        ):
+
+            flash(
+                "Password-ku waa inuu leeyahay ugu yaraan hal special character!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 18. CONFIRM PASSWORD REQUIRED
+        # ====================================================
+
+        if not confirm_password:
+
+            flash(
+                "Fadlan xaqiiji password-ka!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 19. PASSWORD MATCH
+        # ====================================================
+
         if password != confirm_password:
-            flash("Passwords-ka isma laha!", "danger")
-            return redirect(url_for('main.register'))
 
-        # 7. Role Logic
+            flash(
+                "Passwords-ka isma laha!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 20. CHECK DUPLICATE EMAIL
+        # ====================================================
+
+        existing_email = mongo.db.users.find_one({
+            "email": email
+        })
+
+        if existing_email:
+
+            flash(
+                "Email-kan horey ayaa loo isticmaalay!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 21. CHECK DUPLICATE USERNAME
+        # ====================================================
+
+        existing_username = mongo.db.users.find_one({
+            "username": username
+        })
+
+        if existing_username:
+
+            flash(
+                "Username-kan horey ayaa loo qaatay, fadlan mid kale dooro!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 22. ROLE LOGIC
+        # ====================================================
+
         user_count = mongo.db.users.count_documents({})
-        role = UserRole.superadmin.value if user_count == 0 else UserRole.admin.value
 
-        # 8. Save
+        if user_count == 0:
+
+            role = UserRole.superadmin.value
+
+        else:
+
+            role = UserRole.admin.value
+
+        # ====================================================
+        # 23. CREATE USER
+        # ====================================================
+
         new_user = {
             "fullname": fullname,
             "username": username,
@@ -259,26 +834,59 @@ def register():
             "status": True,
             "created_at": datetime.utcnow()
         }
-        mongo.db.users.insert_one(new_user)
-        
-        flash("Diiwaangelinta way guulaysatay!", "success")
-        return redirect(url_for('main.login'))
 
-    # Wadada saxda ah ee faylkaaga:
-    return render_template("backend/auth/auth-register.html")
+        # ====================================================
+        # 24. SAVE USER
+        # ====================================================
 
+        try:
+
+            mongo.db.users.insert_one(
+                new_user
+            )
+
+        except Exception as e:
+
+            print(
+                "REGISTER INSERT ERROR:",
+                repr(e)
+            )
+
+            flash(
+                "Account-ka lama abuuri karin. Fadlan isku day mar kale!",
+                "danger"
+            )
+
+            return redirect(
+                url_for('main.register')
+            )
+
+        # ====================================================
+        # 25. SUCCESS
+        # ====================================================
+
+        flash(
+            "Diiwaangelinta way guulaysatay! Hadda waad login-gareyn kartaa.",
+            "success"
+        )
+
+        return redirect(
+            url_for('main.login')
+        )
+
+    # ========================================================
+    # GET REGISTER PAGE
+    # ========================================================
+
+    return render_template(
+        "backend/auth/auth-register.html"
+    )
 
 
 # ============================================================
 # LOGIN
 # ============================================================
 
-# ============================================================
-# LOGIN ROUTE
-# ============================================================
-# ============================================================
-# LOGIN
-# ============================================================
 
 @bp.route("/login", methods=["GET", "POST"])
 def login():
