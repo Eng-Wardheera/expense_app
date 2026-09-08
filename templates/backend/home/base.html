@@ -1,980 +1,2772 @@
+
 <!DOCTYPE html>
-<html lang="zxx">
+<html lang="en">
 
 <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="x-ua-compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="" />
-    <meta name="keyword" content="" />
-    <meta name="author" content="flexilecode" />
-    <!--! BEGIN: Apps Title-->
-    <title>{% block title %} Dashboard | Expense Management {% endblock %}</title>
-    <!--! END:  Apps Title-->
-   
-    <!--! BEGIN: Favicon-->
-    <link rel="shortcut icon" type="image/x-icon"
-        href="{{ url_for('static', filename='frontend/images/logo-upper.png') }}" />
-    <!--! END: Favicon-->
 
-    <!--! BEGIN: Bootstrap CSS-->
-    <link rel="stylesheet" type="text/css"
-        href="{{ url_for('static', filename='backend/assets/css/bootstrap.min.css') }}" />
-    <!--! END: Bootstrap CSS-->
+    <meta charset="utf-8">
 
-    <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css"
-        href="{{ url_for('static', filename='backend/assets/vendors/css/vendors.min.css') }}" />
-    <link rel="stylesheet" type="text/css"
-        href="{{ url_for('static', filename='backend/assets/vendors/css/daterangepicker.min.css') }}" />
-    <!--! END: Vendors CSS-->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
-     <!--! BEGIN: Vendors CSS-->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/dataTables.bs5.min.css') }} ">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/select2.min.css') }}">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/select2-theme.min.css') }}">
-    <!--! END: Vendors CSS-->
-    <!--! BEGIN: Custom CSS-->
-    <link rel="stylesheet" type="text/css"
-        href="{{ url_for('static', filename='backend/assets/css/theme.min.css') }}" />
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover"
+    >
 
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='backend/assets/vendors/css/datepicker.min.css') }}">
+    <meta
+        name="description"
+        content="Expense Management System"
+    >
+
+    <meta
+        name="keywords"
+        content="expense, income, finance, management, reports"
+    >
+
+    <meta
+        name="author"
+        content="FlexileCode"
+    >
+
+    <title>
+        {% block title %}
+            Dashboard | Expense Management
+        {% endblock %}
+    </title>
 
 
+    <!-- ============================================================
+         FAVICON
+    ============================================================ -->
+
+    <link
+        rel="shortcut icon"
+        type="image/x-icon"
+        href="{{ url_for('static', filename='frontend/images/logo-upper.png') }}"
+    >
+
+
+    <!-- ============================================================
+         BOOTSTRAP
+    ============================================================ -->
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/bootstrap.min.css') }}"
+    >
+
+
+    <!-- ============================================================
+         VENDORS CSS
+    ============================================================ -->
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/vendors.min.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/daterangepicker.min.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/dataTables.bs5.min.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/select2.min.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/select2-theme.min.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/datepicker.min.css') }}"
+    >
+
+
+    <!-- ============================================================
+         THEME
+    ============================================================ -->
+
+    <link
+        rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/theme.min.css') }}"
+    >
+
+
+    <!-- ============================================================
+         GLOBAL RESPONSIVE OVERRIDES
+    ============================================================ -->
+
+    <style>
+
+        /* ============================================================
+           GLOBAL
+        ============================================================ */
+
+        html {
+            width: 100%;
+            min-height: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        img,
+        svg,
+        video,
+        canvas {
+            max-width: 100%;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            font: inherit;
+        }
+
+        button {
+            touch-action: manipulation;
+        }
+
+
+        /* ============================================================
+           MAIN CONTENT
+        ============================================================ */
+
+        .nxl-container {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .nxl-content {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+
+        /* ============================================================
+           TABLE RESPONSIVENESS
+        ============================================================ */
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            max-width: 100%;
+        }
+
+
+        /* ============================================================
+           FORMS
+        ============================================================ */
+
+        .form-control,
+        .form-select {
+            max-width: 100%;
+        }
+
+
+        /* ============================================================
+           AI ASSISTANT BUTTON
+        ============================================================ */
+
+        .ai-assistant-button {
+            position: fixed;
+
+            right: max(20px, env(safe-area-inset-right));
+            bottom: max(20px, env(safe-area-inset-bottom));
+
+            width: 62px;
+            height: 62px;
+
+            padding: 0;
+
+            border: 0;
+            border-radius: 50%;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color: #ffffff;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            cursor: pointer;
+
+            z-index: 999999;
+
+            box-shadow:
+                0 10px 30px rgba(37, 99, 235, .35);
+
+            transition:
+                transform .25s ease,
+                box-shadow .25s ease,
+                opacity .25s ease;
+
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ai-assistant-button:hover {
+            transform:
+                translateY(-3px)
+                scale(1.04);
+
+            box-shadow:
+                0 14px 35px rgba(37, 99, 235, .45);
+        }
+
+        .ai-assistant-button:active {
+            transform: scale(.96);
+        }
+
+        .ai-assistant-button:focus-visible {
+            outline: 3px solid rgba(37, 99, 235, .30);
+            outline-offset: 3px;
+        }
+
+        .ai-assistant-button i,
+        .ai-assistant-button svg {
+            width: 27px;
+            height: 27px;
+        }
+
+
+        /* ============================================================
+           AI CHAT WINDOW
+        ============================================================ */
+
+        .ai-assistant-box {
+
+            position: fixed;
+
+            right: max(20px, env(safe-area-inset-right));
+
+            bottom:
+                calc(
+                    95px +
+                    max(0px, env(safe-area-inset-bottom))
+                );
+
+            width: 390px;
+
+            max-width:
+                calc(
+                    100vw - 30px
+                );
+
+            height: 600px;
+
+            max-height:
+                calc(
+                    100dvh - 125px
+                );
+
+            background: #ffffff;
+
+            border-radius: 18px;
+
+            overflow: hidden;
+
+            z-index: 999998;
+
+            box-shadow:
+                0 20px 60px rgba(0, 0, 0, .20);
+
+            border:
+                1px solid #e5e7eb;
+
+            display: none;
+
+            flex-direction: column;
+
+            isolation: isolate;
+        }
+
+        .ai-assistant-box.active {
+            display: flex;
+
+            animation:
+                aiOpen .20s ease;
+        }
+
+        @keyframes aiOpen {
+
+            from {
+                opacity: 0;
+
+                transform:
+                    translateY(15px)
+                    scale(.97);
+            }
+
+            to {
+                opacity: 1;
+
+                transform:
+                    translateY(0)
+                    scale(1);
+            }
+        }
+
+
+        /* ============================================================
+           AI HEADER
+        ============================================================ */
+
+        .ai-assistant-header {
+
+            min-height: 72px;
+
+            padding:
+                12px 14px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color: #ffffff;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            flex-shrink: 0;
+        }
+
+        .ai-assistant-header-left {
+
+            min-width: 0;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+        }
+
+
+        /* ============================================================
+           AI AVATAR
+        ============================================================ */
+
+        .ai-avatar {
+
+            width: 43px;
+            height: 43px;
+
+            min-width: 43px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(255, 255, 255, .18);
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-avatar i,
+        .ai-avatar svg {
+
+            width: 23px;
+            height: 23px;
+        }
+
+
+        /* ============================================================
+           AI TITLE
+        ============================================================ */
+
+        .ai-title {
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            line-height: 1.2;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+        }
+
+        .ai-status {
+
+            margin-top: 3px;
+
+            font-size: 11px;
+
+            opacity: .85;
+
+            white-space: nowrap;
+        }
+
+        .ai-status-dot {
+
+            display: inline-block;
+
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #22c55e;
+
+            margin-right: 4px;
+        }
+
+
+        /* ============================================================
+           CLOSE BUTTON
+        ============================================================ */
+
+        .ai-close {
+
+            width: 38px;
+            height: 38px;
+
+            min-width: 38px;
+
+            padding: 0;
+
+            border: 0;
+
+            background:
+                rgba(255, 255, 255, .12);
+
+            color: #ffffff;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            transition:
+                background .2s ease;
+
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .ai-close:hover {
+            background:
+                rgba(255, 255, 255, .22);
+        }
+
+        .ai-close:focus-visible {
+            outline:
+                2px solid #ffffff;
+
+            outline-offset:
+                2px;
+        }
+
+        .ai-close i,
+        .ai-close svg {
+
+            width: 19px;
+            height: 19px;
+        }
+
+
+        /* ============================================================
+           MESSAGES
+        ============================================================ */
+
+        .ai-messages {
+
+            flex: 1;
+
+            min-height: 0;
+
+            overflow-y: auto;
+
+            overflow-x: hidden;
+
+            padding: 17px;
+
+            background: #f8fafc;
+
+            overscroll-behavior:
+                contain;
+
+            -webkit-overflow-scrolling:
+                touch;
+
+            scrollbar-width:
+                thin;
+        }
+
+        .ai-message {
+
+            display: flex;
+
+            width: 100%;
+
+            margin-bottom: 13px;
+        }
+
+        .ai-message.user {
+            justify-content: flex-end;
+        }
+
+        .ai-message-content {
+
+            max-width: 82%;
+
+            padding:
+                10px 13px;
+
+            border-radius: 13px;
+
+            font-size: 13px;
+
+            line-height: 1.55;
+
+            white-space: pre-wrap;
+
+            overflow-wrap:
+                anywhere;
+
+            word-break:
+                break-word;
+        }
+
+        .ai-message.assistant
+        .ai-message-content {
+
+            background: #ffffff;
+
+            color: #334155;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-top-left-radius:
+                4px;
+        }
+
+        .ai-message.user
+        .ai-message-content {
+
+            background: #2563eb;
+
+            color: #ffffff;
+
+            border-top-right-radius:
+                4px;
+        }
+
+
+        /* ============================================================
+           WELCOME
+        ============================================================ */
+
+        .ai-welcome {
+
+            text-align: center;
+
+            padding:
+                20px 8px 10px;
+        }
+
+        .ai-welcome-icon {
+
+            width: 55px;
+            height: 55px;
+
+            border-radius: 16px;
+
+            margin:
+                0 auto 12px;
+
+            background:
+                #dbeafe;
+
+            color:
+                #2563eb;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-welcome-icon i,
+        .ai-welcome-icon svg {
+
+            width: 28px;
+            height: 28px;
+        }
+
+        .ai-welcome h5 {
+
+            margin:
+                0 0 6px;
+
+            font-weight: 700;
+
+            color:
+                #1e293b;
+        }
+
+        .ai-welcome p {
+
+            margin: 0;
+
+            color:
+                #64748b;
+
+            font-size: 12px;
+
+            line-height: 1.5;
+        }
+
+
+        /* ============================================================
+           SUGGESTIONS
+        ============================================================ */
+
+        .ai-suggestions {
+
+            padding:
+                0 17px 12px;
+
+            display: flex;
+
+            gap: 7px;
+
+            flex-wrap: wrap;
+
+            background:
+                #f8fafc;
+
+            flex-shrink: 0;
+        }
+
+        .ai-suggestion {
+
+            min-height: 34px;
+
+            border:
+                1px solid #dbeafe;
+
+            background:
+                #ffffff;
+
+            color:
+                #2563eb;
+
+            border-radius:
+                20px;
+
+            padding:
+                7px 10px;
+
+            font-size:
+                11px;
+
+            cursor:
+                pointer;
+
+            transition:
+                background .2s ease,
+                border-color .2s ease,
+                transform .15s ease;
+
+            -webkit-tap-highlight-color:
+                transparent;
+        }
+
+        .ai-suggestion:hover {
+
+            background:
+                #eff6ff;
+
+            border-color:
+                #93c5fd;
+        }
+
+        .ai-suggestion:active {
+
+            transform:
+                scale(.97);
+        }
+
+
+        /* ============================================================
+           INPUT AREA
+        ============================================================ */
+
+        .ai-input-area {
+
+            border-top:
+                1px solid #e5e7eb;
+
+            background:
+                #ffffff;
+
+            padding:
+                11px;
+
+            padding-bottom:
+                max(
+                    11px,
+                    env(safe-area-inset-bottom)
+                );
+
+            flex-shrink: 0;
+        }
+
+        .ai-input-wrapper {
+
+            display: flex;
+
+            align-items: flex-end;
+
+            gap: 8px;
+
+            width: 100%;
+        }
+
+
+        /* ============================================================
+           TEXTAREA
+        ============================================================ */
+
+        #aiAssistantInput {
+
+            flex: 1;
+
+            width: 100%;
+
+            min-width: 0;
+
+            min-height: 42px;
+
+            max-height: 110px;
+
+            resize: none;
+
+            overflow-y: auto;
+
+            border:
+                1px solid #dbe2ea;
+
+            border-radius:
+                12px;
+
+            padding:
+                10px 12px;
+
+            outline: none;
+
+            font-size:
+                13px;
+
+            line-height:
+                1.4;
+
+            color:
+                #334155;
+
+            background:
+                #f8fafc;
+
+            transition:
+                border-color .2s ease,
+                background .2s ease,
+                box-shadow .2s ease;
+        }
+
+        #aiAssistantInput:focus {
+
+            border-color:
+                #2563eb;
+
+            background:
+                #ffffff;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37, 99, 235, .08);
+        }
+
+
+        /* ============================================================
+           SEND
+        ============================================================ */
+
+        .ai-send {
+
+            width: 42px;
+            height: 42px;
+
+            min-width: 42px;
+
+            padding: 0;
+
+            border: none;
+
+            border-radius: 11px;
+
+            background:
+                #2563eb;
+
+            color:
+                #ffffff;
+
+            cursor:
+                pointer;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            transition:
+                background .2s ease,
+                transform .15s ease,
+                opacity .2s ease;
+
+            -webkit-tap-highlight-color:
+                transparent;
+        }
+
+        .ai-send:hover {
+
+            background:
+                #1d4ed8;
+        }
+
+        .ai-send:active {
+
+            transform:
+                scale(.95);
+        }
+
+        .ai-send:disabled {
+
+            opacity:
+                .55;
+
+            cursor:
+                not-allowed;
+
+            transform:
+                none;
+        }
+
+        .ai-send i,
+        .ai-send svg {
+
+            width: 18px;
+            height: 18px;
+        }
+
+
+        /* ============================================================
+           TYPING
+        ============================================================ */
+
+        .ai-typing {
+
+            display: flex;
+
+            gap: 4px;
+
+            align-items: center;
+
+            min-height: 17px;
+        }
+
+        .ai-typing span {
+
+            width: 6px;
+            height: 6px;
+
+            background:
+                #94a3b8;
+
+            border-radius:
+                50%;
+
+            animation:
+                aiTyping 1.2s infinite;
+        }
+
+        .ai-typing span:nth-child(2) {
+
+            animation-delay:
+                .15s;
+        }
+
+        .ai-typing span:nth-child(3) {
+
+            animation-delay:
+                .30s;
+        }
+
+        @keyframes aiTyping {
+
+            0%,
+            60%,
+            100% {
+                transform:
+                    translateY(0);
+            }
+
+            30% {
+                transform:
+                    translateY(-4px);
+            }
+        }
+
+
+        /* ============================================================
+           TABLET
+        ============================================================ */
+
+        @media (max-width: 991.98px) {
+
+            .ai-assistant-box {
+
+                width:
+                    min(
+                        390px,
+                        calc(100vw - 30px)
+                    );
+
+                height:
+                    min(
+                        600px,
+                        calc(100dvh - 125px)
+                    );
+            }
+
+        }
+
+
+        /* ============================================================
+           MOBILE
+        ============================================================ */
+
+        @media (max-width: 767.98px) {
+
+            .ai-assistant-button {
+
+                width: 58px;
+                height: 58px;
+
+                right:
+                    max(
+                        15px,
+                        env(safe-area-inset-right)
+                    );
+
+                bottom:
+                    max(
+                        15px,
+                        env(safe-area-inset-bottom)
+                    );
+            }
+
+            .ai-assistant-button i,
+            .ai-assistant-button svg {
+
+                width: 25px;
+                height: 25px;
+            }
+
+            .ai-assistant-box {
+
+                left:
+                    max(
+                        10px,
+                        env(safe-area-inset-left)
+                    );
+
+                right:
+                    max(
+                        10px,
+                        env(safe-area-inset-right)
+                    );
+
+                bottom:
+                    calc(
+                        82px +
+                        max(
+                            0px,
+                            env(safe-area-inset-bottom)
+                        )
+                    );
+
+                width:
+                    auto;
+
+                max-width:
+                    none;
+
+                height:
+                    calc(
+                        100dvh - 105px
+                    );
+
+                max-height:
+                    calc(
+                        100dvh - 105px
+                    );
+
+                border-radius:
+                    16px;
+            }
+
+            .ai-assistant-header {
+
+                min-height:
+                    66px;
+
+                padding:
+                    10px 12px;
+            }
+
+            .ai-avatar {
+
+                width:
+                    39px;
+
+                height:
+                    39px;
+
+                min-width:
+                    39px;
+            }
+
+            .ai-title {
+
+                font-size:
+                    14px;
+            }
+
+            .ai-messages {
+
+                padding:
+                    14px;
+            }
+
+            .ai-message-content {
+
+                max-width:
+                    88%;
+
+                font-size:
+                    13px;
+            }
+
+            .ai-suggestions {
+
+                padding:
+                    0 14px 10px;
+
+                gap:
+                    6px;
+            }
+
+            .ai-suggestion {
+
+                font-size:
+                    10.5px;
+
+                padding:
+                    7px 9px;
+            }
+
+            .ai-input-area {
+
+                padding:
+                    9px;
+            }
+
+        }
+
+
+        /* ============================================================
+           SMALL MOBILE
+        ============================================================ */
+
+        @media (max-width: 480px) {
+
+            .ai-assistant-box {
+
+                left:
+                    7px;
+
+                right:
+                    7px;
+
+                bottom:
+                    calc(
+                        76px +
+                        max(
+                            0px,
+                            env(safe-area-inset-bottom)
+                        )
+                    );
+
+                height:
+                    calc(
+                        100dvh - 90px
+                    );
+
+                max-height:
+                    calc(
+                        100dvh - 90px
+                    );
+
+                border-radius:
+                    14px;
+            }
+
+            .ai-assistant-button {
+
+                width:
+                    56px;
+
+                height:
+                    56px;
+            }
+
+            .ai-message-content {
+
+                max-width:
+                    91%;
+
+                padding:
+                    9px 11px;
+            }
+
+            .ai-welcome {
+
+                padding:
+                    16px 5px 8px;
+            }
+
+            .ai-welcome-icon {
+
+                width:
+                    50px;
+
+                height:
+                    50px;
+            }
+
+            .ai-welcome h5 {
+
+                font-size:
+                    15px;
+            }
+
+            .ai-welcome p {
+
+                font-size:
+                    11px;
+            }
+
+        }
+
+
+        /* ============================================================
+           VERY SMALL DEVICES
+        ============================================================ */
+
+        @media (max-width: 360px) {
+
+            .ai-assistant-box {
+
+                left:
+                    5px;
+
+                right:
+                    5px;
+            }
+
+            .ai-message-content {
+
+                max-width:
+                    94%;
+
+                font-size:
+                    12px;
+            }
+
+            .ai-suggestion {
+
+                font-size:
+                    10px;
+
+                padding:
+                    6px 8px;
+            }
+
+        }
+
+
+        /* ============================================================
+           LANDSCAPE MOBILE
+        ============================================================ */
+
+        @media
+        (max-width: 767.98px)
+        and (orientation: landscape) {
+
+            .ai-assistant-box {
+
+                height:
+                    calc(
+                        100dvh - 80px
+                    );
+
+                max-height:
+                    calc(
+                        100dvh - 80px
+                    );
+
+                bottom:
+                    70px;
+            }
+
+            .ai-welcome {
+
+                padding:
+                    10px 5px;
+            }
+
+            .ai-welcome-icon {
+
+                width:
+                    42px;
+
+                height:
+                    42px;
+
+                margin-bottom:
+                    7px;
+            }
+
+            .ai-messages {
+
+                padding:
+                    10px;
+            }
+        }
+
+
+        /* ============================================================
+           DARK MODE SUPPORT
+        ============================================================ */
+
+        [data-bs-theme="dark"] .ai-assistant-box {
+
+            background:
+                #111827;
+
+            border-color:
+                #374151;
+        }
+
+        [data-bs-theme="dark"] .ai-messages {
+
+            background:
+                #0f172a;
+        }
+
+        [data-bs-theme="dark"] .ai-message.assistant
+        .ai-message-content {
+
+            background:
+                #1e293b;
+
+            color:
+                #e5e7eb;
+
+            border-color:
+                #334155;
+        }
+
+        [data-bs-theme="dark"] .ai-suggestions {
+
+            background:
+                #0f172a;
+        }
+
+        [data-bs-theme="dark"] .ai-suggestion {
+
+            background:
+                #1e293b;
+
+            border-color:
+                #334155;
+
+            color:
+                #93c5fd;
+        }
+
+        [data-bs-theme="dark"] .ai-input-area {
+
+            background:
+                #111827;
+
+            border-color:
+                #374151;
+        }
+
+        [data-bs-theme="dark"] #aiAssistantInput {
+
+            background:
+                #1e293b;
+
+            border-color:
+                #475569;
+
+            color:
+                #f8fafc;
+        }
+
+        [data-bs-theme="dark"] #aiAssistantInput:focus {
+
+            background:
+                #1e293b;
+
+            border-color:
+                #3b82f6;
+        }
+
+        [data-bs-theme="dark"] .ai-welcome h5 {
+
+            color:
+                #f8fafc;
+        }
+
+        [data-bs-theme="dark"] .ai-welcome p {
+
+            color:
+                #94a3b8;
+        }
+
+
+        /* ============================================================
+           REDUCED MOTION
+        ============================================================ */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .ai-assistant-box.active {
+
+                animation:
+                    none;
+            }
+
+            .ai-assistant-button,
+            .ai-send,
+            .ai-suggestion {
+
+                transition:
+                    none;
+            }
+
+            .ai-typing span {
+
+                animation:
+                    none;
+            }
+        }
+
+    </style>
 
 </head>
 
+
 <body>
+
+    <!-- ============================================================
+         CUSTOMIZER
+    ============================================================ -->
+
     {% include "backend/pages/partials/customizer.html" %}
+
+
+    <!-- ============================================================
+         NAVIGATION
+    ============================================================ -->
+
     {% include "backend/components/nav.html" %}
+
+
+    <!-- ============================================================
+         HEADER
+    ============================================================ -->
+
     {% include "backend/components/header.html" %}
 
+
+    <!-- ============================================================
+         MAIN CONTENT
+    ============================================================ -->
+
     <main class="nxl-container">
+
         <div class="nxl-content">
-        {% block content %}{% endblock %}
+
+            {% block content %}
+            {% endblock %}
+
         </div>
+
+
+        <!-- ========================================================
+             FOOTER
+        ======================================================== -->
+
         {% include "backend/components/footer.html" %}
+
     </main>
+
+
+    <!-- ============================================================
+         THEME CUSTOMIZER
+    ============================================================ -->
 
     {% include "backend/components/theme-customizer.html" %}
 
 
     <!-- ============================================================
-     AI ASSISTANT
-     ============================================================ -->
+         AI ASSISTANT BUTTON
+    ============================================================ -->
 
-<style>
-/* AI Assistant Button */
-.ai-assistant-button {
-    position: fixed;
-    right: 25px;
-    bottom: 25px;
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    border: none;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 99999;
-    box-shadow: 0 10px 30px rgba(37, 99, 235, .35);
-    transition: all .25s ease;
-}
+    <button
+        type="button"
+        class="ai-assistant-button"
+        id="aiAssistantButton"
+        title="AI Assistant"
+        aria-label="Open AI Assistant"
+        aria-controls="aiAssistantBox"
+        aria-expanded="false"
+    >
 
-.ai-assistant-button:hover {
-    transform: translateY(-3px) scale(1.04);
-    box-shadow: 0 14px 35px rgba(37, 99, 235, .45);
-}
+        <i data-feather="message-circle"></i>
 
-.ai-assistant-button i {
-    width: 27px;
-    height: 27px;
-}
-
-/* Chat Window */
-.ai-assistant-box {
-    position: fixed;
-    right: 25px;
-    bottom: 100px;
-    width: 390px;
-    max-width: calc(100vw - 30px);
-    height: 600px;
-    max-height: calc(100vh - 130px);
-    background: #fff;
-    border-radius: 18px;
-    overflow: hidden;
-    z-index: 99998;
-    box-shadow: 0 20px 60px rgba(0,0,0,.20);
-    border: 1px solid #e5e7eb;
-    display: none;
-    flex-direction: column;
-}
-
-.ai-assistant-box.active {
-    display: flex;
-    animation: aiOpen .2s ease;
-}
-
-@keyframes aiOpen {
-    from {
-        opacity: 0;
-        transform: translateY(15px) scale(.97);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* Header */
-.ai-assistant-header {
-    min-height: 72px;
-    padding: 13px 16px;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.ai-assistant-header-left {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-}
-
-.ai-avatar {
-    width: 43px;
-    height: 43px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.ai-avatar i {
-    width: 23px;
-    height: 23px;
-}
-
-.ai-title {
-    font-size: 15px;
-    font-weight: 700;
-    line-height: 1.2;
-}
-
-.ai-status {
-    margin-top: 3px;
-    font-size: 11px;
-    opacity: .85;
-}
-
-.ai-status-dot {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: #22c55e;
-    margin-right: 4px;
-}
-
-.ai-close {
-    width: 35px;
-    height: 35px;
-    border: none;
-    background: rgba(255,255,255,.12);
-    color: white;
-    border-radius: 9px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ai-close:hover {
-    background: rgba(255,255,255,.22);
-}
-
-/* Messages */
-.ai-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 17px;
-    background: #f8fafc;
-}
-
-.ai-message {
-    display: flex;
-    margin-bottom: 13px;
-}
-
-.ai-message.user {
-    justify-content: flex-end;
-}
-
-.ai-message-content {
-    max-width: 82%;
-    padding: 10px 13px;
-    border-radius: 13px;
-    font-size: 13px;
-    line-height: 1.55;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-.ai-message.assistant .ai-message-content {
-    background: #fff;
-    color: #334155;
-    border: 1px solid #e2e8f0;
-    border-top-left-radius: 4px;
-}
-
-.ai-message.user .ai-message-content {
-    background: #2563eb;
-    color: #fff;
-    border-top-right-radius: 4px;
-}
-
-/* Welcome */
-.ai-welcome {
-    text-align: center;
-    padding: 20px 8px 10px;
-}
-
-.ai-welcome-icon {
-    width: 55px;
-    height: 55px;
-    border-radius: 16px;
-    margin: 0 auto 12px;
-    background: #dbeafe;
-    color: #2563eb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ai-welcome-icon i {
-    width: 28px;
-    height: 28px;
-}
-
-.ai-welcome h5 {
-    margin: 0 0 6px;
-    font-weight: 700;
-    color: #1e293b;
-}
-
-.ai-welcome p {
-    margin: 0;
-    color: #64748b;
-    font-size: 12px;
-}
-
-/* Suggestions */
-.ai-suggestions {
-    padding: 0 17px 12px;
-    display: flex;
-    gap: 7px;
-    flex-wrap: wrap;
-    background: #f8fafc;
-}
-
-.ai-suggestion {
-    border: 1px solid #dbeafe;
-    background: #fff;
-    color: #2563eb;
-    border-radius: 20px;
-    padding: 7px 10px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: .2s;
-}
-
-.ai-suggestion:hover {
-    background: #eff6ff;
-    border-color: #93c5fd;
-}
-
-/* Input */
-.ai-input-area {
-    border-top: 1px solid #e5e7eb;
-    background: #fff;
-    padding: 11px;
-}
-
-.ai-input-wrapper {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-}
-
-#aiAssistantInput {
-    flex: 1;
-    min-height: 42px;
-    max-height: 110px;
-    resize: none;
-    border: 1px solid #dbe2ea;
-    border-radius: 12px;
-    padding: 10px 12px;
-    outline: none;
-    font-size: 13px;
-    color: #334155;
-    background: #f8fafc;
-}
-
-#aiAssistantInput:focus {
-    border-color: #2563eb;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.08);
-}
-
-.ai-send {
-    width: 42px;
-    height: 42px;
-    border: none;
-    border-radius: 11px;
-    background: #2563eb;
-    color: white;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.ai-send:hover {
-    background: #1d4ed8;
-}
-
-.ai-send:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-}
-
-.ai-send i {
-    width: 18px;
-    height: 18px;
-}
-
-/* Typing */
-.ai-typing {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-
-.ai-typing span {
-    width: 6px;
-    height: 6px;
-    background: #94a3b8;
-    border-radius: 50%;
-    animation: aiTyping 1.2s infinite;
-}
-
-.ai-typing span:nth-child(2) {
-    animation-delay: .15s;
-}
-
-.ai-typing span:nth-child(3) {
-    animation-delay: .3s;
-}
-
-@keyframes aiTyping {
-    0%, 60%, 100% {
-        transform: translateY(0);
-    }
-    30% {
-        transform: translateY(-4px);
-    }
-}
-
-/* Mobile */
-@media (max-width: 576px) {
-
-    .ai-assistant-button {
-        right: 15px;
-        bottom: 15px;
-    }
-
-    .ai-assistant-box {
-        right: 10px;
-        bottom: 88px;
-        width: calc(100vw - 20px);
-        height: calc(100vh - 110px);
-        max-height: none;
-        border-radius: 15px;
-    }
-}
-</style>
+    </button>
 
 
-<!-- AI Button -->
-<button
-    type="button"
-    class="ai-assistant-button"
-    id="aiAssistantButton"
-    title="AI Assistant">
+    <!-- ============================================================
+         AI ASSISTANT CHAT
+    ============================================================ -->
 
-    <i data-feather="message-circle"></i>
-</button>
-
-
-<!-- AI Chat -->
-<div class="ai-assistant-box" id="aiAssistantBox">
-
-    <!-- Header -->
-    <div class="ai-assistant-header">
-
-        <div class="ai-assistant-header-left">
-
-            <div class="ai-avatar">
-                <i data-feather="cpu"></i>
-            </div>
-
-            <div>
-                <div class="ai-title">
-                    AI Assistant
-                </div>
-
-                <div class="ai-status">
-                    <span class="ai-status-dot"></span>
-                    Online
-                </div>
-            </div>
-
-        </div>
-
-        <button
-            type="button"
-            class="ai-close"
-            id="aiAssistantClose">
-
-            <i data-feather="x"></i>
-
-        </button>
-
-    </div>
-
-
-    <!-- Messages -->
     <div
-        class="ai-messages"
-        id="aiAssistantMessages">
+        class="ai-assistant-box"
+        id="aiAssistantBox"
+        role="dialog"
+        aria-modal="false"
+        aria-label="AI Assistant"
+    >
 
-        <div class="ai-welcome">
 
-            <div class="ai-welcome-icon">
-                <i data-feather="cpu"></i>
+        <!-- ========================================================
+             HEADER
+        ======================================================== -->
+
+        <div class="ai-assistant-header">
+
+            <div class="ai-assistant-header-left">
+
+                <div class="ai-avatar">
+
+                    <i data-feather="cpu"></i>
+
+                </div>
+
+
+                <div>
+
+                    <div class="ai-title">
+                        AI Assistant
+                    </div>
+
+                    <div class="ai-status">
+
+                        <span
+                            class="ai-status-dot"
+                        ></span>
+
+                        Online
+
+                    </div>
+
+                </div>
+
             </div>
 
-            <h5>How can I help you?</h5>
-
-            <p>
-                Wax kasta oo aad rabto waad i waydiin kartaa.
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <!-- Suggestions -->
-    <div class="ai-suggestions" id="aiSuggestions">
-
-        <button
-            type="button"
-            class="ai-suggestion"
-            data-question="I caawi isticmaalka system-ka">
-            System-ka i caawi
-        </button>
-
-        <button
-            type="button"
-            class="ai-suggestion"
-            data-question="Sidee ayaan u arki karaa reports-kayga?">
-            Reports
-        </button>
-
-        <button
-            type="button"
-            class="ai-suggestion"
-            data-question="Sidee ayaan transaction cusub u sameeyaa?">
-            Transaction
-        </button>
-
-        <button
-            type="button"
-            class="ai-suggestion"
-            data-question="I sii talo ku saabsan sida aan lacagta u maamuli karo">
-            Financial Advice
-        </button>
-
-    </div>
-
-
-    <!-- Input -->
-    <div class="ai-input-area">
-
-        <div class="ai-input-wrapper">
-
-            <textarea
-                id="aiAssistantInput"
-                placeholder="Ask anything..."
-                rows="1"></textarea>
 
             <button
                 type="button"
-                class="ai-send"
-                id="aiAssistantSend">
+                class="ai-close"
+                id="aiAssistantClose"
+                aria-label="Close AI Assistant"
+            >
 
-                <i data-feather="send"></i>
+                <i data-feather="x"></i>
 
             </button>
 
         </div>
 
+
+        <!-- ========================================================
+             MESSAGES
+        ======================================================== -->
+
+        <div
+            class="ai-messages"
+            id="aiAssistantMessages"
+            aria-live="polite"
+        >
+
+            <div class="ai-welcome">
+
+                <div class="ai-welcome-icon">
+
+                    <i data-feather="cpu"></i>
+
+                </div>
+
+
+                <h5>
+                    How can I help you?
+                </h5>
+
+
+                <p>
+                    Wax kasta oo aad rabto waad i waydiin kartaa.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- ========================================================
+             QUICK QUESTIONS
+        ======================================================== -->
+
+        <div
+            class="ai-suggestions"
+            id="aiSuggestions"
+        >
+
+            <button
+                type="button"
+                class="ai-suggestion"
+                data-question="I caawi isticmaalka system-ka"
+            >
+                System-ka i caawi
+            </button>
+
+
+            <button
+                type="button"
+                class="ai-suggestion"
+                data-question="Sidee ayaan u arki karaa reports-kayga?"
+            >
+                Reports
+            </button>
+
+
+            <button
+                type="button"
+                class="ai-suggestion"
+                data-question="Sidee ayaan transaction cusub u sameeyaa?"
+            >
+                Transaction
+            </button>
+
+
+            <button
+                type="button"
+                class="ai-suggestion"
+                data-question="I sii talo ku saabsan sida aan lacagta u maamuli karo"
+            >
+                Financial Advice
+            </button>
+
+        </div>
+
+
+        <!-- ========================================================
+             INPUT
+        ======================================================== -->
+
+        <div class="ai-input-area">
+
+            <div class="ai-input-wrapper">
+
+                <textarea
+                    id="aiAssistantInput"
+                    placeholder="Ask anything..."
+                    rows="1"
+                    autocomplete="off"
+                    aria-label="Ask AI Assistant"
+                ></textarea>
+
+
+                <button
+                    type="button"
+                    class="ai-send"
+                    id="aiAssistantSend"
+                    aria-label="Send message"
+                >
+
+                    <i data-feather="send"></i>
+
+                </button>
+
+            </div>
+
+        </div>
+
     </div>
 
-</div>
 
+    <!-- ============================================================
+         VENDORS JS
+         IMPORTANT:
+         vendors.min.js must load before dependent scripts.
+    ============================================================ -->
 
-<script>
-document.addEventListener("DOMContentLoaded", function () {
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/vendors.min.js') }}"
+    ></script>
 
-    const button = document.getElementById("aiAssistantButton");
-    const box = document.getElementById("aiAssistantBox");
-    const close = document.getElementById("aiAssistantClose");
 
-    const input = document.getElementById("aiAssistantInput");
-    const send = document.getElementById("aiAssistantSend");
-    const messages = document.getElementById("aiAssistantMessages");
-    const suggestions = document.getElementById("aiSuggestions");
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/daterangepicker.min.js') }}"
+    ></script>
 
-    let conversationHistory = [];
 
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/apexcharts.min.js') }}"
+    ></script>
 
-    /* ============================================================
-       OPEN
-       ============================================================ */
 
-    button.addEventListener("click", function () {
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/circle-progress.min.js') }}"
+    ></script>
 
-        box.classList.add("active");
 
-        setTimeout(function () {
-            input.focus();
-        }, 150);
+    <!-- ============================================================
+         DATATABLES
+    ============================================================ -->
 
-        feather.replace();
-    });
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.min.js') }}"
+    ></script>
 
 
-    /* ============================================================
-       CLOSE
-       ============================================================ */
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.bs5.min.js') }}"
+    ></script>
 
-    close.addEventListener("click", function () {
-        box.classList.remove("active");
-    });
 
+    <!-- ============================================================
+         SELECT2
+    ============================================================ -->
 
-    /* ============================================================
-       ADD MESSAGE
-       ============================================================ */
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/select2.min.js') }}"
+    ></script>
 
-    function addMessage(text, type) {
 
-        const message = document.createElement("div");
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/select2-active.min.js') }}"
+    ></script>
 
-        message.className = "ai-message " + type;
 
-        const content = document.createElement("div");
+    <!-- ============================================================
+         DATEPICKER
+    ============================================================ -->
 
-        content.className = "ai-message-content";
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/datepicker.min.js') }}"
+    ></script>
 
-        content.textContent = text;
 
-        message.appendChild(content);
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/lslstrength.min.js') }}"
+    ></script>
 
-        messages.appendChild(message);
 
-        messages.scrollTop = messages.scrollHeight;
+    <!-- ============================================================
+         OTHER VENDORS
+    ============================================================ -->
 
-        return message;
-    }
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/jquery.print.min.js') }}"
+    ></script>
 
 
-    /* ============================================================
-       TYPING
-       ============================================================ */
+    <script
+        src="{{ url_for('static', filename='backend/assets/vendors/js/cleave.min.js') }}"
+    ></script>
 
-    function showTyping() {
 
-        const message = document.createElement("div");
+    <!-- ============================================================
+         FEATHER ICONS
+         MUST LOAD BEFORE AI SCRIPT
+    ============================================================ -->
 
-        message.className = "ai-message assistant";
+    <script
+        src="https://unpkg.com/feather-icons"
+    ></script>
 
-        message.id = "aiTypingMessage";
 
-        message.innerHTML = `
-            <div class="ai-message-content">
-                <div class="ai-typing">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        `;
+    <!-- ============================================================
+         APPS INIT
+    ============================================================ -->
 
-        messages.appendChild(message);
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/common-init.min.js') }}"
+    ></script>
 
-        messages.scrollTop = messages.scrollHeight;
-    }
 
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/dashboard-init.min.js') }}"
+    ></script>
 
-    function hideTyping() {
 
-        const typing = document.getElementById("aiTypingMessage");
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/leads-init.min.js') }}"
+    ></script>
 
-        if (typing) {
-            typing.remove();
-        }
-    }
 
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/customers-create-init.min.js') }}"
+    ></script>
 
-    /* ============================================================
-       SEND MESSAGE
-       ============================================================ */
 
-    async function sendMessage(customText = null) {
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/invoice-view-init.min.js') }}"
+    ></script>
 
-        const text = customText || input.value.trim();
 
-        if (!text) {
-            return;
-        }
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/invoice-create-init.min.js') }}"
+    ></script>
 
 
-        /* Remove welcome */
-        const welcome = messages.querySelector(".ai-welcome");
+    <!-- ============================================================
+         THEME CUSTOMIZER
+    ============================================================ -->
 
-        if (welcome) {
-            welcome.remove();
-        }
+    <script
+        src="{{ url_for('static', filename='backend/assets/js/theme-customizer-init.min.js') }}"
+    ></script>
 
 
-        /* User message */
-        addMessage(text, "user");
+    <!-- ============================================================
+         FEATHER INITIALIZE
+    ============================================================ -->
 
-        input.value = "";
-
-        input.style.height = "42px";
-
-        send.disabled = true;
-
-        suggestions.style.display = "none";
-
-        showTyping();
-
-
-        try {
-
-            const response = await fetch(
-                "{{ url_for('main.ai_assistant') }}",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Requested-With": "XMLHttpRequest"
-                    },
-
-                    body: JSON.stringify({
-
-                        message: text,
-
-                        history: conversationHistory
-
-                    })
-                }
-            );
-
-
-            const data = await response.json();
-
-            hideTyping();
-
-
-            if (!response.ok) {
-
-                addMessage(
-                    data.error || "Something went wrong.",
-                    "assistant"
-                );
-
-                return;
-            }
-
-
-            const answer = data.answer || "Ma helin jawaab.";
-
-            addMessage(answer, "assistant");
-
-
-            /* Save conversation */
-            conversationHistory.push({
-                role: "user",
-                content: text
-            });
-
-            conversationHistory.push({
-                role: "assistant",
-                content: answer
-            });
-
-
-            /* Keep history reasonable */
-            if (conversationHistory.length > 20) {
-                conversationHistory =
-                    conversationHistory.slice(-20);
-            }
-
-        }
-
-        catch (error) {
-
-            hideTyping();
-
-            console.error(error);
-
-            addMessage(
-                "AI Assistant lama xiriirin server-ka. Fadlan mar kale isku day.",
-                "assistant"
-            );
-
-        }
-
-        finally {
-
-            send.disabled = false;
-
-            input.focus();
-
-        }
-    }
-
-
-    /* ============================================================
-       SEND BUTTON
-       ============================================================ */
-
-    send.addEventListener("click", function () {
-        sendMessage();
-    });
-
-
-    /* ============================================================
-       ENTER TO SEND
-       SHIFT + ENTER = NEW LINE
-       ============================================================ */
-
-    input.addEventListener("keydown", function (event) {
+    <script>
 
         if (
-            event.key === "Enter" &&
-            !event.shiftKey
+            typeof feather !== "undefined"
         ) {
 
-            event.preventDefault();
-
-            sendMessage();
+            feather.replace();
 
         }
 
-    });
-
-
-    /* ============================================================
-       AUTO RESIZE
-       ============================================================ */
-
-    input.addEventListener("input", function () {
-
-        this.style.height = "42px";
-
-        this.style.height =
-            Math.min(this.scrollHeight, 110) + "px";
-
-    });
-
-
-    /* ============================================================
-       QUICK QUESTIONS
-       ============================================================ */
-
-    document.querySelectorAll(".ai-suggestion").forEach(function (item) {
-
-        item.addEventListener("click", function () {
-
-            const question =
-                this.getAttribute("data-question");
-
-            sendMessage(question);
-
-        });
-
-    });
-
-
-    feather.replace();
-
-});
-</script>
-    
-
-    <!--! BEGIN: Vendors JS !-->
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/vendors.min.js') }}"></script>
-    <!-- vendors.min.js {always must need to be top} -->
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/daterangepicker.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/apexcharts.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/circle-progress.min.js') }}"></script>
-    <!--! END: Vendors JS !-->
-
-    <!--! BEGIN: Apps Init !-->
-    <script src="{{ url_for('static', filename='backend/assets/js/common-init.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='backend/assets/js/dashboard-init.min.js') }}"></script>
-    <!--! END: Apps Init !-->
-
-    <!--! BEGIN: Theme Customizer !-->
-    <script src="{{ url_for('static', filename='backend/assets/js/theme-customizer-init.min.js') }}"></script>
-    
-    <!--! END: Theme Customizer !-->
-    <script src="https://unpkg.com/feather-icons"></script>
-    <script>
-    feather.replace()
     </script>
 
-  
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.min.js') }} "></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.bs5.min.js') }} "></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2.min.js') }} "></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2-active.min.js') }} "></script>
-    <!--! END: Vendors JS !-->
-    <script src="{{ url_for('static', filename='backend/assets/js/leads-init.min.js') }} "></script>
-    <!--! END: Apps Init !-->
-  
-       <!-- vendors.min.js {always must need to be top} -->
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/datepicker.min.js') }} "></script>
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/lslstrength.min.js') }} "></script>
-    <!--! END: Vendors JS !-->
-    <!--! BEGIN: Apps Init  !-->
-    <script src="{{ url_for('static', filename='backend/assets/js/customers-create-init.min.js') }} "></script>
-    <!--! END: Apps Init !-->
 
-    <script src="{{ url_for('static', filename='backend/assets/js/invoice-view-init.min.js') }} "></script>
+    <!-- ============================================================
+         AI ASSISTANT
+    ============================================================ -->
 
-      <!-- vendors.min.js {always must need to be top} -->
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/jquery.print.min.js') }} "></script>
-
-
-    <!-- vendors.min.js {always must need to be top} -->
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/cleave.min.js') }}"></script>
-    <!--! END: Vendors JS !-->
-    <script src="{{ url_for('static', filename='backend/assets/js/invoice-create-init.min.js') }} "></script>
-    <!--! END: Apps Init !-->
- 
     <script>
-        $(document).ready(function() {
-            var i = 1;
-            $("#add_row").click(function() {
-                b = i - 1;
-                $("#addr" + i)
-                    .html($("#addr" + b).html())
-                    .find("td:first-child")
-                    .html(i + 1);
-                $("#tab_logic").append('<tr id="addr' + (i + 1) + '"></tr>');
-                i++;
-            });
-            $("#delete_row").click(function() {
-                if (i > 1) {
-                    $("#addr" + (i - 1)).html("");
-                    i--;
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const button =
+                    document.getElementById(
+                        "aiAssistantButton"
+                    );
+
+                const box =
+                    document.getElementById(
+                        "aiAssistantBox"
+                    );
+
+                const close =
+                    document.getElementById(
+                        "aiAssistantClose"
+                    );
+
+                const input =
+                    document.getElementById(
+                        "aiAssistantInput"
+                    );
+
+                const send =
+                    document.getElementById(
+                        "aiAssistantSend"
+                    );
+
+                const messages =
+                    document.getElementById(
+                        "aiAssistantMessages"
+                    );
+
+                const suggestions =
+                    document.getElementById(
+                        "aiSuggestions"
+                    );
+
+
+                let conversationHistory = [];
+
+
+                /* =================================================
+                   OPEN
+                ================================================= */
+
+                function openAssistant() {
+
+                    box.classList.add("active");
+
+                    button.setAttribute(
+                        "aria-expanded",
+                        "true"
+                    );
+
+                    setTimeout(
+                        function () {
+
+                            input.focus();
+
+                        },
+                        150
+                    );
+
+
+                    if (
+                        typeof feather !== "undefined"
+                    ) {
+
+                        feather.replace();
+
+                    }
+
                 }
-                calc();
-            });
-            $("#tab_logic tbody").on("keyup change", function() {
-                calc();
-            });
-            $("#tax").on("keyup change", function() {
-                calc_total();
-            });
-        });
+
+
+                /* =================================================
+                   CLOSE
+                ================================================= */
+
+                function closeAssistant() {
+
+                    box.classList.remove(
+                        "active"
+                    );
+
+                    button.setAttribute(
+                        "aria-expanded",
+                        "false"
+                    );
+
+                }
+
+
+                button.addEventListener(
+                    "click",
+                    openAssistant
+                );
+
+
+                close.addEventListener(
+                    "click",
+                    closeAssistant
+                );
+
+
+                /* =================================================
+                   ESCAPE KEY
+                ================================================= */
+
+                document.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Escape" &&
+                            box.classList.contains("active")
+                        ) {
+
+                            closeAssistant();
+
+                        }
+
+                    }
+                );
+
+
+                /* =================================================
+                   ADD MESSAGE
+                ================================================= */
+
+                function addMessage(
+                    text,
+                    type
+                ) {
+
+                    const message =
+                        document.createElement(
+                            "div"
+                        );
+
+                    message.className =
+                        "ai-message " +
+                        type;
+
+
+                    const content =
+                        document.createElement(
+                            "div"
+                        );
+
+                    content.className =
+                        "ai-message-content";
+
+
+                    content.textContent =
+                        String(text || "");
+
+
+                    message.appendChild(
+                        content
+                    );
+
+
+                    messages.appendChild(
+                        message
+                    );
+
+
+                    messages.scrollTop =
+                        messages.scrollHeight;
+
+
+                    return message;
+                }
+
+
+                /* =================================================
+                   TYPING
+                ================================================= */
+
+                function showTyping() {
+
+                    hideTyping();
+
+
+                    const message =
+                        document.createElement(
+                            "div"
+                        );
+
+                    message.className =
+                        "ai-message assistant";
+
+
+                    message.id =
+                        "aiTypingMessage";
+
+
+                    message.innerHTML = `
+                        <div class="ai-message-content">
+                            <div class="ai-typing">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                    `;
+
+
+                    messages.appendChild(
+                        message
+                    );
+
+
+                    messages.scrollTop =
+                        messages.scrollHeight;
+
+                }
+
+
+                function hideTyping() {
+
+                    const typing =
+                        document.getElementById(
+                            "aiTypingMessage"
+                        );
+
+
+                    if (typing) {
+
+                        typing.remove();
+
+                    }
+
+                }
+
+
+                /* =================================================
+                   SEND MESSAGE
+                ================================================= */
+
+                async function sendMessage(
+                    customText = null
+                ) {
+
+                    const text =
+                        (
+                            customText !== null
+                                ? customText
+                                : input.value
+                        )
+                        .trim();
+
+
+                    if (!text) {
+
+                        return;
+
+                    }
+
+
+                    /* Remove welcome */
+
+                    const welcome =
+                        messages.querySelector(
+                            ".ai-welcome"
+                        );
+
+
+                    if (welcome) {
+
+                        welcome.remove();
+
+                    }
+
+
+                    /* User message */
+
+                    addMessage(
+                        text,
+                        "user"
+                    );
+
+
+                    input.value = "";
+
+                    input.style.height =
+                        "42px";
+
+
+                    send.disabled =
+                        true;
+
+
+                    suggestions.style.display =
+                        "none";
+
+
+                    showTyping();
+
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                "{{ url_for('main.ai_assistant') }}",
+                                {
+                                    method:
+                                        "POST",
+
+                                    headers: {
+                                        "Content-Type":
+                                            "application/json",
+
+                                        "X-Requested-With":
+                                            "XMLHttpRequest"
+                                    },
+
+                                    credentials:
+                                        "same-origin",
+
+                                    body:
+                                        JSON.stringify(
+                                            {
+                                                message:
+                                                    text,
+
+                                                history:
+                                                    conversationHistory
+                                            }
+                                        )
+                                }
+                            );
+
+
+                        let data = {};
+
+                        try {
+
+                            data =
+                                await response.json();
+
+                        }
+                        catch (
+                            jsonError
+                        ) {
+
+                            data = {};
+
+                        }
+
+
+                        hideTyping();
+
+
+                        if (
+                            !response.ok
+                        ) {
+
+                            addMessage(
+                                data.error ||
+                                "Something went wrong. Please try again.",
+                                "assistant"
+                            );
+
+                            return;
+
+                        }
+
+
+                        const answer =
+                            data.answer ||
+                            "Ma helin jawaab.";
+
+
+                        addMessage(
+                            answer,
+                            "assistant"
+                        );
+
+
+                        /* Save history */
+
+                        conversationHistory.push(
+                            {
+                                role:
+                                    "user",
+
+                                content:
+                                    text
+                            }
+                        );
+
+
+                        conversationHistory.push(
+                            {
+                                role:
+                                    "assistant",
+
+                                content:
+                                    answer
+                            }
+                        );
+
+
+                        /* Keep last 20 messages */
+
+                        if (
+                            conversationHistory.length >
+                            20
+                        ) {
+
+                            conversationHistory =
+                                conversationHistory.slice(
+                                    -20
+                                );
+
+                        }
+
+                    }
+                    catch (
+                        error
+                    ) {
+
+                        hideTyping();
+
+
+                        console.error(
+                            "AI Assistant Error:",
+                            error
+                        );
+
+
+                        addMessage(
+                            "AI Assistant lama xiriirin server-ka. Fadlan mar kale isku day.",
+                            "assistant"
+                        );
+
+                    }
+                    finally {
+
+                        send.disabled =
+                            false;
+
+
+                        input.focus();
+
+                    }
+
+                }
+
+
+                /* =================================================
+                   SEND BUTTON
+                ================================================= */
+
+                send.addEventListener(
+                    "click",
+                    function () {
+
+                        sendMessage();
+
+                    }
+                );
+
+
+                /* =================================================
+                   ENTER
+                   SHIFT + ENTER = NEW LINE
+                ================================================= */
+
+                input.addEventListener(
+                    "keydown",
+                    function (event) {
+
+                        if (
+                            event.key === "Enter" &&
+                            !event.shiftKey
+                        ) {
+
+                            event.preventDefault();
+
+                            sendMessage();
+
+                        }
+
+                    }
+                );
+
+
+                /* =================================================
+                   AUTO RESIZE
+                ================================================= */
+
+                input.addEventListener(
+                    "input",
+                    function () {
+
+                        this.style.height =
+                            "42px";
+
+
+                        this.style.height =
+                            Math.min(
+                                this.scrollHeight,
+                                110
+                            ) + "px";
+
+                    }
+                );
+
+
+                /* =================================================
+                   QUICK QUESTIONS
+                ================================================= */
+
+                document
+                    .querySelectorAll(
+                        ".ai-suggestion"
+                    )
+                    .forEach(
+                        function (item) {
+
+                            item.addEventListener(
+                                "click",
+                                function () {
+
+                                    const question =
+                                        this.getAttribute(
+                                            "data-question"
+                                        );
+
+
+                                    sendMessage(
+                                        question
+                                    );
+
+                                }
+                            );
+
+                        }
+                    );
+
+
+                /* =================================================
+                   INITIAL FEATHER
+                ================================================= */
+
+                if (
+                    typeof feather !== "undefined"
+                ) {
+
+                    feather.replace();
+
+                }
+
+            }
+        );
+
+    </script>
+
+
+    <!-- ============================================================
+         INVOICE / ROW CALCULATOR
+    ============================================================ -->
+
+    <script>
+
+        $(document).ready(
+            function () {
+
+                let i = 1;
+
+
+                $("#add_row").click(
+                    function () {
+
+                        const previousRow =
+                            i - 1;
+
+
+                        const previous =
+                            $("#addr" + previousRow);
+
+
+                        if (!previous.length) {
+
+                            return;
+
+                        }
+
+
+                        $("#addr" + i)
+                            .html(
+                                previous.html()
+                            )
+                            .find(
+                                "td:first-child"
+                            )
+                            .html(
+                                i + 1
+                            );
+
+
+                        $("#tab_logic").append(
+                            '<tr id="addr' +
+                            (i + 1) +
+                            '"></tr>'
+                        );
+
+
+                        i++;
+
+                    }
+                );
+
+
+                $("#delete_row").click(
+                    function () {
+
+                        if (i > 1) {
+
+                            $("#addr" + (i - 1))
+                                .remove();
+
+                            i--;
+
+                        }
+
+                        calc();
+
+                    }
+                );
+
+
+                $("#tab_logic tbody").on(
+                    "keyup change",
+                    function () {
+
+                        calc();
+
+                    }
+                );
+
+
+                $("#tax").on(
+                    "keyup change",
+                    function () {
+
+                        calc_total();
+
+                    }
+                );
+
+            }
+        );
+
 
         function calc() {
-            $("#tab_logic tbody tr").each(function(i, element) {
-                var html = $(this).html();
-                if (html != "") {
-                    var qty = $(this).find(".qty").val();
-                    var price = $(this).find(".price").val();
-                    $(this)
-                        .find(".total")
-                        .val(qty * price);
-                    calc_total();
+
+            $("#tab_logic tbody tr").each(
+                function () {
+
+                    const row =
+                        $(this);
+
+
+                    if (
+                        !row.html()
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const qty =
+                        parseFloat(
+                            row.find(".qty").val()
+                        ) || 0;
+
+
+                    const price =
+                        parseFloat(
+                            row.find(".price").val()
+                        ) || 0;
+
+
+                    const total =
+                        qty * price;
+
+
+                    row.find(".total")
+                        .val(
+                            total.toFixed(2)
+                        );
+
                 }
-            });
+            );
+
+
+            calc_total();
+
         }
+
 
         function calc_total() {
-            total = 0;
-            $(".total").each(function() {
-                total += parseInt($(this).val());
-            });
-            $("#sub_total").val(total.toFixed(2));
-            tax_sum = (total / 100) * $("#tax").val();
-            $("#tax_amount").val(tax_sum.toFixed(2));
-            $("#total_amount").val((tax_sum + total).toFixed(2));
+
+            let total = 0;
+
+
+            $(".total").each(
+                function () {
+
+                    total +=
+                        parseFloat(
+                            $(this).val()
+                        ) || 0;
+
+                }
+            );
+
+
+            const tax =
+                parseFloat(
+                    $("#tax").val()
+                ) || 0;
+
+
+            const taxAmount =
+                (
+                    total *
+                    tax
+                ) / 100;
+
+
+            $("#sub_total")
+                .val(
+                    total.toFixed(2)
+                );
+
+
+            $("#tax_amount")
+                .val(
+                    taxAmount.toFixed(2)
+                );
+
+
+            $("#total_amount")
+                .val(
+                    (
+                        total +
+                        taxAmount
+                    ).toFixed(2)
+                );
+
         }
+
     </script>
 
-    <!-- SweetAlert2 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-<!-- Flash message handling with SweetAlert2 -->
-<script>
-   // Flash message handling with SweetAlert2
-   const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
-   
-   if (flashMessages.length > 0) {
-       const [category, message] = flashMessages[0];
-   
-       const Toast = Swal.mixin({
-           toast: true,
-           position: 'top-end',
-           showConfirmButton: false,
-           timer: 3000,
-           timerProgressBar: true,
-           background: '#fff',
-           color: '#333',
-           didOpen: (toast) => {
-               toast.addEventListener('mouseenter', Swal.stopTimer)
-               toast.addEventListener('mouseleave', Swal.resumeTimer)
-           }
-       });
-   
-       Toast.fire({
-           icon: category === "success" ? "success" : "info",
-           title: message
-       });
-   }
-</script>
+    <!-- ============================================================
+         SWEETALERT2
+    ============================================================ -->
 
+    <script
+        src="https://cdn.jsdelivr.net/npm/sweetalert2@11"
+    ></script>
+
+
+    <!-- ============================================================
+         FLASH MESSAGE
+    ============================================================ -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                const flashMessages =
+                    {{ get_flashed_messages(
+                        with_categories=True
+                    ) | tojson | safe }};
+
+
+                if (
+                    !Array.isArray(
+                        flashMessages
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                if (
+                    typeof Swal === "undefined"
+                ) {
+
+                    return;
+
+                }
+
+
+                const Toast =
+                    Swal.mixin(
+                        {
+                            toast:
+                                true,
+
+                            position:
+                                "top-end",
+
+                            showConfirmButton:
+                                false,
+
+                            timer:
+                                3500,
+
+                            timerProgressBar:
+                                true,
+
+                            background:
+                                "#ffffff",
+
+                            color:
+                                "#333333",
+
+                            didOpen:
+                                function (toast) {
+
+                                    toast.addEventListener(
+                                        "mouseenter",
+                                        Swal.stopTimer
+                                    );
+
+                                    toast.addEventListener(
+                                        "mouseleave",
+                                        Swal.resumeTimer
+                                    );
+
+                                }
+                        }
+                    );
+
+
+                flashMessages.forEach(
+                    function (item) {
+
+                        const category =
+                            item[0] ||
+                            "info";
+
+
+                        const message =
+                            item[1] ||
+                            "";
+
+
+                        let icon =
+                            "info";
+
+
+                        if (
+                            category ===
+                            "success"
+                        ) {
+
+                            icon =
+                                "success";
+
+                        }
+                        else if (
+                            category ===
+                            "danger" ||
+                            category ===
+                            "error"
+                        ) {
+
+                            icon =
+                                "error";
+
+                        }
+                        else if (
+                            category ===
+                            "warning"
+                        ) {
+
+                            icon =
+                                "warning";
+
+                        }
+
+
+                        Toast.fire(
+                            {
+                                icon:
+                                    icon,
+
+                                title:
+                                    message
+                            }
+                        );
+
+                    }
+                );
+
+            }
+        );
+
+    </script>
 
 
 </body>
 
 </html>
+
