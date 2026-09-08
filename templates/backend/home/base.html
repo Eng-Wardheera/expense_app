@@ -1,1177 +1,76 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zxx">
 
 <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="x-ua-compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="keyword" content="" />
+    <meta name="author" content="flexilecode" />
 
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!--! BEGIN: Apps Title-->
+    <title>{% block title %} Dashboard | Expense Management {% endblock %}</title>
+    <!--! END: Apps Title-->
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, viewport-fit=cover">
-
-    <meta name="description"
-          content="Expense Management System">
-
-    <meta name="keywords"
-          content="expense, income, finance, management, reports">
-
-    <meta name="author"
-          content="FlexileCode">
-
-    <title>
-        {% block title %}
-        Dashboard | Expense Management
-        {% endblock %}
-    </title>
-
-
-    <!-- =========================================================
-         FAVICON
-    ========================================================== -->
-
+    <!--! BEGIN: Favicon-->
     <link rel="shortcut icon"
-          type="image/x-icon"
-          href="{{ url_for('static', filename='frontend/images/logo-upper.png') }}">
+        type="image/x-icon"
+        href="{{ url_for('static', filename='frontend/images/logo-upper.png') }}" />
+    <!--! END: Favicon-->
 
+    <!--! BEGIN: Bootstrap CSS-->
+    <link rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/bootstrap.min.css') }}" />
+    <!--! END: Bootstrap CSS-->
 
-    <!-- =========================================================
-         BOOTSTRAP
-    ========================================================== -->
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/vendors.min.css') }}" />
 
     <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/css/bootstrap.min.css') }}">
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/daterangepicker.min.css') }}" />
+    <!--! END: Vendors CSS-->
 
-
-    <!-- =========================================================
-         VENDORS
-    ========================================================== -->
+    <!--! BEGIN: Vendors CSS-->
+    <link rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/dataTables.bs5.min.css') }}">
 
     <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/vendors.min.css') }}">
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/select2.min.css') }}">
 
     <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/daterangepicker.min.css') }}">
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/select2-theme.min.css') }}">
+    <!--! END: Vendors CSS-->
+
+    <!--! BEGIN: Custom CSS-->
+    <link rel="stylesheet"
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/css/theme.min.css') }}" />
 
     <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/dataTables.bs5.min.css') }}">
-
-    <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/select2.min.css') }}">
-
-    <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/select2-theme.min.css') }}">
-
-    <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/vendors/css/datepicker.min.css') }}">
-
-
-    <!-- =========================================================
-         THEME
-    ========================================================== -->
-
-    <link rel="stylesheet"
-          type="text/css"
-          href="{{ url_for('static', filename='backend/assets/css/theme.min.css') }}">
-
-
-    <!-- =========================================================
-         FEATHER ICONS
-    ========================================================== -->
-
-    <script src="https://unpkg.com/feather-icons"></script>
-
-
-    <!-- =========================================================
-         SWEETALERT
-    ========================================================== -->
-
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-    <!-- =========================================================
-         CUSTOM RESPONSIVE CSS
-    ========================================================== -->
-
-    <style>
-
-        /* =====================================================
-           GLOBAL
-        ====================================================== */
-
-        html,
-        body {
-            max-width: 100%;
-            overflow-x: hidden;
-        }
-
-        body {
-            min-height: 100vh;
-        }
-
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-
-        table {
-            max-width: 100%;
-        }
-
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        input,
-        textarea,
-        select,
-        button {
-            max-width: 100%;
-        }
-
-
-        /* =====================================================
-           AI ASSISTANT BUTTON
-        ====================================================== */
-
-        .ai-assistant-button {
-            position: fixed;
-
-            right: 24px;
-            bottom: 24px;
-
-            width: 58px;
-            height: 58px;
-
-            border: 0;
-            border-radius: 50%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            z-index: 99998;
-
-            cursor: pointer;
-
-            box-shadow:
-                0 10px 30px rgba(0, 0, 0, 0.20);
-
-            transition:
-                transform 0.2s ease,
-                box-shadow 0.2s ease;
-        }
-
-        .ai-assistant-button:hover {
-            transform: translateY(-3px);
-
-            box-shadow:
-                0 14px 35px rgba(0, 0, 0, 0.25);
-        }
-
-        .ai-assistant-button:active {
-            transform: scale(0.94);
-        }
-
-        .ai-assistant-button svg {
-            width: 25px;
-            height: 25px;
-        }
-
-
-        /* =====================================================
-           AI ASSISTANT BOX
-        ====================================================== */
-
-        .ai-assistant-box {
-            position: fixed;
-
-            right: 24px;
-            bottom: 95px;
-
-            width: 390px;
-            max-width: calc(100vw - 32px);
-
-            height: min(650px, calc(100vh - 125px));
-
-            min-height: 420px;
-
-            display: none;
-            flex-direction: column;
-
-            overflow: hidden;
-
-            border-radius: 18px;
-
-            z-index: 99999;
-
-            background: var(--bs-body-bg, #ffffff);
-
-            border: 1px solid rgba(0, 0, 0, 0.08);
-
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.20);
-        }
-
-        .ai-assistant-box.active {
-            display: flex;
-        }
-
-
-        /* =====================================================
-           AI HEADER
-        ====================================================== */
-
-        .ai-assistant-header {
-            flex: 0 0 auto;
-
-            min-height: 70px;
-
-            padding: 13px 15px;
-
-            display: flex;
-            align-items: center;
-
-            gap: 11px;
-
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-        }
-
-        .ai-avatar {
-            width: 42px;
-            height: 42px;
-
-            flex: 0 0 42px;
-
-            border-radius: 50%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background: #435ebe;
-            color: #fff;
-        }
-
-        .ai-avatar svg {
-            width: 21px;
-            height: 21px;
-        }
-
-        .ai-header-info {
-            min-width: 0;
-            flex: 1;
-        }
-
-        .ai-header-title {
-            margin: 0;
-
-            font-size: 15px;
-            font-weight: 700;
-
-            line-height: 1.2;
-        }
-
-        .ai-header-status {
-            display: flex;
-            align-items: center;
-
-            gap: 5px;
-
-            margin-top: 3px;
-
-            font-size: 11px;
-
-            opacity: 0.7;
-        }
-
-        .ai-status-dot {
-            width: 7px;
-            height: 7px;
-
-            border-radius: 50%;
-
-            background: #22c55e;
-        }
-
-        .ai-close {
-            width: 34px;
-            height: 34px;
-
-            border: 0;
-            border-radius: 8px;
-
-            background: transparent;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            cursor: pointer;
-
-            flex: 0 0 auto;
-        }
-
-        .ai-close:hover {
-            background: rgba(0, 0, 0, 0.06);
-        }
-
-        .ai-close svg {
-            width: 18px;
-            height: 18px;
-        }
-
-
-        /* =====================================================
-           MESSAGES CONTAINER
-        ====================================================== */
-
-        .ai-messages {
-            flex: 1 1 auto;
-
-            overflow-y: auto;
-            overflow-x: hidden;
-
-            padding: 18px 14px;
-
-            scroll-behavior: smooth;
-
-            overscroll-behavior: contain;
-        }
-
-        .ai-messages::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .ai-messages::-webkit-scrollbar-thumb {
-            background: rgba(128, 128, 128, 0.30);
-            border-radius: 20px;
-        }
-
-
-        /* =====================================================
-           WELCOME
-        ====================================================== */
-
-        .ai-welcome {
-            text-align: center;
-
-            padding: 30px 12px 20px;
-        }
-
-        .ai-welcome-icon {
-            width: 62px;
-            height: 62px;
-
-            margin: 0 auto 15px;
-
-            border-radius: 50%;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background: rgba(67, 94, 190, 0.10);
-        }
-
-        .ai-welcome-icon svg {
-            width: 29px;
-            height: 29px;
-        }
-
-        .ai-welcome h5 {
-            margin-bottom: 7px;
-
-            font-size: 17px;
-            font-weight: 700;
-        }
-
-        .ai-welcome p {
-            margin: 0 auto;
-
-            max-width: 280px;
-
-            font-size: 13px;
-            line-height: 1.6;
-
-            opacity: 0.7;
-        }
-
-
-        /* =====================================================
-           MESSAGE ROW
-        ====================================================== */
-
-        .ai-message-row {
-            display: flex;
-
-            width: 100%;
-
-            margin-bottom: 14px;
-
-            position: relative;
-        }
-
-        .ai-message-row.user {
-            justify-content: flex-end;
-        }
-
-        .ai-message-row.assistant {
-            justify-content: flex-start;
-        }
-
-
-        /* =====================================================
-           MESSAGE WRAPPER
-        ====================================================== */
-
-        .ai-message-wrapper {
-            position: relative;
-
-            max-width: 82%;
-
-            display: flex;
-            flex-direction: column;
-        }
-
-        .ai-message-row.user .ai-message-wrapper {
-            align-items: flex-end;
-        }
-
-        .ai-message-row.assistant .ai-message-wrapper {
-            align-items: flex-start;
-        }
-
-
-        /* =====================================================
-           MESSAGE BUBBLE
-        ====================================================== */
-
-        .ai-message {
-            position: relative;
-
-            padding: 10px 13px;
-
-            border-radius: 15px;
-
-            font-size: 13px;
-            line-height: 1.55;
-
-            word-break: break-word;
-            overflow-wrap: anywhere;
-
-            white-space: pre-wrap;
-        }
-
-        .ai-message.user {
-            border-bottom-right-radius: 4px;
-
-            background: #435ebe;
-            color: #fff;
-        }
-
-        .ai-message.assistant {
-            border-bottom-left-radius: 4px;
-
-            background: rgba(128, 128, 128, 0.10);
-        }
-
-
-        /* =====================================================
-           MESSAGE TIME
-        ====================================================== */
-
-        .ai-message-time {
-            margin-top: 4px;
-
-            padding: 0 4px;
-
-            font-size: 9px;
-
-            opacity: 0.55;
-        }
-
-
-        /* =====================================================
-           MESSAGE ACTION POPUP
-        ====================================================== */
-
-        .ai-message-actions {
-            position: absolute;
-
-            top: -9px;
-
-            display: flex;
-            align-items: center;
-
-            gap: 3px;
-
-            padding: 4px;
-
-            border-radius: 10px;
-
-            background: var(--bs-body-bg, #fff);
-
-            border: 1px solid rgba(0, 0, 0, 0.08);
-
-            box-shadow:
-                0 6px 22px rgba(0, 0, 0, 0.14);
-
-            opacity: 0;
-            visibility: hidden;
-
-            transform: translateY(4px) scale(0.96);
-
-            transition:
-                opacity 0.15s ease,
-                visibility 0.15s ease,
-                transform 0.15s ease;
-
-            z-index: 20;
-        }
-
-        .ai-message-row.user .ai-message-actions {
-            right: 7px;
-        }
-
-        .ai-message-row.assistant .ai-message-actions {
-            left: 7px;
-        }
-
-
-        /* Show popup on mouse hover */
-
-        .ai-message-row:hover .ai-message-actions,
-
-        /* Show when keyboard focuses */
-
-        .ai-message-row:focus-within .ai-message-actions,
-
-        /* JS controlled mobile state */
-
-        .ai-message-row.actions-open .ai-message-actions {
-            opacity: 1;
-            visibility: visible;
-
-            transform: translateY(0) scale(1);
-        }
-
-
-        /* =====================================================
-           ACTION BUTTON
-        ====================================================== */
-
-        .ai-message-action {
-            height: 30px;
-
-            min-width: 30px;
-
-            padding: 0 7px;
-
-            border: 0;
-            border-radius: 7px;
-
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            gap: 5px;
-
-            background: transparent;
-
-            cursor: pointer;
-
-            font-size: 10px;
-
-            transition:
-                background 0.15s ease,
-                color 0.15s ease;
-        }
-
-        .ai-message-action svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        .ai-message-action:hover {
-            background: rgba(67, 94, 190, 0.10);
-        }
-
-        .ai-message-action.delete:hover {
-            background: rgba(220, 53, 69, 0.10);
-            color: #dc3545;
-        }
-
-        .ai-message-action.edit:hover {
-            background: rgba(25, 135, 84, 0.10);
-            color: #198754;
-        }
-
-
-        /* =====================================================
-           ACTION TEXT
-        ====================================================== */
-
-        .ai-action-label {
-            display: none;
-            white-space: nowrap;
-        }
-
-        @media (min-width: 700px) {
-
-            .ai-message-action {
-                padding: 0 9px;
-            }
-
-            .ai-action-label {
-                display: inline;
-            }
-        }
-
-
-        /* =====================================================
-           MOBILE ACTION MENU BUTTON
-        ====================================================== */
-
-        .ai-mobile-more {
-            position: absolute;
-
-            width: 28px;
-            height: 28px;
-
-            top: 1px;
-
-            display: none;
-            align-items: center;
-            justify-content: center;
-
-            border: 0;
-            border-radius: 50%;
-
-            background: transparent;
-
-            opacity: 0.5;
-
-            cursor: pointer;
-
-            z-index: 10;
-        }
-
-        .ai-message-row.user .ai-mobile-more {
-            left: -32px;
-        }
-
-        .ai-message-row.assistant .ai-mobile-more {
-            right: -32px;
-        }
-
-        .ai-mobile-more svg {
-            width: 16px;
-            height: 16px;
-        }
-
-
-        /* =====================================================
-           SUGGESTIONS
-        ====================================================== */
-
-        .ai-suggestions {
-            flex: 0 0 auto;
-
-            display: flex;
-
-            gap: 7px;
-
-            padding: 0 13px 10px;
-
-            overflow-x: auto;
-
-            scrollbar-width: none;
-        }
-
-        .ai-suggestions::-webkit-scrollbar {
-            display: none;
-        }
-
-        .ai-suggestion {
-            flex: 0 0 auto;
-
-            padding: 7px 10px;
-
-            border-radius: 20px;
-
-            border: 1px solid rgba(67, 94, 190, 0.20);
-
-            background: transparent;
-
-            cursor: pointer;
-
-            font-size: 10px;
-
-            white-space: nowrap;
-
-            transition:
-                background 0.15s ease,
-                color 0.15s ease;
-        }
-
-        .ai-suggestion:hover {
-            background: #435ebe;
-            color: #fff;
-        }
-
-
-        /* =====================================================
-           INPUT AREA
-        ====================================================== */
-
-        .ai-input-area {
-            flex: 0 0 auto;
-
-            display: flex;
-            align-items: flex-end;
-
-            gap: 8px;
-
-            padding: 10px 12px;
-
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
-
-            background: var(--bs-body-bg, #fff);
-        }
-
-        #aiAssistantInput {
-            flex: 1;
-
-            width: 100%;
-
-            min-height: 42px;
-            max-height: 130px;
-
-            resize: none;
-
-            padding: 10px 12px;
-
-            border-radius: 12px;
-
-            border: 1px solid rgba(128, 128, 128, 0.25);
-
-            outline: none;
-
-            background: transparent;
-
-            font-size: 13px;
-
-            line-height: 1.45;
-        }
-
-        #aiAssistantInput:focus {
-            border-color: #435ebe;
-
-            box-shadow:
-                0 0 0 3px rgba(67, 94, 190, 0.10);
-        }
-
-        .ai-send-button {
-            width: 42px;
-            height: 42px;
-
-            flex: 0 0 42px;
-
-            border: 0;
-
-            border-radius: 12px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            cursor: pointer;
-
-            background: #435ebe;
-            color: #fff;
-
-            transition:
-                transform 0.15s ease,
-                opacity 0.15s ease;
-        }
-
-        .ai-send-button:hover {
-            transform: translateY(-1px);
-        }
-
-        .ai-send-button:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .ai-send-button svg {
-            width: 17px;
-            height: 17px;
-        }
-
-
-        /* =====================================================
-           EDIT MODE
-        ====================================================== */
-
-        .ai-editing-bar {
-            display: none;
-
-            align-items: center;
-            justify-content: space-between;
-
-            gap: 10px;
-
-            padding: 7px 12px;
-
-            border-top: 1px solid rgba(67, 94, 190, 0.12);
-
-            background: rgba(67, 94, 190, 0.05);
-
-            font-size: 11px;
-        }
-
-        .ai-editing-bar.active {
-            display: flex;
-        }
-
-        .ai-editing-label {
-            display: flex;
-            align-items: center;
-
-            gap: 6px;
-
-            min-width: 0;
-        }
-
-        .ai-editing-label svg {
-            width: 14px;
-            height: 14px;
-
-            flex: 0 0 auto;
-        }
-
-        .ai-cancel-edit {
-            border: 0;
-
-            background: transparent;
-
-            font-size: 11px;
-
-            cursor: pointer;
-
-            opacity: 0.7;
-        }
-
-        .ai-cancel-edit:hover {
-            opacity: 1;
-        }
-
-
-        /* =====================================================
-           TYPING
-        ====================================================== */
-
-        .ai-typing {
-            display: flex;
-            align-items: center;
-
-            gap: 4px;
-
-            padding: 4px 2px;
-        }
-
-        .ai-typing span {
-            width: 6px;
-            height: 6px;
-
-            border-radius: 50%;
-
-            background: currentColor;
-
-            opacity: 0.45;
-
-            animation: aiTyping 1.2s infinite ease-in-out;
-        }
-
-        .ai-typing span:nth-child(2) {
-            animation-delay: 0.15s;
-        }
-
-        .ai-typing span:nth-child(3) {
-            animation-delay: 0.30s;
-        }
-
-        @keyframes aiTyping {
-
-            0%,
-            60%,
-            100% {
-                transform: translateY(0);
-                opacity: 0.35;
-            }
-
-            30% {
-                transform: translateY(-4px);
-                opacity: 1;
-            }
-        }
-
-
-        /* =====================================================
-           DARK MODE
-        ====================================================== */
-
-        [data-bs-theme="dark"] .ai-assistant-box {
-            border-color: rgba(255, 255, 255, 0.08);
-
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.50);
-        }
-
-        [data-bs-theme="dark"] .ai-assistant-header,
-        [data-bs-theme="dark"] .ai-input-area {
-            border-color: rgba(255, 255, 255, 0.08);
-        }
-
-        [data-bs-theme="dark"] .ai-message.assistant {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        [data-bs-theme="dark"] .ai-message-actions {
-            border-color: rgba(255, 255, 255, 0.10);
-
-            box-shadow:
-                0 8px 25px rgba(0, 0, 0, 0.40);
-        }
-
-        [data-bs-theme="dark"] .ai-close:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-
-        /* =====================================================
-           TABLET
-        ====================================================== */
-
-        @media (max-width: 991.98px) {
-
-            .ai-assistant-button {
-                right: 18px;
-                bottom: 18px;
-            }
-
-            .ai-assistant-box {
-                right: 18px;
-                bottom: 88px;
-
-                width: 390px;
-
-                height: min(620px, calc(100vh - 110px));
-            }
-        }
-
-
-        /* =====================================================
-           MOBILE
-        ====================================================== */
-
-        @media (max-width: 575.98px) {
-
-            .ai-assistant-button {
-                right: 15px;
-                bottom: calc(15px + env(safe-area-inset-bottom));
-            }
-
-            .ai-assistant-box {
-                right: 8px;
-                left: 8px;
-
-                bottom: calc(82px + env(safe-area-inset-bottom));
-
-                width: auto;
-                max-width: none;
-
-                height: calc(
-                    100dvh - 98px - env(safe-area-inset-bottom)
-                );
-
-                min-height: 400px;
-
-                border-radius: 16px;
-            }
-
-            .ai-assistant-header {
-                min-height: 64px;
-
-                padding: 10px 12px;
-            }
-
-            .ai-avatar {
-                width: 38px;
-                height: 38px;
-
-                flex-basis: 38px;
-            }
-
-            .ai-messages {
-                padding: 15px 10px;
-            }
-
-            .ai-message-wrapper {
-                max-width: 88%;
-            }
-
-            .ai-message {
-                font-size: 12px;
-            }
-
-            /*
-             * On touch/mobile there is no reliable hover,
-             * so show the three-dot button.
-             */
-
-            .ai-mobile-more {
-                display: flex;
-            }
-
-            .ai-message-actions {
-                max-width: calc(100vw - 80px);
-            }
-
-            .ai-input-area {
-                padding:
-                    8px 9px
-                    calc(8px + env(safe-area-inset-bottom))
-                    9px;
-            }
-
-            #aiAssistantInput {
-                font-size: 16px;
-            }
-
-            .ai-send-button {
-                width: 40px;
-                height: 40px;
-
-                flex-basis: 40px;
-            }
-        }
-
-
-        /* =====================================================
-           VERY SMALL DEVICES
-        ====================================================== */
-
-        @media (max-width: 380px) {
-
-            .ai-assistant-box {
-                right: 5px;
-                left: 5px;
-            }
-
-            .ai-message-wrapper {
-                max-width: 91%;
-            }
-
-            .ai-welcome {
-                padding-top: 20px;
-            }
-
-            .ai-welcome-icon {
-                width: 52px;
-                height: 52px;
-            }
-        }
-
-
-        /* =====================================================
-           LANDSCAPE MOBILE
-        ====================================================== */
-
-        @media (max-height: 500px) and (orientation: landscape) {
-
-            .ai-assistant-box {
-                height: calc(100dvh - 25px);
-
-                bottom: 10px;
-            }
-
-            .ai-welcome {
-                padding: 10px;
-            }
-
-            .ai-welcome-icon {
-                display: none;
-            }
-
-            .ai-suggestions {
-                display: none;
-            }
-        }
-
-
-        /* =====================================================
-           REDUCED MOTION
-        ====================================================== */
-
-        @media (prefers-reduced-motion: reduce) {
-
-            *,
-            *::before,
-            *::after {
-                scroll-behavior: auto !important;
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-        }
-
-    </style>
-
-    {% block extra_css %}{% endblock %}
+        type="text/css"
+        href="{{ url_for('static', filename='backend/assets/vendors/css/datepicker.min.css') }}">
+    <!--! END: Custom CSS-->
 
 </head>
 
 
 <body>
 
-
-    <!-- =========================================================
-         CUSTOMIZER
-    ========================================================== -->
-
     {% include "backend/pages/partials/customizer.html" %}
-
-
-    <!-- =========================================================
-         NAVIGATION
-    ========================================================== -->
 
     {% include "backend/components/nav.html" %}
 
-
-    <!-- =========================================================
-         HEADER
-    ========================================================== -->
-
     {% include "backend/components/header.html" %}
 
-
-    <!-- =========================================================
-         MAIN CONTENT
-    ========================================================== -->
 
     <main class="nxl-container">
 
@@ -1181,77 +80,1281 @@
 
         </div>
 
-
-        <!-- =====================================================
-             FOOTER
-        ====================================================== -->
-
         {% include "backend/components/footer.html" %}
 
     </main>
 
 
-    <!-- =========================================================
-         THEME CUSTOMIZER
-    ========================================================== -->
-
     {% include "backend/components/theme-customizer.html" %}
 
 
-    <!-- =========================================================
-         AI ASSISTANT BUTTON
-    ========================================================== -->
+
+    <!-- ============================================================
+         AI ASSISTANT
+         ============================================================ -->
+
+    <style>
+
+        /* ============================================================
+           AI ASSISTANT BUTTON
+           ============================================================ */
+
+        .ai-assistant-button {
+            position: fixed;
+            right: 25px;
+            bottom: 25px;
+
+            width: 62px;
+            height: 62px;
+
+            border-radius: 50%;
+            border: none;
+
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #1d4ed8
+            );
+
+            color: #fff;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            cursor: pointer;
+
+            z-index: 99999;
+
+            box-shadow:
+                0 10px 30px rgba(37, 99, 235, .35);
+
+            transition: all .25s ease;
+        }
+
+
+        .ai-assistant-button:hover {
+
+            transform:
+                translateY(-3px)
+                scale(1.04);
+
+            box-shadow:
+                0 14px 35px rgba(37, 99, 235, .45);
+        }
+
+
+        .ai-assistant-button i {
+
+            width: 27px;
+            height: 27px;
+        }
+
+
+
+        /* ============================================================
+           CHAT WINDOW
+           ============================================================ */
+
+        .ai-assistant-box {
+
+            position: fixed;
+
+            right: 25px;
+            bottom: 100px;
+
+            width: 390px;
+
+            max-width:
+                calc(100vw - 30px);
+
+            height: 600px;
+
+            max-height:
+                calc(100vh - 130px);
+
+            background: #fff;
+
+            border-radius: 18px;
+
+            overflow: hidden;
+
+            z-index: 99998;
+
+            box-shadow:
+                0 20px 60px rgba(0,0,0,.20);
+
+            border:
+                1px solid #e5e7eb;
+
+            display: none;
+
+            flex-direction: column;
+        }
+
+
+        .ai-assistant-box.active {
+
+            display: flex;
+
+            animation:
+                aiOpen .2s ease;
+        }
+
+
+        @keyframes aiOpen {
+
+            from {
+
+                opacity: 0;
+
+                transform:
+                    translateY(15px)
+                    scale(.97);
+            }
+
+            to {
+
+                opacity: 1;
+
+                transform:
+                    translateY(0)
+                    scale(1);
+            }
+        }
+
+
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+
+        .ai-assistant-header {
+
+            min-height: 72px;
+
+            padding:
+                13px 16px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            color: #fff;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+        }
+
+
+        .ai-assistant-header-left {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 11px;
+        }
+
+
+        .ai-avatar {
+
+            width: 43px;
+            height: 43px;
+
+            border-radius: 50%;
+
+            background:
+                rgba(255,255,255,.18);
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex-shrink: 0;
+        }
+
+
+        .ai-avatar i {
+
+            width: 23px;
+            height: 23px;
+        }
+
+
+        .ai-title {
+
+            font-size: 15px;
+
+            font-weight: 700;
+
+            line-height: 1.2;
+        }
+
+
+        .ai-status {
+
+            margin-top: 3px;
+
+            font-size: 11px;
+
+            opacity: .85;
+        }
+
+
+        .ai-status-dot {
+
+            display: inline-block;
+
+            width: 7px;
+            height: 7px;
+
+            border-radius: 50%;
+
+            background: #22c55e;
+
+            margin-right: 4px;
+        }
+
+
+        .ai-close {
+
+            width: 35px;
+            height: 35px;
+
+            border: none;
+
+            background:
+                rgba(255,255,255,.12);
+
+            color: white;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+
+        .ai-close:hover {
+
+            background:
+                rgba(255,255,255,.22);
+        }
+
+
+
+        /* ============================================================
+           MESSAGES
+           ============================================================ */
+
+        .ai-messages {
+
+            flex: 1;
+
+            overflow-y: auto;
+
+            overflow-x: hidden;
+
+            padding: 17px;
+
+            background: #f8fafc;
+        }
+
+
+        .ai-message {
+
+            display: flex;
+
+            margin-bottom: 20px;
+
+            position: relative;
+
+            width: 100%;
+        }
+
+
+        .ai-message.user {
+
+            justify-content: flex-end;
+        }
+
+
+        .ai-message.assistant {
+
+            justify-content: flex-start;
+        }
+
+
+        /* ============================================================
+           MESSAGE CONTENT WRAPPER
+           ============================================================ */
+
+        .ai-message-inner {
+
+            position: relative;
+
+            max-width: 82%;
+        }
+
+
+        .ai-message-content {
+
+            max-width: 100%;
+
+            padding:
+                10px 13px;
+
+            border-radius: 13px;
+
+            font-size: 13px;
+
+            line-height: 1.55;
+
+            white-space: pre-wrap;
+
+            word-break: break-word;
+
+            overflow-wrap: anywhere;
+        }
+
+
+        .ai-message.assistant
+        .ai-message-content {
+
+            background: #fff;
+
+            color: #334155;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-top-left-radius: 4px;
+        }
+
+
+        .ai-message.user
+        .ai-message-content {
+
+            background: #2563eb;
+
+            color: #fff;
+
+            border-top-right-radius: 4px;
+        }
+
+
+
+        /* ============================================================
+           MESSAGE TIME
+           ============================================================ */
+
+        .ai-message-time {
+
+            font-size: 9px;
+
+            margin-top: 4px;
+
+            opacity: .55;
+
+            padding:
+                0 4px;
+        }
+
+
+        .ai-message.user
+        .ai-message-time {
+
+            text-align: right;
+        }
+
+
+
+        /* ============================================================
+           MESSAGE ACTION POPUP
+           ============================================================ */
+
+        .ai-message-actions {
+
+            position: absolute;
+
+            top: -42px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 4px;
+
+            padding: 4px;
+
+            background: #fff;
+
+            border:
+                1px solid #e2e8f0;
+
+            border-radius: 10px;
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.14);
+
+            z-index: 100;
+
+            opacity: 0;
+
+            visibility: hidden;
+
+            pointer-events: none;
+
+            transform:
+                translateY(5px)
+                scale(.96);
+
+            transition:
+                opacity .15s ease,
+                visibility .15s ease,
+                transform .15s ease;
+        }
+
+
+        /* USER popup */
+
+        .ai-message.user
+        .ai-message-actions {
+
+            right: 0;
+        }
+
+
+        /* AI popup */
+
+        .ai-message.assistant
+        .ai-message-actions {
+
+            left: 0;
+        }
+
+
+        /*
+         * IMPORTANT:
+         * Mouse hover -> popup
+         */
+
+        .ai-message:hover
+        .ai-message-actions {
+
+            opacity: 1;
+
+            visibility: visible;
+
+            pointer-events: auto;
+
+            transform:
+                translateY(0)
+                scale(1);
+        }
+
+
+        /*
+         * JS mobile open
+         */
+
+        .ai-message.actions-open
+        .ai-message-actions {
+
+            opacity: 1;
+
+            visibility: visible;
+
+            pointer-events: auto;
+
+            transform:
+                translateY(0)
+                scale(1);
+        }
+
+
+
+        /* ============================================================
+           ACTION BUTTON
+           ============================================================ */
+
+        .ai-message-action {
+
+            height: 30px;
+
+            min-width: 30px;
+
+            padding:
+                0 8px;
+
+            border: none;
+
+            border-radius: 7px;
+
+            background: transparent;
+
+            display: inline-flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            gap: 5px;
+
+            cursor: pointer;
+
+            font-size: 10px;
+
+            color: #475569;
+
+            transition:
+                background .15s ease,
+                color .15s ease;
+        }
+
+
+        .ai-message-action i {
+
+            width: 14px;
+            height: 14px;
+        }
+
+
+        .ai-message-action:hover {
+
+            background:
+                #eff6ff;
+
+            color:
+                #2563eb;
+        }
+
+
+        .ai-message-action.delete:hover {
+
+            background:
+                #fef2f2;
+
+            color:
+                #dc2626;
+        }
+
+
+        .ai-message-action.edit:hover {
+
+            background:
+                #f0fdf4;
+
+            color:
+                #16a34a;
+        }
+
+
+        .ai-action-label {
+
+            white-space: nowrap;
+        }
+
+
+
+        /* ============================================================
+           MOBILE MORE BUTTON
+           ============================================================ */
+
+        .ai-mobile-more {
+
+            display: none;
+
+            position: absolute;
+
+            top: 4px;
+
+            width: 28px;
+            height: 28px;
+
+            border: none;
+
+            border-radius: 50%;
+
+            background: transparent;
+
+            color: #64748b;
+
+            align-items: center;
+
+            justify-content: center;
+
+            cursor: pointer;
+
+            z-index: 50;
+        }
+
+
+        .ai-mobile-more i {
+
+            width: 17px;
+            height: 17px;
+        }
+
+
+        .ai-message.user
+        .ai-mobile-more {
+
+            left: -34px;
+        }
+
+
+        .ai-message.assistant
+        .ai-mobile-more {
+
+            right: -34px;
+        }
+
+
+
+        /* ============================================================
+           WELCOME
+           ============================================================ */
+
+        .ai-welcome {
+
+            text-align: center;
+
+            padding:
+                20px 8px 10px;
+        }
+
+
+        .ai-welcome-icon {
+
+            width: 55px;
+            height: 55px;
+
+            border-radius: 16px;
+
+            margin:
+                0 auto 12px;
+
+            background: #dbeafe;
+
+            color: #2563eb;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+
+        .ai-welcome-icon i {
+
+            width: 28px;
+            height: 28px;
+        }
+
+
+        .ai-welcome h5 {
+
+            margin:
+                0 0 6px;
+
+            font-weight: 700;
+
+            color: #1e293b;
+        }
+
+
+        .ai-welcome p {
+
+            margin: 0;
+
+            color: #64748b;
+
+            font-size: 12px;
+        }
+
+
+
+        /* ============================================================
+           SUGGESTIONS
+           ============================================================ */
+
+        .ai-suggestions {
+
+            padding:
+                0 17px 12px;
+
+            display: flex;
+
+            gap: 7px;
+
+            flex-wrap: wrap;
+
+            background: #f8fafc;
+        }
+
+
+        .ai-suggestion {
+
+            border:
+                1px solid #dbeafe;
+
+            background: #fff;
+
+            color: #2563eb;
+
+            border-radius: 20px;
+
+            padding:
+                7px 10px;
+
+            font-size: 11px;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+
+        .ai-suggestion:hover {
+
+            background: #eff6ff;
+
+            border-color: #93c5fd;
+        }
+
+
+
+        /* ============================================================
+           INPUT
+           ============================================================ */
+
+        .ai-input-area {
+
+            border-top:
+                1px solid #e5e7eb;
+
+            background: #fff;
+
+            padding: 11px;
+        }
+
+
+        .ai-input-wrapper {
+
+            display: flex;
+
+            align-items: flex-end;
+
+            gap: 8px;
+        }
+
+
+        #aiAssistantInput {
+
+            flex: 1;
+
+            min-height: 42px;
+
+            max-height: 110px;
+
+            resize: none;
+
+            border:
+                1px solid #dbe2ea;
+
+            border-radius: 12px;
+
+            padding:
+                10px 12px;
+
+            outline: none;
+
+            font-size: 13px;
+
+            color: #334155;
+
+            background: #f8fafc;
+        }
+
+
+        #aiAssistantInput:focus {
+
+            border-color: #2563eb;
+
+            background: #fff;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,.08);
+        }
+
+
+        .ai-send {
+
+            width: 42px;
+            height: 42px;
+
+            border: none;
+
+            border-radius: 11px;
+
+            background: #2563eb;
+
+            color: white;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            flex-shrink: 0;
+        }
+
+
+        .ai-send:hover {
+
+            background: #1d4ed8;
+        }
+
+
+        .ai-send:disabled {
+
+            opacity: .55;
+
+            cursor: not-allowed;
+        }
+
+
+        .ai-send i {
+
+            width: 18px;
+            height: 18px;
+        }
+
+
+
+        /* ============================================================
+           EDIT MODE
+           ============================================================ */
+
+        .ai-editing-bar {
+
+            display: none;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding:
+                7px 12px;
+
+            border-top:
+                1px solid #dbeafe;
+
+            background:
+                #eff6ff;
+
+            color: #2563eb;
+
+            font-size: 11px;
+        }
+
+
+        .ai-editing-bar.active {
+
+            display: flex;
+        }
+
+
+        .ai-editing-info {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 6px;
+        }
+
+
+        .ai-editing-info i {
+
+            width: 14px;
+            height: 14px;
+        }
+
+
+        .ai-cancel-edit {
+
+            border: none;
+
+            background: transparent;
+
+            color: #2563eb;
+
+            font-size: 11px;
+
+            cursor: pointer;
+
+            padding: 3px 5px;
+        }
+
+
+        .ai-cancel-edit:hover {
+
+            text-decoration: underline;
+        }
+
+
+
+        /* ============================================================
+           TYPING
+           ============================================================ */
+
+        .ai-typing {
+
+            display: flex;
+
+            gap: 4px;
+
+            align-items: center;
+        }
+
+
+        .ai-typing span {
+
+            width: 6px;
+            height: 6px;
+
+            background: #94a3b8;
+
+            border-radius: 50%;
+
+            animation:
+                aiTyping 1.2s infinite;
+        }
+
+
+        .ai-typing span:nth-child(2) {
+
+            animation-delay: .15s;
+        }
+
+
+        .ai-typing span:nth-child(3) {
+
+            animation-delay: .3s;
+        }
+
+
+        @keyframes aiTyping {
+
+            0%,
+            60%,
+            100% {
+
+                transform:
+                    translateY(0);
+            }
+
+            30% {
+
+                transform:
+                    translateY(-4px);
+            }
+        }
+
+
+
+        /* ============================================================
+           MOBILE
+           ============================================================ */
+
+        @media (max-width: 576px) {
+
+            .ai-assistant-button {
+
+                right: 15px;
+
+                bottom: 15px;
+            }
+
+
+            .ai-assistant-box {
+
+                right: 10px;
+
+                bottom: 88px;
+
+                width:
+                    calc(100vw - 20px);
+
+                height:
+                    calc(100vh - 110px);
+
+                max-height: none;
+
+                border-radius: 15px;
+            }
+
+
+            .ai-message-inner {
+
+                max-width: 86%;
+            }
+
+
+            /*
+             * On mobile hover does not exist reliably,
+             * therefore show the three-dot button.
+             */
+
+            .ai-mobile-more {
+
+                display: flex;
+            }
+
+
+            /*
+             * Mobile popup is slightly smaller.
+             */
+
+            .ai-message-actions {
+
+                top: -40px;
+            }
+
+
+            .ai-action-label {
+
+                display: inline;
+            }
+
+
+            #aiAssistantInput {
+
+                font-size: 16px;
+            }
+
+        }
+
+
+        /* ============================================================
+           VERY SMALL SCREEN
+           ============================================================ */
+
+        @media (max-width: 380px) {
+
+            .ai-assistant-box {
+
+                right: 5px;
+
+                width:
+                    calc(100vw - 10px);
+            }
+
+
+            .ai-message-inner {
+
+                max-width: 88%;
+            }
+
+
+            .ai-action-label {
+
+                display: none;
+            }
+
+        }
+
+
+        /* ============================================================
+           DARK MODE
+           ============================================================ */
+
+        [data-bs-theme="dark"]
+        .ai-assistant-box {
+
+            background: #111827;
+
+            border-color: #374151;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-messages {
+
+            background: #0f172a;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-message.assistant
+        .ai-message-content {
+
+            background: #1e293b;
+
+            color: #e2e8f0;
+
+            border-color: #334155;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-message-actions {
+
+            background: #1e293b;
+
+            border-color: #334155;
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.40);
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-message-action {
+
+            color: #cbd5e1;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-message-action:hover {
+
+            background: #334155;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-welcome h5 {
+
+            color: #f8fafc;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-suggestions {
+
+            background: #0f172a;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-suggestion {
+
+            background: #1e293b;
+
+            border-color: #334155;
+        }
+
+
+        [data-bs-theme="dark"]
+        .ai-input-area {
+
+            background: #111827;
+
+            border-color: #374151;
+        }
+
+
+        [data-bs-theme="dark"]
+        #aiAssistantInput {
+
+            background: #1e293b;
+
+            color: #e2e8f0;
+
+            border-color: #334155;
+        }
+
+
+        [data-bs-theme="dark"]
+        #aiAssistantInput:focus {
+
+            background: #1e293b;
+        }
+
+    </style>
+
+
+
+    <!-- ============================================================
+         AI BUTTON
+         ============================================================ -->
 
     <button
         type="button"
-        class="ai-assistant-button btn btn-primary"
+        class="ai-assistant-button"
         id="aiAssistantButton"
-        aria-label="Open AI Assistant"
-        title="AI Assistant">
+        title="AI Assistant"
+        aria-label="Open AI Assistant">
 
         <i data-feather="message-circle"></i>
 
     </button>
 
 
-    <!-- =========================================================
-         AI ASSISTANT
-    ========================================================== -->
+
+    <!-- ============================================================
+         AI CHAT
+         ============================================================ -->
 
     <div
         class="ai-assistant-box"
         id="aiAssistantBox"
         role="dialog"
-        aria-modal="false"
         aria-label="AI Assistant">
 
 
-        <!-- =====================================================
+        <!-- ========================================================
              HEADER
-        ====================================================== -->
+             ======================================================== -->
 
         <div class="ai-assistant-header">
 
-            <div class="ai-avatar">
+            <div class="ai-assistant-header-left">
 
-                <i data-feather="cpu"></i>
+                <div class="ai-avatar">
 
-            </div>
+                    <i data-feather="cpu"></i>
 
-
-            <div class="ai-header-info">
-
-                <div class="ai-header-title">
-                    AI Assistant
                 </div>
 
-                <div class="ai-header-status">
 
-                    <span class="ai-status-dot"></span>
+                <div>
 
-                    <span>
+                    <div class="ai-title">
+                        AI Assistant
+                    </div>
+
+                    <div class="ai-status">
+
+                        <span class="ai-status-dot"></span>
+
                         Online
-                    </span>
+
+                    </div>
 
                 </div>
 
@@ -1262,8 +1365,7 @@
                 type="button"
                 class="ai-close"
                 id="aiAssistantClose"
-                aria-label="Close AI Assistant"
-                title="Close">
+                aria-label="Close">
 
                 <i data-feather="x"></i>
 
@@ -1272,38 +1374,34 @@
         </div>
 
 
-        <!-- =====================================================
+
+        <!-- ========================================================
              MESSAGES
-        ====================================================== -->
+             ======================================================== -->
 
         <div
             class="ai-messages"
-            id="aiAssistantMessages"
-            aria-live="polite">
+            id="aiAssistantMessages">
 
 
-            <!-- =================================================
-                 WELCOME
-            ================================================== -->
+            <!-- WELCOME -->
 
-            <div
-                class="ai-welcome"
-                id="aiWelcome">
+            <div class="ai-welcome">
 
                 <div class="ai-welcome-icon">
 
-                    <i data-feather="message-circle"></i>
+                    <i data-feather="cpu"></i>
 
                 </div>
+
 
                 <h5>
                     How can I help you?
                 </h5>
 
+
                 <p>
-                    Ask me about your expenses, income,
-                    transactions, reports, accounts or anything
-                    related to your finance system.
+                    Wax kasta oo aad rabto waad i waydiin kartaa.
                 </p>
 
             </div>
@@ -1311,9 +1409,10 @@
         </div>
 
 
-        <!-- =====================================================
+
+        <!-- ========================================================
              SUGGESTIONS
-        ====================================================== -->
+             ======================================================== -->
 
         <div
             class="ai-suggestions"
@@ -1323,47 +1422,55 @@
             <button
                 type="button"
                 class="ai-suggestion"
-                data-question="Show me my total expenses">
-                Total expenses
+                data-question="I caawi isticmaalka system-ka">
+
+                System-ka i caawi
+
             </button>
 
 
             <button
                 type="button"
                 class="ai-suggestion"
-                data-question="Show me my total income">
-                Total income
+                data-question="Sidee ayaan u arki karaa reports-kayga?">
+
+                Reports
+
             </button>
 
 
             <button
                 type="button"
                 class="ai-suggestion"
-                data-question="Give me a spending summary">
-                Spending summary
+                data-question="Sidee ayaan transaction cusub u sameeyaa?">
+
+                Transaction
+
             </button>
 
 
             <button
                 type="button"
                 class="ai-suggestion"
-                data-question="What are my biggest expenses?">
-                Biggest expenses
-            </button>
+                data-question="I sii talo ku saabsan sida aan lacagta u maamuli karo">
 
+                Financial Advice
+
+            </button>
 
         </div>
 
 
-        <!-- =====================================================
+
+        <!-- ========================================================
              EDITING BAR
-        ====================================================== -->
+             ======================================================== -->
 
         <div
             class="ai-editing-bar"
             id="aiEditingBar">
 
-            <div class="ai-editing-label">
+            <div class="ai-editing-info">
 
                 <i data-feather="edit-3"></i>
 
@@ -1386,168 +1493,133 @@
         </div>
 
 
-        <!-- =====================================================
+
+        <!-- ========================================================
              INPUT
-        ====================================================== -->
+             ======================================================== -->
 
         <div class="ai-input-area">
 
-
-            <textarea
-                id="aiAssistantInput"
-                rows="1"
-                maxlength="5000"
-                placeholder="Type your message..."
-                aria-label="Message"></textarea>
+            <div class="ai-input-wrapper">
 
 
-            <button
-                type="button"
-                class="ai-send-button"
-                id="aiAssistantSend"
-                aria-label="Send message"
-                title="Send">
+                <textarea
+                    id="aiAssistantInput"
+                    placeholder="Ask anything..."
+                    rows="1"></textarea>
 
-                <i data-feather="send"></i>
 
-            </button>
+                <button
+                    type="button"
+                    class="ai-send"
+                    id="aiAssistantSend"
+                    aria-label="Send">
 
+                    <i data-feather="send"></i>
+
+                </button>
+
+
+            </div>
 
         </div>
 
     </div>
 
 
-    <!-- =========================================================
-         JAVASCRIPT VENDORS
-    ========================================================== -->
 
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/vendors.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/daterangepicker.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/apexcharts.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/circle-progress.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.bs5.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2-active.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/datepicker.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/lslstrength.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/jquery.print.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/vendors/js/cleave.min.js') }}"></script>
-
-
-    <!-- =========================================================
-         APP INIT
-    ========================================================== -->
-
-    <script src="{{ url_for('static', filename='backend/assets/js/common-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/dashboard-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/leads-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/customers-create-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/invoice-view-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/invoice-create-init.min.js') }}"></script>
-
-    <script src="{{ url_for('static', filename='backend/assets/js/theme-customizer-init.min.js') }}"></script>
-
-
-    <!-- =========================================================
-         AI ASSISTANT SCRIPT
-    ========================================================== -->
+    <!-- ============================================================
+         AI ASSISTANT JAVASCRIPT
+         ============================================================ -->
 
     <script>
 
-        document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
 
-            /* =================================================
+
+            /* ========================================================
                ELEMENTS
-            ================================================== */
+               ======================================================== */
 
-            const aiButton =
-                document.getElementById("aiAssistantButton");
-
-            const aiBox =
-                document.getElementById("aiAssistantBox");
-
-            const aiClose =
-                document.getElementById("aiAssistantClose");
-
-            const aiMessages =
-                document.getElementById("aiAssistantMessages");
-
-            const aiInput =
-                document.getElementById("aiAssistantInput");
-
-            const aiSend =
-                document.getElementById("aiAssistantSend");
-
-            const aiSuggestions =
-                document.getElementById("aiSuggestions");
-
-            const aiEditingBar =
-                document.getElementById("aiEditingBar");
-
-            const aiCancelEdit =
-                document.getElementById("aiCancelEdit");
-
-            const aiWelcome =
-                document.getElementById("aiWelcome");
+            const button =
+                document.getElementById(
+                    "aiAssistantButton"
+                );
 
 
-            /* =================================================
-               CONVERSATION HISTORY
-            ================================================== */
+            const box =
+                document.getElementById(
+                    "aiAssistantBox"
+                );
+
+
+            const close =
+                document.getElementById(
+                    "aiAssistantClose"
+                );
+
+
+            const input =
+                document.getElementById(
+                    "aiAssistantInput"
+                );
+
+
+            const send =
+                document.getElementById(
+                    "aiAssistantSend"
+                );
+
+
+            const messages =
+                document.getElementById(
+                    "aiAssistantMessages"
+                );
+
+
+            const suggestions =
+                document.getElementById(
+                    "aiSuggestions"
+                );
+
+
+            const editingBar =
+                document.getElementById(
+                    "aiEditingBar"
+                );
+
+
+            const cancelEditButton =
+                document.getElementById(
+                    "aiCancelEdit"
+                );
+
+
+            /* ========================================================
+               STATE
+               ======================================================== */
 
             let conversationHistory = [];
 
-
-            /*
-             * Each displayed message gets a unique ID.
-             *
-             * Example:
-             *
-             * msg_172839
-             */
-
             let messageCounter = 0;
 
-
-            /*
-             * Current message being edited.
-             */
-
             let editingMessageId = null;
-
-
-            /*
-             * Prevent multiple requests.
-             */
 
             let isSending = false;
 
 
-            /* =================================================
-               FEATHER INITIALIZATION
-            ================================================== */
 
-            function refreshFeatherIcons() {
+            /* ========================================================
+               FEATHER
+               ======================================================== */
 
-                if (typeof feather !== "undefined") {
+            function refreshIcons() {
+
+                if (
+                    typeof feather !== "undefined"
+                ) {
 
                     feather.replace();
 
@@ -1555,92 +1627,85 @@
 
             }
 
-            refreshFeatherIcons();
+
+            refreshIcons();
 
 
-            /* =================================================
-               OPEN AI
-            ================================================== */
 
-            function openAssistant() {
+            /* ========================================================
+               OPEN CHAT
+               ======================================================== */
 
-                aiBox.classList.add("active");
-
-                aiBox.setAttribute(
-                    "aria-modal",
-                    "true"
-                );
-
-                setTimeout(function () {
-
-                    aiInput.focus();
-
-                }, 100);
-
-            }
-
-
-            /* =================================================
-               CLOSE AI
-            ================================================== */
-
-            function closeAssistant() {
-
-                aiBox.classList.remove("active");
-
-                aiBox.setAttribute(
-                    "aria-modal",
-                    "false"
-                );
-
-                closeAllActionMenus();
-
-            }
-
-
-            aiButton.addEventListener(
+            button.addEventListener(
                 "click",
                 function () {
 
-                    if (
-                        aiBox.classList.contains("active")
-                    ) {
+                    box.classList.add(
+                        "active"
+                    );
 
-                        closeAssistant();
 
-                    } else {
+                    setTimeout(
+                        function () {
 
-                        openAssistant();
+                            input.focus();
 
-                    }
+                        },
+                        150
+                    );
+
+
+                    refreshIcons();
 
                 }
             );
 
 
-            aiClose.addEventListener(
+
+            /* ========================================================
+               CLOSE CHAT
+               ======================================================== */
+
+            close.addEventListener(
                 "click",
-                closeAssistant
+                function () {
+
+                    box.classList.remove(
+                        "active"
+                    );
+
+                    closeAllMenus();
+
+                }
             );
 
 
-            /* =================================================
+
+            /* ========================================================
                ESCAPE
-            ================================================== */
+               ======================================================== */
 
             document.addEventListener(
                 "keydown",
                 function (event) {
 
-                    if (event.key === "Escape") {
+                    if (
+                        event.key === "Escape"
+                    ) {
 
-                        closeAllActionMenus();
+                        closeAllMenus();
 
                         if (
-                            aiBox.classList.contains("active")
+                            editingMessageId !== null
                         ) {
 
-                            closeAssistant();
+                            cancelEdit();
+
+                        } else {
+
+                            box.classList.remove(
+                                "active"
+                            );
 
                         }
 
@@ -1650,82 +1715,72 @@
             );
 
 
-            /* =================================================
-               GENERATE MESSAGE ID
-            ================================================== */
 
-            function generateMessageId() {
+            /* ========================================================
+               MESSAGE ID
+               ======================================================== */
+
+            function createMessageId() {
 
                 messageCounter++;
 
-                return "ai_msg_" +
+                return (
+                    "ai-message-" +
                     Date.now() +
-                    "_" +
-                    messageCounter;
-
-            }
-
-
-            /* =================================================
-               CURRENT TIME
-            ================================================== */
-
-            function getCurrentTime() {
-
-                const now = new Date();
-
-                return now.toLocaleTimeString(
-                    [],
-                    {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                    }
+                    "-" +
+                    messageCounter
                 );
 
             }
 
 
-            /* =================================================
-               CLOSE ACTION MENUS
-            ================================================== */
 
-            function closeAllActionMenus() {
+            /* ========================================================
+               CURRENT TIME
+               ======================================================== */
+
+            function getTime() {
+
+                return new Date()
+                    .toLocaleTimeString(
+                        [],
+                        {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                        }
+                    );
+
+            }
+
+
+
+            /* ========================================================
+               CLOSE ALL POPUPS
+               ======================================================== */
+
+            function closeAllMenus() {
 
                 document
                     .querySelectorAll(
-                        ".ai-message-row.actions-open"
+                        ".ai-message.actions-open"
                     )
-                    .forEach(function (row) {
+                    .forEach(
+                        function (item) {
 
-                        row.classList.remove(
-                            "actions-open"
-                        );
+                            item.classList.remove(
+                                "actions-open"
+                            );
 
-                    });
-
-            }
-
-
-            /* =================================================
-               ESCAPE HTML
-            ================================================== */
-
-            function escapeHtml(value) {
-
-                const div =
-                    document.createElement("div");
-
-                div.textContent =
-                    String(value ?? "");
-
-                return div.innerHTML;
+                        }
+                    );
 
             }
 
 
-            /* =================================================
+
+            /* ========================================================
                ADD MESSAGE
-            ================================================== */
+               ======================================================== */
 
             function addMessage(
                 text,
@@ -1733,75 +1788,90 @@
                 historyIndex = null
             ) {
 
-                /*
-                 * Remove welcome screen once conversation starts.
-                 */
+                const welcome =
+                    messages.querySelector(
+                        ".ai-welcome"
+                    );
 
-                if (aiWelcome) {
 
-                    aiWelcome.style.display = "none";
+                if (welcome) {
+
+                    welcome.remove();
 
                 }
 
 
                 const messageId =
-                    generateMessageId();
+                    createMessageId();
 
 
-                const row =
-                    document.createElement("div");
+                const message =
+                    document.createElement(
+                        "div"
+                    );
 
-                row.className =
-                    "ai-message-row " + type;
 
-                row.dataset.messageId =
+                message.className =
+                    "ai-message " +
+                    type;
+
+
+                message.dataset.messageId =
                     messageId;
 
 
-                if (historyIndex !== null) {
+                if (
+                    historyIndex !== null
+                ) {
 
-                    row.dataset.historyIndex =
-                        String(historyIndex);
+                    message.dataset.historyIndex =
+                        historyIndex;
 
                 }
 
 
-                /* =============================================
-                   MESSAGE WRAPPER
-                ============================================== */
 
-                const wrapper =
-                    document.createElement("div");
+                /* ====================================================
+                   INNER
+                   ==================================================== */
 
-                wrapper.className =
-                    "ai-message-wrapper";
+                const inner =
+                    document.createElement(
+                        "div"
+                    );
 
 
-                /* =============================================
-                   MOBILE THREE DOT BUTTON
-                ============================================== */
+                inner.className =
+                    "ai-message-inner";
+
+
+
+                /* ====================================================
+                   MOBILE MORE
+                   ==================================================== */
 
                 const moreButton =
-                    document.createElement("button");
+                    document.createElement(
+                        "button"
+                    );
+
 
                 moreButton.type =
                     "button";
 
+
                 moreButton.className =
                     "ai-mobile-more";
+
 
                 moreButton.setAttribute(
                     "aria-label",
                     "Message actions"
                 );
 
-                moreButton.setAttribute(
-                    "title",
-                    "Message actions"
-                );
 
                 moreButton.innerHTML =
-                    '<i data-feather="more-vertical"></i>';
+                    `<i data-feather="more-vertical"></i>`;
 
 
                 moreButton.addEventListener(
@@ -1810,16 +1880,21 @@
 
                         event.stopPropagation();
 
-                        const isOpen =
-                            row.classList.contains(
+
+                        const currentlyOpen =
+                            message.classList.contains(
                                 "actions-open"
                             );
 
-                        closeAllActionMenus();
 
-                        if (!isOpen) {
+                        closeAllMenus();
 
-                            row.classList.add(
+
+                        if (
+                            !currentlyOpen
+                        ) {
+
+                            message.classList.add(
                                 "actions-open"
                             );
 
@@ -1829,75 +1904,89 @@
                 );
 
 
-                /* =============================================
-                   MESSAGE BUBBLE
-                ============================================== */
 
-                const bubble =
-                    document.createElement("div");
+                /* ====================================================
+                   CONTENT
+                   ==================================================== */
 
-                bubble.className =
-                    "ai-message " + type;
+                const content =
+                    document.createElement(
+                        "div"
+                    );
 
-                bubble.dataset.messageId =
-                    messageId;
 
-                bubble.textContent =
+                content.className =
+                    "ai-message-content";
+
+
+                content.textContent =
                     text;
 
 
-                /* =============================================
-                   ACTION POPUP
-                ============================================== */
+
+                /* ====================================================
+                   ACTIONS
+                   ==================================================== */
 
                 const actions =
-                    document.createElement("div");
+                    document.createElement(
+                        "div"
+                    );
+
 
                 actions.className =
                     "ai-message-actions";
 
 
-                /*
-                 * USER MESSAGE
-                 *
-                 * Edit + Delete
-                 */
 
-                if (type === "user") {
+                /* ====================================================
+                   USER -> EDIT
+                   ==================================================== */
 
-                    const editButton =
-                        document.createElement("button");
+                if (
+                    type === "user"
+                ) {
 
-                    editButton.type =
+                    const edit =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    edit.type =
                         "button";
 
-                    editButton.className =
+
+                    edit.className =
                         "ai-message-action edit";
 
-                    editButton.setAttribute(
-                        "aria-label",
-                        "Edit message"
-                    );
 
-                    editButton.setAttribute(
-                        "title",
+                    edit.title =
+                        "Edit";
+
+
+                    edit.setAttribute(
+                        "aria-label",
                         "Edit"
                     );
 
-                    editButton.innerHTML =
-                        '<i data-feather="edit-2"></i>' +
-                        '<span class="ai-action-label">' +
-                        'Edit' +
-                        '</span>';
+
+                    edit.innerHTML =
+                        `
+                        <i data-feather="edit-2"></i>
+                        <span class="ai-action-label">
+                            Edit
+                        </span>
+                        `;
 
 
-                    editButton.addEventListener(
+                    edit.addEventListener(
                         "click",
                         function (event) {
 
                             event.stopPropagation();
 
-                            editMessage(
+                            startEdit(
                                 messageId
                             );
 
@@ -1906,43 +1995,49 @@
 
 
                     actions.appendChild(
-                        editButton
+                        edit
                     );
 
                 }
 
 
-                /*
-                 * DELETE FOR ME
-                 *
-                 * Available for both
-                 * user and AI messages.
-                 */
+
+                /* ====================================================
+                   DELETE FOR ME
+                   USER + AI
+                   ==================================================== */
 
                 const deleteButton =
-                    document.createElement("button");
+                    document.createElement(
+                        "button"
+                    );
+
 
                 deleteButton.type =
                     "button";
 
+
                 deleteButton.className =
                     "ai-message-action delete";
+
+
+                deleteButton.title =
+                    "Delete for me";
+
 
                 deleteButton.setAttribute(
                     "aria-label",
                     "Delete for me"
                 );
 
-                deleteButton.setAttribute(
-                    "title",
-                    "Delete for me"
-                );
 
                 deleteButton.innerHTML =
-                    '<i data-feather="trash-2"></i>' +
-                    '<span class="ai-action-label">' +
-                    'Delete for me' +
-                    '</span>';
+                    `
+                    <i data-feather="trash-2"></i>
+                    <span class="ai-action-label">
+                        Delete for me
+                    </span>
+                    `;
 
 
                 deleteButton.addEventListener(
@@ -1951,7 +2046,7 @@
 
                         event.stopPropagation();
 
-                        deleteMessageForMe(
+                        deleteForMe(
                             messageId
                         );
 
@@ -1964,166 +2059,172 @@
                 );
 
 
-                /* =============================================
+
+                /* ====================================================
                    TIME
-                ============================================== */
+                   ==================================================== */
 
                 const time =
-                    document.createElement("div");
+                    document.createElement(
+                        "div"
+                    );
+
 
                 time.className =
                     "ai-message-time";
 
+
                 time.textContent =
-                    getCurrentTime();
+                    getTime();
 
 
-                /* =============================================
+
+                /* ====================================================
                    APPEND
-                ============================================== */
+                   ==================================================== */
 
-                wrapper.appendChild(
+                inner.appendChild(
                     moreButton
                 );
 
-                wrapper.appendChild(
+
+                inner.appendChild(
                     actions
                 );
 
-                wrapper.appendChild(
-                    bubble
+
+                inner.appendChild(
+                    content
                 );
 
-                wrapper.appendChild(
+
+                inner.appendChild(
                     time
                 );
 
-                row.appendChild(
-                    wrapper
-                );
 
-                aiMessages.appendChild(
-                    row
+                message.appendChild(
+                    inner
                 );
 
 
-                refreshFeatherIcons();
+                messages.appendChild(
+                    message
+                );
 
-                scrollMessagesToBottom();
+
+                refreshIcons();
 
 
-                return {
-                    id: messageId,
-                    row: row,
-                    bubble: bubble
-                };
+                scrollBottom();
+
+
+                return message;
 
             }
 
 
-            /* =================================================
-               SCROLL TO BOTTOM
-            ================================================== */
 
-            function scrollMessagesToBottom() {
+            /* ========================================================
+               SCROLL
+               ======================================================== */
 
-                requestAnimationFrame(function () {
+            function scrollBottom() {
 
-                    aiMessages.scrollTop =
-                        aiMessages.scrollHeight;
+                requestAnimationFrame(
+                    function () {
 
-                });
+                        messages.scrollTop =
+                            messages.scrollHeight;
+
+                    }
+                );
 
             }
 
 
-            /* =================================================
+
+            /* ========================================================
                DELETE FOR ME
-            ================================================== */
+               ======================================================== */
 
-            function deleteMessageForMe(
+            function deleteForMe(
                 messageId
             ) {
 
-                const row =
-                    document.querySelector(
-                        '.ai-message-row[data-message-id="' +
-                        messageId +
-                        '"]'
+                const message =
+                    messages.querySelector(
+                        `[data-message-id="${messageId}"]`
                     );
 
 
-                if (!row) {
+                if (!message) {
 
                     return;
 
                 }
 
 
-                /*
-                 * Get history index before deleting row.
-                 */
-
                 const historyIndex =
-                    row.dataset.historyIndex;
+                    parseInt(
+                        message.dataset.historyIndex,
+                        10
+                    );
 
 
                 /*
-                 * Remove corresponding history item.
+                 * Remove history.
                  */
 
                 if (
-                    historyIndex !== undefined &&
-                    historyIndex !== ""
+                    !Number.isNaN(
+                        historyIndex
+                    )
                 ) {
 
-                    const index =
-                        parseInt(
-                            historyIndex,
-                            10
-                        );
-
                     if (
-                        !Number.isNaN(index) &&
-                        index >= 0 &&
-                        index < conversationHistory.length
+                        historyIndex >= 0 &&
+                        historyIndex <
+                        conversationHistory.length
                     ) {
 
                         conversationHistory.splice(
-                            index,
+                            historyIndex,
                             1
                         );
 
 
                         /*
-                         * Re-index all later messages.
+                         * Re-index remaining
+                         * messages.
                          */
 
                         document
                             .querySelectorAll(
-                                ".ai-message-row[data-history-index]"
+                                ".ai-message[data-history-index]"
                             )
-                            .forEach(function (otherRow) {
+                            .forEach(
+                                function (item) {
 
-                                const otherIndex =
-                                    parseInt(
-                                        otherRow.dataset.historyIndex,
-                                        10
-                                    );
-
-                                if (
-                                    !Number.isNaN(otherIndex) &&
-                                    otherIndex > index
-                                ) {
-
-                                    otherRow.dataset.historyIndex =
-                                        String(
-                                            otherIndex - 1
+                                    const index =
+                                        parseInt(
+                                            item.dataset.historyIndex,
+                                            10
                                         );
 
-                                }
 
-                            });
+                                    if (
+                                        !Number.isNaN(index) &&
+                                        index > historyIndex
+                                    ) {
+
+                                        item.dataset.historyIndex =
+                                            index - 1;
+
+                                    }
+
+                                }
+                            );
 
                     }
 
@@ -2131,12 +2232,13 @@
 
 
                 /*
-                 * If this message was being edited,
-                 * cancel edit mode.
+                 * Cancel editing if
+                 * deleted message is editing.
                  */
 
                 if (
-                    editingMessageId === messageId
+                    editingMessageId ===
+                    messageId
                 ) {
 
                     cancelEdit();
@@ -2145,65 +2247,45 @@
 
 
                 /*
-                 * Remove from UI.
+                 * Remove from screen.
                  */
 
-                row.remove();
+                message.remove();
 
 
                 /*
-                 * Show welcome again if there
-                 * are no real messages.
+                 * Show welcome again
+                 * if no messages.
                  */
 
-                const remainingMessages =
-                    aiMessages.querySelectorAll(
-                        ".ai-message-row"
+                const remaining =
+                    messages.querySelectorAll(
+                        ".ai-message"
                     );
 
 
                 if (
-                    remainingMessages.length === 0 &&
-                    aiWelcome
+                    remaining.length === 0
                 ) {
 
-                    aiWelcome.style.display =
-                        "block";
+                    showWelcome();
 
                 }
 
             }
 
 
-            /* =================================================
-               EDIT MESSAGE
-            ================================================== */
 
-            function editMessage(
-                messageId
-            ) {
+            /* ========================================================
+               SHOW WELCOME
+               ======================================================== */
 
-                const row =
-                    document.querySelector(
-                        '.ai-message-row[data-message-id="' +
-                        messageId +
-                        '"]'
-                    );
-
-
-                if (!row) {
-
-                    return;
-
-                }
-
-
-                /*
-                 * Only user messages can be edited.
-                 */
+            function showWelcome() {
 
                 if (
-                    !row.classList.contains("user")
+                    messages.querySelector(
+                        ".ai-welcome"
+                    )
                 ) {
 
                     return;
@@ -2211,36 +2293,106 @@
                 }
 
 
-                const bubble =
-                    row.querySelector(
-                        ".ai-message"
+                const welcome =
+                    document.createElement(
+                        "div"
                     );
 
 
-                if (!bubble) {
+                welcome.className =
+                    "ai-welcome";
+
+
+                welcome.innerHTML =
+                    `
+                    <div class="ai-welcome-icon">
+                        <i data-feather="cpu"></i>
+                    </div>
+
+                    <h5>
+                        How can I help you?
+                    </h5>
+
+                    <p>
+                        Wax kasta oo aad rabto waad i waydiin kartaa.
+                    </p>
+                    `;
+
+
+                messages.appendChild(
+                    welcome
+                );
+
+
+                refreshIcons();
+
+            }
+
+
+
+            /* ========================================================
+               START EDIT
+               ======================================================== */
+
+            function startEdit(
+                messageId
+            ) {
+
+                const message =
+                    messages.querySelector(
+                        `[data-message-id="${messageId}"]`
+                    );
+
+
+                if (!message) {
 
                     return;
 
                 }
 
 
-                const oldText =
-                    bubble.textContent.trim();
+                if (
+                    !message.classList.contains(
+                        "user"
+                    )
+                ) {
+
+                    return;
+
+                }
+
+
+                const content =
+                    message.querySelector(
+                        ".ai-message-content"
+                    );
+
+
+                if (!content) {
+
+                    return;
+
+                }
+
+
+                const text =
+                    content.textContent.trim();
 
 
                 /*
-                 * Put message into textarea.
+                 * Put text into textarea.
                  */
 
-                aiInput.value =
-                    oldText;
+                input.value =
+                    text;
 
 
-                autoResizeTextarea();
+                autoResize();
+
 
 
                 /*
-                 * Store editing message ID.
+                 * Save editing ID.
                  */
 
                 editingMessageId =
@@ -2248,114 +2400,119 @@
 
 
                 /*
-                 * Show editing bar.
+                 * Show edit bar.
                  */
 
-                aiEditingBar.classList.add(
+                editingBar.classList.add(
                     "active"
                 );
+
+
+                /*
+                 * Close popup.
+                 */
+
+                closeAllMenus();
 
 
                 /*
                  * Focus textarea.
                  */
 
-                aiInput.focus();
+                input.focus();
 
 
                 /*
-                 * Put cursor at end.
+                 * Cursor at end.
                  */
 
                 try {
 
-                    aiInput.selectionStart =
-                        aiInput.value.length;
+                    input.selectionStart =
+                        input.value.length;
 
-                    aiInput.selectionEnd =
-                        aiInput.value.length;
+                    input.selectionEnd =
+                        input.value.length;
 
-                } catch (error) {
+                } catch (e) {
 
                     /* Ignore */
 
                 }
 
-
-                /*
-                 * Close menu.
-                 */
-
-                closeAllActionMenus();
-
             }
 
 
-            /* =================================================
+
+            /* ========================================================
                CANCEL EDIT
-            ================================================== */
+               ======================================================== */
 
             function cancelEdit() {
 
                 editingMessageId =
                     null;
 
-                aiInput.value =
+
+                input.value =
                     "";
 
-                aiEditingBar.classList.remove(
+
+                editingBar.classList.remove(
                     "active"
                 );
 
-                autoResizeTextarea();
+
+                autoResize();
+
+                input.focus();
 
             }
 
 
-            aiCancelEdit.addEventListener(
+            cancelEditButton.addEventListener(
                 "click",
                 cancelEdit
             );
 
 
-            /* =================================================
-               UPDATE EXISTING USER MESSAGE
-            ================================================== */
 
-            function updateMessageText(
+            /* ========================================================
+               UPDATE MESSAGE
+               ======================================================== */
+
+            function updateMessage(
                 messageId,
                 newText
             ) {
 
-                const row =
-                    document.querySelector(
-                        '.ai-message-row[data-message-id="' +
-                        messageId +
-                        '"]'
+                const message =
+                    messages.querySelector(
+                        `[data-message-id="${messageId}"]`
                     );
 
 
-                if (!row) {
+                if (!message) {
 
                     return false;
 
                 }
 
 
-                const bubble =
-                    row.querySelector(
-                        ".ai-message"
+                const content =
+                    message.querySelector(
+                        ".ai-message-content"
                     );
 
 
-                if (!bubble) {
+                if (!content) {
 
                     return false;
 
                 }
 
 
-                bubble.textContent =
+                content.textContent =
                     newText;
 
 
@@ -2364,114 +2521,177 @@
             }
 
 
-            /* =================================================
-               DELETE HISTORY ITEM
-            ================================================== */
 
-            function removeHistoryItem(
-                index
+            /* ========================================================
+               REMOVE OLD AI RESPONSES AFTER EDIT
+               ======================================================== */
+
+            function removeAssistantMessagesAfter(
+                userMessage
             ) {
 
-                if (
-                    Number.isInteger(index) &&
-                    index >= 0 &&
-                    index < conversationHistory.length
-                ) {
-
-                    conversationHistory.splice(
-                        index,
-                        1
+                const allMessages =
+                    Array.from(
+                        messages.querySelectorAll(
+                            ".ai-message"
+                        )
                     );
 
-                    return true;
+
+                const userIndex =
+                    allMessages.indexOf(
+                        userMessage
+                    );
+
+
+                if (
+                    userIndex === -1
+                ) {
+
+                    return;
 
                 }
 
-                return false;
+
+                /*
+                 * Delete all assistant
+                 * messages after edited user.
+                 */
+
+                for (
+                    let i =
+                        allMessages.length - 1;
+                    i > userIndex;
+                    i--
+                ) {
+
+                    const item =
+                        allMessages[i];
+
+
+                    if (
+                        item.classList.contains(
+                            "assistant"
+                        )
+                    ) {
+
+                        item.remove();
+
+                    }
+
+                }
 
             }
 
 
-            /* =================================================
-               TYPING INDICATOR
-            ================================================== */
+
+            /* ========================================================
+               REBUILD HISTORY INDEX
+               ======================================================== */
+
+            function rebuildHistoryIndexes() {
+
+                const allMessages =
+                    Array.from(
+                        messages.querySelectorAll(
+                            ".ai-message"
+                        )
+                    );
+
+
+                /*
+                 * The visible messages correspond
+                 * directly to conversation history.
+                 */
+
+                allMessages.forEach(
+                    function (
+                        item,
+                        index
+                    ) {
+
+                        if (
+                            index <
+                            conversationHistory.length
+                        ) {
+
+                            item.dataset.historyIndex =
+                                index;
+
+                        }
+
+                    }
+                );
+
+            }
+
+
+
+            /* ========================================================
+               SHOW TYPING
+               ======================================================== */
 
             function showTyping() {
 
-                const row =
-                    document.createElement("div");
-
-                row.className =
-                    "ai-message-row assistant";
-
-                row.id =
-                    "aiTypingRow";
+                hideTyping();
 
 
-                const wrapper =
-                    document.createElement("div");
+                const message =
+                    document.createElement(
+                        "div"
+                    );
 
-                wrapper.className =
-                    "ai-message-wrapper";
 
-
-                const bubble =
-                    document.createElement("div");
-
-                bubble.className =
+                message.className =
                     "ai-message assistant";
 
 
-                const typing =
-                    document.createElement("div");
-
-                typing.className =
-                    "ai-typing";
-
-                typing.innerHTML =
-                    "<span></span>" +
-                    "<span></span>" +
-                    "<span></span>";
+                message.id =
+                    "aiTypingMessage";
 
 
-                typing.setAttribute(
-                    "aria-label",
-                    "AI is typing"
+                message.innerHTML =
+                    `
+                    <div class="ai-message-inner">
+
+                        <div class="ai-message-content">
+
+                            <div class="ai-typing">
+
+                                <span></span>
+                                <span></span>
+                                <span></span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                    `;
+
+
+                messages.appendChild(
+                    message
                 );
 
 
-                bubble.appendChild(
-                    typing
-                );
-
-                wrapper.appendChild(
-                    bubble
-                );
-
-                row.appendChild(
-                    wrapper
-                );
-
-                aiMessages.appendChild(
-                    row
-                );
-
-
-                scrollMessagesToBottom();
+                scrollBottom();
 
             }
 
 
-            /* =================================================
-               REMOVE TYPING
-            ================================================== */
 
-            function removeTyping() {
+            /* ========================================================
+               HIDE TYPING
+               ======================================================== */
+
+            function hideTyping() {
 
                 const typing =
                     document.getElementById(
-                        "aiTypingRow"
+                        "aiTypingMessage"
                     );
+
 
                 if (typing) {
 
@@ -2482,13 +2702,16 @@
             }
 
 
-            /* =================================================
+
+            /* ========================================================
                SEND MESSAGE
-            ================================================== */
+               ======================================================== */
 
             async function sendMessage() {
 
-                if (isSending) {
+                if (
+                    isSending
+                ) {
 
                     return;
 
@@ -2496,7 +2719,7 @@
 
 
                 const text =
-                    aiInput.value.trim();
+                    input.value.trim();
 
 
                 if (!text) {
@@ -2506,36 +2729,38 @@
                 }
 
 
-                isSending = true;
+                isSending =
+                    true;
 
-                aiSend.disabled = true;
+
+                send.disabled =
+                    true;
 
 
-                /*
-                 * =============================================
-                 * EDIT MODE
-                 * =============================================
-                 */
+
+                /* ====================================================
+                   EDIT MODE
+                   ==================================================== */
 
                 if (
                     editingMessageId !== null
                 ) {
 
-                    const row =
-                        document.querySelector(
-                            '.ai-message-row[data-message-id="' +
-                            editingMessageId +
-                            '"]'
+                    const message =
+                        messages.querySelector(
+                            `[data-message-id="${editingMessageId}"]`
                         );
 
 
-                    if (!row) {
+                    if (!message) {
 
                         cancelEdit();
 
-                        isSending = false;
+                        isSending =
+                            false;
 
-                        aiSend.disabled = false;
+                        send.disabled =
+                            false;
 
                         return;
 
@@ -2544,7 +2769,7 @@
 
                     const historyIndex =
                         parseInt(
-                            row.dataset.historyIndex,
+                            message.dataset.historyIndex,
                             10
                         );
 
@@ -2553,7 +2778,7 @@
                      * Update visible message.
                      */
 
-                    updateMessageText(
+                    updateMessage(
                         editingMessageId,
                         text
                     );
@@ -2564,156 +2789,81 @@
                      */
 
                     if (
-                        !Number.isNaN(historyIndex) &&
-                        conversationHistory[historyIndex]
+                        !Number.isNaN(
+                            historyIndex
+                        ) &&
+                        conversationHistory[
+                            historyIndex
+                        ]
                     ) {
 
                         conversationHistory[
                             historyIndex
-                        ].content = text;
+                        ].content =
+                            text;
 
                     }
 
 
                     /*
-                     * Clear editing state.
+                     * Remove old AI responses.
                      */
 
-                    const editedId =
-                        editingMessageId;
+                    removeAssistantMessagesAfter(
+                        message
+                    );
+
+
+                    /*
+                     * Remove corresponding
+                     * assistant history.
+                     *
+                     * Since the old assistant response
+                     * normally comes immediately after
+                     * the edited user message, remove
+                     * everything after this user message.
+                     */
+
+                    if (
+                        !Number.isNaN(
+                            historyIndex
+                        )
+                    ) {
+
+                        conversationHistory =
+                            conversationHistory.slice(
+                                0,
+                                historyIndex + 1
+                            );
+
+                    }
+
+
+                    /*
+                     * Clear edit mode.
+                     */
 
                     editingMessageId =
                         null;
 
-                    aiEditingBar.classList.remove(
+
+                    editingBar.classList.remove(
                         "active"
                     );
 
-                    aiInput.value =
+
+                    input.value =
                         "";
 
-                    autoResizeTextarea();
 
+                    autoResize();
 
-                    /*
-                     * Remove assistant messages that
-                     * came after this edited user message.
-                     *
-                     * This prevents the old AI response from
-                     * remaining attached to the old question.
-                     */
-
-                    const rows =
-                        Array.from(
-                            aiMessages.querySelectorAll(
-                                ".ai-message-row"
-                            )
-                        );
-
-
-                    const userRowIndex =
-                        rows.indexOf(row);
-
-
-                    if (
-                        userRowIndex !== -1
-                    ) {
-
-                        for (
-                            let i = rows.length - 1;
-                            i > userRowIndex;
-                            i--
-                        ) {
-
-                            const laterRow =
-                                rows[i];
-
-                            /*
-                             * Only remove assistant
-                             * messages after edited user message.
-                             */
-
-                            if (
-                                laterRow.classList.contains(
-                                    "assistant"
-                                )
-                            ) {
-
-                                const laterHistoryIndex =
-                                    parseInt(
-                                        laterRow.dataset.historyIndex,
-                                        10
-                                    );
-
-
-                                if (
-                                    !Number.isNaN(
-                                        laterHistoryIndex
-                                    )
-                                ) {
-
-                                    removeHistoryItem(
-                                        laterHistoryIndex
-                                    );
-
-                                }
-
-
-                                laterRow.remove();
-
-                            }
-
-                        }
-
-                    }
-
-
-                    /*
-                     * Rebuild history indexes after removals.
-                     */
 
                     rebuildHistoryIndexes();
 
 
                     /*
-                     * Find current edited user index again.
-                     */
-
-                    const updatedRow =
-                        document.querySelector(
-                            '.ai-message-row[data-message-id="' +
-                            editedId +
-                            '"]'
-                        );
-
-
-                    if (updatedRow) {
-
-                        const updatedIndex =
-                            conversationHistory.findIndex(
-                                function (item) {
-
-                                    return (
-                                        item.role === "user" &&
-                                        item.content === text
-                                    );
-
-                                }
-                            );
-
-
-                        if (updatedIndex !== -1) {
-
-                            updatedRow.dataset.historyIndex =
-                                String(updatedIndex);
-
-                        }
-
-                    }
-
-
-                    /*
-                     * Send updated conversation to AI.
+                     * Ask AI again.
                      */
 
                     showTyping();
@@ -2722,25 +2872,30 @@
                     try {
 
                         await requestAI(
-                            text,
-                            false
+                            text
                         );
 
-                    } catch (error) {
+                    }
+
+                    catch (error) {
 
                         console.error(
                             error
                         );
 
-                    } finally {
+                    }
 
-                        removeTyping();
+                    finally {
 
-                        isSending = false;
+                        hideTyping();
 
-                        aiSend.disabled = false;
+                        isSending =
+                            false;
 
-                        aiInput.focus();
+                        send.disabled =
+                            false;
+
+                        input.focus();
 
                     }
 
@@ -2750,25 +2905,17 @@
                 }
 
 
-                /*
-                 * =============================================
-                 * NORMAL MESSAGE
-                 * =============================================
-                 */
 
-
-                aiInput.value =
-                    "";
-
-                autoResizeTextarea();
-
+                /* ====================================================
+                   NORMAL MESSAGE
+                   ==================================================== */
 
                 const historyIndex =
                     conversationHistory.length;
 
 
                 /*
-                 * Add to conversation history first.
+                 * Add user history first.
                  */
 
                 conversationHistory.push({
@@ -2781,7 +2928,7 @@
 
 
                 /*
-                 * Add user message.
+                 * Add visible user message.
                  */
 
                 addMessage(
@@ -2792,7 +2939,26 @@
 
 
                 /*
-                 * Send to backend.
+                 * Clear textarea.
+                 */
+
+                input.value =
+                    "";
+
+
+                autoResize();
+
+
+                /*
+                 * Hide suggestions.
+                 */
+
+                suggestions.style.display =
+                    "none";
+
+
+                /*
+                 * Typing.
                  */
 
                 showTyping();
@@ -2801,38 +2967,43 @@
                 try {
 
                     await requestAI(
-                        text,
-                        true
+                        text
                     );
 
-                } catch (error) {
+                }
+
+                catch (error) {
 
                     console.error(
                         error
                     );
 
-                } finally {
+                }
 
-                    removeTyping();
+                finally {
 
-                    isSending = false;
+                    hideTyping();
 
-                    aiSend.disabled = false;
+                    isSending =
+                        false;
 
-                    aiInput.focus();
+                    send.disabled =
+                        false;
+
+                    input.focus();
 
                 }
 
             }
 
 
-            /* =================================================
-               REQUEST AI
-            ================================================== */
+
+            /* ========================================================
+               AI REQUEST
+               ======================================================== */
 
             async function requestAI(
-                text,
-                normalRequest = true
+                text
             ) {
 
                 try {
@@ -2841,6 +3012,7 @@
                         await fetch(
                             "{{ url_for('main.ai_assistant') }}",
                             {
+
                                 method: "POST",
 
                                 credentials:
@@ -2852,14 +3024,18 @@
                                         "application/json",
 
                                     "Accept":
-                                        "application/json"
+                                        "application/json",
+
+                                    "X-Requested-With":
+                                        "XMLHttpRequest"
 
                                 },
 
                                 body:
                                     JSON.stringify({
 
-                                        message: text,
+                                        message:
+                                            text,
 
                                         history:
                                             conversationHistory
@@ -2871,89 +3047,78 @@
 
 
                     /*
-                     * Read response safely.
+                     * Read JSON.
                      */
-
-                    const contentType =
-                        response.headers.get(
-                            "content-type"
-                        ) || "";
-
 
                     let data;
 
 
-                    if (
-                        contentType.includes(
-                            "application/json"
-                        )
-                    ) {
+                    try {
 
                         data =
                             await response.json();
 
-                    } else {
+                    }
 
-                        const raw =
-                            await response.text();
+                    catch (jsonError) {
 
                         throw new Error(
-                            raw ||
                             "Server returned an invalid response."
                         );
 
                     }
 
 
-                    /*
-                     * HTTP error.
-                     */
-
-                    if (!response.ok) {
+                    if (
+                        !response.ok
+                    ) {
 
                         throw new Error(
                             data.error ||
                             data.message ||
-                            "AI request failed."
+                            "Something went wrong."
                         );
 
                     }
 
 
                     /*
-                     * Find AI response.
+                     * Support different
+                     * backend response names.
                      */
 
-                    const aiText =
-                        data.response ??
-                        data.answer ??
-                        data.message ??
-                        data.reply ??
+                    const answer =
+                        data.answer ||
+                        data.response ||
+                        data.reply ||
+                        data.message ||
                         "";
 
 
-                    if (!aiText) {
+                    if (!answer) {
 
                         throw new Error(
-                            "The AI returned an empty response."
+                            "AI returned an empty response."
                         );
 
                     }
 
 
                     /*
-                     * Add assistant response to history.
+                     * Save assistant history.
                      */
 
-                    const assistantHistoryIndex =
+                    const assistantIndex =
                         conversationHistory.length;
 
 
                     conversationHistory.push({
 
-                        role: "assistant",
+                        role:
+                            "assistant",
 
-                        content: String(aiText)
+                        content:
+                            String(answer)
 
                     });
 
@@ -2963,13 +3128,39 @@
                      */
 
                     addMessage(
-                        String(aiText),
+                        String(answer),
                         "assistant",
-                        assistantHistoryIndex
+                        assistantIndex
                     );
 
 
-                } catch (error) {
+                    /*
+                     * Keep maximum 20 history entries.
+                     */
+
+                    if (
+                        conversationHistory.length >
+                        20
+                    ) {
+
+                        const removeCount =
+                            conversationHistory.length -
+                            20;
+
+
+                        conversationHistory =
+                            conversationHistory.slice(
+                                removeCount
+                            );
+
+
+                        rebuildHistoryIndexes();
+
+                    }
+
+                }
+
+                catch (error) {
 
                     console.error(
                         "AI Assistant Error:",
@@ -2977,13 +3168,8 @@
                     );
 
 
-                    /*
-                     * Show error in UI.
-                     */
-
                     addMessage(
-                        "Sorry, something went wrong. " +
-                        error.message,
+                        "AI Assistant lama xiriirin server-ka. Fadlan mar kale isku day.",
                         "assistant",
                         null
                     );
@@ -2993,80 +3179,31 @@
             }
 
 
-            /* =================================================
-               REBUILD HISTORY INDEXES
-            ================================================== */
 
-            function rebuildHistoryIndexes() {
+            /* ========================================================
+               SEND BUTTON
+               ======================================================== */
 
-                const rows =
-                    Array.from(
-                        aiMessages.querySelectorAll(
-                            ".ai-message-row"
-                        )
-                    );
+            send.addEventListener(
+                "click",
+                sendMessage
+            );
 
 
-                /*
-                 * We rebuild based on the current
-                 * visible message order.
-                 */
 
-                let historyIndex = 0;
+            /* ========================================================
+               ENTER
+               ======================================================== */
 
-
-                rows.forEach(function (row) {
-
-                    /*
-                     * Skip rows without history.
-                     */
-
-                    if (
-                        !row.querySelector(
-                            ".ai-message"
-                        )
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    /*
-                     * Skip typing row.
-                     */
-
-                    if (
-                        row.id === "aiTypingRow"
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    /*
-                     * Only actual user/assistant
-                     * conversation messages.
-                     */
-
-                    row.dataset.historyIndex =
-                        String(historyIndex);
-
-                    historyIndex++;
-
-                });
-
-            }
-
-
-            /* =================================================
-               ENTER / SHIFT + ENTER
-            ================================================== */
-
-            aiInput.addEventListener(
+            input.addEventListener(
                 "keydown",
                 function (event) {
+
+                    /*
+                     * Enter = send
+                     *
+                     * Shift + Enter = new line
+                     */
 
                     if (
                         event.key === "Enter" &&
@@ -3083,76 +3220,78 @@
             );
 
 
-            /* =================================================
-               SEND BUTTON
-            ================================================== */
 
-            aiSend.addEventListener(
-                "click",
-                sendMessage
-            );
+            /* ========================================================
+               AUTO RESIZE
+               ======================================================== */
 
+            function autoResize() {
 
-            /* =================================================
-               TEXTAREA AUTO RESIZE
-            ================================================== */
-
-            function autoResizeTextarea() {
-
-                aiInput.style.height =
-                    "auto";
+                input.style.height =
+                    "42px";
 
 
-                const maxHeight =
-                    130;
-
-
-                aiInput.style.height =
+                input.style.height =
                     Math.min(
-                        aiInput.scrollHeight,
-                        maxHeight
+                        input.scrollHeight,
+                        110
                     ) + "px";
 
             }
 
 
-            aiInput.addEventListener(
+            input.addEventListener(
                 "input",
-                autoResizeTextarea
+                autoResize
             );
 
 
-            /* =================================================
+
+            /* ========================================================
                QUICK QUESTIONS
-            ================================================== */
+               ======================================================== */
 
             document
                 .querySelectorAll(
                     ".ai-suggestion"
                 )
-                .forEach(function (button) {
+                .forEach(
+                    function (item) {
 
-                    button.addEventListener(
-                        "click",
-                        function () {
+                        item.addEventListener(
+                            "click",
+                            function () {
 
-                            aiInput.value =
-                                button.dataset.question ||
-                                "";
-
-                            autoResizeTextarea();
-
-                            aiInput.focus();
-
-                        }
-                    );
-
-                });
+                                const question =
+                                    this.getAttribute(
+                                        "data-question"
+                                    );
 
 
-            /* =================================================
-               CLICK OUTSIDE ACTION POPUP
-            ================================================== */
+                                if (
+                                    question
+                                ) {
+
+                                    input.value =
+                                        question;
+
+                                    autoResize();
+
+                                    input.focus();
+
+                                }
+
+                            }
+                        );
+
+                    }
+                );
+
+
+
+            /* ========================================================
+               CLICK OUTSIDE POPUP
+               ======================================================== */
 
             document.addEventListener(
                 "click",
@@ -3160,11 +3299,11 @@
 
                     if (
                         !event.target.closest(
-                            ".ai-message-row"
+                            ".ai-message"
                         )
                     ) {
 
-                        closeAllActionMenus();
+                        closeAllMenus();
 
                     }
 
@@ -3172,158 +3311,404 @@
             );
 
 
-            /* =================================================
-               MOBILE TAP ACTION
-            ================================================== */
 
-            aiMessages.addEventListener(
-                "touchstart",
-                function () {
+            /* ========================================================
+               INITIAL
+               ======================================================== */
 
-                    /*
-                     * No automatic opening here.
-                     * The three-dot button handles touch.
-                     */
+            autoResize();
 
-                },
-                {
-                    passive: true
-                }
-            );
-
-
-            /* =================================================
-               INITIAL TEXTAREA SIZE
-            ================================================== */
-
-            autoResizeTextarea();
-
-
-            /* =================================================
-               INITIAL ICON REFRESH
-            ================================================== */
-
-            refreshFeatherIcons();
+            refreshIcons();
 
         });
 
     </script>
 
 
-    <!-- =========================================================
-         INVOICE CALCULATOR
-    ========================================================== -->
+
+    <!--! BEGIN: Vendors JS !-->
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/vendors.min.js') }}"></script>
+
+    <!-- vendors.min.js {always must need to be top} -->
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/daterangepicker.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/apexcharts.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/circle-progress.min.js') }}"></script>
+
+    <!--! END: Vendors JS !-->
+
+
+
+    <!--! BEGIN: Apps Init !-->
+
+    <script src="{{ url_for('static', filename='backend/assets/js/common-init.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/js/dashboard-init.min.js') }}"></script>
+
+    <!--! END: Apps Init !-->
+
+
+
+    <!--! BEGIN: Theme Customizer !-->
+
+    <script src="{{ url_for('static', filename='backend/assets/js/theme-customizer-init.min.js') }}"></script>
+
+    <!--! END: Theme Customizer !-->
+
+
+
+    <!-- Feather Icons -->
+
+    <script src="https://unpkg.com/feather-icons"></script>
 
     <script>
 
-        $(document).ready(function () {
+        if (
+            typeof feather !== "undefined"
+        ) {
 
-            function calculateInvoiceRow(row) {
+            feather.replace();
 
-                const quantity =
-                    parseFloat(
-                        row.find(".quantity").val()
-                    ) || 0;
+        }
 
-                const price =
-                    parseFloat(
-                        row.find(".price").val()
-                    ) || 0;
+    </script>
 
-                const total =
-                    quantity * price;
 
-                row.find(".total").val(
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/dataTables.bs5.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/select2-active.min.js') }}"></script>
+
+    <!--! END: Vendors JS !-->
+
+
+
+    <script src="{{ url_for('static', filename='backend/assets/js/leads-init.min.js') }}"></script>
+
+    <!--! END: Apps Init !-->
+
+
+
+    <!-- vendors.min.js {always must need to be top} -->
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/datepicker.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/lslstrength.min.js') }}"></script>
+
+    <!--! END: Vendors JS !-->
+
+
+
+    <!--! BEGIN: Apps Init !-->
+
+    <script src="{{ url_for('static', filename='backend/assets/js/customers-create-init.min.js') }}"></script>
+
+    <!--! END: Apps Init !-->
+
+
+
+    <script src="{{ url_for('static', filename='backend/assets/js/invoice-view-init.min.js') }}"></script>
+
+
+
+    <!-- vendors.min.js {always must need to be top} -->
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/jquery.print.min.js') }}"></script>
+
+
+
+    <!-- vendors.min.js {always must need to be top} -->
+
+    <script src="{{ url_for('static', filename='backend/assets/vendors/js/cleave.min.js') }}"></script>
+
+    <!--! END: Vendors JS !-->
+
+
+
+    <script src="{{ url_for('static', filename='backend/assets/js/invoice-create-init.min.js') }}"></script>
+
+    <!--! END: Apps Init !-->
+
+
+
+    <!-- ============================================================
+         INVOICE CALCULATOR
+         ============================================================ -->
+
+    <script>
+
+        $(document).ready(function() {
+
+            var i = 1;
+
+
+            $("#add_row").click(function() {
+
+                b = i - 1;
+
+
+                $("#addr" + i)
+
+                    .html(
+                        $("#addr" + b).html()
+                    )
+
+                    .find("td:first-child")
+
+                    .html(i + 1);
+
+
+                $("#tab_logic").append(
+                    '<tr id="addr' +
+                    (i + 1) +
+                    '"></tr>'
+                );
+
+
+                i++;
+
+            });
+
+
+            $("#delete_row").click(function() {
+
+                if (i > 1) {
+
+                    $("#addr" +
+                        (i - 1)
+                    ).html("");
+
+                    i--;
+
+                }
+
+                calc();
+
+            });
+
+
+            $("#tab_logic tbody").on(
+                "keyup change",
+                function() {
+
+                    calc();
+
+                }
+            );
+
+
+            $("#tax").on(
+                "keyup change",
+                function() {
+
+                    calc_total();
+
+                }
+            );
+
+        });
+
+
+
+        function calc() {
+
+            $("#tab_logic tbody tr")
+                .each(
+                    function(i, element) {
+
+                        var html =
+                            $(this).html();
+
+
+                        if (html != "") {
+
+                            var qty =
+                                parseFloat(
+                                    $(this)
+                                        .find(".qty")
+                                        .val()
+                                ) || 0;
+
+
+                            var price =
+                                parseFloat(
+                                    $(this)
+                                        .find(".price")
+                                        .val()
+                                ) || 0;
+
+
+                            $(this)
+                                .find(".total")
+                                .val(
+                                    (
+                                        qty *
+                                        price
+                                    ).toFixed(2)
+                                );
+
+
+                            calc_total();
+
+                        }
+
+                    }
+                );
+
+        }
+
+
+
+        function calc_total() {
+
+            var total = 0;
+
+
+            $(".total").each(
+                function() {
+
+                    total +=
+                        parseFloat(
+                            $(this).val()
+                        ) || 0;
+
+                }
+            );
+
+
+            $("#sub_total")
+                .val(
                     total.toFixed(2)
                 );
 
-            }
+
+            var tax =
+                parseFloat(
+                    $("#tax").val()
+                ) || 0;
 
 
-            $(document).on(
-                "input",
-                ".quantity, .price",
-                function () {
-
-                    const row =
-                        $(this).closest("tr");
-
-                    calculateInvoiceRow(
-                        row
-                    );
-
-                }
-            );
+            var tax_sum =
+                (total / 100) *
+                tax;
 
 
-            $(".invoice-item-row").each(
-                function () {
+            $("#tax_amount")
+                .val(
+                    tax_sum.toFixed(2)
+                );
 
-                    calculateInvoiceRow(
-                        $(this)
-                    );
 
-                }
-            );
+            $("#total_amount")
+                .val(
+                    (
+                        tax_sum +
+                        total
+                    ).toFixed(2)
+                );
 
-        });
+        }
 
     </script>
 
 
-    <!-- =========================================================
-         FLASH MESSAGES
-    ========================================================== -->
+
+    <!-- ============================================================
+         SWEETALERT2
+         ============================================================ -->
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+    <!-- ============================================================
+         FLASH MESSAGE HANDLING
+         ============================================================ -->
 
     <script>
 
-        document.addEventListener(
-            "DOMContentLoaded",
-            function () {
+        const flashMessages =
+            {{ get_flashed_messages(with_categories=True) | tojson | safe }};
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
 
-                    {% if messages %}
+        if (
+            flashMessages.length > 0
+        ) {
 
-                        {% for category, message in messages %}
+            const [
+                category,
+                message
+            ] =
+                flashMessages[0];
 
-                            Swal.fire({
 
-                                icon:
-                                    {% if category in ['danger', 'error'] %}
-                                        'error'
-                                    {% elif category == 'warning' %}
-                                        'warning'
-                                    {% elif category == 'info' %}
-                                        'info'
-                                    {% else %}
-                                        'success'
-                                    {% endif %},
+            const Toast =
+                Swal.mixin({
 
-                                text:
-                                    {{ message|tojson }},
+                    toast: true,
 
-                                confirmButtonText:
-                                    "OK",
+                    position:
+                        'top-end',
 
-                                buttonsStyling:
-                                    true
+                    showConfirmButton:
+                        false,
 
-                            });
+                    timer:
+                        3000,
 
-                        {% endfor %}
+                    timerProgressBar:
+                        true,
 
-                    {% endif %}
+                    background:
+                        '#fff',
 
-                {% endwith %}
+                    color:
+                        '#333',
 
-            }
-        );
+
+                    didOpen:
+                        (toast) => {
+
+                            toast.addEventListener(
+                                'mouseenter',
+                                Swal.stopTimer
+                            );
+
+
+                            toast.addEventListener(
+                                'mouseleave',
+                                Swal.resumeTimer
+                            );
+
+                        }
+
+                });
+
+
+            Toast.fire({
+
+                icon:
+                    category === "success"
+                        ? "success"
+                        : "info",
+
+                title:
+                    message
+
+            });
+
+        }
 
     </script>
 
 
-    {% block extra_js %}{% endblock %}
 
 </body>
 
