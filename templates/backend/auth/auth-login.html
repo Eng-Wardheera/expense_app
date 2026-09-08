@@ -1,131 +1,1979 @@
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login Secure Dashboard</title>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="description"
+        content="Secure login dashboard"
+    >
+
+    <title>Login | Dashboard</title>
+
+
+    <!-- =====================================================
+         TAILWIND CSS
+    ====================================================== -->
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+
+    <!-- =====================================================
+         SWEETALERT2
+    ====================================================== -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/sweetalert2@11"
+    ></script>
+
+
+    <!-- =====================================================
+         TAILWIND CONFIG
+    ====================================================== -->
+
+    <script>
+
+        tailwind.config = {
+
+            darkMode: "class",
+
+            theme: {
+
+                extend: {
+
+                    colors: {
+
+                        primary: "#4f46e5",
+
+                        secondary: "#7c3aed"
+
+                    }
+
+                }
+
+            }
+
+        };
+
+    </script>
+
+
+    <!-- =====================================================
+         CUSTOM CSS
+    ====================================================== -->
+
     <style>
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2); }
-        .dark .glass { background: rgba(30, 41, 59, 0.8); }
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+
+        body {
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+        }
+
+
+        /* =====================================================
+           BACKGROUND
+        ====================================================== */
+
+        .login-background {
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 20%,
+                    rgba(99, 102, 241, 0.35),
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(168, 85, 247, 0.35),
+                    transparent 35%
+                ),
+
+                linear-gradient(
+                    135deg,
+                    #eef2ff 0%,
+                    #f5f3ff 50%,
+                    #faf5ff 100%
+                );
+
+        }
+
+
+        .dark .login-background {
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 20%,
+                    rgba(79, 70, 229, 0.25),
+                    transparent 35%
+                ),
+
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(124, 58, 237, 0.25),
+                    transparent 35%
+                ),
+
+                #020617;
+
+        }
+
+
+        /* =====================================================
+           GLASS CARD
+        ====================================================== */
+
+        .glass-card {
+
+            background:
+                rgba(255, 255, 255, 0.94);
+
+            backdrop-filter:
+                blur(24px);
+
+            -webkit-backdrop-filter:
+                blur(24px);
+
+            border:
+                1px solid rgba(255, 255, 255, 0.70);
+
+            box-shadow:
+                0 30px 80px rgba(15, 23, 42, 0.16);
+
+        }
+
+
+        .dark .glass-card {
+
+            background:
+                rgba(15, 23, 42, 0.94);
+
+            border-color:
+                rgba(255, 255, 255, 0.08);
+
+            box-shadow:
+                0 30px 80px rgba(0, 0, 0, 0.50);
+
+        }
+
+
+        /* =====================================================
+           LEFT PANEL
+        ====================================================== */
+
+        .left-panel {
+
+            background:
+
+                linear-gradient(
+                    145deg,
+                    #312e81 0%,
+                    #4f46e5 50%,
+                    #7c3aed 100%
+                );
+
+        }
+
+
+        /* =====================================================
+           DECORATIVE CIRCLES
+        ====================================================== */
+
+        .circle-one {
+
+            position: absolute;
+
+            width: 240px;
+            height: 240px;
+
+            border-radius: 9999px;
+
+            background:
+                rgba(255, 255, 255, 0.08);
+
+            top: -100px;
+            right: -100px;
+
+            pointer-events: none;
+
+        }
+
+
+        .circle-two {
+
+            position: absolute;
+
+            width: 320px;
+            height: 320px;
+
+            border-radius: 9999px;
+
+            background:
+                rgba(255, 255, 255, 0.06);
+
+            bottom: -150px;
+            left: -130px;
+
+            pointer-events: none;
+
+        }
+
+
+        .circle-three {
+
+            position: absolute;
+
+            width: 100px;
+            height: 100px;
+
+            border-radius: 9999px;
+
+            border:
+                1px solid rgba(255, 255, 255, 0.12);
+
+            top: 45%;
+            right: 8%;
+
+            pointer-events: none;
+
+        }
+
+
+        /* =====================================================
+           INPUT
+        ====================================================== */
+
+        .login-input {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .login-input:focus {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 0 0 4px rgba(79, 70, 229, 0.10);
+
+        }
+
+
+        /* =====================================================
+           LOGIN BUTTON
+        ====================================================== */
+
+        .login-button {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .login-button:hover:not(:disabled) {
+
+            transform:
+                translateY(-1px);
+
+            box-shadow:
+                0 14px 30px
+                rgba(79, 70, 229, 0.25);
+
+        }
+
+
+        .login-button:active:not(:disabled) {
+
+            transform:
+                scale(0.98);
+
+        }
+
+
+        /* =====================================================
+           FEATURE CARD
+        ====================================================== */
+
+        .feature-card {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .feature-card:hover {
+
+            background:
+                rgba(255, 255, 255, 0.14);
+
+            transform:
+                translateX(3px);
+
+        }
+
+
+        /* =====================================================
+           GOOGLE BUTTON
+        ====================================================== */
+
+        .google-button {
+
+            transition:
+                all 0.2s ease;
+
+        }
+
+
+        .google-button:hover {
+
+            transform:
+                translateY(-1px);
+
+        }
+
+
+        /* =====================================================
+           SPINNER
+        ====================================================== */
+
+        .spinner {
+
+            animation:
+                spin 0.8s linear infinite;
+
+        }
+
+
+        @keyframes spin {
+
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        /* =====================================================
+           MOBILE
+        ====================================================== */
+
+        @media (max-width: 1023px) {
+
+            .left-panel {
+                display: none;
+            }
+
+        }
+
+
+        @media (max-width: 640px) {
+
+            .glass-card {
+
+                border-radius:
+                    1.5rem;
+
+            }
+
+        }
+
     </style>
+
 </head>
-<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen flex items-center justify-center p-4">
 
-    <main class="w-full max-w-md">
-        <div class="glass p-8 rounded-3xl shadow-2xl space-y-6">
-            
-            <div class="text-center">
-                <h1 class="text-3xl font-extrabold text-gray-900 dark:text-white" id="title">Welcome Back</h1>
-                <p class="text-gray-500 dark:text-gray-300 mt-2" id="subtitle">Sign in to your dashboard</p>
-            </div>
 
-            <form id="authForm" action="{{ url_for('main.login') }}" method="POST" class="space-y-5">
-                <div>
-                    <input class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:text-white"
-                        type="email" name="email" placeholder="Email address" required />
+<body
+    class="
+        login-background
+        min-h-screen
+        flex
+        items-center
+        justify-center
+        p-4
+        sm:p-6
+    "
+>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="w-full max-w-6xl">
+
+
+        <!-- =================================================
+             LOGIN CARD
+        ================================================== -->
+
+        <div
+            class="
+                glass-card
+                overflow-hidden
+                rounded-[2rem]
+                grid
+                grid-cols-1
+                lg:grid-cols-2
+                min-h-[650px]
+            "
+        >
+
+
+            <!-- =================================================
+                 LEFT PANEL
+            ================================================== -->
+
+            <section
+                class="
+                    left-panel
+                    relative
+                    overflow-hidden
+                    p-8
+                    sm:p-10
+                    lg:p-14
+                    text-white
+                    flex
+                    flex-col
+                    justify-between
+                "
+            >
+
+
+                <!-- Decorative elements -->
+
+                <div class="circle-one"></div>
+
+                <div class="circle-two"></div>
+
+                <div class="circle-three"></div>
+
+
+                <!-- =================================================
+                     WELCOME
+                ================================================== -->
+
+                <div class="relative z-10">
+
+
+                    <!-- Logo -->
+
+                    <div
+                        class="
+                            inline-flex
+                            items-center
+                            justify-center
+                            w-14
+                            h-14
+                            rounded-2xl
+                            bg-white/15
+                            backdrop-blur-md
+                            border
+                            border-white/20
+                            mb-7
+                        "
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-shield-halved
+                                text-2xl
+                            "
+                        ></i>
+
+                    </div>
+
+
+                    <!-- Heading -->
+
+                    <h1
+                        class="
+                            text-4xl
+                            sm:text-5xl
+                            font-black
+                            leading-tight
+                        "
+                    >
+
+                        Welcome
+
+                        <br>
+
+                        <span class="text-indigo-200">
+                            Back.
+                        </span>
+
+                    </h1>
+
+
+                    <!-- Description -->
+
+                    <p
+                        class="
+                            mt-6
+                            text-indigo-100
+                            text-base
+                            lg:text-lg
+                            leading-8
+                            max-w-md
+                        "
+                    >
+
+                        Sign in securely to access your
+                        dashboard, manage your account,
+                        and continue your work.
+
+                    </p>
+
                 </div>
-                
-                <div class="relative">
-                    <input id="password" class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all dark:bg-gray-800 dark:text-white"
-                        type="password" name="password" placeholder="Password" required />
-                    <button type="button" onclick="togglePass()" class="absolute right-4 top-4 text-gray-400 hover:text-indigo-600">
-                        <i id="eyeIcon" class="fas fa-eye"></i>
+
+
+
+                <!-- =================================================
+                     FEATURES
+                ================================================== -->
+
+                <div
+                    class="
+                        relative
+                        z-10
+                        space-y-4
+                        mt-10
+                    "
+                >
+
+
+                    <!-- Secure Login -->
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-lock
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Secure Login
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Your account is protected.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Protected Account -->
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-user-shield
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Protected Account
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Advanced authentication.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- Secure Session -->
+
+                    <div
+                        class="
+                            feature-card
+                            flex
+                            items-center
+                            gap-4
+                            p-4
+                            rounded-2xl
+                            bg-white/10
+                            border
+                            border-white/10
+                        "
+                    >
+
+                        <div
+                            class="
+                                w-11
+                                h-11
+                                shrink-0
+                                rounded-xl
+                                bg-white/10
+                                flex
+                                items-center
+                                justify-center
+                            "
+                        >
+
+                            <i
+                                class="
+                                    fa-solid
+                                    fa-fingerprint
+                                "
+                            ></i>
+
+                        </div>
+
+
+                        <div>
+
+                            <p class="font-bold">
+                                Secure Session
+                            </p>
+
+                            <p
+                                class="
+                                    text-sm
+                                    text-indigo-200
+                                "
+                            >
+                                Your login session is protected.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     FOOTER
+                ================================================== -->
+
+                <div
+                    class="
+                        relative
+                        z-10
+                        mt-10
+                        text-sm
+                        text-indigo-200
+                    "
+                >
+
+                    ©
+                    {{ now().year if now is defined else "2026" }}
+
+                    All rights reserved.
+
+                </div>
+
+            </section>
+
+
+
+            <!-- =================================================
+                 RIGHT PANEL
+            ================================================== -->
+
+            <section
+                class="
+                    p-7
+                    sm:p-10
+                    lg:p-14
+                    flex
+                    flex-col
+                    justify-center
+                    bg-white
+                    dark:bg-slate-900
+                "
+            >
+
+
+                <!-- =================================================
+                     HEADER
+                ================================================== -->
+
+                <div class="mb-8">
+
+
+                    <!-- Icon -->
+
+                    <div
+                        class="
+                            inline-flex
+                            items-center
+                            justify-center
+                            w-12
+                            h-12
+                            rounded-2xl
+                            bg-indigo-50
+                            dark:bg-indigo-500/10
+                            text-indigo-600
+                            dark:text-indigo-400
+                            mb-5
+                        "
+                    >
+
+                        <i
+                            class="
+                                fa-solid
+                                fa-right-to-bracket
+                                text-xl
+                            "
+                        ></i>
+
+                    </div>
+
+
+                    <!-- Title -->
+
+                    <h2
+                        class="
+                            text-3xl
+                            sm:text-4xl
+                            font-black
+                            tracking-tight
+                            text-slate-900
+                            dark:text-white
+                        "
+                    >
+
+                        Sign in
+
+                    </h2>
+
+
+                    <p
+                        class="
+                            mt-2
+                            text-slate-500
+                            dark:text-slate-400
+                        "
+                    >
+
+                        Enter your account details to continue.
+
+                    </p>
+
+                </div>
+
+
+
+                <!-- =================================================
+                     LOGIN FORM
+                ================================================== -->
+
+                <form
+                    id="authForm"
+                    action="{{ url_for('main.login') }}"
+                    method="POST"
+                    class="space-y-5"
+                    autocomplete="on"
+                >
+
+
+                    <!-- =================================================
+                         CSRF
+                    ================================================== -->
+
+                    {% if csrf_token is defined %}
+
+                        <input
+                            type="hidden"
+                            name="csrf_token"
+                            value="{{ csrf_token() }}"
+                        >
+
+                    {% endif %}
+
+
+
+                    <!-- =================================================
+                         LOGIN
+                         IMPORTANT:
+                         Route expects request.form.get("login")
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="login"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+
+                            Username, Email or Phone
+
+                        </label>
+
+
+                        <div class="relative">
+
+
+                            <!-- User icon -->
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i
+                                    class="
+                                        fa-solid
+                                        fa-user
+                                    "
+                                ></i>
+
+                            </div>
+
+
+                            <!-- Login input -->
+
+                            <input
+                                type="text"
+                                id="login"
+                                name="login"
+                                value="{{ request.form.get('login', '') }}"
+                                placeholder="Username, email or phone"
+                                autocomplete="username"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                required
+                                class="
+                                    login-input
+                                    w-full
+                                    pl-11
+                                    pr-4
+                                    py-3.5
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- =================================================
+                         PASSWORD
+                    ================================================== -->
+
+                    <div>
+
+                        <label
+                            for="password"
+                            class="
+                                block
+                                text-sm
+                                font-bold
+                                text-slate-700
+                                dark:text-slate-200
+                                mb-2
+                            "
+                        >
+
+                            Password
+
+                        </label>
+
+
+                        <div class="relative">
+
+
+                            <!-- Lock icon -->
+
+                            <div
+                                class="
+                                    absolute
+                                    left-4
+                                    top-1/2
+                                    -translate-y-1/2
+                                    text-slate-400
+                                    pointer-events-none
+                                "
+                            >
+
+                                <i
+                                    class="
+                                        fa-solid
+                                        fa-lock
+                                    "
+                                ></i>
+
+                            </div>
+
+
+                            <!-- Password -->
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                                class="
+                                    login-input
+                                    w-full
+                                    pl-11
+                                    pr-12
+                                    py-3.5
+                                    rounded-2xl
+                                    border
+                                    border-slate-200
+                                    dark:border-slate-700
+                                    bg-white
+                                    dark:bg-slate-950
+                                    text-slate-900
+                                    dark:text-white
+                                    placeholder-slate-400
+                                    outline-none
+                                    focus:border-indigo-500
+                                "
+                            >
+
+
+                            <!-- Password toggle -->
+
+                            <button
+                                type="button"
+                                id="passwordToggle"
+                                aria-label="Show password"
+                                class="
+                                    absolute
+                                    right-3
+                                    top-1/2
+                                    -translate-y-1/2
+                                    w-10
+                                    h-10
+                                    rounded-xl
+                                    flex
+                                    items-center
+                                    justify-center
+                                    text-slate-400
+                                    hover:text-indigo-600
+                                    hover:bg-indigo-50
+                                    dark:hover:bg-slate-800
+                                    transition
+                                "
+                            >
+
+                                <i
+                                    id="eyeIcon"
+                                    class="
+                                        fa-solid
+                                        fa-eye
+                                    "
+                                ></i>
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <!-- =================================================
+                         REMEMBER + FORGOT
+                    ================================================== -->
+
+                    <div
+                        class="
+                            flex
+                            items-center
+                            justify-between
+                            gap-4
+                            text-sm
+                        "
+                    >
+
+
+                        <!-- Remember -->
+
+                        <label
+                            class="
+                                flex
+                                items-center
+                                gap-2
+                                cursor-pointer
+                                select-none
+                                text-slate-600
+                                dark:text-slate-300
+                            "
+                        >
+
+                            <input
+                                type="checkbox"
+                                name="remember"
+                                value="1"
+                                class="
+                                    w-4
+                                    h-4
+                                    rounded
+                                    border-slate-300
+                                    text-indigo-600
+                                    focus:ring-indigo-500
+                                    cursor-pointer
+                                "
+                            >
+
+                            <span>
+                                Remember me
+                            </span>
+
+                        </label>
+
+
+
+                        <!-- Forgot password -->
+
+                        <a
+                            href="{{ url_for('main.forgot_password') }}"
+                            class="
+                                font-bold
+                                text-indigo-600
+                                hover:text-indigo-700
+                                dark:text-indigo-400
+                                dark:hover:text-indigo-300
+                                transition
+                            "
+                        >
+
+                            Forgot password?
+
+                        </a>
+
+                    </div>
+
+
+
+                    <!-- =================================================
+                         LOGIN BUTTON
+                    ================================================== -->
+
+                    <button
+                        type="submit"
+                        id="loginButton"
+                        class="
+                            login-button
+                            w-full
+                            py-4
+                            rounded-2xl
+                            bg-indigo-600
+                            hover:bg-indigo-700
+                            text-white
+                            font-bold
+                            flex
+                            items-center
+                            justify-center
+                            gap-3
+                            shadow-lg
+                            shadow-indigo-500/20
+                            disabled:opacity-60
+                            disabled:cursor-not-allowed
+                        "
+                    >
+
+                        <!-- Normal icon -->
+
+                        <i
+                            id="buttonIcon"
+                            class="
+                                fa-solid
+                                fa-right-to-bracket
+                            "
+                        ></i>
+
+
+                        <!-- Loading icon -->
+
+                        <i
+                            id="loadingIcon"
+                            class="
+                                fa-solid
+                                fa-spinner
+                                spinner
+                                hidden
+                            "
+                        ></i>
+
+
+                        <!-- Button text -->
+
+                        <span id="btnText">
+                            Login Account
+                        </span>
+
                     </button>
+
+                </form>
+
+
+
+                <!-- =================================================
+                     DIVIDER
+                ================================================== -->
+
+                <div
+                    class="
+                        flex
+                        items-center
+                        gap-4
+                        my-7
+                    "
+                >
+
+                    <div
+                        class="
+                            flex-1
+                            border-t
+                            border-slate-200
+                            dark:border-slate-700
+                        "
+                    ></div>
+
+
+                    <span
+                        class="
+                            text-xs
+                            font-bold
+                            text-slate-400
+                            uppercase
+                        "
+                    >
+                        OR
+                    </span>
+
+
+                    <div
+                        class="
+                            flex-1
+                            border-t
+                            border-slate-200
+                            dark:border-slate-700
+                        "
+                    ></div>
+
                 </div>
 
-                <!-- Remember Me + Forgot Password (ADDED) -->
-                <div class="flex items-center justify-between text-sm">
-                    <label class="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
-                        <input type="checkbox" name="remember" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <span>Remember me</span>
-                    </label>
 
-                    <a href="{{ url_for('main.forgot_password') }}" class="text-indigo-600 hover:underline">
-                        Forgot password?
+
+                <!-- =================================================
+                     GOOGLE LOGIN
+                ================================================== -->
+
+                <a
+                    href="{{ url_for('main.login_google') }}"
+                    id="googleLoginButton"
+                    class="
+                        google-button
+                        w-full
+                        py-3.5
+                        rounded-2xl
+                        border
+                        border-slate-200
+                        dark:border-slate-700
+                        bg-white
+                        dark:bg-slate-950
+                        hover:bg-slate-50
+                        dark:hover:bg-slate-800
+                        text-slate-700
+                        dark:text-slate-200
+                        font-semibold
+                        flex
+                        items-center
+                        justify-center
+                        gap-3
+                    "
+                >
+
+                    <img
+                        src="https://www.svgrepo.com/show/475656/google-color.svg"
+                        alt="Google"
+                        class="w-5 h-5"
+                    >
+
+                    <span>
+                        Continue with Google
+                    </span>
+
+                </a>
+
+
+
+                <!-- =================================================
+                     REGISTER
+                ================================================== -->
+
+                <div
+                    class="
+                        text-center
+                        mt-7
+                        text-sm
+                        text-slate-500
+                        dark:text-slate-400
+                    "
+                >
+
+                    <span>
+                        Don't have an account?
+                    </span>
+
+                    <a
+                        href="{{ url_for('main.register') }}"
+                        class="
+                            ml-1
+                            font-bold
+                            text-indigo-600
+                            dark:text-indigo-400
+                            hover:underline
+                        "
+                    >
+
+                        Create Account
+
                     </a>
+
                 </div>
-                
-                <button type="submit" class="w-full py-4 bg-gray-900 text-white rounded-xl font-bold hover:bg-black transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                    <span id="btnText">Login Account</span>
-                </button>
-            </form>
 
-            <div class="relative flex items-center py-2">
-                <div class="flex-grow border-t border-gray-200"></div>
-                <span class="flex-shrink mx-4 text-gray-400 text-xs uppercase font-bold">OR</span>
-                <div class="flex-grow border-t border-gray-200"></div>
-            </div>
 
-            <a href="{{ url_for('main.login_google') }}" 
-               class="flex items-center justify-center w-full py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all dark:border-gray-600">
-               <img class="w-5 h-5 mr-2" src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google">
-               <span class="font-medium text-gray-700 dark:text-gray-200">Continue with Google</span>
-            </a>
+            </section>
 
-            <div class="text-center text-sm text-gray-600 dark:text-gray-400">
-                <span id="toggleText">Don't have an account?</span> 
-                <a href="{{ url_for('main.register') }}" class="text-indigo-600 font-bold hover:underline ml-1" id="toggleBtn">Register</button>
-            </div>
         </div>
+
     </main>
 
-    <script>
-        // Password Show/Hide Logic
-        function togglePass() {
-            const passwordInput = document.getElementById('password');
-            const eyeIcon = document.getElementById('eyeIcon');
-            if (passwordInput.type === "password") {
-                passwordInput.type = "text";
-                eyeIcon.classList.remove('fa-eye');
-                eyeIcon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = "password";
-                eyeIcon.classList.remove('fa-eye-slash');
-                eyeIcon.classList.add('fa-eye');
-            }
-        }
 
-        // Form Toggle Logic
-        let isLogin = true;
-        function toggleForm() {
-            isLogin = !isLogin;
-            const form = document.getElementById('authForm');
-            const title = document.getElementById('title');
-            const subtitle = document.getElementById('subtitle');
-            const btnText = document.getElementById('btnText');
-            const toggleText = document.getElementById('toggleText');
-            const toggleBtn = document.getElementById('toggleBtn');
-
-            if (isLogin) {
-                form.action = "{{ url_for('main.login') }}";
-                title.innerText = "Welcome Back";
-                subtitle.innerText = "Sign in to your dashboard";
-                btnText.innerText = "Login Account";
-                toggleText.innerText = "Don't have an account?";
-                toggleBtn.innerText = "Register";
-            } else {
-                form.action = "{{ url_for('main.register') }}";
-                title.innerText = "Create Account";
-                subtitle.innerText = "Join us and start your journey";
-                btnText.innerText = "Create Account";
-                toggleText.innerText = "Already have an account?";
-                toggleBtn.innerText = "Login";
-            }
-        }
-    </script>
+    
+    <!-- ============================================================
+         SWEETALERT2
+         ============================================================ -->
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+
+    <!-- ============================================================
+         FLASH MESSAGE HANDLING
+         ============================================================ -->
+
     <script>
-        const flashMessages = {{ get_flashed_messages(with_categories=True) | tojson | safe }};
-        if (flashMessages.length > 0) {
-            const [category, message] = flashMessages[0];
-            Swal.fire({
-                toast: true, position: 'top-end', icon: category === "success" ? "success" : "error",
-                title: message, showConfirmButton: false, timer: 3000, timerProgressBar: true
+
+        const flashMessages =
+            {{ get_flashed_messages(with_categories=True) | tojson | safe }};
+
+
+        if (
+            flashMessages.length > 0
+        ) {
+
+            const [
+                category,
+                message
+            ] =
+                flashMessages[0];
+
+
+            const Toast =
+                Swal.mixin({
+
+                    toast: true,
+
+                    position:
+                        'top-end',
+
+                    showConfirmButton:
+                        false,
+
+                    timer:
+                        3000,
+
+                    timerProgressBar:
+                        true,
+
+                    background:
+                        '#fff',
+
+                    color:
+                        '#333',
+
+
+                    didOpen:
+                        (toast) => {
+
+                            toast.addEventListener(
+                                'mouseenter',
+                                Swal.stopTimer
+                            );
+
+
+                            toast.addEventListener(
+                                'mouseleave',
+                                Swal.resumeTimer
+                            );
+
+                        }
+
+                });
+
+
+            Toast.fire({
+
+                icon:
+                    category === "success"
+                        ? "success"
+                        : "info",
+
+                title:
+                    message
+
             });
+
         }
+
     </script>
+
+
+
+    <!-- ============================================================
+         JAVASCRIPT
+    ============================================================= -->
+
+    <script>
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+
+                /* =================================================
+                   ELEMENTS
+                ================================================== */
+
+                const authForm =
+                    document.getElementById(
+                        "authForm"
+                    );
+
+
+                const loginInput =
+                    document.getElementById(
+                        "login"
+                    );
+
+
+                const passwordInput =
+                    document.getElementById(
+                        "password"
+                    );
+
+
+                const passwordToggle =
+                    document.getElementById(
+                        "passwordToggle"
+                    );
+
+
+                const eyeIcon =
+                    document.getElementById(
+                        "eyeIcon"
+                    );
+
+
+                const loginButton =
+                    document.getElementById(
+                        "loginButton"
+                    );
+
+
+                const buttonIcon =
+                    document.getElementById(
+                        "buttonIcon"
+                    );
+
+
+                const loadingIcon =
+                    document.getElementById(
+                        "loadingIcon"
+                    );
+
+
+                const btnText =
+                    document.getElementById(
+                        "btnText"
+                    );
+
+
+                const googleLoginButton =
+                    document.getElementById(
+                        "googleLoginButton"
+                    );
+
+
+
+                /* =================================================
+                   SERVER ERROR MESSAGE
+
+                   Route sends:
+
+                   error_message="..."
+                ================================================== */
+
+                const errorMessage =
+                    {{ error_message | default(None) | tojson }};
+
+
+
+                /* =================================================
+                   SERVER SUCCESS MESSAGE
+
+                   Included for compatibility with template.
+                ================================================== */
+
+                const successMessage =
+                    {{ success_message | default(None) | tojson }};
+
+
+
+                /* =================================================
+                   PASSWORD SHOW / HIDE
+                ================================================== */
+
+                if (
+                    passwordToggle &&
+                    passwordInput &&
+                    eyeIcon
+                ) {
+
+                    passwordToggle.addEventListener(
+                        "click",
+                        function () {
+
+
+                            if (
+                                passwordInput.type ===
+                                "password"
+                            ) {
+
+
+                                passwordInput.type =
+                                    "text";
+
+
+                                eyeIcon.classList.remove(
+                                    "fa-eye"
+                                );
+
+
+                                eyeIcon.classList.add(
+                                    "fa-eye-slash"
+                                );
+
+
+                                passwordToggle.setAttribute(
+                                    "aria-label",
+                                    "Hide password"
+                                );
+
+                            }
+
+                            else {
+
+
+                                passwordInput.type =
+                                    "password";
+
+
+                                eyeIcon.classList.remove(
+                                    "fa-eye-slash"
+                                );
+
+
+                                eyeIcon.classList.add(
+                                    "fa-eye"
+                                );
+
+
+                                passwordToggle.setAttribute(
+                                    "aria-label",
+                                    "Show password"
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+
+
+
+                /* =================================================
+                   LOGIN FORM VALIDATION
+                ================================================== */
+
+                if (authForm) {
+
+                    authForm.addEventListener(
+                        "submit",
+                        function (event) {
+
+
+                            const loginValue =
+                                loginInput
+                                    ? loginInput.value.trim()
+                                    : "";
+
+
+                            const passwordValue =
+                                passwordInput
+                                    ? passwordInput.value
+                                    : "";
+
+
+
+                            /* =====================================
+                               LOGIN EMPTY
+                            ====================================== */
+
+                            if (!loginValue) {
+
+                                event.preventDefault();
+
+
+                                Swal.fire({
+
+                                    icon:
+                                        "warning",
+
+                                    title:
+                                        "Login Required",
+
+                                    text:
+                                        "Fadlan geli Username, Email ama Phone.",
+
+                                    confirmButtonText:
+                                        "OK",
+
+                                    confirmButtonColor:
+                                        "#4f46e5",
+
+                                    allowOutsideClick:
+                                        false
+
+                                });
+
+
+                                if (loginInput) {
+
+                                    loginInput.focus();
+
+                                }
+
+
+                                return;
+
+                            }
+
+
+
+                            /* =====================================
+                               PASSWORD EMPTY
+                            ====================================== */
+
+                            if (!passwordValue) {
+
+                                event.preventDefault();
+
+
+                                Swal.fire({
+
+                                    icon:
+                                        "warning",
+
+                                    title:
+                                        "Password Required",
+
+                                    text:
+                                        "Fadlan geli Password-ka.",
+
+                                    confirmButtonText:
+                                        "OK",
+
+                                    confirmButtonColor:
+                                        "#4f46e5",
+
+                                    allowOutsideClick:
+                                        false
+
+                                });
+
+
+                                if (passwordInput) {
+
+                                    passwordInput.focus();
+
+                                }
+
+
+                                return;
+
+                            }
+
+
+
+                            /* =====================================
+                               LOGIN LOADING
+                            ====================================== */
+
+                            if (loginButton) {
+
+                                loginButton.disabled =
+                                    true;
+
+                            }
+
+
+                            if (btnText) {
+
+                                btnText.textContent =
+                                    "Signing in...";
+
+                            }
+
+
+                            if (buttonIcon) {
+
+                                buttonIcon.classList.add(
+                                    "hidden"
+                                );
+
+                            }
+
+
+                            if (loadingIcon) {
+
+                                loadingIcon.classList.remove(
+                                    "hidden"
+                                );
+
+                            }
+
+                        }
+                    );
+
+                }
+
+
+
+                /* =================================================
+                   GOOGLE LOGIN LOADING
+                ================================================== */
+
+                if (googleLoginButton) {
+
+                    googleLoginButton.addEventListener(
+                        "click",
+                        function () {
+
+                            googleLoginButton.style.pointerEvents =
+                                "none";
+
+                            googleLoginButton.style.opacity =
+                                "0.65";
+
+                        }
+                    );
+
+                }
+
+
+
+                /* =================================================
+                   SERVER ERROR SWEETALERT
+                ================================================== */
+
+                if (
+                    errorMessage &&
+                    typeof errorMessage ===
+                    "string"
+                ) {
+
+                    Swal.fire({
+
+                        icon:
+                            "error",
+
+                        title:
+                            "Login Failed",
+
+                        text:
+                            errorMessage,
+
+                        confirmButtonText:
+                            "OK",
+
+                        confirmButtonColor:
+                            "#4f46e5",
+
+                        allowOutsideClick:
+                            true,
+
+                        allowEscapeKey:
+                            true,
+
+                        backdrop:
+                            "rgba(15, 23, 42, 0.60)",
+
+                        customClass: {
+
+                            popup:
+                                "rounded-2xl",
+
+                            confirmButton:
+                                "rounded-xl px-6 py-3"
+
+                        }
+
+                    });
+
+                }
+
+
+
+                /* =================================================
+                   SUCCESS MESSAGE
+                ================================================== */
+
+                if (
+                    successMessage &&
+                    typeof successMessage ===
+                    "string"
+                ) {
+
+                    Swal.fire({
+
+                        icon:
+                            "success",
+
+                        title:
+                            "Success",
+
+                        text:
+                            successMessage,
+
+                        confirmButtonText:
+                            "Continue",
+
+                        confirmButtonColor:
+                            "#16a34a",
+
+                        customClass: {
+
+                            popup:
+                                "rounded-2xl",
+
+                            confirmButton:
+                                "rounded-xl px-6 py-3"
+
+                        }
+
+                    });
+
+                }
+
+
+
+                /* =================================================
+                   DARK MODE
+                ================================================== */
+
+                try {
+
+                    if (
+                        window.matchMedia &&
+                        window.matchMedia(
+                            "(prefers-color-scheme: dark)"
+                        ).matches
+                    ) {
+
+                        document.documentElement
+                            .classList
+                            .add("dark");
+
+                    }
+
+                }
+
+                catch (error) {
+
+                    console.warn(
+                        "Dark mode detection error:",
+                        error
+                    );
+
+                }
+
+            }
+
+        );
+
+    </script>
+
+
 </body>
+
 </html>
+
