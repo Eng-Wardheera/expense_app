@@ -2612,967 +2612,806 @@
          AI ASSISTANT JAVASCRIPT
          ============================================================ -->
 
-    <script>
+  
+<script>
 
-    document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function () {
 
-        "use strict";
+    "use strict";
 
 
-        /* =========================================================
-           ELEMENTS
-           ========================================================= */
+    /* =========================================================
+       ELEMENTS
+       ========================================================= */
 
-        const button =
-            document.getElementById("aiAssistantButton");
+    const button =
+        document.getElementById("aiAssistantButton");
 
-        const box =
-            document.getElementById("aiAssistantBox");
+    const box =
+        document.getElementById("aiAssistantBox");
 
-        const closeButton =
-            document.getElementById("aiAssistantClose");
+    const closeButton =
+        document.getElementById("aiAssistantClose");
 
-        const input =
-            document.getElementById("aiAssistantInput");
+    const input =
+        document.getElementById("aiAssistantInput");
 
-        const sendButton =
-            document.getElementById("aiAssistantSend");
+    const sendButton =
+        document.getElementById("aiAssistantSend");
 
-        const messages =
-            document.getElementById("aiAssistantMessages");
+    const messages =
+        document.getElementById("aiAssistantMessages");
 
-        const suggestions =
-            document.getElementById("aiSuggestions");
+    const suggestions =
+        document.getElementById("aiSuggestions");
 
-        const editingBar =
-            document.getElementById("aiEditingBar");
+    const editingBar =
+        document.getElementById("aiEditingBar");
 
-        const cancelEditButton =
-            document.getElementById("aiCancelEdit");
+    const cancelEditButton =
+        document.getElementById("aiCancelEdit");
 
+
+    if (
+        !button ||
+        !box ||
+        !closeButton ||
+        !input ||
+        !sendButton ||
+        !messages ||
+        !suggestions ||
+        !editingBar ||
+        !cancelEditButton
+    ) {
+
+        console.error(
+            "AI Assistant: required elements are missing."
+        );
+
+        return;
+
+    }
+
+
+    /* =========================================================
+       STATE
+       ========================================================= */
+
+    let conversationHistory = [];
+
+    let messageCounter = 0;
+
+    let editingMessageId = null;
+
+    let isSending = false;
+
+    let historyLoaded = false;
+
+
+    /* =========================================================
+       ICONS
+       ========================================================= */
+
+    function refreshIcons() {
 
         if (
-            !button ||
-            !box ||
-            !closeButton ||
-            !input ||
-            !sendButton ||
-            !messages ||
-            !suggestions ||
-            !editingBar ||
-            !cancelEditButton
+            typeof feather !== "undefined" &&
+            typeof feather.replace === "function"
         ) {
 
-            console.error(
-                "AI Assistant: required elements are missing."
-            );
+            feather.replace();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       MESSAGE ID
+       ========================================================= */
+
+    function createMessageId() {
+
+        messageCounter++;
+
+        return (
+            "ai-message-" +
+            Date.now() +
+            "-" +
+            messageCounter
+        );
+
+    }
+
+
+    /* =========================================================
+       PAIR ID
+       ========================================================= */
+
+    function createPairId() {
+
+        messageCounter++;
+
+        return (
+            "ai-pair-" +
+            Date.now() +
+            "-" +
+            messageCounter
+        );
+
+    }
+
+
+    /* =========================================================
+       TIME
+       ========================================================= */
+
+    function getTime(dateValue = null) {
+
+        let date;
+
+        if (dateValue) {
+
+            date =
+                new Date(dateValue);
+
+        }
+
+        else {
+
+            date =
+                new Date();
+
+        }
+
+
+        if (isNaN(date.getTime())) {
+
+            date =
+                new Date();
+
+        }
+
+
+        return date.toLocaleTimeString(
+            [],
+            {
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       SCROLL
+       ========================================================= */
+
+    function scrollBottom() {
+
+        requestAnimationFrame(function () {
+
+            messages.scrollTop =
+                messages.scrollHeight;
+
+        });
+
+    }
+
+
+    /* =========================================================
+       CLOSE MENUS
+       ========================================================= */
+
+    function closeAllMenus() {
+
+        messages
+            .querySelectorAll(
+                ".ai-message.actions-open"
+            )
+            .forEach(function (message) {
+
+                message.classList.remove(
+                    "actions-open"
+                );
+
+            });
+
+    }
+
+
+    /* =========================================================
+       OPEN CHAT
+       ========================================================= */
+
+    function openChat() {
+
+        box.classList.add("active");
+
+        box.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        button.setAttribute(
+            "aria-expanded",
+            "true"
+        );
+
+        document.body.classList.add(
+            "ai-chat-open"
+        );
+
+        refreshIcons();
+
+        setTimeout(function () {
+
+            input.focus();
+
+            scrollBottom();
+
+        }, 100);
+
+    }
+
+
+    /* =========================================================
+       CLOSE CHAT
+       ========================================================= */
+
+    function closeChat() {
+
+        box.classList.remove("active");
+
+        box.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        button.setAttribute(
+            "aria-expanded",
+            "false"
+        );
+
+        document.body.classList.remove(
+            "ai-chat-open"
+        );
+
+        document.body.classList.remove(
+            "ai-keyboard-open"
+        );
+
+        closeAllMenus();
+
+    }
+
+
+    button.addEventListener(
+        "click",
+        openChat
+    );
+
+
+    closeButton.addEventListener(
+        "click",
+        closeChat
+    );
+
+
+    /* =========================================================
+       WELCOME
+       ========================================================= */
+
+    function showWelcome() {
+
+        if (
+            messages.querySelector(
+                ".ai-welcome"
+            )
+        ) {
 
             return;
 
         }
 
 
-        /* =========================================================
-           STATE
-           ========================================================= */
+        /*
+         * Do not show welcome if there are
+         * already real messages.
+         */
 
-        let conversationHistory = [];
+        if (
+            messages.querySelector(
+                ".ai-message"
+            )
+        ) {
 
-        let messageCounter = 0;
-
-        let editingMessageId = null;
-
-        let isSending = false;
-
-
-        /* =========================================================
-           ICONS
-           ========================================================= */
-
-        function refreshIcons() {
-
-            if (
-                typeof feather !== "undefined" &&
-                typeof feather.replace === "function"
-            ) {
-
-                feather.replace();
-
-            }
+            return;
 
         }
 
 
-        /* =========================================================
-           MESSAGE ID
-           ========================================================= */
+        const welcome =
+            document.createElement("div");
 
-        function createMessageId() {
 
-            messageCounter++;
+        welcome.className =
+            "ai-welcome";
 
-            return (
-                "ai-message-" +
-                Date.now() +
-                "-" +
-                messageCounter
+
+        welcome.innerHTML = `
+
+            <div class="ai-welcome-icon">
+
+                <i data-feather="cpu"></i>
+
+            </div>
+
+            <h5>
+                How can I help you?
+            </h5>
+
+            <p>
+                Wax kasta oo aad rabto waad i
+                waydiin kartaa.
+            </p>
+
+        `;
+
+
+        messages.appendChild(
+            welcome
+        );
+
+
+        suggestions.style.display =
+            "flex";
+
+
+        refreshIcons();
+
+    }
+
+
+    /* =========================================================
+       ADD MESSAGE
+       ========================================================= */
+
+    function addMessage(
+        text,
+        type,
+        historyIndex = null,
+        pairId = null,
+        dbId = null,
+        createdAt = null
+    ) {
+
+        const welcome =
+            messages.querySelector(
+                ".ai-welcome"
             );
 
-        }
 
+        if (welcome) {
 
-        /* =========================================================
-           PAIR ID
-           ========================================================= */
-
-        function createPairId() {
-
-            messageCounter++;
-
-            return (
-                "ai-pair-" +
-                Date.now() +
-                "-" +
-                messageCounter
-            );
+            welcome.remove();
 
         }
 
 
-        /* =========================================================
-           TIME
-           ========================================================= */
+        suggestions.style.display =
+            "none";
 
-        function getTime() {
 
-            return new Date().toLocaleTimeString(
-                [],
-                {
-                    hour: "2-digit",
-                    minute: "2-digit"
-                }
-            );
+        const messageId =
+            createMessageId();
+
+
+        const message =
+            document.createElement("div");
+
+
+        message.className =
+            "ai-message " + type;
+
+
+        message.dataset.messageId =
+            messageId;
+
+
+        message.dataset.messageType =
+            type;
+
+
+        /*
+         * MongoDB document ID
+         */
+
+        if (dbId) {
+
+            message.dataset.dbId =
+                String(dbId);
 
         }
 
 
-        /* =========================================================
-           SCROLL
-           ========================================================= */
+        /*
+         * History index
+         */
 
-        function scrollBottom() {
+        if (
+            historyIndex !== null &&
+            Number.isInteger(
+                Number(historyIndex)
+            )
+        ) {
 
-            requestAnimationFrame(function () {
-
-                messages.scrollTop =
-                    messages.scrollHeight;
-
-            });
+            message.dataset.historyIndex =
+                String(historyIndex);
 
         }
 
 
-        /* =========================================================
-           CLOSE MENUS
-           ========================================================= */
+        /*
+         * Pair ID
+         */
 
-        function closeAllMenus() {
+        if (pairId) {
 
-            messages
-                .querySelectorAll(
-                    ".ai-message.actions-open"
-                )
-                .forEach(function (message) {
+            message.dataset.pairId =
+                pairId;
 
-                    message.classList.remove(
+        }
+
+
+        const inner =
+            document.createElement("div");
+
+
+        inner.className =
+            "ai-message-inner";
+
+
+        /* =====================================================
+           MOBILE MORE
+           ===================================================== */
+
+        const moreButton =
+            document.createElement("button");
+
+
+        moreButton.type =
+            "button";
+
+
+        moreButton.className =
+            "ai-mobile-more";
+
+
+        moreButton.setAttribute(
+            "aria-label",
+            "Message actions"
+        );
+
+
+        moreButton.innerHTML =
+            '<i data-feather="more-vertical"></i>';
+
+
+        moreButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+
+                const open =
+                    message.classList.contains(
                         "actions-open"
                     );
 
-                });
 
-        }
+                closeAllMenus();
 
 
-        /* =========================================================
-           OPEN CHAT
-           ========================================================= */
+                if (!open) {
 
-        function openChat() {
-
-            box.classList.add("active");
-
-            box.setAttribute(
-                "aria-hidden",
-                "false"
-            );
-
-            button.setAttribute(
-                "aria-expanded",
-                "true"
-            );
-
-            document.body.classList.add(
-                "ai-chat-open"
-            );
-
-            refreshIcons();
-
-            setTimeout(function () {
-
-                input.focus();
-
-                scrollBottom();
-
-            }, 100);
-
-        }
-
-
-        /* =========================================================
-           CLOSE CHAT
-           ========================================================= */
-
-        function closeChat() {
-
-            box.classList.remove("active");
-
-            box.setAttribute(
-                "aria-hidden",
-                "true"
-            );
-
-            button.setAttribute(
-                "aria-expanded",
-                "false"
-            );
-
-            document.body.classList.remove(
-                "ai-chat-open"
-            );
-
-            document.body.classList.remove(
-                "ai-keyboard-open"
-            );
-
-            closeAllMenus();
-
-        }
-
-
-        button.addEventListener(
-            "click",
-            openChat
-        );
-
-
-        closeButton.addEventListener(
-            "click",
-            closeChat
-        );
-
-
-        /* =========================================================
-           WELCOME
-           ========================================================= */
-
-        function showWelcome() {
-
-            if (
-                messages.querySelector(
-                    ".ai-welcome"
-                )
-            ) {
-
-                return;
-
-            }
-
-
-            const welcome =
-                document.createElement("div");
-
-            welcome.className =
-                "ai-welcome";
-
-
-            welcome.innerHTML = `
-
-                <div class="ai-welcome-icon">
-
-                    <i data-feather="cpu"></i>
-
-                </div>
-
-                <h5>
-                    How can I help you?
-                </h5>
-
-                <p>
-                    Wax kasta oo aad rabto waad i
-                    waydiin kartaa.
-                </p>
-
-            `;
-
-
-            messages.appendChild(
-                welcome
-            );
-
-            refreshIcons();
-
-        }
-
-
-        /* =========================================================
-           ADD MESSAGE
-           ========================================================= */
-
-        function addMessage(
-            text,
-            type,
-            historyIndex = null,
-            pairId = null
-        ) {
-
-            const welcome =
-                messages.querySelector(
-                    ".ai-welcome"
-                );
-
-
-            if (welcome) {
-
-                welcome.remove();
-
-            }
-
-
-            const messageId =
-                createMessageId();
-
-
-            const message =
-                document.createElement("div");
-
-
-            message.className =
-                "ai-message " + type;
-
-
-            message.dataset.messageId =
-                messageId;
-
-
-            message.dataset.messageType =
-                type;
-
-
-            if (
-                historyIndex !== null &&
-                Number.isInteger(
-                    Number(historyIndex)
-                )
-            ) {
-
-                message.dataset.historyIndex =
-                    String(historyIndex);
-
-            }
-
-
-            if (pairId) {
-
-                message.dataset.pairId =
-                    pairId;
-
-            }
-
-
-            const inner =
-                document.createElement("div");
-
-            inner.className =
-                "ai-message-inner";
-
-
-            /* =====================================================
-               MOBILE MORE
-               ===================================================== */
-
-            const moreButton =
-                document.createElement("button");
-
-
-            moreButton.type = "button";
-
-            moreButton.className =
-                "ai-mobile-more";
-
-            moreButton.setAttribute(
-                "aria-label",
-                "Message actions"
-            );
-
-            moreButton.innerHTML =
-                '<i data-feather="more-vertical"></i>';
-
-
-            moreButton.addEventListener(
-                "click",
-                function (event) {
-
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    const open =
-                        message.classList.contains(
-                            "actions-open"
-                        );
-
-                    closeAllMenus();
-
-                    if (!open) {
-
-                        message.classList.add(
-                            "actions-open"
-                        );
-
-                    }
+                    message.classList.add(
+                        "actions-open"
+                    );
 
                 }
-            );
-
-
-            /* =====================================================
-               CONTENT
-               ===================================================== */
-
-            const content =
-                document.createElement("div");
-
-            content.className =
-                "ai-message-content";
-
-            content.textContent =
-                String(text);
-
-
-            /* =====================================================
-               ACTIONS
-               ===================================================== */
-
-            const actions =
-                document.createElement("div");
-
-            actions.className =
-                "ai-message-actions";
-
-
-            /* =====================================================
-               EDIT USER MESSAGE
-               ===================================================== */
-
-            if (type === "user") {
-
-                const editButton =
-                    document.createElement("button");
-
-
-                editButton.type = "button";
-
-                editButton.className =
-                    "ai-message-action edit";
-
-                editButton.title = "Edit";
-
-                editButton.setAttribute(
-                    "aria-label",
-                    "Edit message"
-                );
-
-                editButton.innerHTML = `
-
-                    <i data-feather="edit-2"></i>
-
-                    <span class="ai-action-label">
-                        Edit
-                    </span>
-
-                `;
-
-
-                editButton.addEventListener(
-                    "click",
-                    function (event) {
-
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        startEdit(messageId);
-
-                    }
-                );
-
-
-                actions.appendChild(
-                    editButton
-                );
 
             }
+        );
 
 
-            /* =====================================================
-               DELETE
-               ===================================================== */
+        /* =====================================================
+           CONTENT
+           ===================================================== */
 
-            const deleteButton =
+        const content =
+            document.createElement("div");
+
+
+        content.className =
+            "ai-message-content";
+
+
+        content.textContent =
+            String(text);
+
+
+        /* =====================================================
+           ACTIONS
+           ===================================================== */
+
+        const actions =
+            document.createElement("div");
+
+
+        actions.className =
+            "ai-message-actions";
+
+
+        /* =====================================================
+           EDIT USER MESSAGE
+           ===================================================== */
+
+        if (type === "user") {
+
+            const editButton =
                 document.createElement("button");
 
 
-            deleteButton.type = "button";
+            editButton.type =
+                "button";
 
-            deleteButton.className =
-                "ai-message-action delete";
 
-            deleteButton.title =
-                "Delete for me";
+            editButton.className =
+                "ai-message-action edit";
 
-            deleteButton.setAttribute(
+
+            editButton.title =
+                "Edit";
+
+
+            editButton.setAttribute(
                 "aria-label",
-                "Delete for me"
+                "Edit message"
             );
 
-            deleteButton.innerHTML = `
 
-                <i data-feather="trash-2"></i>
+            editButton.innerHTML = `
+
+                <i data-feather="edit-2"></i>
 
                 <span class="ai-action-label">
-                    Delete for me
+                    Edit
                 </span>
 
             `;
 
 
-            deleteButton.addEventListener(
+            editButton.addEventListener(
                 "click",
                 function (event) {
 
                     event.preventDefault();
+
                     event.stopPropagation();
 
-                    deleteForMe(messageId);
+                    startEdit(messageId);
 
                 }
             );
 
 
             actions.appendChild(
-                deleteButton
-            );
-
-
-            /* =====================================================
-               TIME
-               ===================================================== */
-
-            const time =
-                document.createElement("div");
-
-            time.className =
-                "ai-message-time";
-
-            time.textContent =
-                getTime();
-
-
-            /* =====================================================
-               APPEND
-               ===================================================== */
-
-            inner.appendChild(
-                moreButton
-            );
-
-            inner.appendChild(
-                actions
-            );
-
-            inner.appendChild(
-                content
-            );
-
-            inner.appendChild(
-                time
-            );
-
-            message.appendChild(
-                inner
-            );
-
-            messages.appendChild(
-                message
-            );
-
-
-            refreshIcons();
-
-            scrollBottom();
-
-
-            return message;
-
-        }
-
-
-        /* =========================================================
-           FIND MESSAGE
-           ========================================================= */
-
-        function findMessage(messageId) {
-
-            return messages.querySelector(
-                `[data-message-id="${CSS.escape(messageId)}"]`
+                editButton
             );
 
         }
 
 
-        /* =========================================================
-           FIND ASSISTANT BY PAIR
-           ========================================================= */
+        /* =====================================================
+           DELETE
+           ===================================================== */
 
-        function findAssistantByPair(pairId) {
+        const deleteButton =
+            document.createElement("button");
 
-            if (!pairId) {
 
-                return null;
+        deleteButton.type =
+            "button";
+
+
+        deleteButton.className =
+            "ai-message-action delete";
+
+
+        deleteButton.title =
+            "Delete for me";
+
+
+        deleteButton.setAttribute(
+            "aria-label",
+            "Delete for me"
+        );
+
+
+        deleteButton.innerHTML = `
+
+            <i data-feather="trash-2"></i>
+
+            <span class="ai-action-label">
+                Delete for me
+            </span>
+
+        `;
+
+
+        deleteButton.addEventListener(
+            "click",
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                deleteForMe(messageId);
 
             }
+        );
 
 
-            return Array.from(
-                messages.querySelectorAll(
-                    ".ai-message.assistant"
-                )
-            ).find(function (message) {
+        actions.appendChild(
+            deleteButton
+        );
 
-                return (
-                    message.dataset.pairId ===
-                    pairId
-                );
 
-            }) || null;
+        /* =====================================================
+           TIME
+           ===================================================== */
+
+        const time =
+            document.createElement("div");
+
+
+        time.className =
+            "ai-message-time";
+
+
+        time.textContent =
+            getTime(createdAt);
+
+
+        /* =====================================================
+           APPEND
+           ===================================================== */
+
+        inner.appendChild(
+            moreButton
+        );
+
+
+        inner.appendChild(
+            actions
+        );
+
+
+        inner.appendChild(
+            content
+        );
+
+
+        inner.appendChild(
+            time
+        );
+
+
+        message.appendChild(
+            inner
+        );
+
+
+        messages.appendChild(
+            message
+        );
+
+
+        refreshIcons();
+
+        scrollBottom();
+
+
+        return message;
+
+    }
+
+
+    /* =========================================================
+       FIND MESSAGE
+       ========================================================= */
+
+    function findMessage(messageId) {
+
+        return messages.querySelector(
+            `[data-message-id="${CSS.escape(messageId)}"]`
+        );
+
+    }
+
+
+    /* =========================================================
+       FIND ASSISTANT BY PAIR
+       ========================================================= */
+
+    function findAssistantByPair(pairId) {
+
+        if (!pairId) {
+
+            return null;
 
         }
 
 
-        /* =========================================================
-           REMOVE HISTORY INDEX
-           ========================================================= */
-
-        function removeHistoryAt(index) {
-
-            if (
-                !Number.isInteger(index)
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                index < 0 ||
-                index >= conversationHistory.length
-            ) {
-
-                return;
-
-            }
-
-
-            conversationHistory.splice(
-                index,
-                1
-            );
-
-        }
-
-
-        /* =========================================================
-           REINDEX UI
-           ========================================================= */
-
-        function reindexMessages() {
-
-            const uiMessages =
-                messages.querySelectorAll(
-                    ".ai-message[data-history-index]"
-                );
-
-
-            uiMessages.forEach(function (
-                message,
-                index
-            ) {
-
-                /*
-                 * UI order is user/assistant/user/assistant.
-                 * We don't blindly use DOM index.
-                 * History index is rebuilt from pair ordering.
-                 */
-
-            });
-
-        }
-
-
-        /* =========================================================
-           DELETE MESSAGE + RELATED RESPONSE
-           ========================================================= */
-
-        function deleteForMe(messageId) {
-
-            const message =
-                findMessage(messageId);
-
-
-            if (!message) {
-
-                return;
-
-            }
-
-
-            const historyIndex =
-                parseInt(
-                    message.dataset.historyIndex,
-                    10
-                );
-
-
-            const pairId =
-                message.dataset.pairId ||
-                null;
-
-
-            /*
-             * If deleting user message,
-             * also remove its assistant response.
-             */
-
-            const relatedAssistant =
-                typeOfMessage(message) === "user"
-                    ? findAssistantByPair(pairId)
-                    : null;
-
-
-            if (
-                Number.isInteger(historyIndex)
-            ) {
-
-                removeHistoryAt(
-                    historyIndex
-                );
-
-            }
-
-
-            message.remove();
-
-
-            /*
-             * Assistant may have another history
-             * index after the user was removed.
-             */
-
-            if (relatedAssistant) {
-
-                const assistantIndex =
-                    parseInt(
-                        relatedAssistant.dataset.historyIndex,
-                        10
-                    );
-
-
-                if (
-                    Number.isInteger(
-                        assistantIndex
-                    )
-                ) {
-
-                    /*
-                     * Because user history was already
-                     * removed, assistant index is now -1.
-                     */
-
-                    const correctedIndex =
-                        assistantIndex >
-                        historyIndex
-                            ? assistantIndex - 1
-                            : assistantIndex;
-
-
-                    removeHistoryAt(
-                        correctedIndex
-                    );
-
-                }
-
-
-                relatedAssistant.remove();
-
-            }
-
-
-            /*
-             * Rebuild history from visible messages.
-             * This prevents stale history indices.
-             */
-
-            rebuildConversationHistory();
-
-
-            closeAllMenus();
-
-
-            if (
-                messages.querySelectorAll(
-                    ".ai-message"
-                ).length === 0
-            ) {
-
-                showWelcome();
-
-                suggestions.style.display =
-                    "flex";
-
-            }
-
-        }
-
-
-        /* =========================================================
-           MESSAGE TYPE
-           ========================================================= */
-
-        function typeOfMessage(message) {
+        return Array.from(
+            messages.querySelectorAll(
+                ".ai-message.assistant"
+            )
+        ).find(function (message) {
 
             return (
-                message.dataset.messageType ||
-                (
-                    message.classList.contains("user")
-                        ? "user"
-                        : "assistant"
-                )
+                message.dataset.pairId ===
+                pairId
             );
 
-        }
+        }) || null;
+
+    }
 
 
-        /* =========================================================
-           REBUILD HISTORY
-           ========================================================= */
+    /* =========================================================
+       MESSAGE TYPE
+       ========================================================= */
 
-        function rebuildConversationHistory() {
+    function typeOfMessage(message) {
 
-            const rebuilt = [];
+        return (
+            message.dataset.messageType ||
+            (
+                message.classList.contains("user")
+                    ? "user"
+                    : "assistant"
+            )
+        );
 
-
-            const uiMessages =
-                messages.querySelectorAll(
-                    ".ai-message"
-                );
-
-
-            uiMessages.forEach(function (
-                message
-            ) {
-
-                const type =
-                    typeOfMessage(message);
+    }
 
 
-                const content =
-                    message.querySelector(
-                        ".ai-message-content"
-                    );
+    /* =========================================================
+       REBUILD HISTORY
+       ========================================================= */
+
+    function rebuildConversationHistory() {
+
+        const rebuilt = [];
 
 
-                if (!content) {
-
-                    return;
-
-                }
-
-
-                const text =
-                    content.textContent.trim();
+        const uiMessages =
+            messages.querySelectorAll(
+                ".ai-message"
+            );
 
 
-                if (!text) {
+        uiMessages.forEach(function (message) {
 
-                    return;
-
-                }
-
-
-                const historyIndex =
-                    rebuilt.length;
-
-
-                rebuilt.push({
-
-                    role:
-                        type === "user"
-                            ? "user"
-                            : "assistant",
-
-                    content:
-                        text
-
-                });
-
-
-                message.dataset.historyIndex =
-                    String(historyIndex);
-
-            });
-
-
-            conversationHistory =
-                rebuilt;
-
-        }
-
-
-        /* =========================================================
-           START EDIT
-           ========================================================= */
-
-        function startEdit(messageId) {
-
-            const message =
-                findMessage(messageId);
-
-
-            if (!message) {
-
-                return;
-
-            }
-
-
-            if (
-                !message.classList.contains(
-                    "user"
-                )
-            ) {
-
-                return;
-
-            }
+            const type =
+                typeOfMessage(message);
 
 
             const content =
@@ -3588,384 +3427,8 @@
             }
 
 
-            input.value =
-                content.textContent;
-
-
-            editingMessageId =
-                messageId;
-
-
-            editingBar.classList.add(
-                "active"
-            );
-
-
-            closeAllMenus();
-
-            autoResize();
-
-            input.focus();
-
-
-            try {
-
-                input.selectionStart =
-                    input.value.length;
-
-                input.selectionEnd =
-                    input.value.length;
-
-            }
-
-            catch (error) {}
-
-
-        }
-
-
-        /* =========================================================
-           CANCEL EDIT
-           ========================================================= */
-
-        function cancelEdit() {
-
-            editingMessageId =
-                null;
-
-            input.value = "";
-
-            editingBar.classList.remove(
-                "active"
-            );
-
-            autoResize();
-
-            input.focus();
-
-        }
-
-
-        cancelEditButton.addEventListener(
-            "click",
-            cancelEdit
-        );
-
-
-        /* =========================================================
-           EDIT MESSAGE
-           ========================================================= */
-
-        async function editMessage(
-            message,
-            newText
-        ) {
-
-            const allMessages =
-                Array.from(
-                    messages.querySelectorAll(
-                        ".ai-message"
-                    )
-                );
-
-
-            const position =
-                allMessages.indexOf(
-                    message
-                );
-
-
-            if (position < 0) {
-
-                return;
-
-            }
-
-
-            /*
-             * Keep everything BEFORE the edited
-             * user message.
-             *
-             * Everything after it is removed because
-             * those AI responses were based on the
-             * previous version of the message.
-             */
-
-            const messagesToRemove =
-                allMessages.slice(
-                    position + 1
-                );
-
-
-            messagesToRemove.forEach(
-                function (item) {
-
-                    item.remove();
-
-                }
-            );
-
-
-            /*
-             * Update edited user message.
-             */
-
-            const content =
-                message.querySelector(
-                    ".ai-message-content"
-                );
-
-
-            content.textContent =
-                newText;
-
-
-            /*
-             * Rebuild history from visible UI.
-             */
-
-            rebuildConversationHistory();
-
-
-            /*
-             * Keep same pair ID if available.
-             */
-
-            let pairId =
-                message.dataset.pairId;
-
-
-            if (!pairId) {
-
-                pairId =
-                    createPairId();
-
-                message.dataset.pairId =
-                    pairId;
-
-            }
-
-
-            /*
-             * Clear editing state.
-             */
-
-            editingMessageId =
-                null;
-
-            editingBar.classList.remove(
-                "active"
-            );
-
-            input.value = "";
-
-            autoResize();
-
-
-            suggestions.style.display =
-                "none";
-
-
-            closeAllMenus();
-
-
-            showTyping();
-
-
-            try {
-
-                await requestAI(
-                    newText,
-                    message.dataset.messageId,
-                    pairId
-                );
-
-            }
-
-            finally {
-
-                hideTyping();
-
-            }
-
-        }
-
-
-        /* =========================================================
-           LIMIT HISTORY
-           ========================================================= */
-
-        function limitConversationHistory() {
-
-            const MAX_HISTORY = 20;
-
-
-            if (
-                conversationHistory.length <=
-                MAX_HISTORY
-            ) {
-
-                return;
-
-            }
-
-
-            const removeCount =
-                conversationHistory.length -
-                MAX_HISTORY;
-
-
-            conversationHistory =
-                conversationHistory.slice(
-                    removeCount
-                );
-
-
-            const uiMessages =
-                messages.querySelectorAll(
-                    ".ai-message[data-history-index]"
-                );
-
-
-            uiMessages.forEach(function (
-                message
-            ) {
-
-                const index =
-                    parseInt(
-                        message.dataset.historyIndex,
-                        10
-                    );
-
-
-                if (
-                    !Number.isInteger(index)
-                ) {
-
-                    return;
-
-                }
-
-
-                if (
-                    index < removeCount
-                ) {
-
-                    /*
-                     * Do not remove UI here.
-                     * Just remove stale index.
-                     */
-
-                    delete message.dataset
-                        .historyIndex;
-
-                }
-
-                else {
-
-                    message.dataset.historyIndex =
-                        String(
-                            index -
-                            removeCount
-                        );
-
-                }
-
-            });
-
-        }
-
-
-        /* =========================================================
-           SHOW TYPING
-           ========================================================= */
-
-        function showTyping() {
-
-            hideTyping();
-
-
-            const typing =
-                document.createElement("div");
-
-
-            typing.className =
-                "ai-message assistant";
-
-
-            typing.id =
-                "aiTypingMessage";
-
-
-            typing.innerHTML = `
-
-                <div class="ai-message-inner">
-
-                    <div class="ai-message-content">
-
-                        <div class="ai-typing">
-
-                            <span></span>
-                            <span></span>
-                            <span></span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            `;
-
-
-            messages.appendChild(
-                typing
-            );
-
-
-            scrollBottom();
-
-        }
-
-
-        /* =========================================================
-           HIDE TYPING
-           ========================================================= */
-
-        function hideTyping() {
-
-            const typing =
-                document.getElementById(
-                    "aiTypingMessage"
-                );
-
-
-            if (typing) {
-
-                typing.remove();
-
-            }
-
-        }
-
-
-        /* =========================================================
-           SEND MESSAGE
-           ========================================================= */
-
-        async function sendMessage() {
-
-            if (
-                isSending
-            ) {
-
-                return;
-
-            }
-
-
             const text =
-                input.value.trim();
+                content.textContent.trim();
 
 
             if (!text) {
@@ -3975,89 +3438,16 @@
             }
 
 
-            isSending =
-                true;
-
-
-            sendButton.disabled =
-                true;
-
-
-            /*
-             * EDIT MODE
-             */
-
-            if (
-                editingMessageId !== null
-            ) {
-
-                const message =
-                    findMessage(
-                        editingMessageId
-                    );
-
-
-                if (!message) {
-
-                    cancelEdit();
-
-                    isSending = false;
-
-                    sendButton.disabled =
-                        false;
-
-                    return;
-
-                }
-
-
-                try {
-
-                    await editMessage(
-                        message,
-                        text
-                    );
-
-                }
-
-                catch (error) {
-
-                    console.error(
-                        "AI Edit Error:",
-                        error
-                    );
-
-                }
-
-                finally {
-
-                    isSending = false;
-
-                    sendButton.disabled =
-                        false;
-
-                    input.focus();
-
-                }
-
-
-                return;
-
-            }
-
-
-            /*
-             * NORMAL MESSAGE
-             */
-
             const historyIndex =
-                conversationHistory.length;
+                rebuilt.length;
 
 
-            conversationHistory.push({
+            rebuilt.push({
 
                 role:
-                    "user",
+                    type === "user"
+                        ? "user"
+                        : "assistant",
 
                 content:
                     text
@@ -4065,85 +3455,611 @@
             });
 
 
-            const pairId =
-                createPairId();
+            message.dataset.historyIndex =
+                String(historyIndex);
+
+        });
 
 
-            const userMessage =
-                addMessage(
-                    text,
-                    "user",
-                    historyIndex,
-                    pairId
+        conversationHistory =
+            rebuilt;
+
+    }
+
+
+    /* =========================================================
+       LOAD CHAT HISTORY FROM DATABASE
+       ========================================================= */
+
+    async function loadChatHistory() {
+
+        if (historyLoaded) {
+
+            return;
+
+        }
+
+
+        historyLoaded = true;
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "{{ url_for('main.ai_assistant_history') }}",
+                    {
+
+                        method:
+                            "GET",
+
+                        credentials:
+                            "same-origin",
+
+                        headers: {
+
+                            "Accept":
+                                "application/json",
+
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+
+                        }
+
+                    }
                 );
 
 
-            input.value = "";
-
-            autoResize();
-
-
-            suggestions.style.display =
-                "none";
-
-
-            showTyping();
+            let data;
 
 
             try {
 
-                await requestAI(
-                    text,
-                    userMessage.dataset.messageId,
-                    pairId
+                data =
+                    await response.json();
+
+            }
+
+            catch (error) {
+
+                throw new Error(
+                    "History server returned invalid JSON."
                 );
+
+            }
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    data.message ||
+                    "Unable to load chat history."
+                );
+
+            }
+
+
+            /*
+             * Clear old UI messages.
+             */
+
+            messages
+                .querySelectorAll(
+                    ".ai-message"
+                )
+                .forEach(function (message) {
+
+                    message.remove();
+
+                });
+
+
+            const history =
+                Array.isArray(data.history)
+                    ? data.history
+                    : [];
+
+
+            conversationHistory = [];
+
+
+            /*
+             * DATABASE FORMAT:
+             *
+             * {
+             *   id,
+             *   user_message,
+             *   assistant_message,
+             *   created_at
+             * }
+             */
+
+            history.forEach(function (pair) {
+
+                const userText =
+                    String(
+                        pair.user_message ||
+                        ""
+                    ).trim();
+
+
+                const assistantText =
+                    String(
+                        pair.assistant_message ||
+                        ""
+                    ).trim();
+
+
+                if (!userText) {
+
+                    return;
+
+                }
+
+
+                const pairId =
+                    "db-pair-" +
+                    String(pair.id);
+
+
+                /*
+                 * USER
+                 */
+
+                const userHistoryIndex =
+                    conversationHistory.length;
+
+
+                conversationHistory.push({
+
+                    role:
+                        "user",
+
+                    content:
+                        userText
+
+                });
+
+
+                addMessage(
+                    userText,
+                    "user",
+                    userHistoryIndex,
+                    pairId,
+                    pair.id,
+                    pair.created_at
+                );
+
+
+                /*
+                 * ASSISTANT
+                 */
+
+                if (assistantText) {
+
+                    const assistantHistoryIndex =
+                        conversationHistory.length;
+
+
+                    conversationHistory.push({
+
+                        role:
+                            "assistant",
+
+                        content:
+                            assistantText
+
+                    });
+
+
+                    addMessage(
+                        assistantText,
+                        "assistant",
+                        assistantHistoryIndex,
+                        pairId,
+                        pair.id,
+                        pair.updated_at ||
+                        pair.created_at
+                    );
+
+                }
+
+            });
+
+
+            /*
+             * No database history
+             */
+
+            if (
+                history.length === 0 ||
+                !messages.querySelector(
+                    ".ai-message"
+                )
+            ) {
+
+                showWelcome();
+
+            }
+
+            else {
+
+                suggestions.style.display =
+                    "none";
+
+            }
+
+
+            rebuildConversationHistory();
+
+            scrollBottom();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "AI Chat History Error:",
+                error
+            );
+
+
+            /*
+             * If history fails, don't break
+             * the entire chat.
+             */
+
+            if (
+                !messages.querySelector(
+                    ".ai-message"
+                )
+            ) {
+
+                showWelcome();
+
+            }
+
+        }
+
+    }
+
+
+    /* =========================================================
+       DELETE FROM DATABASE
+       ========================================================= */
+
+    async function deleteForMe(messageId) {
+
+        const message =
+            findMessage(messageId);
+
+
+        if (!message) {
+
+            return;
+
+        }
+
+
+        const dbId =
+            message.dataset.dbId;
+
+
+        const pairId =
+            message.dataset.pairId ||
+            null;
+
+
+        closeAllMenus();
+
+
+        /*
+         * If this message was saved in DB,
+         * delete it from MongoDB first.
+         */
+
+        if (dbId) {
+
+            try {
+
+                const response =
+                    await fetch(
+                        "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
+                            .replace(
+                                "__MESSAGE_ID__",
+                                encodeURIComponent(dbId)
+                            ),
+                        {
+
+                            method:
+                                "DELETE",
+
+                            credentials:
+                                "same-origin",
+
+                            headers: {
+
+                                "Accept":
+                                    "application/json",
+
+                                "X-Requested-With":
+                                    "XMLHttpRequest"
+
+                            }
+
+                        }
+                    );
+
+
+                let data;
+
+
+                try {
+
+                    data =
+                        await response.json();
+
+                }
+
+                catch (error) {
+
+                    throw new Error(
+                        "Invalid delete response."
+                    );
+
+                }
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        data.error ||
+                        data.message ||
+                        "Delete failed."
+                    );
+
+                }
 
             }
 
             catch (error) {
 
                 console.error(
-                    "AI Send Error:",
+                    "AI Delete Error:",
                     error
                 );
 
-            }
 
-            finally {
+                alert(
+                    "Fariintan lama tirtiri karin. Fadlan mar kale isku day."
+                );
 
-                hideTyping();
 
-                isSending = false;
-
-                sendButton.disabled =
-                    false;
-
-                input.focus();
+                return;
 
             }
 
         }
 
 
-        /* =========================================================
-           AI REQUEST
-           ========================================================= */
+        /*
+         * Remove user + assistant pair.
+         */
 
-        async function requestAI(
-            text,
-            userMessageId,
-            pairId
+        if (
+            typeOfMessage(message) ===
+            "user"
         ) {
+
+            const assistant =
+                findAssistantByPair(
+                    pairId
+                );
+
+
+            if (assistant) {
+
+                assistant.remove();
+
+            }
+
+        }
+
+        else {
+
+            /*
+             * If assistant itself is deleted,
+             * remove the whole pair as well.
+             */
+
+            const user =
+                Array.from(
+                    messages.querySelectorAll(
+                        ".ai-message.user"
+                    )
+                ).find(function (item) {
+
+                    return (
+                        item.dataset.pairId ===
+                        pairId
+                    );
+
+                });
+
+
+            if (user) {
+
+                user.remove();
+
+            }
+
+        }
+
+
+        message.remove();
+
+
+        rebuildConversationHistory();
+
+
+        if (
+            messages.querySelectorAll(
+                ".ai-message"
+            ).length === 0
+        ) {
+
+            showWelcome();
+
+            suggestions.style.display =
+                "flex";
+
+        }
+
+    }
+
+
+    /* =========================================================
+       START EDIT
+       ========================================================= */
+
+    function startEdit(messageId) {
+
+        const message =
+            findMessage(messageId);
+
+
+        if (!message) {
+
+            return;
+
+        }
+
+
+        if (
+            !message.classList.contains(
+                "user"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        const content =
+            message.querySelector(
+                ".ai-message-content"
+            );
+
+
+        if (!content) {
+
+            return;
+
+        }
+
+
+        input.value =
+            content.textContent;
+
+
+        editingMessageId =
+            messageId;
+
+
+        editingBar.classList.add(
+            "active"
+        );
+
+
+        closeAllMenus();
+
+        autoResize();
+
+        input.focus();
+
+
+        try {
+
+            input.selectionStart =
+                input.value.length;
+
+            input.selectionEnd =
+                input.value.length;
+
+        }
+
+        catch (error) {}
+
+    }
+
+
+    /* =========================================================
+       CANCEL EDIT
+       ========================================================= */
+
+    function cancelEdit() {
+
+        editingMessageId =
+            null;
+
+
+        input.value =
+            "";
+
+
+        editingBar.classList.remove(
+            "active"
+        );
+
+
+        autoResize();
+
+        input.focus();
+
+    }
+
+
+    cancelEditButton.addEventListener(
+        "click",
+        cancelEdit
+    );
+
+
+    /* =========================================================
+       EDIT MESSAGE
+       ========================================================= */
+
+    async function editMessage(
+        message,
+        newText
+    ) {
+
+        const dbId =
+            message.dataset.dbId;
+
+
+        /*
+         * If the message is already stored
+         * in MongoDB, use backend edit.
+         */
+
+        if (dbId) {
 
             try {
 
                 const response =
                     await fetch(
-                        "{{ url_for('main.ai_assistant') }}",
+                        "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
+                            .replace(
+                                "__MESSAGE_ID__",
+                                encodeURIComponent(dbId)
+                            ),
                         {
 
                             method:
-                                "POST",
+                                "PUT",
 
                             credentials:
                                 "same-origin",
@@ -4165,20 +4081,13 @@
                                 JSON.stringify({
 
                                     message:
-                                        text,
-
-                                    history:
-                                        conversationHistory
+                                        newText
 
                                 })
 
                         }
                     );
 
-
-                /*
-                 * Parse JSON
-                 */
 
                 let data;
 
@@ -4193,317 +4102,946 @@
                 catch (error) {
 
                     throw new Error(
-                        "Server returned invalid JSON."
+                        "Invalid edit response."
                     );
 
                 }
 
-
-                /*
-                 * HTTP ERROR
-                 */
 
                 if (!response.ok) {
 
                     throw new Error(
                         data.error ||
                         data.message ||
-                        "AI request failed."
+                        "Edit failed."
                     );
 
                 }
 
-
-                /*
-                 * FIND ANSWER
-                 */
 
                 const answer =
-                    data.answer ||
-                    data.response ||
-                    data.reply ||
-                    data.message ||
-                    "";
+                    String(
+                        data.answer ||
+                        data.assistant_message ||
+                        data.response ||
+                        ""
+                    ).trim();
 
 
-                if (!String(answer).trim()) {
+                /*
+                 * Update user UI
+                 */
 
-                    throw new Error(
-                        "AI returned an empty response."
+                const content =
+                    message.querySelector(
+                        ".ai-message-content"
                     );
+
+
+                if (content) {
+
+                    content.textContent =
+                        newText;
 
                 }
 
 
                 /*
-                 * Make sure user message still exists.
+                 * Find existing assistant.
                  */
 
-                const userMessage =
-                    findMessage(
-                        userMessageId
+                const pairId =
+                    message.dataset.pairId;
+
+
+                let assistant =
+                    findAssistantByPair(
+                        pairId
                     );
 
 
-                if (!userMessage) {
+                if (answer) {
 
-                    return;
+                    if (!assistant) {
+
+                        assistant =
+                            addMessage(
+                                answer,
+                                "assistant",
+                                null,
+                                pairId,
+                                dbId,
+                                data.updated_at ||
+                                new Date().toISOString()
+                            );
+
+                    }
+
+                    else {
+
+                        const assistantContent =
+                            assistant.querySelector(
+                                ".ai-message-content"
+                            );
+
+
+                        if (
+                            assistantContent
+                        ) {
+
+                            assistantContent.textContent =
+                                answer;
+
+                        }
+
+                    }
 
                 }
 
 
                 /*
-                 * Add assistant history.
+                 * Remove all messages after
+                 * edited pair.
                  */
 
-                const assistantIndex =
-                    conversationHistory.length;
+                const allMessages =
+                    Array.from(
+                        messages.querySelectorAll(
+                            ".ai-message"
+                        )
+                    );
 
 
-                conversationHistory.push({
-
-                    role:
-                        "assistant",
-
-                    content:
-                        String(answer)
-
-                });
+                const position =
+                    allMessages.indexOf(
+                        message
+                    );
 
 
-                /*
-                 * Add assistant UI.
-                 */
+                if (position >= 0) {
 
-                addMessage(
-                    String(answer),
-                    "assistant",
-                    assistantIndex,
-                    pairId
-                );
+                    allMessages
+                        .slice(position + 1)
+                        .forEach(function (item) {
+
+                            /*
+                             * Don't remove the newly
+                             * updated assistant.
+                             */
+
+                            if (
+                                item !== assistant
+                            ) {
+
+                                item.remove();
+
+                            }
+
+                        });
+
+                }
 
 
-                /*
-                 * Limit history.
-                 */
+                rebuildConversationHistory();
 
-                limitConversationHistory();
+
+                return;
 
             }
 
             catch (error) {
 
                 console.error(
-                    "AI Assistant Error:",
+                    "AI Edit Error:",
                     error
                 );
 
 
-                const userMessage =
-                    findMessage(
-                        userMessageId
-                    );
-
-
-                if (!userMessage) {
-
-                    return;
-
-                }
-
-
-                addMessage(
-                    "AI Assistant lama xiriirin server-ka. Fadlan mar kale isku day.",
-                    "assistant",
-                    null,
-                    pairId
+                alert(
+                    "Fariintan lama edit-gareyn karin. Fadlan mar kale isku day."
                 );
 
+
+                return;
+
             }
 
         }
 
 
-        /* =========================================================
-           SEND BUTTON
-           ========================================================= */
+        /*
+         * Fallback for unsaved message.
+         */
 
-        sendButton.addEventListener(
-            "click",
-            sendMessage
-        );
-
-
-        /* =========================================================
-           ENTER
-           ========================================================= */
-
-        input.addEventListener(
-            "keydown",
-            function (event) {
-
-                if (
-                    event.key === "Enter" &&
-                    !event.shiftKey
-                ) {
-
-                    event.preventDefault();
-
-                    sendMessage();
-
-                }
-
-            }
-        );
+        const allMessages =
+            Array.from(
+                messages.querySelectorAll(
+                    ".ai-message"
+                )
+            );
 
 
-        /* =========================================================
-           AUTO RESIZE
-           ========================================================= */
-
-        function autoResize() {
-
-            input.style.height =
-                "42px";
+        const position =
+            allMessages.indexOf(
+                message
+            );
 
 
-            const maxHeight =
-                window.innerWidth <= 576
-                    ? 96
-                    : 110;
+        if (position < 0) {
 
-
-            input.style.height =
-                Math.min(
-                    input.scrollHeight,
-                    maxHeight
-                ) + "px";
+            return;
 
         }
 
 
-        input.addEventListener(
-            "input",
-            autoResize
-        );
-
-
-        /* =========================================================
-           QUICK QUESTIONS
-           ========================================================= */
-
-        document
-            .querySelectorAll(
-                ".ai-suggestion"
-            )
+        allMessages
+            .slice(position + 1)
             .forEach(function (item) {
 
-                item.addEventListener(
-                    "click",
-                    function () {
-
-                        const question =
-                            this.getAttribute(
-                                "data-question"
-                            );
-
-
-                        if (!question) {
-
-                            return;
-
-                        }
-
-
-                        input.value =
-                            question;
-
-
-                        autoResize();
-
-                        input.focus();
-
-                    }
-                );
+                item.remove();
 
             });
 
 
-        /* =========================================================
-           CLICK OUTSIDE
-           ========================================================= */
+        const content =
+            message.querySelector(
+                ".ai-message-content"
+            );
 
-        document.addEventListener(
-            "click",
-            function (event) {
 
-                if (
-                    !event.target.closest(
-                        ".ai-message"
-                    )
-                ) {
+        if (content) {
 
-                    closeAllMenus();
+            content.textContent =
+                newText;
 
-                }
+        }
 
-            }
+
+        rebuildConversationHistory();
+
+
+        let pairId =
+            message.dataset.pairId;
+
+
+        if (!pairId) {
+
+            pairId =
+                createPairId();
+
+            message.dataset.pairId =
+                pairId;
+
+        }
+
+
+        editingMessageId =
+            null;
+
+
+        editingBar.classList.remove(
+            "active"
         );
 
 
-        /* =========================================================
-           ESCAPE
-           ========================================================= */
+        input.value =
+            "";
 
-        document.addEventListener(
-            "keydown",
-            function (event) {
 
-                if (
-                    event.key !== "Escape"
-                ) {
+        autoResize();
 
-                    return;
+
+        suggestions.style.display =
+            "none";
+
+
+        closeAllMenus();
+
+
+        showTyping();
+
+
+        try {
+
+            await requestAI(
+                newText,
+                message.dataset.messageId,
+                pairId
+            );
+
+        }
+
+        finally {
+
+            hideTyping();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       LIMIT HISTORY
+       ========================================================= */
+
+    function limitConversationHistory() {
+
+        /*
+         * Keep a reasonable amount of context
+         * in the browser request.
+         *
+         * Database still keeps the full history.
+         */
+
+        const MAX_HISTORY =
+            20;
+
+
+        if (
+            conversationHistory.length <=
+            MAX_HISTORY
+        ) {
+
+            return;
+
+        }
+
+
+        conversationHistory =
+            conversationHistory.slice(
+                -MAX_HISTORY
+            );
+
+    }
+
+
+    /* =========================================================
+       SHOW TYPING
+       ========================================================= */
+
+    function showTyping() {
+
+        hideTyping();
+
+
+        const typing =
+            document.createElement("div");
+
+
+        typing.className =
+            "ai-message assistant";
+
+
+        typing.id =
+            "aiTypingMessage";
+
+
+        typing.innerHTML = `
+
+            <div class="ai-message-inner">
+
+                <div class="ai-message-content">
+
+                    <div class="ai-typing">
+
+                        <span></span>
+                        <span></span>
+                        <span></span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+
+        messages.appendChild(
+            typing
+        );
+
+
+        scrollBottom();
+
+    }
+
+
+    /* =========================================================
+       HIDE TYPING
+       ========================================================= */
+
+    function hideTyping() {
+
+        const typing =
+            document.getElementById(
+                "aiTypingMessage"
+            );
+
+
+        if (typing) {
+
+            typing.remove();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       SEND MESSAGE
+       ========================================================= */
+
+    async function sendMessage() {
+
+        if (isSending) {
+
+            return;
+
+        }
+
+
+        const text =
+            input.value.trim();
+
+
+        if (!text) {
+
+            return;
+
+        }
+
+
+        isSending =
+            true;
+
+
+        sendButton.disabled =
+            true;
+
+
+        /*
+         * EDIT MODE
+         */
+
+        if (
+            editingMessageId !== null
+        ) {
+
+            const message =
+                findMessage(
+                    editingMessageId
+                );
+
+
+            if (!message) {
+
+                cancelEdit();
+
+                isSending =
+                    false;
+
+                sendButton.disabled =
+                    false;
+
+                return;
+
+            }
+
+
+            try {
+
+                await editMessage(
+                    message,
+                    text
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "AI Edit Error:",
+                    error
+                );
+
+            }
+
+            finally {
+
+                editingMessageId =
+                    null;
+
+                editingBar.classList.remove(
+                    "active"
+                );
+
+                input.value =
+                    "";
+
+                autoResize();
+
+                isSending =
+                    false;
+
+                sendButton.disabled =
+                    false;
+
+                input.focus();
+
+            }
+
+
+            return;
+
+        }
+
+
+        /*
+         * NORMAL MESSAGE
+         */
+
+        const historyIndex =
+            conversationHistory.length;
+
+
+        conversationHistory.push({
+
+            role:
+                "user",
+
+            content:
+                text
+
+        });
+
+
+        const pairId =
+            createPairId();
+
+
+        const userMessage =
+            addMessage(
+                text,
+                "user",
+                historyIndex,
+                pairId
+            );
+
+
+        input.value =
+            "";
+
+
+        autoResize();
+
+
+        suggestions.style.display =
+            "none";
+
+
+        showTyping();
+
+
+        try {
+
+            await requestAI(
+                text,
+                userMessage.dataset.messageId,
+                pairId
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "AI Send Error:",
+                error
+            );
+
+        }
+
+        finally {
+
+            hideTyping();
+
+            isSending =
+                false;
+
+            sendButton.disabled =
+                false;
+
+            input.focus();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       AI REQUEST
+       ========================================================= */
+
+    async function requestAI(
+        text,
+        userMessageId,
+        pairId
+    ) {
+
+        try {
+
+            const response =
+                await fetch(
+                    "{{ url_for('main.ai_assistant') }}",
+                    {
+
+                        method:
+                            "POST",
+
+                        credentials:
+                            "same-origin",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "Accept":
+                                "application/json",
+
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                message:
+                                    text,
+
+                                history:
+                                    conversationHistory
+
+                            })
+
+                    }
+                );
+
+
+            let data;
+
+
+            try {
+
+                data =
+                    await response.json();
+
+            }
+
+            catch (error) {
+
+                throw new Error(
+                    "Server returned invalid JSON."
+                );
+
+            }
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    data.message ||
+                    "AI request failed."
+                );
+
+            }
+
+
+            const answer =
+                data.answer ||
+                data.response ||
+                data.reply ||
+                data.message ||
+                "";
+
+
+            if (
+                !String(answer).trim()
+            ) {
+
+                throw new Error(
+                    "AI returned an empty response."
+                );
+
+            }
+
+
+            const userMessage =
+                findMessage(
+                    userMessageId
+                );
+
+
+            if (!userMessage) {
+
+                return;
+
+            }
+
+
+            /*
+             * IMPORTANT:
+             *
+             * Backend must return:
+             *
+             * message_id
+             *
+             * This is the MongoDB _id of the
+             * saved user/assistant pair.
+             */
+
+            const dbId =
+                data.message_id ||
+                data.id ||
+                null;
+
+
+            if (dbId) {
+
+                userMessage.dataset.dbId =
+                    String(dbId);
+
+            }
+
+
+            /*
+             * Assistant history
+             */
+
+            const assistantIndex =
+                conversationHistory.length;
+
+
+            conversationHistory.push({
+
+                role:
+                    "assistant",
+
+                content:
+                    String(answer)
+
+            });
+
+
+            /*
+             * Assistant UI
+             */
+
+            const assistantMessage =
+                addMessage(
+                    String(answer),
+                    "assistant",
+                    assistantIndex,
+                    pairId,
+                    dbId,
+                    data.created_at ||
+                    data.updated_at ||
+                    new Date().toISOString()
+                );
+
+
+            /*
+             * Same DB ID on both messages.
+             */
+
+            if (dbId) {
+
+                assistantMessage.dataset.dbId =
+                    String(dbId);
+
+            }
+
+
+            limitConversationHistory();
+
+
+            scrollBottom();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "AI Assistant Error:",
+                error
+            );
+
+
+            const userMessage =
+                findMessage(
+                    userMessageId
+                );
+
+
+            if (!userMessage) {
+
+                return;
+
+            }
+
+
+            addMessage(
+                "AI Assistant lama xiriirin server-ka. Fadlan mar kale isku day.",
+                "assistant",
+                null,
+                pairId
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       SEND BUTTON
+       ========================================================= */
+
+    sendButton.addEventListener(
+        "click",
+        sendMessage
+    );
+
+
+    /* =========================================================
+       ENTER
+       ========================================================= */
+
+    input.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Enter" &&
+                !event.shiftKey
+            ) {
+
+                event.preventDefault();
+
+                sendMessage();
+
+            }
+
+        }
+    );
+
+
+    /* =========================================================
+       AUTO RESIZE
+       ========================================================= */
+
+    function autoResize() {
+
+        input.style.height =
+            "42px";
+
+
+        const maxHeight =
+            window.innerWidth <= 576
+                ? 96
+                : 110;
+
+
+        input.style.height =
+            Math.min(
+                input.scrollHeight,
+                maxHeight
+            ) + "px";
+
+    }
+
+
+    input.addEventListener(
+        "input",
+        autoResize
+    );
+
+
+    /* =========================================================
+       QUICK QUESTIONS
+       ========================================================= */
+
+    document
+        .querySelectorAll(
+            ".ai-suggestion"
+        )
+        .forEach(function (item) {
+
+            item.addEventListener(
+                "click",
+                function () {
+
+                    const question =
+                        this.getAttribute(
+                            "data-question"
+                        );
+
+
+                    if (!question) {
+
+                        return;
+
+                    }
+
+
+                    input.value =
+                        question;
+
+
+                    autoResize();
+
+                    input.focus();
 
                 }
+            );
 
+        });
+
+
+    /* =========================================================
+       CLICK OUTSIDE
+       ========================================================= */
+
+    document.addEventListener(
+        "click",
+        function (event) {
+
+            if (
+                !event.target.closest(
+                    ".ai-message"
+                )
+            ) {
 
                 closeAllMenus();
 
-
-                if (
-                    editingMessageId !== null
-                ) {
-
-                    cancelEdit();
-
-                    return;
-
-                }
-
-
-                if (
-                    box.classList.contains(
-                        "active"
-                    )
-                ) {
-
-                    closeChat();
-
-                }
-
             }
-        );
+
+        }
+    );
 
 
-        /* =========================================================
-           VISUAL VIEWPORT
-           ========================================================= */
+    /* =========================================================
+       ESCAPE
+       ========================================================= */
 
-        function handleVisualViewport() {
+    document.addEventListener(
+        "keydown",
+        function (event) {
 
             if (
-                !window.visualViewport
+                event.key !== "Escape"
             ) {
 
                 return;
@@ -4511,170 +5049,232 @@
             }
 
 
+            closeAllMenus();
+
+
             if (
-                !box.classList.contains(
+                editingMessageId !== null
+            ) {
+
+                cancelEdit();
+
+                return;
+
+            }
+
+
+            if (
+                box.classList.contains(
                     "active"
                 )
             ) {
 
-                return;
+                closeChat();
 
             }
 
+        }
+    );
 
-            const viewport =
-                window.visualViewport;
+
+    /* =========================================================
+       VISUAL VIEWPORT
+       ========================================================= */
+
+    function handleVisualViewport() {
+
+        if (
+            !window.visualViewport
+        ) {
+
+            return;
+
+        }
 
 
-            const keyboardHeight =
-                window.innerHeight -
-                viewport.height;
+        if (
+            !box.classList.contains(
+                "active"
+            )
+        ) {
 
+            return;
+
+        }
+
+
+        const viewport =
+            window.visualViewport;
+
+
+        const keyboardHeight =
+            window.innerHeight -
+            viewport.height;
+
+
+        if (
+            window.innerWidth <= 576 &&
+            keyboardHeight > 120
+        ) {
+
+            document.body.classList.add(
+                "ai-keyboard-open"
+            );
+
+        }
+
+        else {
+
+            document.body.classList.remove(
+                "ai-keyboard-open"
+            );
+
+        }
+
+    }
+
+
+    if (
+        window.visualViewport
+    ) {
+
+        window.visualViewport.addEventListener(
+            "resize",
+            function () {
+
+                handleVisualViewport();
+
+                setTimeout(
+                    scrollBottom,
+                    80
+                );
+
+            }
+        );
+
+
+        window.visualViewport.addEventListener(
+            "scroll",
+            handleVisualViewport
+        );
+
+    }
+
+
+    /* =========================================================
+       INPUT FOCUS
+       ========================================================= */
+
+    input.addEventListener(
+        "focus",
+        function () {
 
             if (
-                window.innerWidth <= 576 &&
-                keyboardHeight > 120
+                window.innerWidth <= 576
             ) {
 
                 document.body.classList.add(
                     "ai-keyboard-open"
                 );
 
-            }
 
-            else {
-
-                document.body.classList.remove(
-                    "ai-keyboard-open"
+                setTimeout(
+                    scrollBottom,
+                    150
                 );
 
             }
 
         }
+    );
 
 
-        if (
-            window.visualViewport
-        ) {
+    input.addEventListener(
+        "blur",
+        function () {
 
-            window.visualViewport.addEventListener(
-                "resize",
+            setTimeout(
+                handleVisualViewport,
+                250
+            );
+
+        }
+    );
+
+
+    /* =========================================================
+       ORIENTATION
+       ========================================================= */
+
+    window.addEventListener(
+        "orientationchange",
+        function () {
+
+            setTimeout(
                 function () {
+
+                    autoResize();
 
                     handleVisualViewport();
 
-                    setTimeout(
-                        scrollBottom,
-                        80
-                    );
+                    scrollBottom();
 
-                }
-            );
-
-
-            window.visualViewport.addEventListener(
-                "scroll",
-                handleVisualViewport
+                },
+                250
             );
 
         }
+    );
 
 
-        /* =========================================================
-           INPUT FOCUS
-           ========================================================= */
+    /* =========================================================
+       WINDOW RESIZE
+       ========================================================= */
 
-        input.addEventListener(
-            "focus",
-            function () {
+    window.addEventListener(
+        "resize",
+        function () {
 
-                if (
-                    window.innerWidth <= 576
-                ) {
+            autoResize();
 
-                    document.body.classList.add(
-                        "ai-keyboard-open"
-                    );
+            handleVisualViewport();
 
-
-                    setTimeout(
-                        scrollBottom,
-                        150
-                    );
-
-                }
-
-            }
-        );
+        }
+    );
 
 
-        input.addEventListener(
-            "blur",
-            function () {
+    /* =========================================================
+       INITIAL
+       ========================================================= */
 
-                setTimeout(
-                    handleVisualViewport,
-                    250
-                );
+    autoResize();
 
-            }
-        );
+    refreshIcons();
+
+    handleVisualViewport();
 
 
-        /* =========================================================
-           ORIENTATION
-           ========================================================= */
+    /*
+     * IMPORTANT:
+     *
+     * Load MongoDB history immediately.
+     *
+     * This is what makes the chat survive:
+     *
+     * - Refresh
+     * - Page navigation
+     * - Closing/opening chat
+     * - Moving between dashboard pages
+     *
+     */
 
-        window.addEventListener(
-            "orientationchange",
-            function () {
+    loadChatHistory();
 
-                setTimeout(
-                    function () {
+});
 
-                        autoResize();
-
-                        handleVisualViewport();
-
-                        scrollBottom();
-
-                    },
-                    250
-                );
-
-            }
-        );
+</script>
 
 
-        /* =========================================================
-           WINDOW RESIZE
-           ========================================================= */
-
-        window.addEventListener(
-            "resize",
-            function () {
-
-                autoResize();
-
-                handleVisualViewport();
-
-            }
-        );
-
-
-        /* =========================================================
-           INITIAL
-           ========================================================= */
-
-        autoResize();
-
-        refreshIcons();
-
-        handleVisualViewport();
-
-    });
-
-    </script>
 
 
     <!-- ============================================================
