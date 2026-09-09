@@ -1,0 +1,2727 @@
+{% extends 'backend/home/base.html' %}
+{% block title %}AI People History{% endblock %}
+
+{% block content %}
+
+<style>
+
+/* ============================================================
+   ROOT
+============================================================ */
+
+:root{
+    --primary:#2563eb;
+    --primary-dark:#1d4ed8;
+    --bg:#f8fafc;
+    --white:#ffffff;
+    --border:#e5e7eb;
+    --text:#0f172a;
+    --muted:#64748b;
+    --success:#22c55e;
+}
+
+body{
+    background:var(--bg);
+}
+
+
+/* ============================================================
+   WRAPPER
+============================================================ */
+
+.ai-wrapper{
+    display:flex;
+    height:calc(100vh - 150px);
+    min-height:650px;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:18px;
+    overflow:hidden;
+    box-shadow:0 12px 30px rgba(15,23,42,.08);
+}
+
+
+/* ============================================================
+   LEFT SIDEBAR
+============================================================ */
+
+.ai-sidebar{
+    width:290px;
+    min-width:290px;
+    display:flex;
+    flex-direction:column;
+    border-right:1px solid var(--border);
+    background:#fff;
+}
+
+.ai-sidebar-header{
+    padding:18px;
+    border-bottom:1px solid var(--border);
+}
+
+.ai-sidebar-header h5{
+    margin:0;
+    font-weight:700;
+    color:var(--text);
+}
+
+.ai-sidebar-header small{
+    color:var(--muted);
+}
+
+
+/* ============================================================
+   SEARCH
+============================================================ */
+
+.ai-search-box{
+    position:relative;
+}
+
+.ai-search-box input{
+    width:100%;
+    height:42px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#f1f5f9;
+    padding:0 40px;
+    outline:none;
+    transition:.25s;
+}
+
+.ai-search-box input:focus{
+    background:#fff;
+    border-color:var(--primary);
+    box-shadow:0 0 0 4px rgba(37,99,235,.08);
+}
+
+.search-icon{
+    position:absolute;
+    left:12px;
+    top:12px;
+    width:18px;
+    color:#94a3b8;
+}
+
+#clearSearch{
+    position:absolute;
+    right:10px;
+    top:7px;
+    border:none;
+    background:transparent;
+    font-size:20px;
+    color:#94a3b8;
+    display:none;
+    cursor:pointer;
+}
+
+
+/* ============================================================
+   USER LIST
+============================================================ */
+
+.ai-user-list{
+    flex:1;
+    overflow:auto;
+    padding:4px 0;
+}
+
+
+/*
+   COMPACT USER ITEM
+   Spaces-ka badan waa laga yareeyay halkan.
+*/
+
+.ai-user-item{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:10px;
+
+    padding:9px 12px;
+
+    cursor:pointer;
+    transition:
+        background .18s ease,
+        border-color .18s ease;
+
+    border-bottom:1px solid #f1f5f9;
+}
+
+
+/* Hover */
+
+.ai-user-item:hover{
+    background:#f8fbff;
+}
+
+
+/* Active */
+
+.ai-user-item.active{
+    background:#eff6ff;
+    border-left:3px solid var(--primary);
+    padding-left:9px;
+}
+
+
+/* ============================================================
+   AVATAR
+============================================================ */
+
+.ai-user-item .avatar{
+    position:relative;
+
+    width:42px;
+    height:42px;
+    min-width:42px;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-dark)
+        );
+
+    color:#fff;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-weight:700;
+    font-size:13px;
+
+    overflow:hidden;
+}
+
+.ai-user-item .avatar img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+
+/* Online indicator */
+
+.ai-user-item .avatar::after{
+    content:"";
+
+    position:absolute;
+
+    width:9px;
+    height:9px;
+
+    right:1px;
+    bottom:1px;
+
+    background:var(--success);
+
+    border:2px solid #fff;
+
+    border-radius:50%;
+}
+
+
+/* ============================================================
+   USER INFORMATION
+============================================================ */
+
+.user-info{
+    flex:1;
+    min-width:0;
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+
+    overflow:hidden;
+}
+
+.user-info h6{
+    margin:0;
+
+    font-size:13px;
+    line-height:17px;
+
+    font-weight:700;
+
+    color:var(--text);
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.user-info p{
+    margin:1px 0 0;
+
+    font-size:10.5px;
+    line-height:15px;
+
+    color:var(--muted);
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+
+/* ============================================================
+   USER META
+============================================================ */
+
+.user-meta{
+    min-width:45px;
+
+    display:flex;
+    flex-direction:column;
+
+    align-items:flex-end;
+    justify-content:center;
+
+    gap:3px;
+}
+
+
+/* Conversation time */
+
+.user-time{
+    font-size:9px;
+    line-height:12px;
+
+    color:#94a3b8;
+
+    white-space:nowrap;
+}
+
+
+/* Message count */
+
+.unread{
+    min-width:20px;
+    height:20px;
+
+    padding:0 5px;
+
+    border-radius:10px;
+
+    background:var(--primary);
+    color:#fff;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:9px;
+    line-height:1;
+
+    font-weight:700;
+}
+
+
+/* ============================================================
+   EMPTY USER LIST
+============================================================ */
+
+.user-list-empty{
+    height:100%;
+
+    display:flex;
+    flex-direction:column;
+
+    align-items:center;
+    justify-content:center;
+
+    text-align:center;
+
+    padding:30px;
+
+    color:#94a3b8;
+}
+
+.user-list-empty i{
+    width:42px;
+    height:42px;
+
+    margin-bottom:10px;
+
+    color:#cbd5e1;
+}
+
+.user-list-empty h6{
+    margin:0 0 4px;
+
+    font-size:13px;
+    font-weight:700;
+
+    color:#64748b;
+}
+
+.user-list-empty p{
+    margin:0;
+
+    font-size:11px;
+}
+
+
+/* ============================================================
+   LOADING
+============================================================ */
+
+.ai-loading{
+    height:100%;
+
+    display:flex;
+    flex-direction:column;
+
+    align-items:center;
+    justify-content:center;
+
+    color:#64748b;
+}
+
+.ai-loading p{
+    font-size:12px;
+    margin-bottom:0;
+}
+
+
+/* ============================================================
+   CENTER CHAT
+============================================================ */
+
+.ai-chat-panel{
+    flex:1;
+
+    display:flex;
+    flex-direction:column;
+
+    background:#f8fafc;
+}
+
+.ai-chat-header{
+    height:72px;
+
+    padding:14px 18px;
+
+    background:#fff;
+
+    border-bottom:1px solid var(--border);
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.ai-chat-user{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.ai-chat-user h6{
+    margin:0;
+    font-weight:700;
+}
+
+.ai-chat-user span{
+    font-size:12px;
+    color:var(--success);
+}
+
+.ai-chat-actions{
+    display:flex;
+    gap:8px;
+}
+
+.ai-chat-actions button{
+    width:38px;
+    height:38px;
+
+    border:none;
+    border-radius:10px;
+
+    background:#f1f5f9;
+    color:#64748b;
+
+    transition:.2s;
+}
+
+.ai-chat-actions button:hover{
+    background:var(--primary);
+    color:#fff;
+}
+
+
+/* ============================================================
+   CHAT BODY
+============================================================ */
+
+.ai-chat-body{
+    flex:1;
+
+    overflow:auto;
+
+    padding:22px;
+
+    background:#f8fafc;
+}
+
+
+/* ============================================================
+   DATE
+============================================================ */
+
+.chat-date{
+    text-align:center;
+    margin:18px 0;
+}
+
+.chat-date span{
+    background:#e2e8f0;
+    color:#64748b;
+
+    padding:6px 12px;
+
+    border-radius:20px;
+
+    font-size:11px;
+}
+
+
+/* ============================================================
+   MESSAGES
+============================================================ */
+
+.msg-row{
+    display:flex;
+    margin-bottom:12px;
+}
+
+.msg-row.user{
+    justify-content:flex-end;
+}
+
+.msg{
+    max-width:72%;
+}
+
+.bubble{
+    padding:12px 14px;
+
+    border-radius:16px;
+
+    line-height:1.6;
+
+    font-size:13px;
+
+    word-break:break-word;
+}
+
+.msg-row.user .bubble{
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-dark)
+        );
+
+    color:#fff;
+
+    border-bottom-right-radius:4px;
+}
+
+.msg-row.ai .bubble{
+    background:#fff;
+
+    border:1px solid var(--border);
+
+    color:#334155;
+
+    border-bottom-left-radius:4px;
+}
+
+.time{
+    font-size:10px;
+
+    color:#94a3b8;
+
+    margin-top:4px;
+}
+
+.msg-row.user .time{
+    text-align:right;
+}
+
+
+/* ============================================================
+   CHAT FOOTER
+============================================================ */
+
+.ai-chat-footer{
+    padding:12px 18px;
+
+    border-top:1px solid var(--border);
+
+    background:#fff;
+}
+
+.typing-status{
+    display:flex;
+    align-items:center;
+
+    gap:8px;
+
+    color:#64748b;
+
+    font-size:12px;
+}
+
+
+/* ============================================================
+   RIGHT PROFILE
+============================================================ */
+
+.ai-profile-panel{
+    width:280px;
+    min-width:280px;
+
+    border-left:1px solid var(--border);
+
+    background:#fff;
+
+    overflow:auto;
+}
+
+.profile-top{
+    text-align:center;
+
+    padding:28px 18px;
+
+    border-bottom:1px solid var(--border);
+}
+
+.profile-avatar{
+    width:78px;
+    height:78px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary),
+            var(--primary-dark)
+        );
+
+    color:#fff;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:26px;
+    font-weight:700;
+
+    overflow:hidden;
+}
+
+.profile-top h5{
+    margin:14px 0 4px;
+
+    font-weight:700;
+}
+
+.profile-top p{
+    margin:0;
+
+    color:#64748b;
+
+    font-size:12px;
+}
+
+.role-badge{
+    display:inline-block;
+
+    margin-top:10px;
+
+    background:#dbeafe;
+
+    color:var(--primary);
+
+    padding:5px 12px;
+
+    border-radius:30px;
+
+    font-size:11px;
+
+    font-weight:600;
+}
+
+.profile-section{
+    padding:18px;
+
+    border-bottom:1px solid var(--border);
+}
+
+.profile-section h6{
+    margin-bottom:14px;
+
+    font-weight:700;
+
+    color:#334155;
+}
+
+.stat-grid{
+    display:grid;
+
+    grid-template-columns:1fr 1fr;
+
+    gap:12px;
+}
+
+.stat-card{
+    background:#eff6ff;
+
+    border-radius:12px;
+
+    padding:14px;
+
+    text-align:center;
+}
+
+.stat-card h3{
+    margin:0;
+
+    color:var(--primary);
+
+    font-weight:700;
+}
+
+.stat-card span{
+    font-size:11px;
+
+    color:#64748b;
+}
+
+.info-row{
+    display:flex;
+
+    justify-content:space-between;
+
+    margin-bottom:12px;
+
+    font-size:12px;
+}
+
+.info-row span{
+    color:#64748b;
+}
+
+.info-row strong{
+    color:#111827;
+
+    max-width:130px;
+
+    text-align:right;
+
+    word-break:break-word;
+}
+
+
+/* ============================================================
+   EMPTY CHAT
+============================================================ */
+
+.ai-empty{
+    height:100%;
+
+    display:flex;
+    flex-direction:column;
+
+    align-items:center;
+    justify-content:center;
+
+    color:#94a3b8;
+
+    text-align:center;
+}
+
+.empty-icon{
+    width:60px;
+    height:60px;
+
+    color:var(--primary);
+
+    margin-bottom:16px;
+}
+
+
+/* ============================================================
+   SCROLLBAR
+============================================================ */
+
+.ai-user-list::-webkit-scrollbar,
+.ai-chat-body::-webkit-scrollbar,
+.ai-profile-panel::-webkit-scrollbar{
+    width:6px;
+}
+
+.ai-user-list::-webkit-scrollbar-thumb,
+.ai-chat-body::-webkit-scrollbar-thumb,
+.ai-profile-panel::-webkit-scrollbar-thumb{
+    background:#cbd5e1;
+    border-radius:20px;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width:1200px){
+
+    .ai-profile-panel{
+        display:none;
+    }
+
+}
+
+@media (max-width:768px){
+
+    .ai-sidebar{
+        width:220px;
+        min-width:220px;
+    }
+
+    .msg{
+        max-width:88%;
+    }
+
+    .ai-chat-body{
+        padding:16px;
+    }
+
+}
+
+@media (max-width:576px){
+
+    .ai-wrapper{
+        flex-direction:column;
+
+        height:auto;
+    }
+
+    .ai-sidebar{
+        width:100%;
+        min-width:100%;
+
+        height:220px;
+    }
+
+    .ai-chat-panel{
+        min-height:500px;
+    }
+
+}
+
+</style>
+
+
+<!-- ============================================================
+     PAGE HEADER
+============================================================ -->
+
+<div class="page-header">
+
+    <div class="page-header-left">
+
+        <h4 class="mb-1">
+            AI People History
+        </h4>
+
+        <nav>
+
+            <ol class="breadcrumb mb-0">
+
+                <li class="breadcrumb-item">
+
+                    <a href="{{ url_for('main.index') }}">
+                        Home
+                    </a>
+
+                </li>
+
+                <li class="breadcrumb-item active">
+                    AI Chat
+                </li>
+
+            </ol>
+
+        </nav>
+
+    </div>
+
+
+    <div class="page-header-right">
+
+        <button
+            class="btn btn-primary"
+            id="refreshAiHistory"
+        >
+
+            <i data-feather="refresh-cw"></i>
+
+            Refresh
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+
+<div class="main-content">
+
+    <div class="ai-wrapper">
+
+
+        <!-- ====================================================
+             LEFT SIDEBAR
+        ===================================================== -->
+
+        <aside class="ai-sidebar">
+
+
+            <!-- HEADER -->
+
+            <div class="ai-sidebar-header">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div>
+
+                        <h5>
+                            Conversations
+                        </h5>
+
+                        <small>
+                            AI People
+                        </small>
+
+                    </div>
+
+                    <span
+                        class="badge bg-primary"
+                        id="peopleCount"
+                    >
+                        0
+                    </span>
+
+                </div>
+
+
+                <!-- SEARCH -->
+
+                <div class="ai-search-box mt-3">
+
+                    <i
+                        data-feather="search"
+                        class="search-icon"
+                    ></i>
+
+                    <input
+                        type="text"
+                        id="userSearch"
+                        placeholder="Search people..."
+                        autocomplete="off"
+                    >
+
+                    <button
+                        id="clearSearch"
+                        type="button"
+                        aria-label="Clear search"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- USER LIST -->
+
+            <div
+                class="ai-user-list"
+                id="aiUserList"
+            >
+
+                <div class="ai-loading">
+
+                    <div class="spinner-border text-primary"></div>
+
+                    <p class="mt-2">
+                        Loading...
+                    </p>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- ====================================================
+             CENTER CHAT
+        ===================================================== -->
+
+        <section class="ai-chat-panel">
+
+
+            <!-- HEADER -->
+
+            <div class="ai-chat-header">
+
+                <div
+                    class="ai-chat-user"
+                    id="conversationUser"
+                >
+
+                    <div class="avatar">
+
+                        <i data-feather="user"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h6>
+                            Select User
+                        </h6>
+
+                        <span>
+                            AI Conversation
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="ai-chat-actions">
+
+                    <button
+                        id="chatRefreshBtn"
+                        type="button"
+                        title="Refresh"
+                    >
+
+                        <i data-feather="refresh-cw"></i>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        title="Phone"
+                    >
+
+                        <i data-feather="phone"></i>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        title="Video"
+                    >
+
+                        <i data-feather="video"></i>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        title="More"
+                    >
+
+                        <i data-feather="more-vertical"></i>
+
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- CHAT BODY -->
+
+            <div
+                class="ai-chat-body"
+                id="aiChatBody"
+            >
+
+                <div class="ai-empty">
+
+                    <i
+                        data-feather="message-square"
+                        class="empty-icon"
+                    ></i>
+
+                    <h5>
+                        No Conversation
+                    </h5>
+
+                    <p>
+                        Select a user to view AI history.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- FOOTER -->
+
+            <div class="ai-chat-footer">
+
+                <div class="typing-status">
+
+                    <i data-feather="cpu"></i>
+
+                    <span>
+                        History View Only
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ====================================================
+             RIGHT PROFILE
+        ===================================================== -->
+
+        <aside class="ai-profile-panel">
+
+
+            <!-- PROFILE -->
+
+            <div class="profile-top">
+
+                <div
+                    class="profile-avatar"
+                    id="detailAvatar"
+                >
+                    A
+                </div>
+
+                <h5 id="detailName">
+                    No User
+                </h5>
+
+                <p id="detailEmail">
+                    -
+                </p>
+
+                <span
+                    class="role-badge"
+                    id="detailRole"
+                >
+                    User
+                </span>
+
+            </div>
+
+
+            <!-- STATISTICS -->
+
+            <div class="profile-section">
+
+                <h6>
+                    Statistics
+                </h6>
+
+                <div class="stat-grid">
+
+                    <div class="stat-card">
+
+                        <h3 id="detailMessages">
+                            0
+                        </h3>
+
+                        <span>
+                            Messages
+                        </span>
+
+                    </div>
+
+                    <div class="stat-card">
+
+                        <h3 id="detailChats">
+                            0
+                        </h3>
+
+                        <span>
+                            Chats
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- USER INFO -->
+
+            <div class="profile-section">
+
+                <h6>
+                    User Info
+                </h6>
+
+                <div class="info-row">
+
+                    <span>
+                        Username
+                    </span>
+
+                    <strong id="detailUsername">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>
+                        Phone
+                    </span>
+
+                    <strong id="detailPhone">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>
+                        User ID
+                    </span>
+
+                    <strong id="detailUserId">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- ACTIVITY -->
+
+            <div class="profile-section">
+
+                <h6>
+                    Activity
+                </h6>
+
+                <div class="info-row">
+
+                    <span>
+                        Last Chat
+                    </span>
+
+                    <strong id="detailLastChat">
+                        -
+                    </strong>
+
+                </div>
+
+                <div class="info-row">
+
+                    <span>
+                        Created
+                    </span>
+
+                    <strong id="detailCreated">
+                        -
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </aside>
+
+    </div>
+
+</div>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", () => {
+
+
+    /* ========================================================
+       STATE
+    ======================================================== */
+
+    let people = [];
+
+    let selectedUser = null;
+
+
+    /* ========================================================
+       ELEMENTS
+    ======================================================== */
+
+    const list =
+        document.getElementById("aiUserList");
+
+    const chat =
+        document.getElementById("aiChatBody");
+
+    const search =
+        document.getElementById("userSearch");
+
+    const clearSearch =
+        document.getElementById("clearSearch");
+
+    const refreshAiHistory =
+        document.getElementById("refreshAiHistory");
+
+    const chatRefreshBtn =
+        document.getElementById("chatRefreshBtn");
+
+
+    /* ========================================================
+       TIMEZONE
+    ======================================================== */
+
+    const USER_TIMEZONE = (() => {
+
+        try {
+
+            return (
+                Intl.DateTimeFormat()
+                    .resolvedOptions()
+                    .timeZone
+                || "Africa/Mogadishu"
+            );
+
+        } catch(e){
+
+            return "Africa/Mogadishu";
+
+        }
+
+    })();
+
+
+    const USER_LOCALE =
+        (
+            navigator.languages &&
+            navigator.languages[0]
+        )
+        ||
+        navigator.language
+        ||
+        "en-US";
+
+
+    /* ========================================================
+       ESCAPE HTML
+    ======================================================== */
+
+    function esc(value){
+
+        return String(value ?? "")
+            .replace(
+                /[&<>"']/g,
+                char => ({
+                    "&":"&amp;",
+                    "<":"&lt;",
+                    ">":"&gt;",
+                    '"':"&quot;",
+                    "'":"&#39;"
+                }[char])
+            );
+
+    }
+
+
+    /* ========================================================
+       ESCAPE ATTRIBUTE
+    ======================================================== */
+
+    function safeAttr(value){
+
+        return esc(value);
+
+    }
+
+
+    /* ========================================================
+       INITIALS
+    ======================================================== */
+
+    function initials(name){
+
+        const value =
+            String(name || "?").trim();
+
+        if(!value){
+            return "?";
+        }
+
+        return value
+            .split(/\s+/)
+            .map(x => x.charAt(0))
+            .join("")
+            .substring(0,2)
+            .toUpperCase();
+
+    }
+
+
+    /* ========================================================
+       DATE FORMAT
+    ======================================================== */
+
+    function dt(value){
+
+        if(!value){
+            return "-";
+        }
+
+        const parsed =
+            new Date(value);
+
+        if(
+            Number.isNaN(
+                parsed.getTime()
+            )
+        ){
+            return "-";
+        }
+
+        try{
+
+            return new Intl.DateTimeFormat(
+                USER_LOCALE,
+                {
+                    dateStyle:"medium",
+                    timeStyle:"short",
+                    timeZone:USER_TIMEZONE
+                }
+            ).format(parsed);
+
+        }catch(e){
+
+            return parsed.toLocaleString();
+
+        }
+
+    }
+
+
+    /* ========================================================
+       SHORT DATE
+    ======================================================== */
+
+    function shortDt(value){
+
+        if(!value){
+            return "";
+        }
+
+        const parsed =
+            new Date(value);
+
+        if(
+            Number.isNaN(
+                parsed.getTime()
+            )
+        ){
+            return "";
+        }
+
+        try{
+
+            return new Intl.DateTimeFormat(
+                USER_LOCALE,
+                {
+                    month:"short",
+                    day:"numeric",
+                    timeZone:USER_TIMEZONE
+                }
+            ).format(parsed);
+
+        }catch(e){
+
+            return "";
+
+        }
+
+    }
+
+
+    /* ========================================================
+       API URL
+    ======================================================== */
+
+    const apiUrl =
+        "{{ url_for('main.api_ai_people_history') }}"
+        +
+        "?timezone="
+        +
+        encodeURIComponent(USER_TIMEZONE)
+        +
+        "&locale="
+        +
+        encodeURIComponent(USER_LOCALE);
+
+
+    /* ========================================================
+       FEATHER ICONS
+    ======================================================== */
+
+    function refreshIcons(){
+
+        if(
+            typeof feather !== "undefined"
+            &&
+            typeof feather.replace === "function"
+        ){
+
+            feather.replace();
+
+        }
+
+    }
+
+
+    /* ========================================================
+       SEARCH CLEAR BUTTON
+    ======================================================== */
+
+    function updateClearButton(){
+
+        if(!clearSearch){
+            return;
+        }
+
+        clearSearch.style.display =
+            search.value.trim()
+                ? "block"
+                : "none";
+
+    }
+
+
+    /* ========================================================
+       LOAD PEOPLE
+    ======================================================== */
+
+    async function loadPeople(){
+
+        const previousUser =
+            selectedUser;
+
+        list.innerHTML = `
+            <div class="ai-loading">
+                <div class="spinner-border text-primary"></div>
+                <p class="mt-2">Loading...</p>
+            </div>
+        `;
+
+        try{
+
+            const res =
+                await fetch(
+                    apiUrl,
+                    {
+                        method:"GET",
+
+                        headers:{
+                            "X-User-Timezone":
+                                USER_TIMEZONE,
+
+                            "X-User-Locale":
+                                USER_LOCALE,
+
+                            "Accept":
+                                "application/json"
+                        },
+
+                        cache:"no-store"
+                    }
+                );
+
+
+            if(!res.ok){
+
+                throw new Error(
+                    `HTTP ${res.status}`
+                );
+
+            }
+
+
+            const data =
+                await res.json();
+
+
+            if(
+                !data
+                ||
+                data.success === false
+            ){
+
+                throw new Error(
+                    data?.error
+                    ||
+                    "Unable to load AI history."
+                );
+
+            }
+
+
+            people =
+                Array.isArray(data.people)
+                    ? data.people
+                    : [];
+
+
+            document.getElementById(
+                "peopleCount"
+            ).innerText =
+                people.length;
+
+
+            updateClearButton();
+
+
+            /* =================================================
+               NO USERS
+            ================================================= */
+
+            if(!people.length){
+
+                selectedUser = null;
+
+                renderUsers([]);
+
+                renderEmptyChat();
+
+                renderEmptyProfile();
+
+                return;
+
+            }
+
+
+            /* =================================================
+               PRESERVE SELECTED USER
+            ================================================= */
+
+            let nextUser =
+                people.find(
+                    u =>
+                        String(u.user_id)
+                        ===
+                        String(previousUser)
+                );
+
+
+            if(!nextUser){
+
+                nextUser =
+                    people[0];
+
+            }
+
+
+            selectedUser =
+                nextUser.user_id;
+
+
+            renderUsers(filter());
+
+            renderChat(nextUser);
+
+            renderProfile(nextUser);
+
+
+        }catch(error){
+
+            console.error(
+                "AI People History:",
+                error
+            );
+
+
+            list.innerHTML = `
+                <div class="user-list-empty">
+
+                    <i data-feather="alert-circle"></i>
+
+                    <h6>
+                        Unable to load history
+                    </h6>
+
+                    <p>
+                        Please try again.
+                    </p>
+
+                </div>
+            `;
+
+            refreshIcons();
+
+        }
+
+    }
+
+
+    /* ========================================================
+       RENDER USER LIST
+    ======================================================== */
+
+    function renderUsers(users){
+
+        if(!Array.isArray(users)){
+            users = [];
+        }
+
+
+        if(!users.length){
+
+            list.innerHTML = `
+                <div class="user-list-empty">
+
+                    <i data-feather="users"></i>
+
+                    <h6>
+                        No people found
+                    </h6>
+
+                    <p>
+                        Try another search.
+                    </p>
+
+                </div>
+            `;
+
+            refreshIcons();
+
+            return;
+
+        }
+
+
+        list.innerHTML =
+            users.map(u => {
+
+
+                const userId =
+                    String(
+                        u.user_id ?? ""
+                    );
+
+
+                const name =
+                    u.name
+                    ||
+                    u.fullname
+                    ||
+                    u.username
+                    ||
+                    "Unknown User";
+
+
+                const lastMessage =
+                    u.last_message
+                    ||
+                    "No message";
+
+
+                const image =
+                    u.profile_image
+                    ||
+                    u.photo
+                    ||
+                    "";
+
+
+                const lastTime =
+                    u.last_created_at_local
+                    ||
+                    u.last_created_at
+                    ||
+                    u.last_created_at_utc
+                    ||
+                    "";
+
+
+                const count =
+                    Number(
+                        u.message_count || 0
+                    );
+
+
+                return `
+
+                    <div
+                        class="ai-user-item ${
+                            String(selectedUser)
+                            ===
+                            userId
+                                ? "active"
+                                : ""
+                        }"
+                        data-id="${safeAttr(userId)}"
+                    >
+
+                        <div class="avatar">
+
+                            ${
+                                image
+                                    ? `
+                                        <img
+                                            src="${safeAttr(image)}"
+                                            alt="${esc(name)}"
+                                            loading="lazy"
+                                        >
+                                      `
+                                    : `
+                                        ${esc(initials(name))}
+                                      `
+                            }
+
+                        </div>
+
+
+                        <div class="user-info">
+
+                            <h6>
+                                ${esc(name)}
+                            </h6>
+
+                            <p>
+                                ${esc(lastMessage)}
+                            </p>
+
+                        </div>
+
+
+                        <div class="user-meta">
+
+                            <div class="user-time">
+                                ${esc(shortDt(lastTime))}
+                            </div>
+
+                            <div class="unread">
+                                ${count}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }).join("");
+
+
+        document
+            .querySelectorAll(
+                ".ai-user-item"
+            )
+            .forEach(item => {
+
+                item.addEventListener(
+                    "click",
+                    () => {
+
+                        selectUser(
+                            item.dataset.id
+                        );
+
+                    }
+                );
+
+            });
+
+
+        refreshIcons();
+
+    }
+
+
+    /* ========================================================
+       SELECT USER
+    ======================================================== */
+
+    function selectUser(id){
+
+        const user =
+            people.find(
+                x =>
+                    String(x.user_id)
+                    ===
+                    String(id)
+            );
+
+
+        if(!user){
+
+            return;
+
+        }
+
+
+        selectedUser =
+            user.user_id;
+
+
+        renderUsers(filter());
+
+        renderChat(user);
+
+        renderProfile(user);
+
+    }
+
+
+    /* ========================================================
+       RENDER EMPTY CHAT
+    ======================================================== */
+
+    function renderEmptyChat(){
+
+        document.getElementById(
+            "conversationUser"
+        ).innerHTML = `
+
+            <div class="avatar">
+
+                <i data-feather="user"></i>
+
+            </div>
+
+            <div>
+
+                <h6>
+                    Select User
+                </h6>
+
+                <span>
+                    AI Conversation
+                </span>
+
+            </div>
+
+        `;
+
+
+        chat.innerHTML = `
+
+            <div class="ai-empty">
+
+                <i
+                    data-feather="message-square"
+                    class="empty-icon"
+                ></i>
+
+                <h5>
+                    No Conversation
+                </h5>
+
+                <p>
+                    Select a user to view AI history.
+                </p>
+
+            </div>
+
+        `;
+
+
+        refreshIcons();
+
+    }
+
+
+    /* ========================================================
+       RENDER CHAT
+    ======================================================== */
+
+    function renderChat(user){
+
+        if(!user){
+
+            renderEmptyChat();
+
+            return;
+
+        }
+
+
+        const name =
+            user.name
+            ||
+            user.fullname
+            ||
+            user.username
+            ||
+            "Unknown User";
+
+
+        const image =
+            user.profile_image
+            ||
+            user.photo
+            ||
+            "";
+
+
+        const messages =
+            Array.isArray(user.messages)
+                ? user.messages
+                : [];
+
+
+        document.getElementById(
+            "conversationUser"
+        ).innerHTML = `
+
+            <div class="avatar">
+
+                ${
+                    image
+                        ? `
+                            <img
+                                src="${safeAttr(image)}"
+                                alt="${esc(name)}"
+                                style="
+                                    width:100%;
+                                    height:100%;
+                                    object-fit:cover;
+                                "
+                            >
+                          `
+                        : `
+                            ${esc(initials(name))}
+                          `
+                }
+
+            </div>
+
+
+            <div>
+
+                <h6>
+                    ${esc(name)}
+                </h6>
+
+                <span>
+                    ${messages.length} Messages
+                </span>
+
+            </div>
+
+        `;
+
+
+        if(!messages.length){
+
+            chat.innerHTML = `
+
+                <div class="ai-empty">
+
+                    <i
+                        data-feather="message-square"
+                        class="empty-icon"
+                    ></i>
+
+                    <h5>
+                        No Messages
+                    </h5>
+
+                    <p>
+                        This user has no AI conversation.
+                    </p>
+
+                </div>
+
+            `;
+
+            refreshIcons();
+
+            return;
+
+        }
+
+
+        chat.innerHTML =
+            messages.map(m => {
+
+
+                const userMessage =
+                    m.user_message
+                    ||
+                    "";
+
+
+                const assistantMessage =
+                    m.assistant_message
+                    ||
+                    "";
+
+
+                const created =
+                    m.created_at_local
+                    ||
+                    m.created_at
+                    ||
+                    m.created_at_utc
+                    ||
+                    "";
+
+
+                const updated =
+                    m.updated_at_local
+                    ||
+                    m.created_at_local
+                    ||
+                    m.updated_at
+                    ||
+                    m.created_at
+                    ||
+                    "";
+
+
+                const messageId =
+                    String(
+                        m.id ?? ""
+                    );
+
+
+                return `
+
+                    <!-- USER MESSAGE -->
+
+                    <div class="msg-row user">
+
+                        <div class="msg">
+
+                            <div class="bubble">
+                                ${esc(userMessage)}
+                            </div>
+
+                            <div class="time">
+                                ${esc(dt(created))}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- AI MESSAGE -->
+
+                    <div class="msg-row ai">
+
+                        <div class="msg">
+
+                            <div class="bubble">
+                                ${esc(assistantMessage)}
+                            </div>
+
+                            <div class="time">
+                                ${esc(dt(updated))}
+                            </div>
+
+
+                            <div class="mt-1 d-flex gap-2">
+
+                                <button
+                                    class="btn btn-sm btn-light edit"
+                                    data-id="${safeAttr(messageId)}"
+                                    type="button"
+                                >
+                                    Edit
+                                </button>
+
+
+                                <button
+                                    class="btn btn-sm btn-danger delete"
+                                    data-id="${safeAttr(messageId)}"
+                                    type="button"
+                                >
+                                    Delete
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }).join("");
+
+
+        chat.scrollTop =
+            chat.scrollHeight;
+
+
+        bindActions();
+
+        refreshIcons();
+
+    }
+
+
+    /* ========================================================
+       EMPTY PROFILE
+    ======================================================== */
+
+    function renderEmptyProfile(){
+
+        document.getElementById(
+            "detailAvatar"
+        ).innerHTML = "A";
+
+        document.getElementById(
+            "detailName"
+        ).innerText = "No User";
+
+        document.getElementById(
+            "detailEmail"
+        ).innerText = "-";
+
+        document.getElementById(
+            "detailRole"
+        ).innerText = "User";
+
+        document.getElementById(
+            "detailMessages"
+        ).innerText = "0";
+
+        document.getElementById(
+            "detailChats"
+        ).innerText = "0";
+
+        document.getElementById(
+            "detailUsername"
+        ).innerText = "-";
+
+        document.getElementById(
+            "detailPhone"
+        ).innerText = "-";
+
+        document.getElementById(
+            "detailUserId"
+        ).innerText = "-";
+
+        document.getElementById(
+            "detailLastChat"
+        ).innerText = "-";
+
+        document.getElementById(
+            "detailCreated"
+        ).innerText = "-";
+
+    }
+
+
+    /* ========================================================
+       PROFILE
+    ======================================================== */
+
+    function renderProfile(u){
+
+        if(!u){
+
+            renderEmptyProfile();
+
+            return;
+
+        }
+
+
+        const name =
+            u.name
+            ||
+            u.fullname
+            ||
+            u.username
+            ||
+            "Unknown User";
+
+
+        const image =
+            u.profile_image
+            ||
+            u.photo
+            ||
+            "";
+
+
+        const messages =
+            Array.isArray(u.messages)
+                ? u.messages
+                : [];
+
+
+        document.getElementById(
+            "detailAvatar"
+        ).innerHTML =
+            image
+                ? `
+                    <img
+                        src="${safeAttr(image)}"
+                        alt="${esc(name)}"
+                        style="
+                            width:100%;
+                            height:100%;
+                            object-fit:cover;
+                        "
+                    >
+                  `
+                : esc(initials(name));
+
+
+        document.getElementById(
+            "detailName"
+        ).innerText =
+            name;
+
+
+        document.getElementById(
+            "detailEmail"
+        ).innerText =
+            u.email || "-";
+
+
+        document.getElementById(
+            "detailRole"
+        ).innerText =
+            u.role || "User";
+
+
+        document.getElementById(
+            "detailMessages"
+        ).innerText =
+            u.message_count || messages.length;
+
+
+        document.getElementById(
+            "detailChats"
+        ).innerText =
+            u.chat_count || messages.length;
+
+
+        document.getElementById(
+            "detailUsername"
+        ).innerText =
+            u.username || "-";
+
+
+        document.getElementById(
+            "detailPhone"
+        ).innerText =
+            u.phone || "-";
+
+
+        document.getElementById(
+            "detailUserId"
+        ).innerText =
+            u.user_id || "-";
+
+
+        document.getElementById(
+            "detailLastChat"
+        ).innerText =
+            dt(
+                u.last_created_at_local
+                ||
+                u.last_created_at
+                ||
+                u.last_created_at_utc
+            );
+
+
+        document.getElementById(
+            "detailCreated"
+        ).innerText =
+            dt(
+                u.user_created_at_local
+                ||
+                u.user_created_at
+                ||
+                u.user_created_at_utc
+            );
+
+    }
+
+
+    /* ========================================================
+       FILTER
+    ======================================================== */
+
+    function filter(){
+
+        const keyword =
+            search.value
+                .trim()
+                .toLowerCase();
+
+
+        if(!keyword){
+
+            return people;
+
+        }
+
+
+        return people.filter(u => {
+
+            const values = [
+
+                u.name,
+                u.fullname,
+                u.email,
+                u.username,
+                u.phone,
+                u.role
+
+            ];
+
+
+            return values.some(
+                value =>
+                    String(value || "")
+                        .toLowerCase()
+                        .includes(keyword)
+            );
+
+        });
+
+    }
+
+
+    /* ========================================================
+       SEARCH INPUT
+    ======================================================== */
+
+    search.addEventListener(
+        "input",
+        () => {
+
+            updateClearButton();
+
+            renderUsers(
+                filter()
+            );
+
+        }
+    );
+
+
+    /* ========================================================
+       CLEAR SEARCH
+    ======================================================== */
+
+    clearSearch.addEventListener(
+        "click",
+        () => {
+
+            search.value = "";
+
+            updateClearButton();
+
+            renderUsers(
+                filter()
+            );
+
+            search.focus();
+
+        }
+    );
+
+
+    /* ========================================================
+       EDIT / DELETE
+    ======================================================== */
+
+    function bindActions(){
+
+
+        /* EDIT */
+
+        document
+            .querySelectorAll(".edit")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    async event => {
+
+                        event.stopPropagation();
+
+
+                        const id =
+                            button.dataset.id;
+
+
+                        const message =
+                            prompt(
+                                "Edit message"
+                            );
+
+
+                        if(
+                            message === null
+                            ||
+                            !message.trim()
+                        ){
+
+                            return;
+
+                        }
+
+
+                        try{
+
+                            const res =
+                                await fetch(
+                                    `/ai-assistant/message/${encodeURIComponent(id)}`,
+                                    {
+                                        method:"PUT",
+
+                                        headers:{
+                                            "Content-Type":
+                                                "application/json",
+
+                                            "X-User-Timezone":
+                                                USER_TIMEZONE,
+
+                                            "X-User-Locale":
+                                                USER_LOCALE,
+
+                                            "Accept":
+                                                "application/json"
+                                        },
+
+                                        body:
+                                            JSON.stringify({
+                                                message:
+                                                    message.trim(),
+
+                                                timezone:
+                                                    USER_TIMEZONE,
+
+                                                locale:
+                                                    USER_LOCALE
+                                            })
+                                    }
+                                );
+
+
+                            if(!res.ok){
+
+                                throw new Error(
+                                    `HTTP ${res.status}`
+                                );
+
+                            }
+
+
+                            const result =
+                                await res.json();
+
+
+                            if(
+                                result.success === false
+                            ){
+
+                                throw new Error(
+                                    result.error
+                                    ||
+                                    "Unable to edit message."
+                                );
+
+                            }
+
+
+                            await loadPeople();
+
+
+                        }catch(error){
+
+                            console.error(
+                                "Edit AI message:",
+                                error
+                            );
+
+                            alert(
+                                "Unable to edit message."
+                            );
+
+                        }
+
+                    }
+                );
+
+            });
+
+
+        /* DELETE */
+
+        document
+            .querySelectorAll(".delete")
+            .forEach(button => {
+
+                button.addEventListener(
+                    "click",
+                    async event => {
+
+                        event.stopPropagation();
+
+
+                        const id =
+                            button.dataset.id;
+
+
+                        if(
+                            !confirm(
+                                "Delete this message?"
+                            )
+                        ){
+
+                            return;
+
+                        }
+
+
+                        try{
+
+                            const res =
+                                await fetch(
+                                    `/ai-assistant/message/${encodeURIComponent(id)}`,
+                                    {
+                                        method:"DELETE",
+
+                                        headers:{
+                                            "X-User-Timezone":
+                                                USER_TIMEZONE,
+
+                                            "X-User-Locale":
+                                                USER_LOCALE,
+
+                                            "Accept":
+                                                "application/json"
+                                        }
+                                    }
+                                );
+
+
+                            if(!res.ok){
+
+                                throw new Error(
+                                    `HTTP ${res.status}`
+                                );
+
+                            }
+
+
+                            const result =
+                                await res.json();
+
+
+                            if(
+                                result.success === false
+                            ){
+
+                                throw new Error(
+                                    result.error
+                                    ||
+                                    "Unable to delete message."
+                                );
+
+                            }
+
+
+                            await loadPeople();
+
+
+                        }catch(error){
+
+                            console.error(
+                                "Delete AI message:",
+                                error
+                            );
+
+                            alert(
+                                "Unable to delete message."
+                            );
+
+                        }
+
+                    }
+                );
+
+            });
+
+    }
+
+
+    /* ========================================================
+       REFRESH
+    ======================================================== */
+
+    refreshAiHistory.addEventListener(
+        "click",
+        loadPeople
+    );
+
+
+    chatRefreshBtn.addEventListener(
+        "click",
+        loadPeople
+    );
+
+
+    /* ========================================================
+       INITIAL
+    ======================================================== */
+
+    updateClearButton();
+
+    refreshIcons();
+
+    loadPeople();
+
+
+});
+
+</script>
+
+{% endblock %}
