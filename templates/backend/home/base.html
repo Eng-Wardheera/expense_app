@@ -2608,11 +2608,12 @@
     </script>
 
 
-    <!-- ============================================================
-         AI ASSISTANT JAVASCRIPT
-         ============================================================ -->
 
-  
+<!-- ============================================================
+     AI ASSISTANT JAVASCRIPT
+     FULLY UPDATED
+     ============================================================ -->
+
 <script>
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -2689,6 +2690,60 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
+       TIMEZONE
+       ========================================================= */
+
+    function getUserTimezone() {
+
+        try {
+
+            const timezone =
+                Intl.DateTimeFormat()
+                    .resolvedOptions()
+                    .timeZone;
+
+
+            if (
+                timezone &&
+                typeof timezone === "string"
+            ) {
+
+                return timezone.trim();
+
+            }
+
+        }
+
+        catch (error) {
+
+            console.warn(
+                "AI Assistant: unable to detect browser timezone.",
+                error
+            );
+
+        }
+
+
+        /*
+         * Safe fallback
+         */
+
+        return "Africa/Mogadishu";
+
+    }
+
+
+    const USER_TIMEZONE =
+        getUserTimezone();
+
+
+    console.info(
+        "AI Assistant timezone:",
+        USER_TIMEZONE
+    );
+
+
+    /* =========================================================
        ICONS
        ========================================================= */
 
@@ -2714,6 +2769,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         messageCounter++;
 
+
         return (
             "ai-message-" +
             Date.now() +
@@ -2732,6 +2788,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         messageCounter++;
 
+
         return (
             "ai-pair-" +
             Date.now() +
@@ -2746,9 +2803,12 @@ document.addEventListener("DOMContentLoaded", function () {
        TIME
        ========================================================= */
 
-    function getTime(dateValue = null) {
+    function getTime(
+        dateValue = null
+    ) {
 
         let date;
+
 
         if (dateValue) {
 
@@ -2765,7 +2825,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
-        if (isNaN(date.getTime())) {
+        if (
+            isNaN(
+                date.getTime()
+            )
+        ) {
 
             date =
                 new Date();
@@ -2773,13 +2837,87 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
-        return date.toLocaleTimeString(
-            [],
-            {
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
+        /*
+         * IMPORTANT:
+         *
+         * Backend already returns the date
+         * in the user's timezone.
+         *
+         * Browser local timezone is also used
+         * as an extra safety layer.
+         */
+
+        try {
+
+            return date.toLocaleTimeString(
+                [],
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
+
+        }
+
+        catch (error) {
+
+            return date.toLocaleTimeString();
+
+        }
+
+    }
+
+
+    /* =========================================================
+       FORMAT DATE
+       ========================================================= */
+
+    function formatDateTime(
+        dateValue = null
+    ) {
+
+        if (!dateValue) {
+
+            return "";
+
+        }
+
+
+        const date =
+            new Date(dateValue);
+
+
+        if (
+            isNaN(
+                date.getTime()
+            )
+        ) {
+
+            return "";
+
+        }
+
+
+        try {
+
+            return date.toLocaleString(
+                [],
+                {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
+
+        }
+
+        catch (error) {
+
+            return date.toLocaleString();
+
+        }
 
     }
 
@@ -2790,12 +2928,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function scrollBottom() {
 
-        requestAnimationFrame(function () {
+        requestAnimationFrame(
+            function () {
 
-            messages.scrollTop =
-                messages.scrollHeight;
+                messages.scrollTop =
+                    messages.scrollHeight;
 
-        });
+            }
+        );
 
     }
 
@@ -2810,13 +2950,15 @@ document.addEventListener("DOMContentLoaded", function () {
             .querySelectorAll(
                 ".ai-message.actions-open"
             )
-            .forEach(function (message) {
+            .forEach(
+                function (message) {
 
-                message.classList.remove(
-                    "actions-open"
-                );
+                    message.classList.remove(
+                        "actions-open"
+                    );
 
-            });
+                }
+            );
 
     }
 
@@ -2827,31 +2969,41 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function openChat() {
 
-        box.classList.add("active");
+        box.classList.add(
+            "active"
+        );
+
 
         box.setAttribute(
             "aria-hidden",
             "false"
         );
 
+
         button.setAttribute(
             "aria-expanded",
             "true"
         );
 
+
         document.body.classList.add(
             "ai-chat-open"
         );
 
+
         refreshIcons();
 
-        setTimeout(function () {
 
-            input.focus();
+        setTimeout(
+            function () {
 
-            scrollBottom();
+                input.focus();
 
-        }, 100);
+                scrollBottom();
+
+            },
+            100
+        );
 
     }
 
@@ -2862,25 +3014,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function closeChat() {
 
-        box.classList.remove("active");
+        box.classList.remove(
+            "active"
+        );
+
 
         box.setAttribute(
             "aria-hidden",
             "true"
         );
 
+
         button.setAttribute(
             "aria-expanded",
             "false"
         );
 
+
         document.body.classList.remove(
             "ai-chat-open"
         );
 
+
         document.body.classList.remove(
             "ai-keyboard-open"
         );
+
 
         closeAllMenus();
 
@@ -2933,7 +3092,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         const welcome =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         welcome.className =
@@ -3009,7 +3170,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         const message =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         message.className =
@@ -3065,8 +3228,22 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
+        /*
+         * Store original date
+         */
+
+        if (createdAt) {
+
+            message.dataset.createdAt =
+                String(createdAt);
+
+        }
+
+
         const inner =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         inner.className =
@@ -3078,7 +3255,9 @@ document.addEventListener("DOMContentLoaded", function () {
            ===================================================== */
 
         const moreButton =
-            document.createElement("button");
+            document.createElement(
+                "button"
+            );
 
 
         moreButton.type =
@@ -3134,7 +3313,9 @@ document.addEventListener("DOMContentLoaded", function () {
            ===================================================== */
 
         const content =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         content.className =
@@ -3150,7 +3331,9 @@ document.addEventListener("DOMContentLoaded", function () {
            ===================================================== */
 
         const actions =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         actions.className =
@@ -3164,7 +3347,9 @@ document.addEventListener("DOMContentLoaded", function () {
         if (type === "user") {
 
             const editButton =
-                document.createElement("button");
+                document.createElement(
+                    "button"
+                );
 
 
             editButton.type =
@@ -3204,7 +3389,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     event.stopPropagation();
 
-                    startEdit(messageId);
+                    startEdit(
+                        messageId
+                    );
 
                 }
             );
@@ -3222,7 +3409,9 @@ document.addEventListener("DOMContentLoaded", function () {
            ===================================================== */
 
         const deleteButton =
-            document.createElement("button");
+            document.createElement(
+                "button"
+            );
 
 
         deleteButton.type =
@@ -3262,7 +3451,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 event.stopPropagation();
 
-                deleteForMe(messageId);
+                deleteForMe(
+                    messageId
+                );
 
             }
         );
@@ -3278,7 +3469,9 @@ document.addEventListener("DOMContentLoaded", function () {
            ===================================================== */
 
         const time =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         time.className =
@@ -3286,7 +3479,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         time.textContent =
-            getTime(createdAt);
+            getTime(
+                createdAt
+            );
+
+
+        if (createdAt) {
+
+            time.title =
+                formatDateTime(
+                    createdAt
+                );
+
+        }
 
 
         /* =====================================================
@@ -3337,7 +3542,9 @@ document.addEventListener("DOMContentLoaded", function () {
        FIND MESSAGE
        ========================================================= */
 
-    function findMessage(messageId) {
+    function findMessage(
+        messageId
+    ) {
 
         return messages.querySelector(
             `[data-message-id="${CSS.escape(messageId)}"]`
@@ -3350,7 +3557,9 @@ document.addEventListener("DOMContentLoaded", function () {
        FIND ASSISTANT BY PAIR
        ========================================================= */
 
-    function findAssistantByPair(pairId) {
+    function findAssistantByPair(
+        pairId
+    ) {
 
         if (!pairId) {
 
@@ -3363,14 +3572,16 @@ document.addEventListener("DOMContentLoaded", function () {
             messages.querySelectorAll(
                 ".ai-message.assistant"
             )
-        ).find(function (message) {
+        ).find(
+            function (message) {
 
-            return (
-                message.dataset.pairId ===
-                pairId
-            );
+                return (
+                    message.dataset.pairId ===
+                    pairId
+                );
 
-        }) || null;
+            }
+        ) || null;
 
     }
 
@@ -3379,12 +3590,16 @@ document.addEventListener("DOMContentLoaded", function () {
        MESSAGE TYPE
        ========================================================= */
 
-    function typeOfMessage(message) {
+    function typeOfMessage(
+        message
+    ) {
 
         return (
             message.dataset.messageType ||
             (
-                message.classList.contains("user")
+                message.classList.contains(
+                    "user"
+                )
                     ? "user"
                     : "assistant"
             )
@@ -3408,57 +3623,63 @@ document.addEventListener("DOMContentLoaded", function () {
             );
 
 
-        uiMessages.forEach(function (message) {
+        uiMessages.forEach(
+            function (message) {
 
-            const type =
-                typeOfMessage(message);
-
-
-            const content =
-                message.querySelector(
-                    ".ai-message-content"
-                );
+                const type =
+                    typeOfMessage(
+                        message
+                    );
 
 
-            if (!content) {
+                const content =
+                    message.querySelector(
+                        ".ai-message-content"
+                    );
 
-                return;
+
+                if (!content) {
+
+                    return;
+
+                }
+
+
+                const text =
+                    content.textContent.trim();
+
+
+                if (!text) {
+
+                    return;
+
+                }
+
+
+                const historyIndex =
+                    rebuilt.length;
+
+
+                rebuilt.push({
+
+                    role:
+                        type === "user"
+                            ? "user"
+                            : "assistant",
+
+                    content:
+                        text
+
+                });
+
+
+                message.dataset.historyIndex =
+                    String(
+                        historyIndex
+                    );
 
             }
-
-
-            const text =
-                content.textContent.trim();
-
-
-            if (!text) {
-
-                return;
-
-            }
-
-
-            const historyIndex =
-                rebuilt.length;
-
-
-            rebuilt.push({
-
-                role:
-                    type === "user"
-                        ? "user"
-                        : "assistant",
-
-                content:
-                    text
-
-            });
-
-
-            message.dataset.historyIndex =
-                String(historyIndex);
-
-        });
+        );
 
 
         conversationHistory =
@@ -3485,9 +3706,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
 
+            /*
+             * IMPORTANT:
+             *
+             * Send browser/device timezone.
+             */
+
+            const historyUrl =
+                "{{ url_for('main.ai_assistant_history') }}" +
+                "?limit=500&timezone=" +
+                encodeURIComponent(
+                    USER_TIMEZONE
+                );
+
+
             const response =
                 await fetch(
-                    "{{ url_for('main.ai_assistant_history') }}",
+                    historyUrl,
                     {
 
                         method:
@@ -3548,15 +3783,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 .querySelectorAll(
                     ".ai-message"
                 )
-                .forEach(function (message) {
+                .forEach(
+                    function (message) {
 
-                    message.remove();
+                        message.remove();
 
-                });
+                    }
+                );
 
 
             const history =
-                Array.isArray(data.history)
+                Array.isArray(
+                    data.history
+                )
                     ? data.history
                     : [];
 
@@ -3571,101 +3810,109 @@ document.addEventListener("DOMContentLoaded", function () {
              *   id,
              *   user_message,
              *   assistant_message,
-             *   created_at
+             *   created_at,
+             *   updated_at,
+             *   timezone
              * }
              */
 
-            history.forEach(function (pair) {
+            history.forEach(
+                function (pair) {
 
-                const userText =
-                    String(
-                        pair.user_message ||
-                        ""
-                    ).trim();
-
-
-                const assistantText =
-                    String(
-                        pair.assistant_message ||
-                        ""
-                    ).trim();
+                    const userText =
+                        String(
+                            pair.user_message ||
+                            pair.message ||
+                            ""
+                        ).trim();
 
 
-                if (!userText) {
-
-                    return;
-
-                }
-
-
-                const pairId =
-                    "db-pair-" +
-                    String(pair.id);
+                    const assistantText =
+                        String(
+                            pair.assistant_message ||
+                            pair.answer ||
+                            ""
+                        ).trim();
 
 
-                /*
-                 * USER
-                 */
+                    if (!userText) {
 
-                const userHistoryIndex =
-                    conversationHistory.length;
+                        return;
 
-
-                conversationHistory.push({
-
-                    role:
-                        "user",
-
-                    content:
-                        userText
-
-                });
+                    }
 
 
-                addMessage(
-                    userText,
-                    "user",
-                    userHistoryIndex,
-                    pairId,
-                    pair.id,
-                    pair.created_at
-                );
+                    const pairId =
+                        "db-pair-" +
+                        String(
+                            pair.id
+                        );
 
 
-                /*
-                 * ASSISTANT
-                 */
+                    /*
+                     * USER
+                     */
 
-                if (assistantText) {
-
-                    const assistantHistoryIndex =
+                    const userHistoryIndex =
                         conversationHistory.length;
 
 
                     conversationHistory.push({
 
                         role:
-                            "assistant",
+                            "user",
 
                         content:
-                            assistantText
+                            userText
 
                     });
 
 
                     addMessage(
-                        assistantText,
-                        "assistant",
-                        assistantHistoryIndex,
+                        userText,
+                        "user",
+                        userHistoryIndex,
                         pairId,
                         pair.id,
-                        pair.updated_at ||
                         pair.created_at
                     );
 
-                }
 
-            });
+                    /*
+                     * ASSISTANT
+                     */
+
+                    if (assistantText) {
+
+                        const assistantHistoryIndex =
+                            conversationHistory.length;
+
+
+                        conversationHistory.push({
+
+                            role:
+                                "assistant",
+
+                            content:
+                                assistantText
+
+                        });
+
+
+                        addMessage(
+                            assistantText,
+                            "assistant",
+                            assistantHistoryIndex,
+                            pairId,
+                            pair.id,
+                            pair.updated_at ||
+                            pair.created_at
+                        );
+
+                    }
+
+                }
+            );
 
 
             /*
@@ -3706,8 +3953,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             /*
-             * If history fails, don't break
-             * the entire chat.
+             * If history fails,
+             * don't break the entire chat.
              */
 
             if (
@@ -3729,10 +3976,14 @@ document.addEventListener("DOMContentLoaded", function () {
        DELETE FROM DATABASE
        ========================================================= */
 
-    async function deleteForMe(messageId) {
+    async function deleteForMe(
+        messageId
+    ) {
 
         const message =
-            findMessage(messageId);
+            findMessage(
+                messageId
+            );
 
 
         if (!message) {
@@ -3755,7 +4006,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         /*
-         * If this message was saved in DB,
+         * If message is stored in DB,
          * delete it from MongoDB first.
          */
 
@@ -3763,13 +4014,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
 
+                const deleteUrl =
+                    "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
+                        .replace(
+                            "__MESSAGE_ID__",
+                            encodeURIComponent(
+                                dbId
+                            )
+                        ) +
+                        "?timezone=" +
+                        encodeURIComponent(
+                            USER_TIMEZONE
+                        );
+
+
                 const response =
                     await fetch(
-                        "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
-                            .replace(
-                                "__MESSAGE_ID__",
-                                encodeURIComponent(dbId)
-                            ),
+                        deleteUrl,
                         {
 
                             method:
@@ -3848,8 +4109,9 @@ document.addEventListener("DOMContentLoaded", function () {
          */
 
         if (
-            typeOfMessage(message) ===
-            "user"
+            typeOfMessage(
+                message
+            ) === "user"
         ) {
 
             const assistant =
@@ -3870,7 +4132,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             /*
              * If assistant itself is deleted,
-             * remove the whole pair as well.
+             * remove the whole pair.
              */
 
             const user =
@@ -3878,14 +4140,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     messages.querySelectorAll(
                         ".ai-message.user"
                     )
-                ).find(function (item) {
+                ).find(
+                    function (item) {
 
-                    return (
-                        item.dataset.pairId ===
-                        pairId
-                    );
+                        return (
+                            item.dataset.pairId ===
+                            pairId
+                        );
 
-                });
+                    }
+                );
 
 
             if (user) {
@@ -3923,10 +4187,14 @@ document.addEventListener("DOMContentLoaded", function () {
        START EDIT
        ========================================================= */
 
-    function startEdit(messageId) {
+    function startEdit(
+        messageId
+    ) {
 
         const message =
-            findMessage(messageId);
+            findMessage(
+                messageId
+            );
 
 
         if (!message) {
@@ -3974,6 +4242,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         closeAllMenus();
+
 
         autoResize();
 
@@ -4041,21 +4310,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         /*
-         * If the message is already stored
-         * in MongoDB, use backend edit.
+         * DATABASE MESSAGE
          */
 
         if (dbId) {
 
             try {
 
+                const editUrl =
+                    "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
+                        .replace(
+                            "__MESSAGE_ID__",
+                            encodeURIComponent(
+                                dbId
+                            )
+                        );
+
+
                 const response =
                     await fetch(
-                        "{{ url_for('main.ai_assistant_message', message_id='__MESSAGE_ID__') }}"
-                            .replace(
-                                "__MESSAGE_ID__",
-                                encodeURIComponent(dbId)
-                            ),
+                        editUrl,
                         {
 
                             method:
@@ -4081,7 +4355,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 JSON.stringify({
 
                                     message:
-                                        newText
+                                        newText,
+
+                                    timezone:
+                                        USER_TIMEZONE
 
                                 })
 
@@ -4147,6 +4424,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
                 /*
+                 * Update user timestamp
+                 * if backend returned it.
+                 */
+
+                if (
+                    data.created_at &&
+                    message.dataset.createdAt
+                ) {
+
+                    message.dataset.createdAt =
+                        String(
+                            data.created_at
+                        );
+
+                }
+
+
+                /*
                  * Find existing assistant.
                  */
 
@@ -4194,6 +4489,44 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         }
 
+
+                        /*
+                         * Update assistant time.
+                         */
+
+                        if (
+                            data.updated_at
+                        ) {
+
+                            assistant.dataset.createdAt =
+                                String(
+                                    data.updated_at
+                                );
+
+
+                            const assistantTime =
+                                assistant.querySelector(
+                                    ".ai-message-time"
+                                );
+
+
+                            if (assistantTime) {
+
+                                assistantTime.textContent =
+                                    getTime(
+                                        data.updated_at
+                                    );
+
+
+                                assistantTime.title =
+                                    formatDateTime(
+                                        data.updated_at
+                                    );
+
+                            }
+
+                        }
+
                     }
 
                 }
@@ -4221,23 +4554,28 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (position >= 0) {
 
                     allMessages
-                        .slice(position + 1)
-                        .forEach(function (item) {
+                        .slice(
+                            position + 1
+                        )
+                        .forEach(
+                            function (item) {
 
-                            /*
-                             * Don't remove the newly
-                             * updated assistant.
-                             */
+                                /*
+                                 * Don't remove the
+                                 * updated assistant.
+                                 */
 
-                            if (
-                                item !== assistant
-                            ) {
+                                if (
+                                    item !==
+                                    assistant
+                                ) {
 
-                                item.remove();
+                                    item.remove();
+
+                                }
 
                             }
-
-                        });
+                        );
 
                 }
 
@@ -4270,7 +4608,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         /*
-         * Fallback for unsaved message.
+         * FALLBACK FOR UNSAVED MESSAGE
          */
 
         const allMessages =
@@ -4295,12 +4633,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         allMessages
-            .slice(position + 1)
-            .forEach(function (item) {
+            .slice(
+                position + 1
+            )
+            .forEach(
+                function (item) {
 
-                item.remove();
+                    item.remove();
 
-            });
+                }
+            );
 
 
         const content =
@@ -4386,13 +4728,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function limitConversationHistory() {
 
-        /*
-         * Keep a reasonable amount of context
-         * in the browser request.
-         *
-         * Database still keeps the full history.
-         */
-
         const MAX_HISTORY =
             20;
 
@@ -4425,7 +4760,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         const typing =
-            document.createElement("div");
+            document.createElement(
+                "div"
+            );
 
 
         typing.className =
@@ -4722,7 +5059,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                     text,
 
                                 history:
-                                    conversationHistory
+                                    conversationHistory,
+
+                                /*
+                                 * IMPORTANT:
+                                 *
+                                 * Send device/browser
+                                 * timezone to Flask.
+                                 */
+
+                                timezone:
+                                    USER_TIMEZONE
 
                             })
 
@@ -4769,7 +5116,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             if (
-                !String(answer).trim()
+                !String(
+                    answer
+                ).trim()
             ) {
 
                 throw new Error(
@@ -4795,12 +5144,11 @@ document.addEventListener("DOMContentLoaded", function () {
             /*
              * IMPORTANT:
              *
-             * Backend must return:
+             * Backend should return:
              *
              * message_id
              *
-             * This is the MongoDB _id of the
-             * saved user/assistant pair.
+             * This is the MongoDB _id.
              */
 
             const dbId =
@@ -4812,7 +5160,47 @@ document.addEventListener("DOMContentLoaded", function () {
             if (dbId) {
 
                 userMessage.dataset.dbId =
-                    String(dbId);
+                    String(
+                        dbId
+                    );
+
+            }
+
+
+            /*
+             * Store created time on user message.
+             */
+
+            if (
+                data.created_at
+            ) {
+
+                userMessage.dataset.createdAt =
+                    String(
+                        data.created_at
+                    );
+
+
+                const userTime =
+                    userMessage.querySelector(
+                        ".ai-message-time"
+                    );
+
+
+                if (userTime) {
+
+                    userTime.textContent =
+                        getTime(
+                            data.created_at
+                        );
+
+
+                    userTime.title =
+                        formatDateTime(
+                            data.created_at
+                        );
+
+                }
 
             }
 
@@ -4831,7 +5219,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     "assistant",
 
                 content:
-                    String(answer)
+                    String(
+                        answer
+                    )
 
             });
 
@@ -4842,13 +5232,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const assistantMessage =
                 addMessage(
-                    String(answer),
+                    String(
+                        answer
+                    ),
                     "assistant",
                     assistantIndex,
                     pairId,
                     dbId,
-                    data.created_at ||
                     data.updated_at ||
+                    data.created_at ||
                     new Date().toISOString()
                 );
 
@@ -4860,7 +5252,26 @@ document.addEventListener("DOMContentLoaded", function () {
             if (dbId) {
 
                 assistantMessage.dataset.dbId =
-                    String(dbId);
+                    String(
+                        dbId
+                    );
+
+            }
+
+
+            /*
+             * Backend timezone can be stored
+             * for debugging.
+             */
+
+            if (
+                data.timezone
+            ) {
+
+                assistantMessage.dataset.timezone =
+                    String(
+                        data.timezone
+                    );
 
             }
 
@@ -4977,37 +5388,39 @@ document.addEventListener("DOMContentLoaded", function () {
         .querySelectorAll(
             ".ai-suggestion"
         )
-        .forEach(function (item) {
+        .forEach(
+            function (item) {
 
-            item.addEventListener(
-                "click",
-                function () {
+                item.addEventListener(
+                    "click",
+                    function () {
 
-                    const question =
-                        this.getAttribute(
-                            "data-question"
-                        );
+                        const question =
+                            this.getAttribute(
+                                "data-question"
+                            );
 
 
-                    if (!question) {
+                        if (!question) {
 
-                        return;
+                            return;
+
+                        }
+
+
+                        input.value =
+                            question;
+
+
+                        autoResize();
+
+                        input.focus();
 
                     }
+                );
 
-
-                    input.value =
-                        question;
-
-
-                    autoResize();
-
-                    input.focus();
-
-                }
-            );
-
-        });
+            }
+        );
 
 
     /* =========================================================
@@ -5259,13 +5672,26 @@ document.addEventListener("DOMContentLoaded", function () {
      *
      * Load MongoDB history immediately.
      *
-     * This is what makes the chat survive:
+     * Browser timezone is automatically sent.
      *
-     * - Refresh
-     * - Page navigation
-     * - Closing/opening chat
-     * - Moving between dashboard pages
+     * This allows:
      *
+     * Somalia:
+     *     Africa/Mogadishu
+     *
+     * Kenya:
+     *     Africa/Nairobi
+     *
+     * UK:
+     *     Europe/London
+     *
+     * Dubai:
+     *     Asia/Dubai
+     *
+     * USA:
+     *     America/New_York
+     *
+     * etc.
      */
 
     loadChatHistory();
