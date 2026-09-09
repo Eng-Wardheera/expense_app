@@ -4,6 +4,7 @@ import datetime
 from decimal import Decimal, InvalidOperation
 import io
 import json
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask_mail import Message   # ✅ CORRECT
 from openpyxl import Workbook, load_workbook
 
@@ -119485,6 +119486,10 @@ contact information.
 # AI ASSISTANT
 # USER-SPECIFIC + CHAT MEMORY
 # ============================================================
+# ============================================================
+# EAT TIMEZONE
+# ============================================================
+
 
 @bp.route(
     "/ai-assistant",
@@ -119624,6 +119629,8 @@ def ai_assistant():
 
         current_user_id = None
 
+        user_object_id = None
+
         user_profile_result = {}
 
         financial_context = {}
@@ -119706,7 +119713,10 @@ def ai_assistant():
                     user_object_id
                 )
 
+            # -------------------------------------------------
             # Remove duplicates
+            # -------------------------------------------------
+
             user_ids = list(
                 dict.fromkeys(
                     user_ids
@@ -119854,6 +119864,51 @@ def ai_assistant():
 
                 password_security_context = []
 
+                # =================================================
+                # EAT DATE FORMATTER
+                # =================================================
+
+                def format_eat_datetime(value):
+
+                    if not value:
+
+                        return None
+
+                    try:
+
+                        # -----------------------------------------
+                        # If MongoDB returns naive UTC datetime,
+                        # explicitly mark it as UTC first.
+                        # -----------------------------------------
+
+                        if value.tzinfo is None:
+
+                            value = pytz.utc.localize(
+                                value
+                            )
+
+                        # -----------------------------------------
+                        # Convert UTC/aware datetime to EAT
+                        # -----------------------------------------
+
+                        value_eat = value.astimezone(
+                            EAT
+                        )
+
+                        return value_eat.isoformat(
+                            timespec="milliseconds"
+                        )
+
+                    except Exception:
+
+                        return str(
+                            value
+                        )
+
+                # =================================================
+                # BUILD SECURITY CONTEXT
+                # =================================================
+
                 for log in security_logs:
 
                     password_security_context.append({
@@ -119879,13 +119934,17 @@ def ai_assistant():
                             ),
 
                         "changed_at":
-                            log.get(
-                                "changed_at"
+                            format_eat_datetime(
+                                log.get(
+                                    "changed_at"
+                                )
                             ),
 
                         "created_at":
-                            log.get(
-                                "created_at"
+                            format_eat_datetime(
+                                log.get(
+                                    "created_at"
+                                )
                             ),
 
                         "ip_address":
@@ -119941,6 +120000,8 @@ def ai_assistant():
         else:
 
             current_user_id = None
+
+            user_object_id = None
 
             user_profile_result = {}
 
@@ -120015,9 +120076,9 @@ def ai_assistant():
 
         security_instruction = """
 
-============================================================
+# ============================================================
 MAAREYE USER DATA SECURITY
-============================================================
+# ============================================================
 
 The authenticated user is the ONLY owner of the supplied
 private user context.
@@ -120046,9 +120107,9 @@ Never reveal another user's:
 - AI conversations
 - login information
 
-============================================================
+# ============================================================
 USERS COLLECTION
-============================================================
+# ============================================================
 
 The supplied USER PROFILE belongs ONLY to the currently
 authenticated user.
@@ -120075,9 +120136,9 @@ It may contain profile information such as:
 
 Use these details only when relevant to the user's question.
 
-============================================================
+# ============================================================
 PASSWORD SECURITY
-============================================================
+# ============================================================
 
 NEVER reveal:
 
@@ -120104,9 +120165,9 @@ Do NOT reveal or guess it.
 Explain that passwords cannot be displayed for security
 reasons.
 
-============================================================
+# ============================================================
 PASSWORD CHANGE LOGS
-============================================================
+# ============================================================
 
 password_change_logs may be used ONLY for security history.
 
@@ -120119,9 +120180,9 @@ For example:
 
 Never expose a password or password hash.
 
-============================================================
+# ============================================================
 USER-SPECIFIC DATA
-============================================================
+# ============================================================
 
 Categories belong to the authenticated user.
 
@@ -120139,9 +120200,9 @@ Persons belong to the authenticated user.
 
 AI conversation history belongs to the authenticated user.
 
-============================================================
+# ============================================================
 GUEST USERS
-============================================================
+# ============================================================
 
 If Logged in = False:
 
@@ -120149,9 +120210,9 @@ Do NOT claim access to private user data.
 
 Do NOT invent user data.
 
-============================================================
+# ============================================================
 SOURCE OF TRUTH
-============================================================
+# ============================================================
 
 MongoDB context is the source of truth.
 
@@ -120177,9 +120238,9 @@ Never invent:
 
         person_ledger_instruction = """
 
-============================================================
+# ============================================================
 PERSON LEDGER — STRICT RULES
-============================================================
+# ============================================================
 
 When answering questions about:
 
@@ -120208,9 +120269,9 @@ The Person Ledger combines:
 1. transactions
 2. person_opening_transactions
 
-============================================================
+# ============================================================
 NORMAL TRANSACTIONS
-============================================================
+# ============================================================
 
 Person references can independently come from:
 
@@ -120228,9 +120289,9 @@ These are three separate person references.
 
 Do NOT merge them.
 
-============================================================
+# ============================================================
 OPENING TRANSACTIONS
-============================================================
+# ============================================================
 
 Person references can independently come from:
 
@@ -120238,9 +120299,9 @@ person_opening_transactions.person_name
 person_opening_transactions.description
 person_opening_transactions.note
 
-============================================================
+# ============================================================
 NORMALIZATION
-============================================================
+# ============================================================
 
 These are the same person:
 
@@ -120258,9 +120319,9 @@ The leading By prefix is ignored.
 
 Matching is case-insensitive.
 
-============================================================
+# ============================================================
 DEDUPLICATION
-============================================================
+# ============================================================
 
 If the SAME normalized person appears in multiple fields of
 the SAME record, count that record only once for that person.
@@ -120275,9 +120336,9 @@ Count only ONE Asad record.
 
 Do NOT multiply the amount.
 
-============================================================
+# ============================================================
 DIFFERENT PEOPLE
-============================================================
+# ============================================================
 
 If:
 
@@ -120296,9 +120357,9 @@ are independent person references.
 Each receives the record according to the supplied ledger
 context.
 
-============================================================
+# ============================================================
 PERSON BALANCE
-============================================================
+# ============================================================
 
 Net = Income - Expense
 
@@ -120310,9 +120371,9 @@ Say that the person was not found.
 
 Never invent a person's balance.
 
-============================================================
+# ============================================================
 OPENING + NORMAL
-============================================================
+# ============================================================
 
 Always consider BOTH:
 
@@ -120415,9 +120476,9 @@ Never answer a Person Ledger question from only one source.
 
         context_text = f"""
 
-============================================================
+# ============================================================
 MAAREYE AUTHENTICATION
-============================================================
+# ============================================================
 
 Logged in:
 {is_logged_in}
@@ -120429,33 +120490,33 @@ Current authenticated user ID:
     else "GUEST"
 }
 
-============================================================
+# ============================================================
 AUTHENTICATED USER SECURITY CONTEXT
-============================================================
+# ============================================================
 
 {ai_json(authenticated_user_context)}
 
-============================================================
+# ============================================================
 CURRENT USER PROFILE
-============================================================
+# ============================================================
 
 {ai_json(user_profile_result)}
 
-============================================================
+# ============================================================
 CURRENT USER FINANCIAL CONTEXT
-============================================================
+# ============================================================
 
 {ai_json(financial_context)}
 
-============================================================
+# ============================================================
 OWNER CONTACT
-============================================================
+# ============================================================
 
 {ai_json(owner)}
 
-============================================================
+# ============================================================
 END OF CURRENT USER CONTEXT
-============================================================
+# ============================================================
 
 The context above belongs to the currently authenticated
 user only.
@@ -120571,9 +120632,49 @@ Do not mix it with another user's information.
 
             if is_logged_in and current_user_id:
 
-                now = datetime.utcnow()
+                # =================================================
+                # EAT TIMEZONE
+                # =================================================
+                #
+                # Africa/Nairobi = EAT = UTC+03:00
+                #
+                # Example:
+                #
+                # 09:26 EAT
+                #
+                # is equivalent to:
+                #
+                # 06:26 UTC
+                #
+                # MongoDB BSON Date may display the instant
+                # as UTC, therefore we ALSO store explicit
+                # EAT ISO strings.
+                # =================================================
+
+                now_eat = datetime.now(
+                    EAT
+                )
+
+                # -------------------------------------------------
+                # Explicit EAT ISO timestamp
+                # Example:
+                #
+                # 2026-09-09T09:26:36.187+03:00
+                # -------------------------------------------------
+
+                eat_iso = now_eat.isoformat(
+                    timespec="milliseconds"
+                )
+
+                # =================================================
+                # CHAT DOCUMENT
+                # =================================================
 
                 chat_document = {
+
+                    # ------------------------------------------------
+                    # USER ID
+                    # ------------------------------------------------
 
                     "user_id":
                         (
@@ -120589,25 +120690,76 @@ Do not mix it with another user's information.
                             current_user_id
                         ),
 
+                    # ------------------------------------------------
+                    # USER MESSAGE
+                    # ------------------------------------------------
+
                     "message":
                         message,
+
+                    "user_message":
+                        message,
+
+                    # ------------------------------------------------
+                    # AI ANSWER
+                    # ------------------------------------------------
 
                     "answer":
                         answer,
 
+                    "assistant_message":
+                        answer,
+
+                    # ------------------------------------------------
+                    # MODEL
+                    # ------------------------------------------------
+
                     "model":
                         GEMINI_MODEL,
+
+                    # ------------------------------------------------
+                    # LOGIN STATUS
+                    # ------------------------------------------------
 
                     "logged_in":
                         True,
 
+                    # =================================================
+                    # MONGODB DATE FIELDS
+                    #
+                    # These remain real datetime values so MongoDB
+                    # can sort/query them correctly.
+                    #
+                    # NOTE:
+                    # MongoDB Compass may display these BSON dates
+                    # in UTC (+00:00).
+                    # =================================================
+
                     "created_at":
-                        now,
+                        now_eat,
 
                     "updated_at":
-                        now
+                        now_eat,
+
+                    # =================================================
+                    # EXPLICIT EAT DISPLAY FIELDS
+                    #
+                    # These preserve the visible EAT timezone:
+                    #
+                    # 2026-09-09T09:26:36.187+03:00
+                    # =================================================
+
+                    "created_at_eat":
+                        eat_iso,
+
+                    "updated_at_eat":
+                        eat_iso
 
                 }
+
+                # =================================================
+                # INSERT CHAT MESSAGE
+                # =================================================
 
                 chat_result = (
 
@@ -120880,50 +121032,11 @@ Do not mix it with another user's information.
 
 
 
+
+
+
 # ============================================================
 # AI ASSISTANT CHAT HISTORY
-# ============================================================
-#
-# URL:
-# {{ url_for('main.ai_assistant_history') }}
-#
-# PURPOSE:
-# Load the logged-in user's AI chat history from MongoDB.
-#
-# COLLECTION:
-# ai_chat_messages
-#
-# IMPORTANT:
-# - User is taken from current_user
-# - Never trust user_id from frontend
-# - Supports ObjectId and string user_id
-# - Returns latest messages in chronological order
-# ============================================================
-# ============================================================
-# AI ASSISTANT HISTORY
-# ============================================================
-#
-# URL:
-#   /ai-assistant/history
-#
-# PURPOSE:
-#   Load current user's saved AI chat history from MongoDB.
-#
-# SUPPORTED OLD/NEW FIELDS:
-#
-#   User message:
-#       message
-#       user_message
-#
-#   AI answer:
-#       answer
-#       assistant_message
-#
-#   User ID:
-#       user_id ObjectId
-#       user_id string
-#       user_id_str string
-#
 # ============================================================
 
 @bp.route(
@@ -120951,6 +121064,209 @@ def ai_assistant_history():
                 "count": 0,
                 "error": "User ID lama helin."
             }), 401
+
+        # ====================================================
+        # USER TIMEZONE
+        #
+        # Frontend should send:
+        #
+        # /ai-assistant/history?timezone=Africa/Mogadishu
+        #
+        # Examples:
+        #
+        # Africa/Mogadishu
+        # Africa/Nairobi
+        # Europe/London
+        # America/New_York
+        # Asia/Dubai
+        #
+        # FALLBACK:
+        # Africa/Mogadishu
+        # ====================================================
+
+        requested_timezone = (
+            request.args.get(
+                "timezone",
+                ""
+            )
+            or ""
+        ).strip()
+
+        if not requested_timezone:
+
+            requested_timezone = (
+                "Africa/Mogadishu"
+            )
+
+        try:
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        except (
+            ZoneInfoNotFoundError,
+            ValueError,
+            KeyError
+        ):
+
+            current_app.logger.warning(
+                "Invalid AI history timezone | "
+                "user_id=%s | timezone=%s",
+                current_user_id,
+                requested_timezone
+            )
+
+            requested_timezone = (
+                "Africa/Mogadishu"
+            )
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        # ====================================================
+        # HELPER
+        # ====================================================
+
+        def serialize_datetime(
+            value
+        ):
+            """
+            Convert MongoDB datetime to
+            current user's timezone.
+
+            MongoDB created_at/updated_at are
+            treated as UTC source values.
+
+            Returns ISO-8601 string.
+            """
+
+            if value is None:
+
+                return None
+
+            try:
+
+                # --------------------------------------------
+                # DATETIME
+                # --------------------------------------------
+
+                if isinstance(
+                    value,
+                    datetime
+                ):
+
+                    dt = value
+
+                    # ----------------------------------------
+                    # NAIVE DATETIME
+                    #
+                    # Existing MongoDB records may contain
+                    # naive datetime values.
+                    #
+                    # We treat them as UTC.
+                    # ----------------------------------------
+
+                    if dt.tzinfo is None:
+
+                        dt = dt.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    else:
+
+                        # Normalize to UTC first
+                        dt = dt.astimezone(
+                            timezone.utc
+                        )
+
+                    # ----------------------------------------
+                    # UTC -> USER TIMEZONE
+                    # ----------------------------------------
+
+                    local_dt = dt.astimezone(
+                        user_timezone
+                    )
+
+                    return local_dt.isoformat()
+
+                # --------------------------------------------
+                # STRING DATETIME
+                # --------------------------------------------
+
+                if isinstance(
+                    value,
+                    str
+                ):
+
+                    value = value.strip()
+
+                    if not value:
+
+                        return None
+
+                    # ----------------------------------------
+                    # Try ISO parsing
+                    # ----------------------------------------
+
+                    try:
+
+                        parsed = (
+                            datetime.fromisoformat(
+                                value.replace(
+                                    "Z",
+                                    "+00:00"
+                                )
+                            )
+
+                            if value
+                            else None
+                        )
+
+                        if parsed is not None:
+
+                            if parsed.tzinfo is None:
+
+                                parsed = parsed.replace(
+                                    tzinfo=timezone.utc
+                                )
+
+                            else:
+
+                                parsed = parsed.astimezone(
+                                    timezone.utc
+                                )
+
+                            local_dt = (
+                                parsed.astimezone(
+                                    user_timezone
+                                )
+                            )
+
+                            return local_dt.isoformat()
+
+                    except Exception:
+
+                        pass
+
+                    return value
+
+                # --------------------------------------------
+                # FALLBACK
+                # --------------------------------------------
+
+                return str(value)
+
+            except Exception:
+
+                try:
+
+                    return str(value)
+
+                except Exception:
+
+                    return None
 
         # ====================================================
         # BUILD USER ID VALUES
@@ -121001,7 +121317,10 @@ def ai_assistant_history():
                 )
             )
 
-        except (TypeError, ValueError):
+        except (
+            TypeError,
+            ValueError
+        ):
 
             limit = 500
 
@@ -121018,11 +121337,13 @@ def ai_assistant_history():
         # ====================================================
 
         history_query = {
+
             "$or": [
 
                 {
                     "user_id": {
-                        "$in": unique_user_ids
+                        "$in":
+                            unique_user_ids
                     }
                 },
 
@@ -121032,6 +121353,7 @@ def ai_assistant_history():
                 }
 
             ]
+
         }
 
         # ====================================================
@@ -121057,8 +121379,13 @@ def ai_assistant_history():
                     "message": 1,
                     "answer": 1,
 
+                    # DATE
                     "created_at": 1,
                     "updated_at": 1,
+
+                    # LEGACY DATE
+                    "created_at_eat": 1,
+                    "updated_at_eat": 1,
 
                     "model": 1
                 }
@@ -121110,11 +121437,6 @@ def ai_assistant_history():
 
             # =================================================
             # USER MESSAGE
-            #
-            # Support:
-            #
-            #   message
-            #   user_message
             # =================================================
 
             user_message = (
@@ -121139,11 +121461,6 @@ def ai_assistant_history():
 
             # =================================================
             # ASSISTANT MESSAGE
-            #
-            # Support:
-            #
-            #   answer
-            #   assistant_message
             # =================================================
 
             assistant_message = (
@@ -121167,15 +121484,25 @@ def ai_assistant_history():
                 assistant_message = ""
 
             # =================================================
-            # IGNORE EMPTY DOCUMENT
+            # IGNORE EMPTY
             # =================================================
 
-            if not user_message and not assistant_message:
+            if (
+                not user_message
+                and
+                not assistant_message
+            ):
 
                 continue
 
             # =================================================
             # CREATED AT
+            #
+            # PRIMARY:
+            # created_at
+            #
+            # FALLBACK:
+            # created_at_eat
             # =================================================
 
             created_at = document.get(
@@ -121184,33 +121511,24 @@ def ai_assistant_history():
 
             if created_at is None:
 
-                created_at_value = None
+                created_at = document.get(
+                    "created_at_eat"
+                )
 
-            elif hasattr(
-                created_at,
-                "isoformat"
-            ):
-
-                try:
-
-                    created_at_value = (
-                        created_at.isoformat()
-                    )
-
-                except Exception:
-
-                    created_at_value = str(
-                        created_at
-                    )
-
-            else:
-
-                created_at_value = str(
+            created_at_value = (
+                serialize_datetime(
                     created_at
                 )
+            )
 
             # =================================================
             # UPDATED AT
+            #
+            # PRIMARY:
+            # updated_at
+            #
+            # FALLBACK:
+            # updated_at_eat
             # =================================================
 
             updated_at = document.get(
@@ -121219,30 +121537,15 @@ def ai_assistant_history():
 
             if updated_at is None:
 
-                updated_at_value = None
+                updated_at = document.get(
+                    "updated_at_eat"
+                )
 
-            elif hasattr(
-                updated_at,
-                "isoformat"
-            ):
-
-                try:
-
-                    updated_at_value = (
-                        updated_at.isoformat()
-                    )
-
-                except Exception:
-
-                    updated_at_value = str(
-                        updated_at
-                    )
-
-            else:
-
-                updated_at_value = str(
+            updated_at_value = (
+                serialize_datetime(
                     updated_at
                 )
+            )
 
             # =================================================
             # MODEL
@@ -121270,19 +121573,21 @@ def ai_assistant_history():
                 "message_id":
                     document_id,
 
+                # NEW SCHEMA
                 "user_message":
                     user_message,
 
                 "assistant_message":
                     assistant_message,
 
-                # OLD FIELD NAMES TOO
+                # OLD SCHEMA
                 "message":
                     user_message,
 
                 "answer":
                     assistant_message,
 
+                # USER LOCAL TIME
                 "created_at":
                     created_at_value,
 
@@ -121290,7 +121595,11 @@ def ai_assistant_history():
                     updated_at_value,
 
                 "model":
-                    model
+                    model,
+
+                # TIMEZONE INFORMATION
+                "timezone":
+                    requested_timezone
 
             })
 
@@ -121299,8 +121608,11 @@ def ai_assistant_history():
         # ====================================================
 
         current_app.logger.info(
-            "AI HISTORY LOADED | user_id=%s | documents=%s | history=%s",
+            "AI HISTORY LOADED | "
+            "user_id=%s | timezone=%s | "
+            "documents=%s | history=%s",
             current_user_id,
+            requested_timezone,
             len(documents),
             len(history)
         )
@@ -121318,7 +121630,10 @@ def ai_assistant_history():
                 history,
 
             "count":
-                len(history)
+                len(history),
+
+            "timezone":
+                requested_timezone
 
         }), 200
 
@@ -121378,25 +121693,8 @@ def ai_assistant_history():
 # ============================================================
 # AI ASSISTANT MESSAGE
 # ============================================================
-#
-# URL:
-#
-#   /ai-assistant/message/<message_id>
-#
-# METHODS:
-#
-#   PUT
-#       Edit user message
-#       Regenerate AI answer
-#
-#   DELETE
-#       Delete complete chat pair
-#
-# SUPPORTED FIELDS:
-#
-#   message / answer
-#   user_message / assistant_message
-#
+# PUT    -> EDIT MESSAGE
+# DELETE -> DELETE MESSAGE
 # ============================================================
 
 @bp.route(
@@ -121422,6 +121720,223 @@ def ai_assistant_message(message_id):
                 "success": False,
                 "error": "User ID lama helin."
             }), 401
+
+        # ====================================================
+        # USER TIMEZONE
+        #
+        # PUT:
+        # {
+        #     "message": "...",
+        #     "timezone": "Africa/Mogadishu"
+        # }
+        #
+        # DELETE:
+        # ?timezone=Africa/Mogadishu
+        # ====================================================
+
+        requested_timezone = (
+            request.args.get(
+                "timezone",
+                ""
+            )
+            or ""
+        ).strip()
+
+        # ----------------------------------------------------
+        # PUT JSON TIMEZONE
+        # ----------------------------------------------------
+
+        if request.method == "PUT":
+
+            try:
+
+                request_data = (
+                    request.get_json(
+                        silent=True
+                    )
+                    or {}
+                )
+
+            except Exception:
+
+                request_data = {}
+
+            json_timezone = (
+                request_data.get(
+                    "timezone"
+                )
+                or ""
+            )
+
+            try:
+
+                json_timezone = str(
+                    json_timezone
+                ).strip()
+
+            except Exception:
+
+                json_timezone = ""
+
+            if json_timezone:
+
+                requested_timezone = (
+                    json_timezone
+                )
+
+        # ====================================================
+        # DEFAULT TIMEZONE
+        # ====================================================
+
+        if not requested_timezone:
+
+            requested_timezone = (
+                "Africa/Mogadishu"
+            )
+
+        # ====================================================
+        # VALIDATE TIMEZONE
+        # ====================================================
+
+        try:
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        except (
+            ZoneInfoNotFoundError,
+            ValueError,
+            KeyError
+        ):
+
+            current_app.logger.warning(
+                "Invalid AI message timezone | "
+                "user_id=%s | timezone=%s",
+                current_user_id,
+                requested_timezone
+            )
+
+            requested_timezone = (
+                "Africa/Mogadishu"
+            )
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        # ====================================================
+        # DATETIME SERIALIZER
+        # ====================================================
+
+        def serialize_datetime(
+            value
+        ):
+
+            if value is None:
+
+                return None
+
+            try:
+
+                # --------------------------------------------
+                # DATETIME OBJECT
+                # --------------------------------------------
+
+                if isinstance(
+                    value,
+                    datetime
+                ):
+
+                    dt = value
+
+                    # MongoDB old records can be naive.
+                    # Treat them as UTC.
+                    if dt.tzinfo is None:
+
+                        dt = dt.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    else:
+
+                        dt = dt.astimezone(
+                            timezone.utc
+                        )
+
+                    local_dt = (
+                        dt.astimezone(
+                            user_timezone
+                        )
+                    )
+
+                    return local_dt.isoformat()
+
+                # --------------------------------------------
+                # STRING
+                # --------------------------------------------
+
+                if isinstance(
+                    value,
+                    str
+                ):
+
+                    value = value.strip()
+
+                    if not value:
+
+                        return None
+
+                    try:
+
+                        parsed = (
+                            datetime.fromisoformat(
+                                value.replace(
+                                    "Z",
+                                    "+00:00"
+                                )
+                            )
+                        )
+
+                        if parsed.tzinfo is None:
+
+                            parsed = parsed.replace(
+                                tzinfo=timezone.utc
+                            )
+
+                        else:
+
+                            parsed = parsed.astimezone(
+                                timezone.utc
+                            )
+
+                        local_dt = (
+                            parsed.astimezone(
+                                user_timezone
+                            )
+                        )
+
+                        return local_dt.isoformat()
+
+                    except Exception:
+
+                        return value
+
+                return str(
+                    value
+                )
+
+            except Exception:
+
+                try:
+
+                    return str(
+                        value
+                    )
+
+                except Exception:
+
+                    return None
 
         # ====================================================
         # MESSAGE ID
@@ -121492,28 +122007,13 @@ def ai_assistant_message(message_id):
                 )
 
         # ====================================================
-        # OWNERSHIP
-        # ====================================================
-
-        ownership_query = {
-            "$or": [
-
-                {
-                    "user_id": {
-                        "$in": unique_user_ids
-                    }
-                },
-
-                {
-                    "user_id_str":
-                        current_user_id
-                }
-
-            ]
-        }
-
-        # ====================================================
-        # FIND CHAT
+        # CHAT QUERY
+        #
+        # IMPORTANT:
+        #
+        # _id + ownership together.
+        #
+        # User cannot access another user's message.
         # ====================================================
 
         chat_query = {
@@ -121525,7 +122025,8 @@ def ai_assistant_message(message_id):
 
                 {
                     "user_id": {
-                        "$in": unique_user_ids
+                        "$in":
+                            unique_user_ids
                     }
                 },
 
@@ -121538,8 +122039,13 @@ def ai_assistant_message(message_id):
 
         }
 
+        # ====================================================
+        # FIND CHAT
+        # ====================================================
+
         chat_document = (
-            mongo.db.ai_chat_messages.find_one(
+            mongo.db.ai_chat_messages
+            .find_one(
                 chat_query
             )
         )
@@ -121561,39 +122067,22 @@ def ai_assistant_message(message_id):
 
         if request.method == "DELETE":
 
-            delete_query = {
-
-                "_id":
-                    message_object_id,
-
-                "$or": [
-
-                    {
-                        "user_id": {
-                            "$in": unique_user_ids
-                        }
-                    },
-
-                    {
-                        "user_id_str":
-                            current_user_id
-                    }
-
-                ]
-
-            }
-
             delete_result = (
-                mongo.db.ai_chat_messages.delete_one(
-                    delete_query
+                mongo.db.ai_chat_messages
+                .delete_one(
+                    chat_query
                 )
             )
 
-            if delete_result.deleted_count != 1:
+            if (
+                delete_result.deleted_count
+                != 1
+            ):
 
                 return jsonify({
                     "success": False,
-                    "error": "Fariinta lama tirtirin."
+                    "error":
+                        "Fariinta lama tirtirin."
                 }), 404
 
             return jsonify({
@@ -121655,8 +122144,10 @@ def ai_assistant_message(message_id):
 
                 try:
 
-                    new_message = ai_clean_text(
-                        new_message
+                    new_message = (
+                        ai_clean_text(
+                            new_message
+                        )
                     )
 
                 except Exception:
@@ -121671,23 +122162,20 @@ def ai_assistant_message(message_id):
 
                 return jsonify({
                     "success": False,
-                    "error": "Fariinta cusub waa madhan."
+                    "error":
+                        "Fariinta cusub waa madhan."
                 }), 400
 
             if len(new_message) > 10000:
 
                 return jsonify({
                     "success": False,
-                    "error": "Fariinta aad bay u dheer tahay."
+                    "error":
+                        "Fariinta aad bay u dheer tahay."
                 }), 400
 
             # =================================================
-            # READ OLD MESSAGE
-            #
-            # Support BOTH:
-            #
-            #   message
-            #   user_message
+            # OLD USER MESSAGE
             # =================================================
 
             old_user_message = (
@@ -121696,16 +122184,6 @@ def ai_assistant_message(message_id):
                 )
                 or chat_document.get(
                     "message"
-                )
-                or ""
-            )
-
-            old_assistant_message = (
-                chat_document.get(
-                    "assistant_message"
-                )
-                or chat_document.get(
-                    "answer"
                 )
                 or ""
             )
@@ -121720,6 +122198,20 @@ def ai_assistant_message(message_id):
 
                 old_user_message = ""
 
+            # =================================================
+            # OLD ASSISTANT MESSAGE
+            # =================================================
+
+            old_assistant_message = (
+                chat_document.get(
+                    "assistant_message"
+                )
+                or chat_document.get(
+                    "answer"
+                )
+                or ""
+            )
+
             try:
 
                 old_assistant_message = str(
@@ -121732,6 +122224,10 @@ def ai_assistant_message(message_id):
 
             # =================================================
             # CREATED AT
+            #
+            # IMPORTANT:
+            #
+            # created_at is NEVER changed during edit.
             # =================================================
 
             message_created_at = (
@@ -121741,15 +122237,17 @@ def ai_assistant_message(message_id):
             )
 
             # =================================================
-            # PREVIOUS CHAT QUERY
+            # PREVIOUS OWNER QUERY
             # =================================================
 
             previous_owner_query = {
+
                 "$or": [
 
                     {
                         "user_id": {
-                            "$in": unique_user_ids
+                            "$in":
+                                unique_user_ids
                         }
                     },
 
@@ -121759,15 +122257,21 @@ def ai_assistant_message(message_id):
                     }
 
                 ]
+
             }
 
             # =================================================
             # PREVIOUS MESSAGES
+            #
+            # We use the original MongoDB UTC timestamp.
+            #
+            # DO NOT use local timezone here.
             # =================================================
 
             if message_created_at is not None:
 
                 previous_query = {
+
                     "$and": [
 
                         previous_owner_query,
@@ -121796,11 +122300,13 @@ def ai_assistant_message(message_id):
                         }
 
                     ]
+
                 }
 
             else:
 
                 previous_query = {
+
                     "$and": [
 
                         previous_owner_query,
@@ -121813,6 +122319,7 @@ def ai_assistant_message(message_id):
                         }
 
                     ]
+
                 }
 
             # =================================================
@@ -121847,7 +122354,9 @@ def ai_assistant_message(message_id):
                         )
                     ]
                 )
-                .limit(50)
+                .limit(
+                    50
+                )
             )
 
             previous_documents = list(
@@ -121982,7 +122491,8 @@ def ai_assistant_message(message_id):
 
                         {
                             "user_id": {
-                                "$in": unique_user_ids
+                                "$in":
+                                    unique_user_ids
                             }
                         },
 
@@ -122001,12 +122511,19 @@ def ai_assistant_message(message_id):
                         security_logs_query,
                         {
                             "_id": 0,
+
                             "action": 1,
+
                             "changed_at": 1,
+
                             "created_at": 1,
+
                             "ip": 1,
+
                             "device": 1,
+
                             "browser": 1,
+
                             "platform": 1
                         }
                     )
@@ -122022,7 +122539,9 @@ def ai_assistant_message(message_id):
                             )
                         ]
                     )
-                    .limit(20)
+                    .limit(
+                        20
+                    )
                 )
 
                 for log in security_cursor:
@@ -122049,14 +122568,20 @@ def ai_assistant_message(message_id):
 
                             continue
 
-                        if hasattr(
+                        if isinstance(
                             value,
-                            "isoformat"
+                            datetime
                         ):
 
                             try:
 
-                                value = value.isoformat()
+                                # Security logs are also
+                                # normalized to user's timezone.
+                                value = (
+                                    serialize_datetime(
+                                        value
+                                    )
+                                )
 
                             except Exception:
 
@@ -122064,9 +122589,13 @@ def ai_assistant_message(message_id):
                                     value
                                 )
 
-                        safe_log[key] = str(
-                            value
-                        )
+                        else:
+
+                            value = str(
+                                value
+                            )
+
+                        safe_log[key] = value
 
                     security_logs.append(
                         safe_log
@@ -122198,7 +122727,9 @@ Do not expose credentials or secrets.
             try:
 
                 response = (
-                    gemini_client.models.generate_content(
+                    gemini_client
+                    .models
+                    .generate_content(
                         model=GEMINI_MODEL,
                         contents=prompt
                     )
@@ -122212,7 +122743,8 @@ Do not expose credentials or secrets.
 
                 return jsonify({
                     "success": False,
-                    "error": "AI response lama la heli karin."
+                    "error":
+                        "AI response lama la heli karin."
                 }), 502
 
             # =================================================
@@ -122236,34 +122768,56 @@ Do not expose credentials or secrets.
 
                 answer = ""
 
-            answer = str(
-                answer
-            ).strip()
+            try:
+
+                answer = str(
+                    answer
+                ).strip()
+
+            except Exception:
+
+                answer = ""
 
             if not answer:
 
                 return jsonify({
                     "success": False,
-                    "error": "AI returned an empty response."
+                    "error":
+                        "AI returned an empty response."
                 }), 502
 
             # =================================================
             # NOW
+            #
+            # ALWAYS STORE UTC
             # =================================================
 
-            now = datetime.now(
+            now_utc = datetime.now(
                 timezone.utc
+            )
+
+            # =================================================
+            # LOCAL TIME
+            #
+            # ONLY FOR OPTIONAL LEGACY / DISPLAY FIELD
+            # =================================================
+
+            now_local = (
+                now_utc.astimezone(
+                    user_timezone
+                )
             )
 
             # =================================================
             # UPDATE
             #
-            # IMPORTANT:
+            # DATABASE SOURCE OF TRUTH:
             #
-            # We update BOTH schemas.
+            # created_at  -> original UTC
+            # updated_at  -> current UTC
             #
-            # This means old documents become compatible
-            # with the new frontend too.
+            # Legacy fields are also updated so the old
+            # frontend/schema remains compatible.
             # =================================================
 
             update_query = {
@@ -122275,7 +122829,8 @@ Do not expose credentials or secrets.
 
                     {
                         "user_id": {
-                            "$in": unique_user_ids
+                            "$in":
+                                unique_user_ids
                         }
                     },
 
@@ -122289,27 +122844,54 @@ Do not expose credentials or secrets.
             }
 
             update_result = (
-                mongo.db.ai_chat_messages.update_one(
+                mongo.db.ai_chat_messages
+                .update_one(
                     update_query,
                     {
                         "$set": {
 
-                            # NEW
+                            # --------------------------------
+                            # NEW SCHEMA
+                            # --------------------------------
+
                             "user_message":
                                 new_message,
 
                             "assistant_message":
                                 answer,
 
-                            # OLD / EXISTING
+                            # --------------------------------
+                            # OLD SCHEMA
+                            # --------------------------------
+
                             "message":
                                 new_message,
 
                             "answer":
                                 answer,
 
+                            # --------------------------------
+                            # UTC SOURCE OF TRUTH
+                            # --------------------------------
+
                             "updated_at":
-                                now
+                                now_utc,
+
+                            # --------------------------------
+                            # LEGACY / DISPLAY
+                            #
+                            # Keep these fields synchronized.
+                            # --------------------------------
+
+                            "updated_at_eat":
+                                now_local.isoformat(),
+
+                            # --------------------------------
+                            # METADATA
+                            # --------------------------------
+
+                            "timezone":
+                                requested_timezone
 
                         }
                     }
@@ -122320,12 +122902,63 @@ Do not expose credentials or secrets.
             # CHECK UPDATE
             # =================================================
 
-            if update_result.matched_count != 1:
+            if (
+                update_result.matched_count
+                != 1
+            ):
 
                 return jsonify({
                     "success": False,
-                    "error": "Chat message lama helin."
+                    "error":
+                        "Chat message lama helin."
                 }), 404
+
+            # =================================================
+            # READ CREATED AT AGAIN
+            #
+            # This ensures the response contains the
+            # actual original database timestamp.
+            # =================================================
+
+            updated_document = (
+                mongo.db.ai_chat_messages
+                .find_one(
+                    update_query,
+                    {
+                        "_id": 1,
+                        "created_at": 1,
+                        "updated_at": 1
+                    }
+                )
+            )
+
+            # =================================================
+            # CREATED AT
+            # =================================================
+
+            response_created_at = None
+
+            if updated_document:
+
+                response_created_at = (
+                    updated_document.get(
+                        "created_at"
+                    )
+                )
+
+            # =================================================
+            # UPDATED AT
+            # =================================================
+
+            response_updated_at = None
+
+            if updated_document:
+
+                response_updated_at = (
+                    updated_document.get(
+                        "updated_at"
+                    )
+                )
 
             # =================================================
             # RESPONSE
@@ -122342,20 +122975,34 @@ Do not expose credentials or secrets.
                 "id":
                     message_id,
 
+                # NEW
                 "user_message":
                     new_message,
 
                 "assistant_message":
                     answer,
 
+                # OLD
                 "message":
                     new_message,
 
                 "answer":
                     answer,
 
+                # LOCAL USER TIME
+                "created_at":
+                    serialize_datetime(
+                        response_created_at
+                    ),
+
                 "updated_at":
-                    now.isoformat()
+                    serialize_datetime(
+                        response_updated_at
+                    ),
+
+                # TIMEZONE
+                "timezone":
+                    requested_timezone
 
             }), 200
 
@@ -122365,7 +123012,8 @@ Do not expose credentials or secrets.
 
         return jsonify({
             "success": False,
-            "error": "Method lama taageero."
+            "error":
+                "Method lama taageero."
         }), 405
 
     # ========================================================
@@ -122380,7 +123028,8 @@ Do not expose credentials or secrets.
 
         return jsonify({
             "success": False,
-            "error": "Chat database error."
+            "error":
+                "Chat database error."
         }), 500
 
     # ========================================================
@@ -122395,8 +123044,10 @@ Do not expose credentials or secrets.
 
         return jsonify({
             "success": False,
-            "error": "Unable to process chat message."
+            "error":
+                "Unable to process chat message."
         }), 500
+
 
 
 
