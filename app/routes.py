@@ -2,6 +2,7 @@ import calendar
 from collections import defaultdict
 import datetime
 from decimal import Decimal, InvalidOperation
+import enum
 import io
 import json
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -123049,8 +123050,1591 @@ Do not expose credentials or secrets.
         }), 500
 
 
+# ============================================================
+# AI PEOPLE HISTORY PAGE
+# SUPERADMIN ONLY
+# ============================================================
+
+@bp.route("/ai-assistant/people-history")
+@login_required
+def ai_people_history():
+
+    try:
+
+        # ====================================================
+        # SUPERADMIN ONLY
+        # ====================================================
+
+        current_role = str(
+            getattr(current_user, "role", "")
+        ).strip().lower()
+
+        if current_role != "superadmin":
+
+            return abort(403)
+
+        # ====================================================
+        # RENDER PAGE
+        # ====================================================
+
+        return render_template(
+            "backend/pages/components/users/ai_peropole_history.html"
+        )
+
+    except Exception:
+
+        current_app.logger.exception(
+            "AI People History Page Error"
+        )
+
+        return abort(500)
 
 
+# ============================================================
+# AI PEOPLE HISTORY API
+# SUPERADMIN ONLY
+# ============================================================
+#
+# URL:
+#   /api/ai-assistant/people-history
+#
+# PURPOSE:
+#   Superadmin wuxuu arki karaa dhammaan dadka isticmaalay
+#   AI Assistant iyo conversation-kooda.
+#
+# TIMEZONE:
+#   - MongoDB canonical time = UTC
+#   - Browser/device timezone = display timezone
+#   - Supports IANA timezone e.g.
+#       Africa/Mogadishu
+#       Africa/Nairobi
+#       Africa/Cairo
+#       Europe/London
+#       America/New_York
+#
+# LEGACY SUPPORT:
+#   user_message / message
+#   assistant_message / answer
+#   created_at / created_at_eat
+#   updated_at / updated_at_eat
+#
+# ============================================================
+
+@bp.route(
+    "/api/ai-assistant/people-history",
+    methods=["GET"]
+)
+@login_required
+def api_ai_people_history():
+
+    try:
+
+        # ====================================================
+        # SUPERADMIN CHECK
+        # ====================================================
+
+        current_role = str(
+            getattr(
+                current_user,
+                "role",
+                ""
+            )
+        ).strip().lower()
+
+        if current_role != "superadmin":
+
+            return jsonify({
+                "success": False,
+                "error": "Superadmin access required."
+            }), 403
+
+
+        # ====================================================
+        # USER / DEVICE TIMEZONE
+        # ====================================================
+
+        requested_timezone = (
+            request.args.get("timezone")
+            or request.headers.get("X-User-Timezone")
+            or "Africa/Mogadishu"
+        )
+
+        requested_timezone = str(
+            requested_timezone
+        ).strip()
+
+        if not requested_timezone:
+            requested_timezone = "Africa/Mogadishu"
+
+
+        try:
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        except ZoneInfoNotFoundError:
+
+            requested_timezone = "Africa/Mogadishu"
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+        except Exception:
+
+            requested_timezone = "Africa/Mogadishu"
+
+            user_timezone = ZoneInfo(
+                requested_timezone
+            )
+
+
+        # ====================================================
+        # LOCALE
+        # ====================================================
+
+        user_locale = (
+            request.args.get("locale")
+            or request.headers.get("X-User-Locale")
+            or "en-US"
+        )
+
+        user_locale = str(
+            user_locale
+        ).strip()
+
+        if not user_locale:
+            user_locale = "en-US"
+
+
+        # ====================================================
+        # PREVIEW SETTINGS
+        # ====================================================
+
+        # Sidebar-ka ha muujin message aad u dheer.
+        LAST_MESSAGE_PREVIEW_LENGTH = 180
+
+
+        # ====================================================
+        # TEXT CLEANER
+        # ====================================================
+
+        def clean_text(value):
+
+            if value is None:
+                return ""
+
+            try:
+
+                value = str(value).strip()
+
+            except Exception:
+
+                return ""
+
+            return value
+
+
+        # ====================================================
+        # MESSAGE PREVIEW
+        # ====================================================
+
+        def make_preview(value, max_length=180):
+
+            value = clean_text(value)
+
+            if not value:
+                return ""
+
+            # Remove excessive whitespace/newlines
+            value = " ".join(
+                value.split()
+            )
+
+            if len(value) <= max_length:
+                return value
+
+            return (
+                value[:max_length].rstrip()
+                + "..."
+            )
+
+
+        # ====================================================
+        # DATETIME HELPERS
+        # ====================================================
+
+        def ensure_utc(value):
+
+            if value is None:
+                return None
+
+
+            # -----------------------------------------------
+            # Already datetime
+            # -----------------------------------------------
+
+            if isinstance(
+                value,
+                datetime
+            ):
+
+                dt_value = value
+
+                # Naive Mongo datetime = UTC
+                if dt_value.tzinfo is None:
+
+                    dt_value = dt_value.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                else:
+
+                    dt_value = dt_value.astimezone(
+                        timezone.utc
+                    )
+
+                return dt_value
+
+
+            # -----------------------------------------------
+            # String datetime
+            # -----------------------------------------------
+
+            if isinstance(
+                value,
+                str
+            ):
+
+                raw_value = value.strip()
+
+                if not raw_value:
+                    return None
+
+                try:
+
+                    parsed = datetime.fromisoformat(
+                        raw_value.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+
+                    if parsed.tzinfo is None:
+
+                        parsed = parsed.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    else:
+
+                        parsed = parsed.astimezone(
+                            timezone.utc
+                        )
+
+                    return parsed
+
+                except Exception:
+
+                    return None
+
+
+            return None
+
+
+        # ====================================================
+        # LEGACY EAT -> UTC
+        # ====================================================
+
+        def ensure_legacy_eat_utc(value):
+
+            if value is None:
+                return None
+
+
+            if isinstance(
+                value,
+                datetime
+            ):
+
+                dt_value = value
+
+                if dt_value.tzinfo is None:
+
+                    dt_value = dt_value.replace(
+                        tzinfo=ZoneInfo(
+                            "Africa/Mogadishu"
+                        )
+                    )
+
+                return dt_value.astimezone(
+                    timezone.utc
+                )
+
+
+            if isinstance(
+                value,
+                str
+            ):
+
+                raw_value = value.strip()
+
+                if not raw_value:
+                    return None
+
+                try:
+
+                    parsed = datetime.fromisoformat(
+                        raw_value.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+
+                    if parsed.tzinfo is None:
+
+                        parsed = parsed.replace(
+                            tzinfo=ZoneInfo(
+                                "Africa/Mogadishu"
+                            )
+                        )
+
+                    return parsed.astimezone(
+                        timezone.utc
+                    )
+
+                except Exception:
+
+                    return None
+
+
+            return None
+
+
+        # ====================================================
+        # LOCAL ISO
+        # ====================================================
+
+        def local_iso(value):
+
+            utc_value = ensure_utc(
+                value
+            )
+
+            if not utc_value:
+                return None
+
+            try:
+
+                return utc_value.astimezone(
+                    user_timezone
+                ).isoformat()
+
+            except Exception:
+
+                return None
+
+
+        # ====================================================
+        # UTC ISO
+        # ====================================================
+
+        def utc_iso(value):
+
+            utc_value = ensure_utc(
+                value
+            )
+
+            if not utc_value:
+                return None
+
+            try:
+
+                return utc_value.astimezone(
+                    timezone.utc
+                ).isoformat()
+
+            except Exception:
+
+                return None
+
+
+        # ====================================================
+        # SORT DATETIME
+        # ====================================================
+
+        def datetime_for_sort(value):
+
+            utc_value = ensure_utc(
+                value
+            )
+
+            if utc_value:
+                return utc_value
+
+            return datetime.min.replace(
+                tzinfo=timezone.utc
+            )
+
+
+        # ====================================================
+        # LOAD AI CHAT MESSAGES
+        # ====================================================
+
+        cursor = (
+            mongo.db.ai_chat_messages
+            .find(
+                {},
+                {
+                    "_id": 1,
+
+                    # User
+                    "user_id": 1,
+                    "user_id_str": 1,
+
+                    # Current schema
+                    "user_message": 1,
+                    "assistant_message": 1,
+
+                    # Legacy schema
+                    "message": 1,
+                    "answer": 1,
+
+                    # Current timestamps
+                    "created_at": 1,
+                    "updated_at": 1,
+
+                    # Legacy timestamps
+                    "created_at_eat": 1,
+                    "updated_at_eat": 1,
+
+                    # Timezone
+                    "timezone": 1,
+
+                    # Model
+                    "model": 1
+                }
+            )
+            .sort(
+                [
+                    ("created_at", -1),
+                    ("_id", -1)
+                ]
+            )
+        )
+
+        messages = list(
+            cursor
+        )
+
+
+        # ====================================================
+        # GROUP BY USER
+        # ====================================================
+
+        people = {}
+
+
+        # ====================================================
+        # PROCESS EVERY CHAT
+        # ====================================================
+
+        for item in messages:
+
+            # =================================================
+            # USER ID
+            # =================================================
+
+            raw_user_id = (
+                item.get("user_id_str")
+                or item.get("user_id")
+                or ""
+            )
+
+            user_id = clean_text(
+                raw_user_id
+            )
+
+            if not user_id:
+                continue
+
+
+            # =================================================
+            # CREATE USER GROUP
+            # =================================================
+
+            if user_id not in people:
+
+                people[user_id] = {
+
+                    "user_id": user_id,
+
+                    "message_count": 0,
+
+                    "chat_count": 0,
+
+                    # -----------------------------------------
+                    # LATEST MESSAGE
+                    # -----------------------------------------
+
+                    "last_message": "",
+
+                    "last_message_preview": "",
+
+                    "last_message_role": "",
+
+                    "last_message_type": "",
+
+                    "last_message_is_ai": False,
+
+                    "last_message_is_user": False,
+
+                    "last_message_at": None,
+
+                    # -----------------------------------------
+                    # CREATED / UPDATED
+                    # -----------------------------------------
+
+                    "last_created_at": None,
+
+                    "last_updated_at": None,
+
+                    # -----------------------------------------
+                    # ALL CHAT RECORDS
+                    # -----------------------------------------
+
+                    "messages": []
+                }
+
+
+            # =================================================
+            # USER MESSAGE
+            # =================================================
+
+            user_message = (
+                item.get("user_message")
+                or item.get("message")
+                or ""
+            )
+
+            user_message = clean_text(
+                user_message
+            )
+
+
+            # =================================================
+            # AI MESSAGE
+            # =================================================
+
+            assistant_message = (
+                item.get("assistant_message")
+                or item.get("answer")
+                or ""
+            )
+
+            assistant_message = clean_text(
+                assistant_message
+            )
+
+
+            # =================================================
+            # MESSAGE ID
+            # =================================================
+
+            try:
+
+                message_id = str(
+                    item.get("_id")
+                )
+
+            except Exception:
+
+                message_id = ""
+
+
+            # =================================================
+            # CREATED TIME
+            # =================================================
+
+            raw_created_at = item.get(
+                "created_at"
+            )
+
+            raw_created_at_eat = item.get(
+                "created_at_eat"
+            )
+
+            created_utc = ensure_utc(
+                raw_created_at
+            )
+
+
+            if not created_utc:
+
+                created_utc = (
+                    ensure_legacy_eat_utc(
+                        raw_created_at_eat
+                    )
+                )
+
+
+            # =================================================
+            # UPDATED TIME
+            # =================================================
+
+            raw_updated_at = item.get(
+                "updated_at"
+            )
+
+            raw_updated_at_eat = item.get(
+                "updated_at_eat"
+            )
+
+            updated_utc = ensure_utc(
+                raw_updated_at
+            )
+
+
+            if not updated_utc:
+
+                updated_utc = (
+                    ensure_legacy_eat_utc(
+                        raw_updated_at_eat
+                    )
+                )
+
+
+            # =================================================
+            # TIMEZONE
+            # =================================================
+
+            stored_timezone = (
+                item.get("timezone")
+                or requested_timezone
+            )
+
+            stored_timezone = clean_text(
+                stored_timezone
+            )
+
+            if not stored_timezone:
+
+                stored_timezone = requested_timezone
+
+
+            # =================================================
+            # MESSAGE COUNT
+            # =================================================
+
+            people[user_id][
+                "message_count"
+            ] += 1
+
+
+            # =================================================
+            # DETERMINE LATEST MESSAGE
+            #
+            # A chat record contains:
+            #
+            #   USER -> AI
+            #
+            # Therefore AI response is considered the
+            # latest message when assistant_message exists.
+            # =================================================
+
+            latest_role = ""
+            latest_message = ""
+            latest_time = created_utc
+
+
+            if assistant_message:
+
+                latest_role = "ai"
+
+                latest_message = (
+                    assistant_message
+                )
+
+            elif user_message:
+
+                latest_role = "user"
+
+                latest_message = (
+                    user_message
+                )
+
+
+            # =================================================
+            # USE UPDATED TIME IF AVAILABLE
+            # =================================================
+
+            if updated_utc:
+
+                latest_time = updated_utc
+
+            elif created_utc:
+
+                latest_time = created_utc
+
+
+            # =================================================
+            # UPDATE USER LATEST MESSAGE
+            # =================================================
+
+            existing_latest = (
+                people[user_id].get(
+                    "last_message_at"
+                )
+            )
+
+
+            should_update_latest = False
+
+
+            if latest_message:
+
+                if not existing_latest:
+
+                    should_update_latest = True
+
+                elif latest_time:
+
+                    if latest_time > existing_latest:
+
+                        should_update_latest = True
+
+
+            # =================================================
+            # SAVE LATEST MESSAGE
+            # =================================================
+
+            if should_update_latest:
+
+                people[user_id][
+                    "last_message"
+                ] = latest_message
+
+                people[user_id][
+                    "last_message_preview"
+                ] = make_preview(
+                    latest_message,
+                    LAST_MESSAGE_PREVIEW_LENGTH
+                )
+
+                people[user_id][
+                    "last_message_role"
+                ] = latest_role
+
+                people[user_id][
+                    "last_message_type"
+                ] = latest_role
+
+                people[user_id][
+                    "last_message_is_ai"
+                ] = (
+                    latest_role == "ai"
+                )
+
+                people[user_id][
+                    "last_message_is_user"
+                ] = (
+                    latest_role == "user"
+                )
+
+                people[user_id][
+                    "last_message_at"
+                ] = latest_time
+
+
+            # =================================================
+            # LAST CREATED AT
+            # =================================================
+
+            existing_last_created = (
+                people[user_id].get(
+                    "last_created_at"
+                )
+            )
+
+
+            if (
+                created_utc
+                and (
+                    not existing_last_created
+                    or created_utc >
+                    existing_last_created
+                )
+            ):
+
+                people[user_id][
+                    "last_created_at"
+                ] = created_utc
+
+
+            # =================================================
+            # LAST UPDATED AT
+            # =================================================
+
+            existing_last_updated = (
+                people[user_id].get(
+                    "last_updated_at"
+                )
+            )
+
+
+            if (
+                updated_utc
+                and (
+                    not existing_last_updated
+                    or updated_utc >
+                    existing_last_updated
+                )
+            ):
+
+                people[user_id][
+                    "last_updated_at"
+                ] = updated_utc
+
+
+            # =================================================
+            # MESSAGE OBJECT
+            # =================================================
+
+            people[user_id][
+                "messages"
+            ].append({
+
+                # ---------------------------------------------
+                # ID
+                # ---------------------------------------------
+
+                "id": message_id,
+
+                # ---------------------------------------------
+                # USER
+                # ---------------------------------------------
+
+                "user_message": user_message,
+
+                # ---------------------------------------------
+                # AI
+                # ---------------------------------------------
+
+                "assistant_message": assistant_message,
+
+                # ---------------------------------------------
+                # LATEST ROLE IN THIS CHAT
+                # ---------------------------------------------
+
+                "latest_role": latest_role,
+
+                "latest_message_role": latest_role,
+
+                "latest_message_type": latest_role,
+
+                "latest_message_is_ai": (
+                    latest_role == "ai"
+                ),
+
+                "latest_message_is_user": (
+                    latest_role == "user"
+                ),
+
+                # ---------------------------------------------
+                # LATEST MESSAGE
+                # ---------------------------------------------
+
+                "latest_message": latest_message,
+
+                "latest_message_preview": make_preview(
+                    latest_message,
+                    LAST_MESSAGE_PREVIEW_LENGTH
+                ),
+
+                # ---------------------------------------------
+                # UTC
+                # ---------------------------------------------
+
+                "created_at_utc": utc_iso(
+                    created_utc
+                ),
+
+                "updated_at_utc": utc_iso(
+                    updated_utc
+                ),
+
+                # ---------------------------------------------
+                # LOCAL
+                # ---------------------------------------------
+
+                "created_at_local": local_iso(
+                    created_utc
+                ),
+
+                "updated_at_local": local_iso(
+                    updated_utc
+                ),
+
+                # ---------------------------------------------
+                # COMPATIBILITY
+                # ---------------------------------------------
+
+                "created_at": utc_iso(
+                    created_utc
+                ),
+
+                "updated_at": utc_iso(
+                    updated_utc
+                ),
+
+                # ---------------------------------------------
+                # LEGACY
+                # ---------------------------------------------
+
+                "created_at_eat": (
+                    raw_created_at_eat
+                    if raw_created_at_eat
+                    else local_iso(
+                        created_utc
+                    )
+                ),
+
+                "updated_at_eat": (
+                    raw_updated_at_eat
+                    if raw_updated_at_eat
+                    else local_iso(
+                        updated_utc
+                    )
+                ),
+
+                # ---------------------------------------------
+                # TIMEZONE
+                # ---------------------------------------------
+
+                "timezone": stored_timezone,
+
+                "display_timezone": (
+                    requested_timezone
+                ),
+
+                # ---------------------------------------------
+                # MODEL
+                # ---------------------------------------------
+
+                "model": (
+                    item.get("model")
+                    or "Unknown"
+                )
+            })
+
+
+        # ====================================================
+        # BUILD PEOPLE RESULT
+        # ====================================================
+
+        result = []
+
+
+        for user_id, person in people.items():
+
+            user = None
+
+
+            # =================================================
+            # FIND USER BY OBJECTID
+            # =================================================
+
+            if ObjectId.is_valid(
+                user_id
+            ):
+
+                try:
+
+                    user = mongo.db.users.find_one({
+                        "_id": ObjectId(
+                            user_id
+                        )
+                    })
+
+                except Exception:
+
+                    user = None
+
+
+            # =================================================
+            # FIND USER BY STRING ID
+            # =================================================
+
+            if not user:
+
+                try:
+
+                    user = mongo.db.users.find_one({
+                        "user_id_str": user_id
+                    })
+
+                except Exception:
+
+                    user = None
+
+
+            # =================================================
+            # NAME
+            # =================================================
+
+            name = ""
+
+            if user:
+
+                name = (
+                    user.get("fullname")
+                    or user.get("full_name")
+                    or user.get("name")
+                    or user.get("username")
+                    or user.get("email")
+                    or ""
+                )
+
+            name = clean_text(
+                name
+            )
+
+            if not name:
+
+                name = "Unknown User"
+
+
+            # =================================================
+            # EMAIL
+            # =================================================
+
+            email = ""
+
+            if user:
+
+                email = (
+                    user.get("email")
+                    or ""
+                )
+
+            email = clean_text(
+                email
+            )
+
+
+            # =================================================
+            # USERNAME
+            # =================================================
+
+            username = ""
+
+            if user:
+
+                username = (
+                    user.get("username")
+                    or ""
+                )
+
+            username = clean_text(
+                username
+            )
+
+
+            # =================================================
+            # PHONE
+            # =================================================
+
+            phone = ""
+
+            if user:
+
+                phone = (
+                    user.get("phone")
+                    or user.get("phone_number")
+                    or user.get("mobile")
+                    or user.get("mobile_number")
+                    or ""
+                )
+
+            phone = clean_text(
+                phone
+            )
+
+
+            # =================================================
+            # PROFILE IMAGE
+            # =================================================
+
+            photo = ""
+
+            if user:
+
+                photo = (
+                    user.get("photo")
+                    or user.get("profile_image")
+                    or user.get("avatar")
+                    or user.get("profile_photo")
+                    or ""
+                )
+
+            photo = clean_text(
+                photo
+            )
+
+
+            # =================================================
+            # ROLE
+            # =================================================
+
+            role = ""
+
+            if user:
+
+                role = (
+                    user.get("role")
+                    or ""
+                )
+
+                if isinstance(
+                    role,
+                    enum.Enum
+                ):
+
+                    role = role.value
+
+            role = clean_text(
+                role
+            )
+
+
+            # =================================================
+            # STATUS
+            # =================================================
+
+            status = True
+
+            if user:
+
+                status = user.get(
+                    "status",
+                    True
+                )
+
+
+            if isinstance(
+                status,
+                str
+            ):
+
+                status_lower = (
+                    status.strip().lower()
+                )
+
+                status = (
+                    status_lower
+                    not in (
+                        "false",
+                        "0",
+                        "inactive",
+                        "disabled",
+                        "blocked"
+                    )
+                )
+
+
+            # =================================================
+            # USER CREATED AT
+            # =================================================
+
+            user_created_raw = None
+
+            if user:
+
+                user_created_raw = (
+                    user.get("created_at")
+                    or user.get("createdAt")
+                    or user.get("date_created")
+                    or user.get("registered_at")
+                )
+
+
+            user_created_utc = ensure_utc(
+                user_created_raw
+            )
+
+
+            # =================================================
+            # LAST CREATED
+            # =================================================
+
+            last_created_utc = (
+                person.get(
+                    "last_created_at"
+                )
+            )
+
+
+            # =================================================
+            # LAST UPDATED
+            # =================================================
+
+            last_updated_utc = (
+                person.get(
+                    "last_updated_at"
+                )
+            )
+
+
+            # =================================================
+            # LATEST MESSAGE
+            # =================================================
+
+            last_message = clean_text(
+                person.get(
+                    "last_message"
+                )
+            )
+
+            last_message_preview = (
+                person.get(
+                    "last_message_preview"
+                )
+                or make_preview(
+                    last_message,
+                    LAST_MESSAGE_PREVIEW_LENGTH
+                )
+            )
+
+            last_message_role = (
+                person.get(
+                    "last_message_role"
+                )
+                or ""
+            )
+
+            last_message_type = (
+                person.get(
+                    "last_message_type"
+                )
+                or last_message_role
+            )
+
+            last_message_is_ai = bool(
+                person.get(
+                    "last_message_is_ai",
+                    last_message_role == "ai"
+                )
+            )
+
+            last_message_is_user = bool(
+                person.get(
+                    "last_message_is_user",
+                    last_message_role == "user"
+                )
+            )
+
+
+            # =================================================
+            # SORT CHAT MESSAGES
+            #
+            # Oldest -> Newest
+            # =================================================
+
+            chat_messages = sorted(
+                person.get(
+                    "messages",
+                    []
+                ),
+                key=lambda message:
+                    datetime_for_sort(
+                        message.get(
+                            "created_at_utc"
+                        )
+                    )
+            )
+
+
+            # =================================================
+            # CHAT COUNT
+            # =================================================
+
+            chat_count = len(
+                chat_messages
+            )
+
+
+            # =================================================
+            # LAST MESSAGE TIME
+            # =================================================
+
+            last_message_at = (
+                person.get(
+                    "last_message_at"
+                )
+            )
+
+
+            # =================================================
+            # PEOPLE OBJECT
+            # =================================================
+
+            result.append({
+
+                # ---------------------------------------------
+                # Identity
+                # ---------------------------------------------
+
+                "user_id": user_id,
+
+                "name": name,
+
+                "fullname": name,
+
+                "email": email,
+
+                "username": username,
+
+                "phone": phone,
+
+                # ---------------------------------------------
+                # Profile
+                # ---------------------------------------------
+
+                "photo": photo,
+
+                "profile_image": photo,
+
+                # ---------------------------------------------
+                # Account
+                # ---------------------------------------------
+
+                "role": role,
+
+                "status": bool(
+                    status
+                ),
+
+                # ---------------------------------------------
+                # Statistics
+                # ---------------------------------------------
+
+                "message_count": person[
+                    "message_count"
+                ],
+
+                "chat_count": chat_count,
+
+                # ---------------------------------------------
+                # IMPORTANT:
+                # TRUE LATEST MESSAGE
+                # ---------------------------------------------
+
+                "last_message": last_message,
+
+                "last_message_preview": (
+                    last_message_preview
+                ),
+
+                "last_message_role": (
+                    last_message_role
+                ),
+
+                "last_message_type": (
+                    last_message_type
+                ),
+
+                "last_message_is_ai": (
+                    last_message_is_ai
+                ),
+
+                "last_message_is_user": (
+                    last_message_is_user
+                ),
+
+                # ---------------------------------------------
+                # Latest message time
+                # ---------------------------------------------
+
+                "last_message_at": utc_iso(
+                    last_message_at
+                ),
+
+                "last_message_at_utc": utc_iso(
+                    last_message_at
+                ),
+
+                "last_message_at_local": local_iso(
+                    last_message_at
+                ),
+
+                # ---------------------------------------------
+                # Last created UTC
+                # ---------------------------------------------
+
+                "last_created_at": utc_iso(
+                    last_created_utc
+                ),
+
+                "last_created_at_utc": utc_iso(
+                    last_created_utc
+                ),
+
+                # ---------------------------------------------
+                # Last created local
+                # ---------------------------------------------
+
+                "last_created_at_local": local_iso(
+                    last_created_utc
+                ),
+
+                # ---------------------------------------------
+                # Last updated UTC
+                # ---------------------------------------------
+
+                "last_updated_at": utc_iso(
+                    last_updated_utc
+                ),
+
+                "last_updated_at_utc": utc_iso(
+                    last_updated_utc
+                ),
+
+                # ---------------------------------------------
+                # Last updated local
+                # ---------------------------------------------
+
+                "last_updated_at_local": local_iso(
+                    last_updated_utc
+                ),
+
+                # ---------------------------------------------
+                # User created UTC
+                # ---------------------------------------------
+
+                "user_created_at": utc_iso(
+                    user_created_utc
+                ),
+
+                "user_created_at_utc": utc_iso(
+                    user_created_utc
+                ),
+
+                # ---------------------------------------------
+                # User created local
+                # ---------------------------------------------
+
+                "user_created_at_local": local_iso(
+                    user_created_utc
+                ),
+
+                # ---------------------------------------------
+                # Timezone
+                # ---------------------------------------------
+
+                "timezone": requested_timezone,
+
+                "locale": user_locale,
+
+                # ---------------------------------------------
+                # Messages
+                # ---------------------------------------------
+
+                "messages": chat_messages
+            })
+
+
+        # ====================================================
+        # SORT PEOPLE BY TRUE LATEST MESSAGE
+        # ====================================================
+
+        result.sort(
+            key=lambda person:
+                datetime_for_sort(
+                    person.get(
+                        "last_message_at_utc"
+                    )
+                ),
+            reverse=True
+        )
+
+
+        # ====================================================
+        # TOTALS
+        # ====================================================
+
+        total_people = len(
+            result
+        )
+
+        total_messages = len(
+            messages
+        )
+
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
+
+        return jsonify({
+
+            "success": True,
+
+            "total_people": total_people,
+
+            "total_messages": total_messages,
+
+            "timezone": requested_timezone,
+
+            "locale": user_locale,
+
+            "storage_timezone": "UTC",
+
+            "display_timezone": requested_timezone,
+
+            "people": result
+
+        }), 200
+
+
+    # ========================================================
+    # MONGODB ERROR
+    # ========================================================
+
+    except PyMongoError:
+
+        current_app.logger.exception(
+            "AI People History MongoDB Error"
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": "Chat database error."
+
+        }), 500
+
+
+    # ========================================================
+    # GENERAL ERROR
+    # ========================================================
+
+    except Exception:
+
+        current_app.logger.exception(
+            "AI People History Error"
+        )
+
+        return jsonify({
+
+            "success": False,
+
+            "error": "Unable to load AI people history."
+
+        }), 500
+
+        
 @bp.route("/reports/weekly")
 @login_required
 def weekly_report():
