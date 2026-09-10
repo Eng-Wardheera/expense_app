@@ -743,11 +743,23 @@ body{
        but don't preserve unwanted
        template indentation.
     */
-    white-space:pre-wrap;
+    white-space:normal;
 
     word-break:break-word;
 
     overflow-wrap:anywhere;
+}
+
+/* Actual message text: preserve intentional line breaks only. */
+.message-text{
+    white-space:pre-wrap;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    margin:0;
+}
+
+.msg-row.user .bubble .message-text{
+    white-space:pre-wrap;
 }
 
 .msg-row.user .bubble{
@@ -857,7 +869,7 @@ body{
 
     border-radius:7px;
 
-    padding:4px 9px;
+    padding:5px 9px;
 
     font-size:10px;
 
@@ -914,6 +926,19 @@ body{
     transform:translateY(-1px);
 }
 
+
+
+.ai-message-actions button{
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+}
+
+.ai-message-actions button svg{
+    width:12px;
+    height:12px;
+    stroke-width:2;
+}
 
 /* ============================================================
    CHAT FOOTER
@@ -1619,6 +1644,871 @@ body{
 
 }
 
+
+
+/* ============================================================
+   FINAL CHAT SPACING FIX
+   Prevent template indentation from becoming visible text.
+============================================================ */
+.chat-date{
+    margin:16px 0 18px !important;
+}
+.chat-date span{
+    display:inline-block;
+    line-height:1.2;
+    padding:7px 15px !important;
+}
+.ai-message-row{
+    margin-bottom:10px !important;
+}
+.ai-message-row.user .msg,
+.ai-message-row.assistant .msg{
+    min-width:0;
+}
+.ai-message-row.user .bubble,
+.ai-message-row.assistant .bubble{
+    white-space:normal !important;
+}
+.ai-message-time{
+    margin-top:4px !important;
+    padding:0 5px;
+}
+
+/* ============================================================
+   MESSAGE MARKDOWN / SPACING
+============================================================ */
+
+.ai-message-content{
+    line-height:1.65;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    white-space:normal;
+    font-size:13px;
+}
+
+.ai-message.assistant .ai-message-content{
+    line-height:1.65;
+    font-size:13px;
+    word-break:break-word;
+    overflow-wrap:anywhere;
+    white-space:normal;
+}
+
+.ai-message.assistant .ai-message-content > :first-child{
+    margin-top:0;
+}
+
+.ai-message.assistant .ai-message-content > :last-child{
+    margin-bottom:0;
+}
+
+.ai-message.assistant .ai-message-content p{
+    margin:0 0 10px;
+    line-height:1.65;
+}
+
+.ai-message.assistant .ai-message-content h1,
+.ai-message.assistant .ai-message-content h2,
+.ai-message.assistant .ai-message-content h3,
+.ai-message.assistant .ai-message-content h4,
+.ai-message.assistant .ai-message-content h5,
+.ai-message.assistant .ai-message-content h6{
+    color:inherit;
+    font-weight:700;
+    line-height:1.3;
+    margin:14px 0 7px;
+}
+
+.ai-message.assistant .ai-message-content h1{font-size:20px;}
+.ai-message.assistant .ai-message-content h2{font-size:18px;}
+.ai-message.assistant .ai-message-content h3{font-size:16px;}
+.ai-message.assistant .ai-message-content h4{font-size:14px;}
+.ai-message.assistant .ai-message-content h5{font-size:13px;}
+.ai-message.assistant .ai-message-content h6{font-size:12px;}
+
+.ai-message.assistant .ai-message-content ul,
+.ai-message.assistant .ai-message-content ol{
+    margin:6px 0 12px;
+    padding-left:24px;
+}
+
+.ai-message.assistant .ai-message-content li{
+    margin:0 0 8px;
+    padding:0;
+    line-height:1.55;
+}
+
+.ai-message.assistant .ai-message-content li > p{
+    margin:0;
+    padding:0;
+}
+
+.ai-message.assistant .ai-message-content h1 + ul,
+.ai-message.assistant .ai-message-content h1 + ol,
+.ai-message.assistant .ai-message-content h2 + ul,
+.ai-message.assistant .ai-message-content h2 + ol,
+.ai-message.assistant .ai-message-content h3 + ul,
+.ai-message.assistant .ai-message-content h3 + ol{
+    margin-top:3px;
+}
+
+.ai-message.assistant .ai-message-content blockquote{
+    margin:10px 0;
+    padding:8px 12px;
+    border-left:3px solid var(--primary);
+    background:#f8fafc;
+    color:#475569;
+    border-radius:0 8px 8px 0;
+}
+
+.ai-message.assistant .ai-message-content pre{
+    margin:10px 0;
+    padding:12px;
+    border-radius:10px;
+    background:#0f172a;
+    color:#e2e8f0;
+    overflow:auto;
+    font-size:11.5px;
+    line-height:1.55;
+}
+
+.ai-message.assistant .ai-message-content code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+    font-size:.92em;
+}
+
+.ai-message.assistant .ai-message-content :not(pre) > code{
+    background:#eef2ff;
+    color:#3730a3;
+    padding:2px 5px;
+    border-radius:5px;
+}
+
+.ai-message.assistant .ai-message-content table{
+    width:100%;
+    border-collapse:collapse;
+    margin:10px 0;
+    font-size:12px;
+}
+
+.ai-message.assistant .ai-message-content th,
+.ai-message.assistant .ai-message-content td{
+    border:1px solid var(--border);
+    padding:7px 8px;
+    vertical-align:top;
+}
+
+.ai-message.assistant .ai-message-content th{
+    background:#f1f5f9;
+    font-weight:700;
+}
+
+.ai-message.assistant .ai-message-content a{
+    color:var(--primary);
+    text-decoration:underline;
+}
+
+.ai-message.assistant .ai-message-content hr{
+    border:0;
+    border-top:1px solid var(--border);
+    margin:12px 0;
+}
+
+.ai-message.assistant .ai-message-content img{
+    max-width:100%;
+    height:auto;
+    border-radius:8px;
+}
+
+/* ============================================================
+   WHATSAPP-STYLE DATE SEPARATOR
+============================================================ */
+
+.chat-date{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    margin:18px 0 14px;
+    position:relative;
+    z-index:2;
+}
+
+.chat-date span{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:28px;
+    padding:5px 12px;
+    border:1px solid rgba(148,163,184,.22);
+    border-radius:14px;
+    background:#e2e8f0;
+    color:#475569;
+    box-shadow:0 1px 2px rgba(15,23,42,.04);
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.1px;
+}
+
+/* ============================================================
+   MESSAGE STRUCTURE
+============================================================ */
+
+.ai-message{
+    position:relative;
+}
+
+.ai-message.user .bubble,
+.ai-message.assistant .bubble{
+    white-space:normal;
+}
+
+.ai-message.user .bubble{
+    white-space:pre-wrap;
+}
+
+.ai-message.assistant .bubble{
+    padding:12px 14px;
+}
+
+.ai-message-time{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:5px;
+    margin-top:4px;
+    color:#94a3b8;
+    font-size:9.5px;
+    line-height:1.2;
+}
+
+.ai-message-time .edited-label{
+    font-size:9px;
+    opacity:.85;
+}
+
+.ai-message-row{
+    display:flex;
+    width:100%;
+    margin-bottom:12px;
+}
+
+.ai-message-row.user{
+    justify-content:flex-end;
+}
+
+.ai-message-row.assistant{
+    justify-content:flex-start;
+}
+
+.ai-message-row .msg{
+    max-width:72%;
+    min-width:0;
+}
+
+.ai-message-row.assistant .msg{
+    max-width:78%;
+    min-width:0;
+}
+
+/* ============================================================
+   TYPING INDICATOR
+============================================================ */
+
+.ai-history-typing{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+}
+
+.ai-history-typing .typing-dot{
+    width:5px;
+    height:5px;
+    border-radius:50%;
+    background:#94a3b8;
+    animation:aiTyping 1.15s infinite ease-in-out;
+}
+
+.ai-history-typing .typing-dot:nth-child(2){animation-delay:.15s;}
+.ai-history-typing .typing-dot:nth-child(3){animation-delay:.30s;}
+
+@keyframes aiTyping{
+    0%,60%,100%{transform:translateY(0);opacity:.45;}
+    30%{transform:translateY(-3px);opacity:1;}
+}
+
+/* ============================================================
+   SUGGESTIONS
+============================================================ */
+
+.ai-suggestions{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+    margin:10px 0 4px;
+}
+
+.ai-suggestion-chip{
+    border:1px solid #dbeafe;
+    background:#eff6ff;
+    color:#2563eb;
+    border-radius:999px;
+    padding:6px 10px;
+    font-size:10.5px;
+    line-height:1.2;
+    cursor:pointer;
+    transition:.18s ease;
+}
+
+.ai-suggestion-chip:hover{
+    background:#2563eb;
+    color:#fff;
+    border-color:#2563eb;
+    transform:translateY(-1px);
+}
+
+/* ============================================================
+   FINAL CHAT BUBBLE ALIGNMENT
+============================================================ */
+
+.ai-message-row.user .msg{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+}
+
+.ai-message-row.assistant .msg{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+}
+
+.ai-message-row.user .bubble{
+    max-width:100%;
+    padding:11px 14px;
+    border-radius:18px;
+    border-bottom-right-radius:5px;
+    background:#2563eb;
+    color:#fff;
+    font-size:13px;
+    line-height:1.45;
+}
+
+.ai-message-row.assistant .bubble{
+    width:100%;
+    box-sizing:border-box;
+    padding:13px 19px;
+    border-radius:16px;
+    border-bottom-left-radius:4px;
+    background:#fff;
+    border:1px solid #dbe3ee;
+    color:#243b5a;
+    box-shadow:0 1px 1px rgba(15,23,42,.02);
+}
+
+.ai-message-row.user .ai-message-time{
+    width:100%;
+    justify-content:flex-end;
+    text-align:right;
+}
+
+.ai-message-row.assistant .ai-message-time{
+    width:100%;
+    justify-content:flex-start;
+    text-align:left;
+    padding-left:6px;
+}
+
+.chat-date{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    width:100%;
+    margin:20px 0 20px;
+}
+
+.chat-date span{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:30px;
+    padding:5px 14px;
+    border-radius:9px;
+    background:#e3eaf3;
+    color:#64748b;
+    font-size:11px;
+    font-weight:500;
+    letter-spacing:.1px;
+    box-shadow:0 1px 2px rgba(15,23,42,.04);
+}
+
+@media(max-width:576px){
+    .ai-message-row .msg,
+    .ai-message-row.assistant .msg{
+        max-width:88%;
+    }
+
+    .ai-message-row.assistant .bubble{
+        padding:11px 14px;
+    }
+}
+
+/* ============================================================
+   DARK MODE
+   Supports common body classes and data-theme attributes.
+============================================================ */
+
+body.dark-mode,
+body.dark,
+body[data-theme="dark"],
+html[data-theme="dark"] body{
+    --bg:#0b1220;
+    --white:#111827;
+    --border:#263244;
+    --text:#e5e7eb;
+    --muted:#94a3b8;
+    background:#0b1220;
+    color:#e5e7eb;
+}
+
+body.dark-mode .ai-wrapper,
+body.dark .ai-wrapper,
+body[data-theme="dark"] .ai-wrapper,
+html[data-theme="dark"] .ai-wrapper{
+    background:#111827;
+    border-color:#263244;
+    box-shadow:0 12px 30px rgba(0,0,0,.25);
+}
+
+body.dark-mode .ai-sidebar,
+body.dark-mode .ai-chat-header,
+body.dark-mode .ai-chat-footer,
+body.dark-mode .ai-profile-panel,
+body.dark .ai-sidebar,
+body.dark .ai-chat-header,
+body.dark .ai-chat-footer,
+body.dark .ai-profile-panel,
+body[data-theme="dark"] .ai-sidebar,
+body[data-theme="dark"] .ai-chat-header,
+body[data-theme="dark"] .ai-chat-footer,
+body[data-theme="dark"] .ai-profile-panel{
+    background:#111827;
+    border-color:#263244;
+}
+
+body.dark-mode .ai-chat-panel,
+body.dark-mode .ai-chat-body,
+body.dark .ai-chat-panel,
+body.dark .ai-chat-body,
+body[data-theme="dark"] .ai-chat-panel,
+body[data-theme="dark"] .ai-chat-body{
+    background:#0b1220;
+}
+
+body.dark-mode .ai-search-box input,
+body.dark .ai-search-box input,
+body[data-theme="dark"] .ai-search-box input{
+    background:#1f2937;
+    border-color:#374151;
+    color:#e5e7eb;
+}
+
+body.dark-mode .ai-search-box input:focus,
+body.dark .ai-search-box input:focus,
+body[data-theme="dark"] .ai-search-box input:focus{
+    background:#111827;
+}
+
+body.dark-mode .ai-user-item,
+body.dark .ai-user-item,
+body[data-theme="dark"] .ai-user-item{
+    border-color:#1f2937;
+}
+
+body.dark-mode .ai-user-item:hover,
+body.dark .ai-user-item:hover,
+body[data-theme="dark"] .ai-user-item:hover{
+    background:#172033;
+}
+
+body.dark-mode .ai-user-item.active,
+body.dark .ai-user-item.active,
+body[data-theme="dark"] .ai-user-item.active{
+    background:#172554;
+}
+
+body.dark-mode .user-info h6,
+body.dark-mode .profile-top h5,
+body.dark-mode .profile-section h6,
+body.dark .user-info h6,
+body.dark .profile-top h5,
+body.dark .profile-section h6,
+body[data-theme="dark"] .user-info h6,
+body[data-theme="dark"] .profile-top h5,
+body[data-theme="dark"] .profile-section h6{
+    color:#e5e7eb;
+}
+
+body.dark-mode .ai-page-btn,
+body.dark .ai-page-btn,
+body[data-theme="dark"] .ai-page-btn{
+    background:#111827;
+    border-color:#374151;
+    color:#cbd5e1;
+}
+
+body.dark-mode .ai-chat-actions button,
+body.dark .ai-chat-actions button,
+body[data-theme="dark"] .ai-chat-actions button{
+    background:#1f2937;
+    color:#cbd5e1;
+}
+
+body.dark-mode .msg-row.ai .bubble,
+body.dark .msg-row.ai .bubble,
+body[data-theme="dark"] .msg-row.ai .bubble{
+    background:#111827;
+    border-color:#263244;
+    color:#e5e7eb;
+}
+
+body.dark-mode .chat-date span,
+body.dark .chat-date span,
+body[data-theme="dark"] .chat-date span{
+    background:#1f2937;
+    color:#cbd5e1;
+    border-color:#374151;
+}
+
+body.dark-mode .ai-message.assistant .ai-message-content blockquote,
+body.dark .ai-message.assistant .ai-message-content blockquote,
+body[data-theme="dark"] .ai-message.assistant .ai-message-content blockquote{
+    background:#172033;
+    color:#cbd5e1;
+}
+
+body.dark-mode .ai-message.assistant .ai-message-content th,
+body.dark .ai-message.assistant .ai-message-content th,
+body[data-theme="dark"] .ai-message.assistant .ai-message-content th{
+    background:#1f2937;
+}
+
+body.dark-mode .ai-message.assistant .ai-message-content th,
+body.dark-mode .ai-message.assistant .ai-message-content td,
+body.dark .ai-message.assistant .ai-message-content th,
+body.dark .ai-message.assistant .ai-message-content td,
+body[data-theme="dark"] .ai-message.assistant .ai-message-content th,
+body[data-theme="dark"] .ai-message.assistant .ai-message-content td{
+    border-color:#374151;
+}
+
+body.dark-mode .ai-message.assistant .ai-message-content :not(pre) > code,
+body.dark .ai-message.assistant .ai-message-content :not(pre) > code,
+body[data-theme="dark"] .ai-message.assistant .ai-message-content :not(pre) > code{
+    background:#1e1b4b;
+    color:#c7d2fe;
+}
+
+body.dark-mode .ai-suggestion-chip,
+body.dark .ai-suggestion-chip,
+body[data-theme="dark"] .ai-suggestion-chip{
+    background:#172554;
+    border-color:#1d4ed8;
+    color:#bfdbfe;
+}
+
+/* ============================================================
+   MOBILE MARKDOWN / BUBBLE SPACING
+============================================================ */
+
+@media (max-width:850px){
+    .ai-message-row .msg,
+    .ai-message-row.assistant .msg{
+        max-width:86%;
+    }
+}
+
+@media (max-width:576px){
+    .ai-message-row .msg,
+    .ai-message-row.assistant .msg{
+        max-width:92%;
+    }
+
+    .ai-message.assistant .bubble{
+        padding:10px 12px;
+    }
+
+    .ai-message-content{
+        font-size:12px;
+    }
+
+    .ai-message.assistant .ai-message-content h1{font-size:17px;}
+    .ai-message.assistant .ai-message-content h2{font-size:16px;}
+    .ai-message.assistant .ai-message-content h3{font-size:14px;}
+
+    .ai-message.assistant .ai-message-content ul,
+    .ai-message.assistant .ai-message-content ol{
+        padding-left:20px;
+    }
+
+    .ai-message.assistant .ai-message-content li{
+        margin-bottom:6px;
+    }
+
+    .chat-date{
+        margin:14px 0 11px;
+    }
+
+    .chat-date span{
+        min-height:26px;
+        padding:4px 10px;
+        font-size:10px;
+    }
+}
+
+
+
+/* ============================================================
+   SCREENSHOT-MATCH CHAT UI — FINAL OVERRIDES
+   WhatsApp-style date + large readable bubbles
+============================================================ */
+
+.ai-chat-body,
+.ai-chat-messages,
+.chat-messages,
+#chat {
+    scroll-behavior:smooth;
+}
+
+/* Date separator */
+.chat-date{
+    width:100%;
+    display:flex !important;
+    justify-content:center !important;
+    align-items:center !important;
+    margin:22px 0 20px !important;
+    padding:0 !important;
+}
+
+.chat-date span{
+    min-height:40px !important;
+    padding:9px 17px !important;
+    border:0 !important;
+    border-radius:12px !important;
+    background:#e2e8f0 !important;
+    color:#64748b !important;
+    font-size:14px !important;
+    font-weight:600 !important;
+    line-height:22px !important;
+    box-shadow:0 2px 5px rgba(15,23,42,.06) !important;
+}
+
+/* Message rows */
+.msg-row,
+.ai-message-row{
+    width:100% !important;
+    display:flex !important;
+    margin-bottom:18px !important;
+}
+
+.msg-row.user,
+.ai-message-row.user{
+    justify-content:flex-end !important;
+}
+
+.msg-row.ai,
+.ai-message-row.assistant{
+    justify-content:flex-start !important;
+}
+
+/* Keep user messages compact and AI messages wide */
+.msg-row.user .msg,
+.ai-message-row.user .msg{
+    width:auto !important;
+    max-width:78% !important;
+}
+
+.msg-row.ai .msg,
+.ai-message-row.assistant .msg{
+    width:auto !important;
+    max-width:82% !important;
+}
+
+/* Main bubble */
+.msg-row .bubble,
+.ai-message-row .bubble{
+    box-sizing:border-box !important;
+    border-radius:18px !important;
+    padding:16px 19px !important;
+    font-size:17px !important;
+    line-height:1.55 !important;
+    letter-spacing:.05px !important;
+    word-break:normal !important;
+    overflow-wrap:anywhere !important;
+}
+
+/* User bubble — screenshot style */
+.msg-row.user .bubble,
+.ai-message-row.user .bubble{
+    background:#2563eb !important;
+    background-image:none !important;
+    color:#fff !important;
+    border:0 !important;
+    border-radius:18px !important;
+    padding:17px 20px !important;
+    min-height:64px;
+    display:flex;
+    align-items:center;
+}
+
+/* Assistant bubble — screenshot style */
+.msg-row.ai .bubble,
+.ai-message-row.assistant .bubble{
+    background:#fff !important;
+    color:#243b63 !important;
+    border:1px solid #dbe3ee !important;
+    border-radius:18px !important;
+    padding:17px 19px !important;
+    box-shadow:0 1px 2px rgba(15,23,42,.02) !important;
+}
+
+/* Markdown content */
+.ai-message.assistant .ai-message-content{
+    color:inherit !important;
+    font-size:inherit !important;
+    line-height:inherit !important;
+}
+
+.ai-message.assistant .ai-message-content p{
+    margin:0 0 18px !important;
+}
+
+.ai-message.assistant .ai-message-content p:last-child{
+    margin-bottom:0 !important;
+}
+
+.ai-message.assistant .ai-message-content h1,
+.ai-message.assistant .ai-message-content h2,
+.ai-message.assistant .ai-message-content h3,
+.ai-message.assistant .ai-message-content h4,
+.ai-message.assistant .ai-message-content h5,
+.ai-message.assistant .ai-message-content h6{
+    color:inherit !important;
+    margin:0 0 12px !important;
+    line-height:1.3 !important;
+}
+
+.ai-message.assistant .ai-message-content ul,
+.ai-message.assistant .ai-message-content ol{
+    margin:0 0 18px !important;
+    padding-left:27px !important;
+}
+
+.ai-message.assistant .ai-message-content li{
+    margin:0 0 8px !important;
+    padding-left:2px !important;
+}
+
+.ai-message.assistant .ai-message-content li:last-child{
+    margin-bottom:0 !important;
+}
+
+/* Times: exactly below the corresponding bubble */
+.ai-message-time,
+.msg-row .time{
+    margin-top:5px !important;
+    color:#a1aab8 !important;
+    font-size:12px !important;
+    line-height:16px !important;
+    font-weight:400 !important;
+}
+
+.msg-row.user .ai-message-time,
+.ai-message-row.user .ai-message-time,
+.msg-row.user .time{
+    justify-content:flex-end !important;
+    text-align:right !important;
+}
+
+.msg-row.ai .ai-message-time,
+.ai-message-row.assistant .ai-message-time{
+    justify-content:flex-start !important;
+    text-align:left !important;
+}
+
+.ai-message-time .edited-label{
+    font-size:11px !important;
+    color:#a1aab8 !important;
+}
+
+/* Hide edit/delete until assistant message is hovered/tapped */
+.ai-message-actions{
+    margin-top:7px !important;
+}
+
+/* Dark mode matching */
+body.dark-mode .msg-row.ai .bubble,
+body.dark .msg-row.ai .bubble,
+body[data-theme="dark"] .msg-row.ai .bubble,
+body.dark-mode .ai-message-row.assistant .bubble,
+body.dark .ai-message-row.assistant .bubble,
+body[data-theme="dark"] .ai-message-row.assistant .bubble{
+    background:#111827 !important;
+    color:#e5e7eb !important;
+    border-color:#263244 !important;
+}
+
+body.dark-mode .chat-date span,
+body.dark .chat-date span,
+body[data-theme="dark"] .chat-date span{
+    background:#263244 !important;
+    color:#cbd5e1 !important;
+}
+
+/* Mobile */
+@media (max-width:767px){
+    .chat-date{
+        margin:15px 0 16px !important;
+    }
+
+    .chat-date span{
+        min-height:34px !important;
+        padding:6px 13px !important;
+        border-radius:10px !important;
+        font-size:12px !important;
+    }
+
+    .msg-row,
+    .ai-message-row{
+        margin-bottom:14px !important;
+    }
+
+    .msg-row.user .msg,
+    .ai-message-row.user .msg,
+    .msg-row.ai .msg,
+    .ai-message-row.assistant .msg{
+        max-width:92% !important;
+    }
+
+    .msg-row .bubble,
+    .ai-message-row .bubble{
+        font-size:15px !important;
+        line-height:1.55 !important;
+        padding:13px 15px !important;
+        border-radius:16px !important;
+    }
+
+    .msg-row.user .bubble,
+    .ai-message-row.user .bubble{
+        min-height:52px;
+        padding:13px 16px !important;
+    }
+
+    .ai-message-time,
+    .msg-row .time{
+        font-size:11px !important;
+    }
+}
+
 </style>
 
 
@@ -1632,7 +2522,7 @@ body{
                         <h5 class="m-b-10">Ai People Chats</h5>
                     </div>
                     <ul class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}l">Home</a></li>
+                        <li class="breadcrumb-item"><a href="{{ url_for('main.dashboard') }}">Home</a></li>
                         <li class="breadcrumb-item">All People Chats</li>
                     </ul>
                 </div>
@@ -1902,6 +2792,16 @@ body{
 
                     <span>
                         History View Only
+                    </span>
+
+                    <span
+                        class="ai-history-typing"
+                        aria-hidden="true"
+                        title="AI history"
+                    >
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
+                        <span class="typing-dot"></span>
                     </span>
 
                 </div>
@@ -3404,278 +4304,594 @@ document.addEventListener(
 
         function renderChat(user){
 
-            if(!user){
+    if(!user){
+        renderEmptyChat();
+        return;
+    }
 
-                renderEmptyChat();
+    const name =
+        user.name ||
+        user.fullname ||
+        user.full_name ||
+        user.username ||
+        "Unknown User";
 
-                return;
+    const image =
+        user.profile_image ||
+        user.profileImage ||
+        user.photo ||
+        user.avatar ||
+        "";
 
+    /* ========================================================
+       NORMALIZE HISTORY
+       Supports the existing MongoDB structure and common
+       alternative field names without changing the messages.
+    ======================================================== */
+
+    const rawMessages =
+        Array.isArray(user.messages)
+            ? user.messages
+            : [];
+
+    function firstValue(obj, keys){
+        for(const key of keys){
+            if(
+                obj &&
+                Object.prototype.hasOwnProperty.call(obj,key) &&
+                obj[key] !== null &&
+                obj[key] !== undefined &&
+                String(obj[key]).trim() !== ""
+            ){
+                return obj[key];
             }
-
-
-            const name =
-                user.name
-                ||
-                user.fullname
-                ||
-                user.username
-                ||
-                "Unknown User";
-
-
-            const image =
-                user.profile_image
-                ||
-                user.photo
-                ||
-                "";
-
-
-            const messages =
-                Array.isArray(
-                    user.messages
-                )
-                    ?
-                    user.messages
-                    :
-                    [];
-
-
-            if(conversationUser){
-
-                conversationUser.innerHTML = `
-
-                    <div class="avatar">
-
-                        ${
-                            image
-
-                                ?
-
-                                `
-                                    <img
-                                        src="${safeAttr(image)}"
-                                        alt="${esc(name)}"
-                                    >
-                                `
-
-                                :
-
-                                `
-                                    ${esc(
-                                        initials(name)
-                                    )}
-                                `
-                        }
-
-                    </div>
-
-
-                    <div>
-
-                        <h6>
-                            ${esc(name)}
-                        </h6>
-
-                        <span>
-                            ${messages.length} Messages
-                        </span>
-
-                    </div>
-
-                `;
-
-            }
-
-
-            if(!messages.length){
-
-                chat.innerHTML = `
-
-                    <div class="ai-empty">
-
-                        <i
-                            data-feather="message-square"
-                            class="empty-icon"
-                        ></i>
-
-                        <h5>
-                            No Messages
-                        </h5>
-
-                        <p>
-                            This user has no AI conversation.
-                        </p>
-
-                    </div>
-
-                `;
-
-
-                refreshIcons();
-
-                return;
-
-            }
-
-
-            chat.innerHTML =
-                messages.map(
-                    function(m){
-
-                        /*
-                           IMPORTANT:
-                           cleanMessage() removes the unwanted
-                           whitespace created by MongoDB/API or
-                           template formatting.
-                        */
-
-                        const userMessage =
-                            cleanMessage(
-                                m.user_message
-                                ||
-                                ""
-                            );
-
-
-                        const assistantMessage =
-                            cleanMessage(
-                                m.assistant_message
-                                ||
-                                ""
-                            );
-
-
-                        const created =
-                            m.created_at_local
-                            ||
-                            m.created_at
-                            ||
-                            m.created_at_utc
-                            ||
-                            "";
-
-
-                        const updated =
-                            m.updated_at_local
-                            ||
-                            m.created_at_local
-                            ||
-                            m.updated_at
-                            ||
-                            m.created_at
-                            ||
-                            "";
-
-
-                        const messageId =
-                            String(
-                                m.id ?? ""
-                            );
-
-
-                        return `
-
-                            <!-- ==================================
-                                 USER MESSAGE
-                            =================================== -->
-
-                            <div class="msg-row user">
-
-                                <div class="msg">
-
-                                    <div class="bubble">${esc(userMessage)}</div>
-
-                                    <div class="time">
-                                        ${esc(
-                                            dt(created)
-                                        )}
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            <!-- ==================================
-                                 AI MESSAGE
-                            =================================== -->
-
-                            <div
-                                class="msg-row ai"
-                                data-ai-message="true"
-                                data-message-id="${safeAttr(messageId)}"
-                            >
-
-                                <div class="msg">
-
-                                    <div class="bubble">${esc(assistantMessage)}</div>
-
-
-                                    <div class="time">
-                                        ${esc(
-                                            dt(updated)
-                                        )}
-                                    </div>
-
-
-                                    <!-- ==========================
-                                         AI ACTIONS
-                                    =========================== -->
-
-                                    <div class="ai-message-actions">
-
-                                        <button
-                                            type="button"
-                                            class="ai-edit-btn"
-                                            data-action="edit"
-                                            data-id="${safeAttr(messageId)}"
-                                            title="Edit message"
-                                            aria-label="Edit message"
-                                        >
-                                            Edit
-                                        </button>
-
-
-                                        <button
-                                            type="button"
-                                            class="ai-delete-btn"
-                                            data-action="delete"
-                                            data-id="${safeAttr(messageId)}"
-                                            title="Delete message"
-                                            aria-label="Delete message"
-                                        >
-                                            Delete
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                        `;
-
-                    }
-                ).join("");
-
-
-            chat.scrollTop =
-                chat.scrollHeight;
-
-
-            bindAiMessageEvents();
-
-            refreshIcons();
-
+        }
+        return "";
+    }
+
+    /*
+       Remove accidental indentation/multiple spaces from user SMS.
+       Intentional line breaks are preserved.
+    */
+    function normalizeUserText(value){
+        return String(value || "")
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n")
+            .split("\n")
+            .map(function(line){
+                return line.replace(/[ \t]+/g, " ").trim();
+            })
+            .join("\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim();
+    }
+
+    function normalizeMessage(item, index){
+
+        /* A plain string is treated as a user message. */
+        if(typeof item === "string"){
+            return {
+                index:index,
+                id:"",
+                user_message:item,
+                assistant_message:"",
+                created_at:item.created_at || "",
+                updated_at:""
+            };
         }
 
+        const m = item || {};
 
-        /* ========================================================
-           AI MESSAGE HOVER / TOUCH
-        ======================================================== */
+        const userMessage = firstValue(m,[
+            "user_message",
+            "userMessage",
+            "question",
+            "prompt",
+            "query",
+            "user_text",
+            "message"
+        ]);
 
-        function bindAiMessageEvents(){
+        const assistantMessage = firstValue(m,[
+            "assistant_message",
+            "assistantMessage",
+            "answer",
+            "response",
+            "reply",
+            "ai_message",
+            "aiMessage",
+            "assistant_text"
+        ]);
+
+        return {
+            ...m,
+            index:index,
+            id:firstValue(m,["id","_id","message_id"]),
+            user_message:String(userMessage || ""),
+            assistant_message:String(assistantMessage || ""),
+            created_at:firstValue(m,[
+                "created_at_local",
+                "created_at",
+                "created_at_utc",
+                "timestamp",
+                "time",
+                "date"
+            ]),
+            updated_at:firstValue(m,[
+                "updated_at_local",
+                "updated_at",
+                "edited_at"
+            ])
+        };
+    }
+
+    const messages = rawMessages
+        .map(normalizeMessage)
+        .filter(function(m){
+            return (
+                String(m.user_message || "").trim() !== "" ||
+                String(m.assistant_message || "").trim() !== ""
+            );
+        })
+        .sort(function(a,b){
+
+            const ta =
+                a.created_at
+                    ? new Date(a.created_at).getTime()
+                    : NaN;
+
+            const tb =
+                b.created_at
+                    ? new Date(b.created_at).getTime()
+                    : NaN;
+
+            if(!Number.isNaN(ta) && !Number.isNaN(tb)){
+                return ta - tb;
+            }
+
+            if(!Number.isNaN(ta)) return -1;
+            if(!Number.isNaN(tb)) return 1;
+
+            return a.index - b.index;
+        });
+
+    if(conversationUser){
+
+        conversationUser.innerHTML = `
+            <div class="avatar">
+                ${
+                    image
+                        ?
+                        `
+                            <img
+                                src="${safeAttr(image)}"
+                                alt="${esc(name)}"
+                                loading="lazy"
+                                onerror="this.style.display='none';this.parentElement.classList.add('avatar-fallback');this.parentElement.innerHTML='${esc(initials(name))}'"
+                            >
+                        `
+                        :
+                        `
+                            ${esc(initials(name))}
+                        `
+                }
+            </div>
+
+            <div>
+                <h6>${esc(name)}</h6>
+                <span>${messages.length} Messages</span>
+            </div>
+        `;
+    }
+
+    if(!messages.length){
+
+        chat.innerHTML = `
+            <div class="ai-empty">
+                <i data-feather="message-square" class="empty-icon"></i>
+                <h5>No Messages</h5>
+                <p>This user has no AI conversation.</p>
+            </div>
+        `;
+
+        refreshIcons();
+        return;
+    }
+
+    /* ========================================================
+       MARKDOWN + DOMPURIFY
+    ======================================================== */
+
+    if(
+        typeof marked !== "undefined" &&
+        typeof marked.setOptions === "function"
+    ){
+        marked.setOptions({
+            gfm:true,
+            breaks:true
+        });
+    }
+
+    function markdownToSafeHtml(value){
+
+        const source =
+            String(value || "").trim();
+
+        if(!source){
+            return "";
+        }
+
+        try{
+
+            if(
+                typeof marked !== "undefined" &&
+                typeof marked.parse === "function" &&
+                typeof DOMPurify !== "undefined" &&
+                typeof DOMPurify.sanitize === "function"
+            ){
+
+                const rendered =
+                    marked.parse(source);
+
+                return DOMPurify.sanitize(
+                    rendered,
+                    {
+                        USE_PROFILES:{ html:true },
+                        ALLOWED_URI_REGEXP:/^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i
+                    }
+                );
+            }
+
+        }catch(error){
+            console.warn("Markdown render failed:",error);
+        }
+
+        return esc(source).replace(/\n/g,"<br>");
+    }
+
+    function parseDate(value){
+        if(!value) return null;
+
+        const d = new Date(value);
+
+        return Number.isNaN(d.getTime())
+            ? null
+            : d;
+    }
+
+    function dateKey(value){
+
+        const parsed = parseDate(value);
+
+        if(!parsed){
+            return "";
+        }
+
+        try{
+            const parts = new Intl.DateTimeFormat(
+                "en-CA",
+                {
+                    year:"numeric",
+                    month:"2-digit",
+                    day:"2-digit",
+                    timeZone:USER_TIMEZONE
+                }
+            ).formatToParts(parsed);
+
+            const map = {};
+            parts.forEach(function(part){
+                if(part.type !== "literal"){
+                    map[part.type] = part.value;
+                }
+            });
+
+            return `${map.year}-${map.month}-${map.day}`;
+
+        }catch(error){
+            return parsed.toISOString().slice(0,10);
+        }
+    }
+
+    function datePartsFromKey(key){
+        const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
+
+        if(!match){
+            return null;
+        }
+
+        return {
+            year:Number(match[1]),
+            month:Number(match[2]),
+            day:Number(match[3])
+        };
+    }
+
+    function shiftDateKey(key, amount){
+
+        const p = datePartsFromKey(key);
+
+        if(!p){
+            return "";
+        }
+
+        const d = new Date(
+            Date.UTC(p.year,p.month - 1,p.day)
+        );
+
+        d.setUTCDate(d.getUTCDate() + amount);
+
+        return [
+            d.getUTCFullYear(),
+            String(d.getUTCMonth()+1).padStart(2,"0"),
+            String(d.getUTCDate()).padStart(2,"0")
+        ].join("-");
+    }
+
+    function dateSeparatorLabel(value){
+
+        const parsed = parseDate(value);
+
+        if(!parsed){
+            return "Unknown date";
+        }
+
+        const key = dateKey(parsed);
+        const todayKey = dateKey(new Date());
+        const yesterdayKey = shiftDateKey(todayKey,-1);
+
+        if(key === todayKey){
+            return "Today";
+        }
+
+        if(key === yesterdayKey){
+            return "Yesterday";
+        }
+
+        try{
+            return new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    month:"long",
+                    day:"numeric",
+                    year:"numeric",
+                    timeZone:USER_TIMEZONE
+                }
+            ).format(parsed);
+        }catch(error){
+            return parsed.toLocaleDateString("en-US");
+        }
+    }
+
+    function timeOnly(value){
+
+        const parsed = parseDate(value);
+
+        if(!parsed){
+            return "";
+        }
+
+        try{
+            return new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    hour:"2-digit",
+                    minute:"2-digit",
+                    hour12:true,
+                    timeZone:USER_TIMEZONE
+                }
+            ).format(parsed);
+        }catch(error){
+            return parsed.toLocaleTimeString("en-US",{
+                hour:"2-digit",
+                minute:"2-digit",
+                hour12:true
+            });
+        }
+    }
+
+    function editedLabel(message){
+
+        const original = parseDate(message.created_at);
+        const updated = parseDate(message.updated_at);
+
+        if(!original || !updated){
+            return "";
+        }
+
+        return Math.abs(
+            updated.getTime() - original.getTime()
+        ) > 1000
+            ? `<span class="edited-label">edited</span>`
+            : "";
+    }
+
+    function renderSuggestions(listData){
+
+        if(!Array.isArray(listData) || !listData.length){
+            return "";
+        }
+
+        return `
+            <div class="ai-suggestions" aria-label="Suggestions">
+                ${
+                    listData
+                        .slice(0,8)
+                        .map(function(item){
+
+                            const value =
+                                typeof item === "string"
+                                    ? item
+                                    : (
+                                        item?.text ||
+                                        item?.label ||
+                                        ""
+                                    );
+
+                            if(!String(value).trim()){
+                                return "";
+                            }
+
+                            return `
+                                <button
+                                    type="button"
+                                    class="ai-suggestion-chip"
+                                    data-suggestion="${safeAttr(String(value))}"
+                                >
+                                    ${esc(String(value))}
+                                </button>
+                            `;
+                        })
+                        .join("")
+                }
+            </div>
+        `;
+    }
+
+    /* ========================================================
+       BUILD CHAT EXACTLY AS A REAL CONVERSATION
+       Date separator -> user message -> AI response -> time
+    ======================================================== */
+
+    let previousDateKey = "";
+    const htmlParts = [];
+
+    messages.forEach(function(m){
+
+        const userMessage =
+            String(m.user_message || "").trim();
+
+        const assistantMessage =
+            String(m.assistant_message || "").trim();
+
+        const created = m.created_at || "";
+        const assistantTime =
+            m.updated_at ||
+            m.created_at ||
+            "";
+
+        const currentDateKey =
+            dateKey(created || assistantTime);
+
+        if(
+            currentDateKey &&
+            currentDateKey !== previousDateKey
+        ){
+
+            htmlParts.push(`
+                <div class="chat-date" data-date-key="${safeAttr(currentDateKey)}">
+                    <span>${esc(dateSeparatorLabel(created || assistantTime))}</span>
+                </div>
+            `);
+
+            previousDateKey = currentDateKey;
+        }
+
+        /* USER MESSAGE */
+        if(userMessage){
+
+            htmlParts.push(`
+                <div class="ai-message-row user msg-row user">
+                    <div class="msg">
+                        <div class="bubble">
+                            <div class="message-text">${esc(normalizeUserText(userMessage))}</div>
+                        </div>
+
+                        <div class="ai-message-time user-time">
+                            ${esc(timeOnly(created))}
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        /* ASSISTANT MESSAGE */
+        if(assistantMessage){
+
+            const messageId =
+                String(
+                    m.id ??
+                    m._id ??
+                    m.message_id ??
+                    ""
+                );
+
+            const safeMarkdown =
+                markdownToSafeHtml(assistantMessage);
+
+            htmlParts.push(`
+                <div
+                    class="ai-message-row assistant msg-row ai"
+                    data-ai-message="true"
+                    data-message-id="${safeAttr(messageId)}"
+                >
+                    <div class="msg">
+
+                        <div class="bubble ai-message assistant">
+                            <div class="ai-message-content">
+                                ${safeMarkdown}
+                            </div>
+                        </div>
+
+                        <div class="ai-message-time assistant-time">
+                            ${esc(timeOnly(assistantTime))}
+                            ${editedLabel(m)}
+                        </div>
+
+                        <div class="ai-message-actions">
+
+                            <button
+                                type="button"
+                                class="ai-edit-btn"
+                                data-action="edit"
+                                data-id="${safeAttr(messageId)}"
+                                title="Edit message"
+                                aria-label="Edit message"
+                            >
+                                <i data-feather="edit-3"></i>
+                                <span>Edit</span>
+                            </button>
+
+                            <button
+                                type="button"
+                                class="ai-delete-btn"
+                                data-action="delete"
+                                data-id="${safeAttr(messageId)}"
+                                title="Delete message"
+                                aria-label="Delete message"
+                            >
+                                <i data-feather="trash-2"></i>
+                                <span>Delete</span>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            `);
+        }
+
+        if(
+            Array.isArray(m.suggestions) &&
+            m.suggestions.length
+        ){
+            htmlParts.push(
+                renderSuggestions(m.suggestions)
+            );
+        }
+    });
+
+    chat.innerHTML = htmlParts.join("");
+
+    refreshIcons();
+
+    /* Scroll after DOM + icons are ready. */
+    requestAnimationFrame(function(){
+        chat.scrollTop = chat.scrollHeight;
+    });
+
+    bindAiMessageEvents();
+}
+
+function bindAiMessageEvents(){
 
             const rows =
                 chat.querySelectorAll(
@@ -3885,6 +5101,63 @@ document.addEventListener(
             );
 
         }
+
+
+
+        /* ========================================================
+           SUGGESTION CHIP CLICK
+           History pages may receive optional suggestions from API.
+        ======================================================== */
+
+        chat.addEventListener(
+            "click",
+            function(event){
+
+                if(!event.target){
+                    return;
+                }
+
+                const suggestion =
+                    event.target.closest(
+                        ".ai-suggestion-chip"
+                    );
+
+                if(!suggestion){
+                    return;
+                }
+
+                const value =
+                    suggestion.dataset.suggestion ||
+                    "";
+
+                if(!value){
+                    return;
+                }
+
+                /*
+                 * If the main AI Assistant composer exists on the page,
+                 * populate it without forcing a page refresh.
+                 */
+                const composer =
+                    document.querySelector(
+                        "#messageInput, #chatInput, textarea[name='message'], input[name='message']"
+                    );
+
+                if(composer){
+
+                    composer.value = value;
+
+                    composer.dispatchEvent(
+                        new Event(
+                            "input",
+                            {bubbles:true}
+                        )
+                    );
+
+                    composer.focus();
+                }
+            }
+        );
 
 
         /* ========================================================
@@ -5015,3 +6288,47 @@ document.addEventListener(
 </script>
 
 {% endblock %}
+
+<style id="small-message-font-final">
+/* FINAL SMALL MESSAGE FONT */
+.ai-message-row.user .bubble,
+.ai-message-row.assistant .bubble,
+.ai-message-content,
+.ai-message.assistant .ai-message-content {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+}
+.ai-message-row.user .bubble {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+}
+.ai-message-row.assistant .bubble {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+}
+.ai-message.assistant .ai-message-content p {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    margin-bottom: 8px !important;
+}
+.ai-message.assistant .ai-message-content li {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+    margin-bottom: 5px !important;
+}
+.ai-message.assistant .ai-message-content h1 { font-size: 17px !important; }
+.ai-message.assistant .ai-message-content h2 { font-size: 16px !important; }
+.ai-message.assistant .ai-message-content h3 { font-size: 15px !important; }
+.ai-message.assistant .ai-message-content h4 { font-size: 13px !important; }
+.ai-message.assistant .ai-message-content h5 { font-size: 12px !important; }
+.ai-message.assistant .ai-message-content h6 { font-size: 11px !important; }
+.ai-message-time { font-size: 9px !important; }
+@media (max-width: 576px) {
+    .ai-message-row.user .bubble,
+    .ai-message-row.assistant .bubble,
+    .ai-message-content,
+    .ai-message.assistant .ai-message-content,
+    .ai-message.assistant .ai-message-content p,
+    .ai-message.assistant .ai-message-content li { font-size: 11.5px !important; }
+}
+</style>
