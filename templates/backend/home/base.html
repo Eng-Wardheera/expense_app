@@ -749,6 +749,57 @@
 
 
         /* ========================================================
+           WHATSAPP-STYLE DATE SEPARATOR
+           ======================================================== */
+
+        .ai-date-separator {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 18px 0 14px;
+            padding: 0 8px;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .ai-date-separator-label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 26px;
+            padding: 5px 11px;
+            border-radius: 8px;
+            background: #e2e8f0;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 600;
+            line-height: 1.2;
+            letter-spacing: .01em;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+        }
+
+        [data-bs-theme="dark"]
+        .ai-date-separator-label {
+            background: #334155;
+            color: #cbd5e1;
+            box-shadow: none;
+        }
+
+        @media (max-width: 576px) {
+            .ai-date-separator {
+                margin: 15px 0 11px;
+            }
+            .ai-date-separator-label {
+                min-height: 25px;
+                padding: 5px 10px;
+                font-size: 10px;
+                border-radius: 7px;
+            }
+        }
+
+
+        /* ========================================================
            ACTIONS
            ======================================================== */
 
@@ -2152,7 +2203,38 @@
 
         }
 
-    </style>
+    
+/* =========================================================
+   AI ASSISTANT — MARKDOWN SPACING
+   ========================================================= */
+.ai-message.assistant .ai-message-content {
+    line-height: 1.65;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+}
+
+.ai-message.assistant .ai-message-content li {
+    margin: 0 0 8px;
+    padding: 0;
+    line-height: 1.55;
+}
+
+.ai-message.assistant .ai-message-content li > p {
+    margin: 0;
+    padding: 0;
+}
+
+.ai-message.assistant .ai-message-content h1 + ul,
+.ai-message.assistant .ai-message-content h1 + ol,
+.ai-message.assistant .ai-message-content h2 + ul,
+.ai-message.assistant .ai-message-content h2 + ol,
+.ai-message.assistant .ai-message-content h3 + ul,
+.ai-message.assistant .ai-message-content h3 + ol {
+    margin-top: 3px;
+}
+
+</style>
 
 </head>
 
@@ -2609,6 +2691,10 @@
 
 
 
+<script src="https://unpkg.com/feather-icons"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
 <!-- ============================================================
      AI ASSISTANT JAVASCRIPT
      FULLY UPDATED
@@ -2758,6 +2844,167 @@ document.addEventListener("DOMContentLoaded", function () {
 
         }
 
+    }
+
+
+    /* =========================================================
+       MARKDOWN + SANITIZE
+       ========================================================= */
+
+    function escapeHTML(text) {
+
+        const div = document.createElement("div");
+        div.textContent = String(text || "");
+        return div.innerHTML;
+
+    }
+
+    function renderAIContent(text) {
+
+        const source = String(text || "");
+
+        if (
+            typeof marked === "undefined" ||
+            typeof DOMPurify === "undefined"
+        ) {
+            return escapeHTML(source);
+        }
+
+        try {
+            const html = marked.parse(source, {
+                breaks: true,
+                gfm: true
+            });
+
+            return DOMPurify.sanitize(html, {
+                USE_PROFILES: { html: true }
+            });
+        }
+        catch (error) {
+            console.error("AI Markdown Render Error:", error);
+            return escapeHTML(source);
+        }
+
+    }
+
+    /* =========================================================
+       MARKDOWN SPACING
+       ========================================================= */
+
+    function injectMarkdownStyles() {
+
+        if (document.getElementById("aiMarkdownSpacingStyles")) {
+            return;
+        }
+
+        const style = document.createElement("style");
+        style.id = "aiMarkdownSpacingStyles";
+
+        style.textContent = `
+            .ai-message-content {
+                line-height: 1.75;
+                word-break: break-word;
+            }
+
+            .ai-message-content h1,
+            .ai-message-content h2,
+            .ai-message-content h3,
+            .ai-message-content h4,
+            .ai-message-content h5,
+            .ai-message-content h6 {
+                margin-top: 24px;
+                margin-bottom: 12px;
+                line-height: 1.35;
+                font-weight: 700;
+            }
+
+            .ai-message-content h1:first-child,
+            .ai-message-content h2:first-child,
+            .ai-message-content h3:first-child,
+            .ai-message-content h4:first-child,
+            .ai-message-content h5:first-child,
+            .ai-message-content h6:first-child {
+                margin-top: 0;
+            }
+
+            .ai-message-content h1 { font-size: 1.45rem; }
+            .ai-message-content h2 { font-size: 1.30rem; }
+            .ai-message-content h3 { font-size: 1.15rem; }
+            .ai-message-content h4 { font-size: 1.05rem; }
+            .ai-message-content h5 { font-size: 1rem; }
+            .ai-message-content h6 { font-size: .95rem; }
+
+            .ai-message-content p {
+                margin-top: 0;
+                margin-bottom: 14px;
+            }
+
+            .ai-message-content p:last-child {
+                margin-bottom: 0;
+            }
+
+            .ai-message-content ul,
+            .ai-message-content ol {
+                margin-top: 8px;
+                margin-bottom: 16px;
+                padding-left: 24px;
+            }
+
+            .ai-message-content li { margin-bottom: 7px; }
+            .ai-message-content li:last-child { margin-bottom: 0; }
+
+            .ai-message-content li > ul,
+            .ai-message-content li > ol {
+                margin-top: 7px;
+                margin-bottom: 7px;
+            }
+
+            .ai-message-content hr {
+                margin: 22px 0;
+                border: 0;
+                border-top: 1px solid rgba(127, 127, 127, .22);
+            }
+
+            .ai-message-content blockquote {
+                margin: 16px 0;
+                padding: 10px 16px;
+                border-left: 4px solid currentColor;
+                opacity: .9;
+            }
+
+            .ai-message-content pre {
+                margin: 18px 0;
+                padding: 15px;
+                overflow-x: auto;
+                border-radius: 10px;
+            }
+
+            .ai-message-content code { font-size: .9em; }
+
+            .ai-message-content table {
+                width: 100%;
+                margin: 18px 0;
+                border-collapse: collapse;
+            }
+
+            .ai-message-content th,
+            .ai-message-content td {
+                padding: 9px 11px;
+                border: 1px solid rgba(127, 127, 127, .22);
+                text-align: left;
+            }
+
+            .ai-message-content img {
+                max-width: 100%;
+                height: auto;
+                border-radius: 10px;
+                margin: 12px 0;
+            }
+
+            .ai-message-content a { text-decoration: underline; }
+        `;
+
+        document.head.appendChild(style);
     }
 
 
@@ -2919,6 +3166,169 @@ document.addEventListener("DOMContentLoaded", function () {
 
         }
 
+    }
+
+
+    /* =========================================================
+       WHATSAPP-STYLE DATE HELPERS
+       ========================================================= */
+
+    function getDatePartsInUserTimezone(
+        dateValue = null
+    ) {
+
+        if (!dateValue) {
+            return null;
+        }
+
+        const date = new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return null;
+        }
+
+        try {
+
+            const parts = new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    timeZone: USER_TIMEZONE,
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit"
+                }
+            ).formatToParts(date);
+
+            const values = {};
+
+            parts.forEach(function (part) {
+                if (part.type !== "literal") {
+                    values[part.type] = part.value;
+                }
+            });
+
+            if (!values.year || !values.month || !values.day) {
+                return null;
+            }
+
+            return {
+                year: values.year,
+                month: values.month,
+                day: values.day,
+                key:
+                    values.year +
+                    "-" +
+                    values.month +
+                    "-" +
+                    values.day
+            };
+
+        }
+        catch (error) {
+
+            console.warn(
+                "AI Assistant: unable to format date in user timezone.",
+                error
+            );
+
+            return null;
+        }
+    }
+
+
+    function getDateSeparatorLabel(
+        dateValue = null
+    ) {
+
+        const parts = getDatePartsInUserTimezone(dateValue);
+
+        if (!parts) {
+            return "";
+        }
+
+        const now = new Date();
+
+        const today = getDatePartsInUserTimezone(now);
+
+        const yesterday = getDatePartsInUserTimezone(
+            now.getTime() - (24 * 60 * 60 * 1000)
+        );
+
+        if (today && parts.key === today.key) {
+            return "Today";
+        }
+
+        if (yesterday && parts.key === yesterday.key) {
+            return "Yesterday";
+        }
+
+        const date = new Date(dateValue);
+
+        try {
+            return new Intl.DateTimeFormat(
+                "en-US",
+                {
+                    timeZone: USER_TIMEZONE,
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                }
+            ).format(date);
+        }
+        catch (error) {
+            return date.toLocaleDateString();
+        }
+    }
+
+
+    function refreshDateSeparators() {
+
+        messages
+            .querySelectorAll(".ai-date-separator")
+            .forEach(function (separator) {
+                separator.remove();
+            });
+
+        const messageElements = messages.querySelectorAll(
+            ".ai-message"
+        );
+
+        let lastDateKey = null;
+
+        messageElements.forEach(function (message) {
+
+            const createdAt = message.dataset.createdAt;
+
+            if (!createdAt) {
+                return;
+            }
+
+            const parts = getDatePartsInUserTimezone(createdAt);
+
+            if (!parts || parts.key === lastDateKey) {
+                return;
+            }
+
+            const label = getDateSeparatorLabel(createdAt);
+
+            if (!label) {
+                return;
+            }
+
+            const separator = document.createElement("div");
+            separator.className = "ai-date-separator";
+            separator.setAttribute("aria-label", label);
+
+            const labelElement = document.createElement("span");
+            labelElement.className = "ai-date-separator-label";
+            labelElement.textContent = label;
+
+            separator.appendChild(labelElement);
+
+            message.parentNode.insertBefore(separator, message);
+
+            lastDateKey = parts.key;
+        });
     }
 
 
@@ -3229,15 +3639,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         /*
-         * Store original date
+         * Store original date.
+         *
+         * A live message may be rendered before the backend
+         * timestamp arrives, so use the current time temporarily.
          */
 
-        if (createdAt) {
+        const effectiveCreatedAt =
+            createdAt ||
+            new Date().toISOString();
 
-            message.dataset.createdAt =
-                String(createdAt);
-
-        }
+        message.dataset.createdAt =
+            String(effectiveCreatedAt);
 
 
         const inner =
@@ -3322,8 +3735,19 @@ document.addEventListener("DOMContentLoaded", function () {
             "ai-message-content";
 
 
-        content.textContent =
-            String(text);
+        if (type === "assistant") {
+
+            content.innerHTML =
+                renderAIContent(text);
+
+        }
+
+        else {
+
+            content.textContent =
+                String(text);
+
+        }
 
 
         /* =====================================================
@@ -3480,15 +3904,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         time.textContent =
             getTime(
-                createdAt
+                effectiveCreatedAt
             );
 
 
-        if (createdAt) {
+        if (effectiveCreatedAt) {
 
             time.title =
                 formatDateTime(
-                    createdAt
+                    effectiveCreatedAt
                 );
 
         }
@@ -3526,6 +3950,11 @@ document.addEventListener("DOMContentLoaded", function () {
         messages.appendChild(
             message
         );
+
+        /*
+         * WhatsApp-style Today / Yesterday / date separator.
+         */
+        refreshDateSeparators();
 
 
         refreshIcons();
@@ -3938,6 +4367,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
 
+            refreshDateSeparators();
+
             rebuildConversationHistory();
 
             scrollBottom();
@@ -4162,6 +4593,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         message.remove();
+
+        refreshDateSeparators();
 
 
         rebuildConversationHistory();
@@ -4440,6 +4873,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 }
 
+                refreshDateSeparators();
+
 
                 /*
                  * Find existing assistant.
@@ -4484,8 +4919,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             assistantContent
                         ) {
 
-                            assistantContent.textContent =
-                                answer;
+                            assistantContent.innerHTML =
+                                renderAIContent(answer);
 
                         }
 
@@ -4580,7 +5015,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
 
-                rebuildConversationHistory();
+                refreshDateSeparators();
+
+
+        rebuildConversationHistory();
 
 
                 return;
@@ -5204,6 +5642,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
             }
 
+            refreshDateSeparators();
+
 
             /*
              * Assistant history
@@ -5662,6 +6102,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     autoResize();
 
+    injectMarkdownStyles();
+
     refreshIcons();
 
     handleVisualViewport();
@@ -5699,7 +6141,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 </script>
-
 
 
 
