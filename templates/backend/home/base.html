@@ -6602,6 +6602,785 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
+<script>
+(function () {
+
+    "use strict";
+
+    /* =========================================================
+       GLOBAL SESSION LIVE MONITOR
+       ---------------------------------------------------------
+       - Works from dashboard and every authenticated page
+       - No page reload required
+       - Detects remote logout
+       - Redirects immediately to login
+       - Keeps Active Sessions live
+       - Refreshes when tab becomes visible again
+       ========================================================= */
+
+    const SESSION_CHECK_INTERVAL = 5000;
+    const ACTIVE_SESSIONS_INTERVAL = 5000;
+
+    let sessionCheckTimer = null;
+    let activeSessionsTimer = null;
+
+    let sessionCheckRunning = false;
+    let activeSessionsRunning = false;
+
+    let redirectingToLogin = false;
+
+
+    /* =========================================================
+       LOGIN REDIRECT
+       ========================================================= */
+
+    function forceLogoutAndRedirect(message) {
+
+        if (redirectingToLogin) {
+            return;
+        }
+
+        redirectingToLogin = true;
+
+        /*
+         * Stop all polling immediately.
+         */
+        if (sessionCheckTimer) {
+            clearInterval(sessionCheckTimer);
+            sessionCheckTimer = null;
+        }
+
+        if (activeSessionsTimer) {
+            clearInterval(activeSessionsTimer);
+            activeSessionsTimer = null;
+        }
+
+        /*
+         * Optional message.
+         * Stored temporarily so login page can display it
+         * if your login template supports it.
+         */
+        try {
+            sessionStorage.setItem(
+                "forced_logout_message",
+                message ||
+                "Your session has been logged out."
+            );
+        } catch (e) {
+            // Ignore storage errors.
+        }
+
+        /*
+         * IMPORTANT:
+         * No reload of the current dashboard page.
+         *
+         * Browser immediately leaves dashboard and goes
+         * to login page.
+         */
+        window.location.replace(
+            "{{ url_for('main.login') }}"
+        );
+    }
+
+
+    /* =========================================================
+       GENERIC JSON REQUEST
+       ========================================================= */
+
+    async function fetchJson(url, options = {}) {
+
+        const response = await fetch(
+            url,
+            {
+                credentials: "same-origin",
+                cache: "no-store",
+                headers: {
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    ...(options.headers || {})
+                },
+                ...options
+            }
+        );
+
+        /*
+         * 401 means backend has already detected that
+         * this session is no longer valid.
+         */
+        if (response.status === 401) {
+
+            let data = {};
+
+            try {
+                data = await response.json();
+            } catch (e) {
+                // Ignore invalid JSON.
+            }
+
+            if (
+                data.force_logout === true ||
+                data.success === false
+            ) {
+
+                forceLogoutAndRedirect(
+                    data.message ||
+                    "Your session has been logged out."
+                );
+
+                return null;
+            }
+
+            forceLogoutAndRedirect(
+                "Your session has been logged out."
+            );
+
+            return null;
+        }
+
+        if (!response.ok) {
+            return null;
+        }
+
+        try {
+            return await response.json();
+        } catch (e) {
+            return null;
+        }
+    }
+
+
+    /* =========================================================
+       CURRENT SESSION HEARTBEAT
+       ---------------------------------------------------------
+       This is what makes dashboard logout detection work
+       even when the user does nothing.
+       ========================================================= */
+
+    async function checkCurrentSession() {
+
+        if (sessionCheckRunning) {
+            return;
+        }
+
+        if (redirectingToLogin) {
+            return;
+        }
+
+        /*
+         * Only run for authenticated pages.
+         *
+         * Your Flask endpoint below should be available
+         * globally for authenticated users.
+         */
+        sessionCheckRunning = true;
+
+        try {
+
+            const data = await fetchJson(
+                "{{ url_for('main.profile_active_sessions') }}",
+                {
+                    method: "GET"
+                }
+            );
+
+            if (!data) {
+                return;
+            }
+
+            /*
+             * Backend should return success:false / 401
+             * when the current session has been remotely
+             * logged out.
+             */
+
+            if (data.force_logout === true) {
+
+                forceLogoutAndRedirect(
+                    data.message ||
+                    "Your session has been logged out."
+                );
+
+                return;
+            }
+
+            if (data.success !== true) {
+                return;
+            }
+
+            /*
+             * The endpoint returns:
+             *
+             * current_session_token
+             *
+             * and sessions[]
+             */
+
+            const currentToken =
+                String(
+                    data.current_session_token || ""
+                ).trim();
+
+            const sessions =
+                Array.isArray(data.sessions)
+                    ? data.sessions
+                    : [];
+
+            /*
+             * If current session is not among active sessions,
+             * it means this browser session was logged out.
+             *
+             * This is especially useful when another device
+             * used "Log Out All Other Devices".
+             */
+
+            if (currentToken) {
+
+                const currentExists =
+                    sessions.some(function (item) {
+
+                        return (
+                            String(
+                                item.session_token || ""
+                            ).trim()
+                            === currentToken
+                            &&
+                            item.is_current === true
+                        );
+
+                    });
+
+                if (!currentExists) {
+
+                    forceLogoutAndRedirect(
+                        "Your session has been logged out."
+                    );
+
+                    return;
+                }
+            }
+
+        } catch (error) {
+
+            /*
+             * Network/server temporary errors should NOT
+             * immediately log the user out.
+             *
+             * The next heartbeat will try again.
+             */
+
+            console.warn(
+                "Session heartbeat error:",
+                error
+            );
+
+        } finally {
+
+            sessionCheckRunning = false;
+        }
+    }
+
+
+    /* =========================================================
+       RELATIVE TIME
+       ========================================================= */
+
+    function relativeSessionTime(dateValue) {
+
+        if (!dateValue) {
+            return "";
+        }
+
+        const date =
+            new Date(dateValue);
+
+        if (isNaN(date.getTime())) {
+            return "";
+        }
+
+        const now =
+            new Date();
+
+        let seconds =
+            Math.floor(
+                (
+                    now.getTime()
+                    -
+                    date.getTime()
+                ) / 1000
+            );
+
+        /*
+         * Prevent negative values caused by
+         * tiny clock differences.
+         */
+        if (seconds < 0) {
+            seconds = 0;
+        }
+
+        if (seconds < 10) {
+            return "Just now";
+        }
+
+        if (seconds < 60) {
+            return (
+                seconds +
+                " second" +
+                (
+                    seconds === 1
+                        ? ""
+                        : "s"
+                ) +
+                " ago"
+            );
+        }
+
+        const minutes =
+            Math.floor(
+                seconds / 60
+            );
+
+        if (minutes < 60) {
+            return (
+                minutes +
+                " minute" +
+                (
+                    minutes === 1
+                        ? ""
+                        : "s"
+                ) +
+                " ago"
+            );
+        }
+
+        const hours =
+            Math.floor(
+                minutes / 60
+            );
+
+        if (hours < 24) {
+            return (
+                hours +
+                " hour" +
+                (
+                    hours === 1
+                        ? ""
+                        : "s"
+                ) +
+                " ago"
+            );
+        }
+
+        const days =
+            Math.floor(
+                hours / 24
+            );
+
+        if (days === 1) {
+            return "Yesterday";
+        }
+
+        if (days >= 2 && days <= 6) {
+
+            return date.toLocaleDateString(
+                undefined,
+                {
+                    weekday: "long"
+                }
+            );
+        }
+
+        return date.toLocaleDateString(
+            undefined,
+            {
+                month: "long",
+                day: "numeric",
+                year: "numeric"
+            }
+        );
+    }
+
+
+    /* =========================================================
+       UPDATE EXISTING ACTIVE SESSION TIMES
+       ---------------------------------------------------------
+       IMPORTANT:
+       No HTML/template rendering.
+       We only update existing DOM elements.
+       ========================================================= */
+
+    function updateExistingSessionTimes() {
+
+        /*
+         * Supports common existing attributes/classes.
+         *
+         * No new Active Sessions HTML is created here.
+         */
+
+        const elements =
+            document.querySelectorAll(
+                "[data-last-activity], " +
+                "[data-session-last-activity], " +
+                "[data-live-session-time]"
+            );
+
+        elements.forEach(function (element) {
+
+            const timestamp =
+                element.getAttribute(
+                    "data-last-activity"
+                )
+                ||
+                element.getAttribute(
+                    "data-session-last-activity"
+                )
+                ||
+                element.getAttribute(
+                    "data-live-session-time"
+                );
+
+            if (!timestamp) {
+                return;
+            }
+
+            const relative =
+                relativeSessionTime(
+                    timestamp
+                );
+
+            if (!relative) {
+                return;
+            }
+
+            element.textContent =
+                relative;
+        });
+    }
+
+
+    /* =========================================================
+       ACTIVE SESSIONS LIVE REFRESH
+       ---------------------------------------------------------
+       This DOES NOT render a new template.
+       It only refreshes existing session information
+       where matching DOM elements already exist.
+       ========================================================= */
+
+    async function refreshActiveSessions() {
+
+        if (activeSessionsRunning) {
+            return;
+        }
+
+        if (redirectingToLogin) {
+            return;
+        }
+
+        activeSessionsRunning = true;
+
+        try {
+
+            const data =
+                await fetchJson(
+                    "{{ url_for('main.profile_active_sessions') }}",
+                    {
+                        method: "GET"
+                    }
+                );
+
+            if (!data) {
+                return;
+            }
+
+            /*
+             * If backend says session is dead,
+             * immediately leave dashboard.
+             */
+            if (data.force_logout === true) {
+
+                forceLogoutAndRedirect(
+                    data.message ||
+                    "Your session has been logged out."
+                );
+
+                return;
+            }
+
+            if (data.success !== true) {
+                return;
+            }
+
+            const sessions =
+                Array.isArray(data.sessions)
+                    ? data.sessions
+                    : [];
+
+            /*
+             * Update count if existing element exists.
+             *
+             * Example:
+             * <span id="sessionCount">
+             */
+            const countElement =
+                document.getElementById(
+                    "sessionCount"
+                );
+
+            if (countElement) {
+
+                countElement.textContent =
+                    sessions.length;
+            }
+
+            /*
+             * Save latest timestamps in existing DOM.
+             *
+             * We do not create cards.
+             */
+            sessions.forEach(function (item) {
+
+                const token =
+                    String(
+                        item.session_token || ""
+                    ).trim();
+
+                if (!token) {
+                    return;
+                }
+
+                /*
+                 * Find an existing element related
+                 * to this session.
+                 */
+                const elements =
+                    document.querySelectorAll(
+                        "[data-session-token]"
+                    );
+
+                elements.forEach(function (element) {
+
+                    const elementToken =
+                        String(
+                            element.getAttribute(
+                                "data-session-token"
+                            ) || ""
+                        ).trim();
+
+                    if (
+                        elementToken !== token
+                    ) {
+                        return;
+                    }
+
+                    /*
+                     * Find an existing time element
+                     * inside this session card.
+                     */
+                    const timeElement =
+                        element.querySelector(
+                            "[data-last-activity], " +
+                            "[data-session-last-activity], " +
+                            "[data-live-session-time]"
+                        );
+
+                    if (!timeElement) {
+                        return;
+                    }
+
+                    if (
+                        item.last_activity
+                    ) {
+
+                        timeElement.setAttribute(
+                            "data-last-activity",
+                            item.last_activity
+                        );
+
+                        timeElement.textContent =
+                            relativeSessionTime(
+                                item.last_activity
+                            );
+                    }
+                });
+            });
+
+            /*
+             * Update all already existing timers.
+             */
+            updateExistingSessionTimes();
+
+        } catch (error) {
+
+            console.warn(
+                "Active sessions refresh error:",
+                error
+            );
+
+        } finally {
+
+            activeSessionsRunning = false;
+        }
+    }
+
+
+    /* =========================================================
+       EVERY-SECOND TIMER UPDATE
+       ---------------------------------------------------------
+       Makes:
+       Just now
+       12 seconds ago
+       1 minute ago
+       2 minutes ago
+       etc.
+       change without waiting for another request.
+       ========================================================= */
+
+    setInterval(
+        function () {
+
+            if (
+                redirectingToLogin
+            ) {
+                return;
+            }
+
+            updateExistingSessionTimes();
+
+        },
+        1000
+    );
+
+
+    /* =========================================================
+       START POLLING
+       ========================================================= */
+
+    function startLiveMonitoring() {
+
+        if (redirectingToLogin) {
+            return;
+        }
+
+        /*
+         * Immediate check.
+         */
+        checkCurrentSession();
+
+        /*
+         * Immediate Active Sessions refresh.
+         */
+        refreshActiveSessions();
+
+        /*
+         * Avoid duplicate intervals.
+         */
+        if (!sessionCheckTimer) {
+
+            sessionCheckTimer =
+                setInterval(
+                    checkCurrentSession,
+                    SESSION_CHECK_INTERVAL
+                );
+        }
+
+        if (!activeSessionsTimer) {
+
+            activeSessionsTimer =
+                setInterval(
+                    refreshActiveSessions,
+                    ACTIVE_SESSIONS_INTERVAL
+                );
+        }
+    }
+
+
+    /* =========================================================
+       WHEN USER RETURNS TO TAB / SCREEN
+       ========================================================= */
+
+    document.addEventListener(
+        "visibilitychange",
+        function () {
+
+            if (
+                document.visibilityState ===
+                "visible"
+            ) {
+
+                /*
+                 * IMPORTANT:
+                 * Do NOT wait for the next 5-second interval.
+                 *
+                 * Check immediately.
+                 */
+                checkCurrentSession();
+
+                refreshActiveSessions();
+
+                updateExistingSessionTimes();
+            }
+        }
+    );
+
+
+    /* =========================================================
+       WINDOW FOCUS
+       ========================================================= */
+
+    window.addEventListener(
+        "focus",
+        function () {
+
+            checkCurrentSession();
+
+            refreshActiveSessions();
+
+            updateExistingSessionTimes();
+        }
+    );
+
+
+    /* =========================================================
+       BFCACHE / PAGE RETURN
+       ========================================================= */
+
+    window.addEventListener(
+        "pageshow",
+        function () {
+
+            checkCurrentSession();
+
+            refreshActiveSessions();
+
+            updateExistingSessionTimes();
+        }
+    );
+
+
+    /* =========================================================
+       START
+       ========================================================= */
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            startLiveMonitoring
+        );
+
+    } else {
+
+        startLiveMonitoring();
+    }
+
+})();
+</script>
+
+
+
+
     <!-- ============================================================
          INVOICE CALCULATOR
          ============================================================ -->
