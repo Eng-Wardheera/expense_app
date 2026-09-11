@@ -6760,6 +6760,418 @@ def profile_active_sessions():
         }, 500
 
 
+# ============================================================
+# LOGOUT ALL OTHER USER DEVICES
+# ============================================================
+
+@bp.route(
+    "/profile/logout-all-other-devices",
+    methods=["POST"]
+)
+@login_required
+def logout_all_other_devices():
+
+    from bson import ObjectId
+    from datetime import datetime, timezone
+    from werkzeug.security import check_password_hash
+
+    try:
+
+        # ====================================================
+        # CURRENT USER ID
+        # ====================================================
+
+        current_user_id = str(
+            current_user.id
+        ).strip()
+
+        if not current_user_id:
+
+            return {
+                "success": False,
+                "message": "Invalid user account."
+            }, 400
+
+        # ====================================================
+        # CURRENT SESSION TOKEN
+        #
+        # IMPORTANT:
+        # This session MUST remain active.
+        # ====================================================
+
+        current_session_token = str(
+            session.get(
+                "session_token"
+            ) or ""
+        ).strip()
+
+        if not current_session_token:
+
+            return {
+                "success": False,
+                "message": "Current session could not be identified."
+            }, 400
+
+        # ====================================================
+        # GET USER
+        # ====================================================
+
+        user_data = None
+
+        try:
+
+            user_data = mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(
+                        current_user_id
+                    )
+                }
+            )
+
+        except Exception:
+
+            user_data = mongo.db.users.find_one(
+                {
+                    "_id": current_user_id
+                }
+            )
+
+        if not user_data:
+
+            return {
+                "success": False,
+                "message": "User account not found."
+            }, 404
+
+        # ====================================================
+        # PASSWORD
+        # ====================================================
+
+        data = request.get_json(
+            silent=True
+        ) or {}
+
+        password = str(
+            data.get("password") or ""
+        )
+
+        if not password:
+
+            return {
+                "success": False,
+                "message": "Please enter your password."
+            }, 400
+
+        # ====================================================
+        # STORED PASSWORD
+        # ====================================================
+
+        stored_password = str(
+            user_data.get("password") or ""
+        )
+
+        if not stored_password:
+
+            return {
+                "success": False,
+                "message": (
+                    "Password authentication is unavailable."
+                )
+            }, 400
+
+        # ====================================================
+        # VERIFY PASSWORD
+        # ====================================================
+
+        try:
+
+            password_valid = check_password_hash(
+                stored_password,
+                password
+            )
+
+        except Exception as e:
+
+            print(
+                "LOGOUT ALL PASSWORD VERIFY ERROR:",
+                repr(e)
+            )
+
+            password_valid = False
+
+        if not password_valid:
+
+            return {
+                "success": False,
+                "message": "Incorrect password."
+            }, 401
+
+        # ====================================================
+        # USER_SESSIONS
+        #
+        # IMPORTANT:
+        # user_sessions IS THE SOURCE OF TRUTH
+        #
+        # Only active sessions belonging to this user
+        # are affected.
+        #
+        # CURRENT SESSION IS EXCLUDED.
+        # ====================================================
+
+        sessions_collection = (
+            user_sessions_collection()
+        )
+
+        logout_query = {
+            "user_id": current_user_id,
+            "is_active": True,
+            "session_token": {
+                "$ne": current_session_token
+            }
+        }
+
+        # ====================================================
+        # CHECK HOW MANY OTHER ACTIVE SESSIONS EXIST
+        # ====================================================
+
+        try:
+
+            other_active_sessions_count = (
+                sessions_collection.count_documents(
+                    logout_query
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "LOGOUT ALL COUNT ERROR:",
+                repr(e)
+            )
+
+            return {
+                "success": False,
+                "message": (
+                    "Unable to check active devices."
+                )
+            }, 500
+
+        # ====================================================
+        # NOTHING ELSE TO LOGOUT
+        # ====================================================
+
+        if other_active_sessions_count == 0:
+
+            return {
+                "success": True,
+                "logged_out_count": 0,
+                "message": (
+                    "There are no other active devices to log out."
+                )
+            }, 200
+
+        # ====================================================
+        # LOGOUT TIME
+        # ====================================================
+
+        now = datetime.now(
+            timezone.utc
+        )
+
+        # ====================================================
+        # FORCE LOGOUT ALL OTHER SESSIONS
+        # ====================================================
+
+        try:
+
+            result = (
+                sessions_collection
+                .update_many(
+                    logout_query,
+                    {
+                        "$set": {
+                            "is_active": False,
+                            "force_logout": True,
+                            "logout_reason": (
+                                "remote_logout_all"
+                            ),
+                            "logged_out_at": now,
+                            "updated_at": now
+                        }
+                    }
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "LOGOUT ALL OTHER DEVICES ERROR:",
+                repr(e)
+            )
+
+            return {
+                "success": False,
+                "message": (
+                    "Unable to logout other devices."
+                )
+            }, 500
+
+        # ====================================================
+        # UPDATED COUNT
+        # ====================================================
+
+        logged_out_count = (
+            result.modified_count
+        )
+
+        # ====================================================
+        # OPTIONAL LEGACY users.sessions UPDATE
+        #
+        # DO NOT depend on this.
+        #
+        # user_sessions remains the source of truth.
+        # ====================================================
+
+        try:
+
+            sessions_value = user_data.get(
+                "sessions"
+            )
+
+            if isinstance(
+                sessions_value,
+                list
+            ):
+
+                mongo.db.users.update_one(
+                    {
+                        "_id": user_data["_id"]
+                    },
+                    {
+                        "$set": {
+                            "sessions.$[item].is_active": False,
+                            "sessions.$[item].force_logout": True,
+                            "sessions.$[item].logout_reason": (
+                                "remote_logout_all"
+                            ),
+                            "sessions.$[item].logged_out_at": now,
+                            "sessions.$[item].updated_at": now
+                        }
+                    },
+                    array_filters=[
+                        {
+                            "item.is_active": True,
+                            "item.session_token": {
+                                "$ne": current_session_token
+                            }
+                        }
+                    ]
+                )
+
+        except Exception as e:
+
+            # =================================================
+            # OPTIONAL LEGACY UPDATE FAILURE
+            #
+            # Must NOT make the main logout operation fail.
+            # =================================================
+
+            print(
+                "OPTIONAL LEGACY ALL SESSIONS UPDATE ERROR:",
+                repr(e)
+            )
+
+        # ====================================================
+        # VERIFY CURRENT SESSION IS STILL ACTIVE
+        #
+        # EXTRA SAFETY CHECK
+        # ====================================================
+
+        try:
+
+            current_session = (
+                sessions_collection.find_one(
+                    {
+                        "session_token":
+                            current_session_token,
+                        "user_id":
+                            current_user_id,
+                        "is_active":
+                            True
+                    }
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "CURRENT SESSION VERIFY ERROR:",
+                repr(e)
+            )
+
+            current_session = None
+
+        # ====================================================
+        # CURRENT SESSION SHOULD NEVER BE LOGGED OUT
+        # ====================================================
+
+        if not current_session:
+
+            print(
+                "SECURITY WARNING: "
+                "CURRENT SESSION WAS NOT FOUND AFTER "
+                "LOGOUT ALL OTHER DEVICES."
+            )
+
+            return {
+                "success": False,
+                "message": (
+                    "Other devices were processed, "
+                    "but the current session could not be verified."
+                )
+            }, 500
+
+        # ====================================================
+        # SUCCESS
+        # ====================================================
+
+        return {
+            "success": True,
+            "logged_out_count": logged_out_count,
+            "current_session_kept": True,
+            "message": (
+                f"{logged_out_count} other device"
+                f"{'s' if logged_out_count != 1 else ''} "
+                "logged out successfully."
+            )
+        }, 200
+
+    # ========================================================
+    # GLOBAL ERROR
+    # ========================================================
+
+    except Exception as e:
+
+        print(
+            "=" * 70
+        )
+
+        print(
+            "PROFILE LOGOUT ALL OTHER DEVICES ERROR:",
+            repr(e)
+        )
+
+        print(
+            "=" * 70
+        )
+
+        return {
+            "success": False,
+            "message": (
+                "Unable to logout all other devices."
+            )
+        }, 500
+    
 
 # ============================================================
 # LOGOUT OTHER USER SESSION
