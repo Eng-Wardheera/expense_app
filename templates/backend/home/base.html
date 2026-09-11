@@ -785,15 +785,22 @@
          * It remains visible while the conversation is scrolling.
          */
         .ai-date-sticky {
+            /*
+             * WhatsApp behavior:
+             * keep the sticky layer out of the normal message flow.
+             * It only becomes visible after the matching in-flow
+             * date separator has scrolled above the chat viewport.
+             */
             position: sticky;
-            top: 5px;
+            top: 0;
             z-index: 50;
             width: 100%;
+            height: 0;
             min-height: 0;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
-            margin: -1px 0 4px;
+            margin: 0;
             padding: 0 8px;
             pointer-events: none;
             user-select: none;
@@ -801,16 +808,17 @@
 
         .ai-date-sticky-label {
             opacity: 0;
-            transform: translateY(-4px);
+            transform: translateY(-8px);
             transition:
                 opacity .16s ease,
                 transform .16s ease;
+            pointer-events: none;
         }
 
         .ai-date-sticky.is-visible
         .ai-date-sticky-label {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateY(6px);
         }
 
         [data-bs-theme="dark"]
@@ -3540,6 +3548,16 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
+        const containerRect =
+            messages.getBoundingClientRect();
+
+        const separators =
+            Array.from(
+                messages.querySelectorAll(
+                    ".ai-date-separator"
+                )
+            );
+
         const messageElements =
             Array.from(
                 messages.querySelectorAll(
@@ -3547,8 +3565,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 )
             );
 
-        if (messageElements.length === 0) {
-
+        if (
+            separators.length === 0 ||
+            messageElements.length === 0
+        ) {
             dateSticky.classList.remove(
                 "is-visible"
             );
@@ -3563,63 +3583,57 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const containerRect =
-            messages.getBoundingClientRect();
-
-        const stickyRect =
-            dateSticky.getBoundingClientRect();
-
         /*
-         * Find the first message that is at or below
-         * the visible top edge of the scrolling area.
+         * IMPORTANT:
+         *
+         * Do NOT show the sticky date while the normal
+         * date separator is still visible in the viewport.
+         *
+         * This prevents:
+         *
+         *     Wednesday
+         *     Wednesday
+         *
+         * from appearing at the same time.
+         *
+         * Once a date separator has moved above the visible
+         * top of the chat, its date becomes the sticky label.
          */
-        let activeMessage = null;
+        const topBoundary =
+            containerRect.top + 2;
 
-        const threshold =
-            containerRect.top +
-            Math.max(
-                8,
-                stickyRect.height + 6
-            );
+        let activeSeparator = null;
 
         for (
             let i = 0;
-            i < messageElements.length;
+            i < separators.length;
             i++
         ) {
 
-            const rect =
-                messageElements[i]
-                    .getBoundingClientRect();
+            const separator =
+                separators[i];
 
-            if (rect.bottom > threshold) {
-                activeMessage =
-                    messageElements[i];
+            const rect =
+                separator.getBoundingClientRect();
+
+            if (rect.top <= topBoundary) {
+                activeSeparator = separator;
+            }
+            else {
                 break;
             }
         }
 
         /*
-         * If the user has reached the bottom, use the
-         * last available message.
+         * At the very top, no date separator has crossed
+         * the viewport boundary yet, so the normal date
+         * separator should be the only one visible.
          */
-        if (!activeMessage) {
-            activeMessage =
-                messageElements[
-                    messageElements.length - 1
-                ];
-        }
-
-        const createdAt =
-            activeMessage.dataset.createdAt;
-
-        if (!createdAt) {
+        if (!activeSeparator) {
 
             dateSticky.classList.remove(
                 "is-visible"
             );
-
-            dateStickyLabel.textContent = "";
 
             dateSticky.setAttribute(
                 "aria-hidden",
@@ -3629,12 +3643,67 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const label =
-            getDateSeparatorLabel(
-                createdAt
-            );
+        const dateKey =
+            activeSeparator.dataset.dateKey ||
+            "";
+
+        let label =
+            activeSeparator
+                .querySelector(
+                    ".ai-date-separator-label"
+                );
+
+        label = label
+            ? label.textContent.trim()
+            : "";
+
+        /*
+         * If the separator somehow has no label, derive
+         * it from its first message in that date group.
+         */
+        if (!label && dateKey) {
+
+            const nextMessage =
+                messageElements.find(
+                    function (message) {
+
+                        const createdAt =
+                            message.dataset.createdAt;
+
+                        if (!createdAt) {
+                            return false;
+                        }
+
+                        const parts =
+                            getDatePartsInUserTimezone(
+                                createdAt
+                            );
+
+                        return (
+                            parts &&
+                            parts.key === dateKey
+                        );
+                    }
+                );
+
+            if (nextMessage) {
+                label =
+                    getDateSeparatorLabel(
+                        nextMessage.dataset.createdAt
+                    );
+            }
+        }
 
         if (!label) {
+            dateSticky.classList.remove(
+                "is-visible"
+            );
+
+            dateSticky.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
             return;
         }
 
@@ -3717,6 +3786,24 @@ document.addEventListener("DOMContentLoaded", function () {
             scheduleStickyDateRefresh();
         }
     );
+
+
+    /*
+     * Keep the sticky date synchronized when message heights
+     * change because of Markdown rendering, images, editing,
+     * history loading, or mobile viewport changes.
+     */
+    if (typeof ResizeObserver !== "undefined") {
+
+        const aiMessagesResizeObserver =
+            new ResizeObserver(
+                function () {
+                    scheduleStickyDateRefresh();
+                }
+            );
+
+        aiMessagesResizeObserver.observe(messages);
+    }
 
 
     /* =========================================================
