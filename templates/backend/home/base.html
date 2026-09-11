@@ -749,7 +749,7 @@
 
 
         /* ========================================================
-           WHATSAPP-STYLE DATE SEPARATOR
+           WHATSAPP-STYLE DATE SEPARATORS
            ======================================================== */
 
         .ai-date-separator {
@@ -763,7 +763,8 @@
             user-select: none;
         }
 
-        .ai-date-separator-label {
+        .ai-date-separator-label,
+        .ai-date-sticky-label {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -779,8 +780,43 @@
             box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
         }
 
+        /*
+         * WhatsApp-style floating date.
+         * It remains visible while the conversation is scrolling.
+         */
+        .ai-date-sticky {
+            position: sticky;
+            top: 5px;
+            z-index: 50;
+            width: 100%;
+            min-height: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: -1px 0 4px;
+            padding: 0 8px;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .ai-date-sticky-label {
+            opacity: 0;
+            transform: translateY(-4px);
+            transition:
+                opacity .16s ease,
+                transform .16s ease;
+        }
+
+        .ai-date-sticky.is-visible
+        .ai-date-sticky-label {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         [data-bs-theme="dark"]
-        .ai-date-separator-label {
+        .ai-date-separator-label,
+        [data-bs-theme="dark"]
+        .ai-date-sticky-label {
             background: #334155;
             color: #cbd5e1;
             box-shadow: none;
@@ -790,11 +826,18 @@
             .ai-date-separator {
                 margin: 15px 0 11px;
             }
-            .ai-date-separator-label {
+
+            .ai-date-separator-label,
+            .ai-date-sticky-label {
                 min-height: 25px;
                 padding: 5px 10px;
                 font-size: 10px;
                 border-radius: 7px;
+            }
+
+            .ai-date-sticky {
+                top: 4px;
+                margin-bottom: 3px;
             }
         }
 
@@ -2375,6 +2418,23 @@
             class="ai-messages"
             id="aiAssistantMessages">
 
+            <!--
+                 WHATSAPP-STYLE STICKY DATE
+                 This stays visible while messages scroll.
+            -->
+            <div
+                class="ai-date-sticky"
+                id="aiDateSticky"
+                aria-live="polite"
+                aria-hidden="true">
+
+                <span
+                    class="ai-date-sticky-label"
+                    id="aiDateStickyLabel">
+                </span>
+
+            </div>
+
             <div class="ai-welcome">
 
                 <div class="ai-welcome-icon">
@@ -2729,6 +2789,12 @@ document.addEventListener("DOMContentLoaded", function () {
     const messages =
         document.getElementById("aiAssistantMessages");
 
+    const dateSticky =
+        document.getElementById("aiDateSticky");
+
+    const dateStickyLabel =
+        document.getElementById("aiDateStickyLabel");
+
     const suggestions =
         document.getElementById("aiSuggestions");
 
@@ -2746,6 +2812,8 @@ document.addEventListener("DOMContentLoaded", function () {
         !input ||
         !sendButton ||
         !messages ||
+        !dateSticky ||
+        !dateStickyLabel ||
         !suggestions ||
         !editingBar ||
         !cancelEditButton
@@ -3202,9 +3270,11 @@ document.addEventListener("DOMContentLoaded", function () {
             const values = {};
 
             parts.forEach(function (part) {
+
                 if (part.type !== "literal") {
                     values[part.type] = part.value;
                 }
+
             });
 
             if (!values.year || !values.month || !values.day) {
@@ -3236,35 +3306,113 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    /*
+     * Convert a timezone date into a UTC midnight value.
+     * This lets us compare calendar days rather than 24-hour periods.
+     * That is important around midnight and daylight-saving changes.
+     */
+    function getCalendarDayNumber(
+        dateValue = null
+    ) {
+
+        const parts =
+            getDatePartsInUserTimezone(dateValue);
+
+        if (!parts) {
+            return null;
+        }
+
+        return Date.UTC(
+            Number(parts.year),
+            Number(parts.month) - 1,
+            Number(parts.day)
+        ) /
+        (24 * 60 * 60 * 1000);
+    }
+
+
+    function getCalendarDayAge(
+        dateValue = null
+    ) {
+
+        const messageDay =
+            getCalendarDayNumber(dateValue);
+
+        const todayDay =
+            getCalendarDayNumber(new Date());
+
+        if (
+            messageDay === null ||
+            todayDay === null
+        ) {
+            return null;
+        }
+
+        return todayDay - messageDay;
+    }
+
+
     function getDateSeparatorLabel(
         dateValue = null
     ) {
 
-        const parts = getDatePartsInUserTimezone(dateValue);
+        const parts =
+            getDatePartsInUserTimezone(dateValue);
 
         if (!parts) {
             return "";
         }
 
-        const now = new Date();
+        const age =
+            getCalendarDayAge(dateValue);
 
-        const today = getDatePartsInUserTimezone(now);
-
-        const yesterday = getDatePartsInUserTimezone(
-            now.getTime() - (24 * 60 * 60 * 1000)
-        );
-
-        if (today && parts.key === today.key) {
+        /*
+         * WhatsApp-style rules:
+         *
+         * 0  = Today
+         * 1  = Yesterday
+         * 2-6 = weekday name
+         * 7+ = full calendar date
+         */
+        if (age === 0) {
             return "Today";
         }
 
-        if (yesterday && parts.key === yesterday.key) {
+        if (age === 1) {
             return "Yesterday";
+        }
+
+        if (
+            age !== null &&
+            age >= 2 &&
+            age <= 6
+        ) {
+
+            const date = new Date(dateValue);
+
+            try {
+
+                return new Intl.DateTimeFormat(
+                    "en-US",
+                    {
+                        timeZone: USER_TIMEZONE,
+                        weekday: "long"
+                    }
+                ).format(date);
+
+            }
+            catch (error) {
+                return date.toLocaleDateString(
+                    "en-US",
+                    { weekday: "long" }
+                );
+            }
         }
 
         const date = new Date(dateValue);
 
         try {
+
             return new Intl.DateTimeFormat(
                 "en-US",
                 {
@@ -3274,6 +3422,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     day: "numeric"
                 }
             ).format(date);
+
         }
         catch (error) {
             return date.toLocaleDateString();
@@ -3283,58 +3432,252 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function refreshDateSeparators() {
 
+        /*
+         * Remove only the normal in-flow separators.
+         * The sticky separator is kept alive.
+         */
         messages
-            .querySelectorAll(".ai-date-separator")
+            .querySelectorAll(
+                ".ai-date-separator"
+            )
             .forEach(function (separator) {
                 separator.remove();
             });
 
-        const messageElements = messages.querySelectorAll(
-            ".ai-message"
-        );
+        const messageElements =
+            messages.querySelectorAll(
+                ".ai-message"
+            );
 
         let lastDateKey = null;
 
         messageElements.forEach(function (message) {
 
-            const createdAt = message.dataset.createdAt;
+            const createdAt =
+                message.dataset.createdAt;
 
             if (!createdAt) {
                 return;
             }
 
-            const parts = getDatePartsInUserTimezone(createdAt);
+            const parts =
+                getDatePartsInUserTimezone(
+                    createdAt
+                );
 
-            if (!parts || parts.key === lastDateKey) {
+            if (
+                !parts ||
+                parts.key === lastDateKey
+            ) {
                 return;
             }
 
-            const label = getDateSeparatorLabel(createdAt);
+            const label =
+                getDateSeparatorLabel(
+                    createdAt
+                );
 
             if (!label) {
                 return;
             }
 
-            const separator = document.createElement("div");
-            separator.className = "ai-date-separator";
-            separator.setAttribute("aria-label", label);
+            const separator =
+                document.createElement(
+                    "div"
+                );
 
-            const labelElement = document.createElement("span");
-            labelElement.className = "ai-date-separator-label";
-            labelElement.textContent = label;
+            separator.className =
+                "ai-date-separator";
 
-            separator.appendChild(labelElement);
+            separator.dataset.dateKey =
+                parts.key;
 
-            message.parentNode.insertBefore(separator, message);
+            separator.setAttribute(
+                "aria-label",
+                label
+            );
+
+            const labelElement =
+                document.createElement(
+                    "span"
+                );
+
+            labelElement.className =
+                "ai-date-separator-label";
+
+            labelElement.textContent =
+                label;
+
+            separator.appendChild(
+                labelElement
+            );
+
+            message.parentNode.insertBefore(
+                separator,
+                message
+            );
 
             lastDateKey = parts.key;
         });
+
+        refreshStickyDateSeparator();
+    }
+
+
+    /* =========================================================
+       WHATSAPP-STYLE STICKY DATE WHILE SCROLLING
+       ========================================================= */
+
+    let stickyDateFrame = null;
+
+
+    function refreshStickyDateSeparator() {
+
+        if (
+            !dateSticky ||
+            !dateStickyLabel
+        ) {
+            return;
+        }
+
+        const messageElements =
+            Array.from(
+                messages.querySelectorAll(
+                    ".ai-message"
+                )
+            );
+
+        if (messageElements.length === 0) {
+
+            dateSticky.classList.remove(
+                "is-visible"
+            );
+
+            dateStickyLabel.textContent = "";
+
+            dateSticky.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            return;
+        }
+
+        const containerRect =
+            messages.getBoundingClientRect();
+
+        const stickyRect =
+            dateSticky.getBoundingClientRect();
+
+        /*
+         * Find the first message that is at or below
+         * the visible top edge of the scrolling area.
+         */
+        let activeMessage = null;
+
+        const threshold =
+            containerRect.top +
+            Math.max(
+                8,
+                stickyRect.height + 6
+            );
+
+        for (
+            let i = 0;
+            i < messageElements.length;
+            i++
+        ) {
+
+            const rect =
+                messageElements[i]
+                    .getBoundingClientRect();
+
+            if (rect.bottom > threshold) {
+                activeMessage =
+                    messageElements[i];
+                break;
+            }
+        }
+
+        /*
+         * If the user has reached the bottom, use the
+         * last available message.
+         */
+        if (!activeMessage) {
+            activeMessage =
+                messageElements[
+                    messageElements.length - 1
+                ];
+        }
+
+        const createdAt =
+            activeMessage.dataset.createdAt;
+
+        if (!createdAt) {
+
+            dateSticky.classList.remove(
+                "is-visible"
+            );
+
+            dateStickyLabel.textContent = "";
+
+            dateSticky.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            return;
+        }
+
+        const label =
+            getDateSeparatorLabel(
+                createdAt
+            );
+
+        if (!label) {
+            return;
+        }
+
+        if (
+            dateStickyLabel.textContent !== label
+        ) {
+            dateStickyLabel.textContent =
+                label;
+        }
+
+        dateSticky.classList.add(
+            "is-visible"
+        );
+
+        dateSticky.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+    }
+
+
+    function scheduleStickyDateRefresh() {
+
+        if (stickyDateFrame !== null) {
+            return;
+        }
+
+        stickyDateFrame =
+            requestAnimationFrame(
+                function () {
+
+                    stickyDateFrame = null;
+
+                    refreshStickyDateSeparator();
+                }
+            );
     }
 
 
     /* =========================================================
        SCROLL
        ========================================================= */
+
 
     function scrollBottom() {
 
@@ -3344,10 +3687,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 messages.scrollTop =
                     messages.scrollHeight;
 
+                refreshStickyDateSeparator();
+
             }
         );
 
     }
+
+
+    /* =========================================================
+       SCROLL DATE TRACKER
+       ========================================================= */
+
+    messages.addEventListener(
+        "scroll",
+        function () {
+            scheduleStickyDateRefresh();
+        },
+        { passive: true }
+    );
+
+
+    /*
+     * Also refresh after layout changes.
+     */
+    window.addEventListener(
+        "resize",
+        function () {
+            scheduleStickyDateRefresh();
+        }
+    );
 
 
     /* =========================================================
@@ -6107,6 +6476,8 @@ document.addEventListener("DOMContentLoaded", function () {
     refreshIcons();
 
     handleVisualViewport();
+
+    refreshStickyDateSeparator();
 
 
     /*
