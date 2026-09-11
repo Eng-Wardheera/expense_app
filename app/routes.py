@@ -6437,6 +6437,330 @@ def profile():
             url_for("main.dashboard")
         )
 
+
+# ============================================================
+# PROFILE ACTIVE SESSIONS
+# ============================================================
+
+@bp.route(
+    "/profile/active-sessions",
+    methods=["GET"]
+)
+@login_required
+def profile_active_sessions():
+
+    from bson import ObjectId
+    from datetime import datetime, timezone
+
+    try:
+
+        # ====================================================
+        # CURRENT USER
+        # ====================================================
+
+        user_id = str(
+            current_user.id
+        ).strip()
+
+        if not user_id:
+
+            return {
+                "success": False,
+                "message": "Invalid user."
+            }, 400
+
+        # ====================================================
+        # CURRENT SESSION TOKEN
+        # ====================================================
+
+        current_session_token = str(
+            session.get(
+                "session_token"
+            ) or ""
+        ).strip()
+
+        # ====================================================
+        # GET USER
+        # ====================================================
+
+        user = None
+
+        try:
+
+            user = mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(
+                        user_id
+                    )
+                }
+            )
+
+        except Exception:
+
+            user = mongo.db.users.find_one(
+                {
+                    "_id": user_id
+                }
+            )
+
+        if not user:
+
+            return {
+                "success": False,
+                "message": "User account not found."
+            }, 404
+
+        # ====================================================
+        # ACTIVE SESSIONS
+        # ====================================================
+
+        try:
+
+            active_sessions = (
+                get_user_active_sessions(
+                    user_id
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "ACTIVE SESSIONS API ERROR:",
+                repr(e)
+            )
+
+            active_sessions = []
+
+        # ====================================================
+        # PREPARE SESSIONS
+        # ====================================================
+
+        output = []
+
+        for item in active_sessions:
+
+            item_token = str(
+                item.get(
+                    "session_token"
+                ) or ""
+            ).strip()
+
+            is_current = (
+                bool(current_session_token)
+                and
+                item_token ==
+                current_session_token
+            )
+
+            # ------------------------------------------------
+            # DEVICE
+            # ------------------------------------------------
+
+            device = (
+                item.get("device")
+                or
+                user.get("device")
+                or
+                "Unknown Device"
+            )
+
+            # ------------------------------------------------
+            # DEVICE NAME
+            # ------------------------------------------------
+
+            device_name = (
+                item.get("device_name")
+                or
+                device
+                or
+                "Unknown Device"
+            )
+
+            # ------------------------------------------------
+            # BROWSER
+            # ------------------------------------------------
+
+            browser = (
+                item.get("browser")
+                or
+                user.get("browser")
+                or
+                "Unknown Browser"
+            )
+
+            # ------------------------------------------------
+            # PLATFORM
+            # ------------------------------------------------
+
+            platform = (
+                item.get("platform")
+                or
+                user.get("platform")
+                or
+                "Unknown Platform"
+            )
+
+            # ------------------------------------------------
+            # IP
+            # ------------------------------------------------
+
+            ip_address = (
+                item.get("ip_address")
+                or
+                user.get("last_login_ip")
+                or
+                "Unknown"
+            )
+
+            # ------------------------------------------------
+            # LAST ACTIVITY
+            # ------------------------------------------------
+
+            last_activity = item.get(
+                "last_activity"
+            )
+
+            if isinstance(
+                last_activity,
+                datetime
+            ):
+
+                if last_activity.tzinfo is None:
+
+                    last_activity = (
+                        last_activity.replace(
+                            tzinfo=timezone.utc
+                        )
+                    )
+
+                last_activity_text = (
+                    last_activity.isoformat()
+                )
+
+            else:
+
+                last_activity_text = ""
+
+            # ------------------------------------------------
+            # CREATED AT
+            # ------------------------------------------------
+
+            created_at = item.get(
+                "created_at"
+            )
+
+            if isinstance(
+                created_at,
+                datetime
+            ):
+
+                if created_at.tzinfo is None:
+
+                    created_at = (
+                        created_at.replace(
+                            tzinfo=timezone.utc
+                        )
+                    )
+
+                created_at_text = (
+                    created_at.isoformat()
+                )
+
+            else:
+
+                created_at_text = ""
+
+            output.append(
+                {
+                    "id": str(
+                        item.get("id")
+                        or
+                        item.get("_id")
+                        or
+                        ""
+                    ),
+
+                    "session_token": item_token,
+
+                    "device": str(
+                        device
+                    ),
+
+                    "device_name": str(
+                        device_name
+                    ),
+
+                    "browser": str(
+                        browser
+                    ),
+
+                    "platform": str(
+                        platform
+                    ),
+
+                    "ip_address": str(
+                        ip_address
+                    ),
+
+                    "last_activity": (
+                        last_activity_text
+                    ),
+
+                    "created_at": (
+                        created_at_text
+                    ),
+
+                    "is_current": (
+                        is_current
+                    )
+                }
+            )
+
+        # ====================================================
+        # CURRENT SESSION FIRST
+        # ====================================================
+
+        output.sort(
+            key=lambda x: (
+                not x.get(
+                    "is_current",
+                    False
+                ),
+                x.get(
+                    "last_activity"
+                ) or ""
+            )
+        )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
+
+        return {
+            "success": True,
+            "sessions": output,
+            "count": len(output),
+            "current_session_token": (
+                current_session_token
+            )
+        }, 200
+
+    except Exception as e:
+
+        print(
+            "PROFILE ACTIVE SESSIONS ERROR:",
+            repr(e)
+        )
+
+        return {
+            "success": False,
+            "message": (
+                "Unable to load active sessions."
+            )
+        }, 500
+
+
+
 # ============================================================
 # LOGOUT OTHER USER SESSION
 # ============================================================
@@ -121561,7 +121885,6 @@ contact information.
 # EAT TIMEZONE
 # ============================================================
 
-
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -121706,7 +122029,9 @@ def ai_assistant():
 
         financial_context = {}
 
-        password_security_context = {}
+        password_security_context = []
+
+        user_sessions_context = []
 
         owner = {}
 
@@ -121919,7 +122244,6 @@ def ai_assistant():
                             # password
                             # password_hash
                             # token
-                            # code
                             # secret
                         }
                     )
@@ -122064,6 +122388,389 @@ def ai_assistant():
 
                 password_security_context = []
 
+            # =================================================
+            # USER SESSIONS CONTEXT
+            #
+            # user_sessions IS THE SOURCE OF TRUTH.
+            #
+            # ONLY ACTIVE SESSIONS BELONGING TO THE CURRENT
+            # AUTHENTICATED USER ARE INCLUDED.
+            #
+            # IMPORTANT:
+            #
+            # session_token is NEVER sent to Gemini.
+            # =================================================
+
+            try:
+
+                # =================================================
+                # CURRENT SESSION TOKEN
+                #
+                # Used ONLY internally to identify current session.
+                #
+                # NEVER include it in AI context.
+                # =================================================
+
+                current_session_token = str(
+                    session.get(
+                        "session_token"
+                    ) or ""
+                ).strip()
+
+                # =================================================
+                # CURRENT USER SESSION QUERY
+                # =================================================
+
+                session_query = {
+                    "user_id": str(
+                        current_user_id
+                    ),
+                    "is_active": True
+                }
+
+                # =================================================
+                # GET ACTIVE SESSIONS
+                # =================================================
+
+                active_user_sessions = list(
+
+                    user_sessions_collection()
+
+                    .find(
+                        session_query,
+                        {
+                            "_id": 1,
+
+                            "id": 1,
+
+                            "user_id": 1,
+
+                            # -------------------------------------------------
+                            # IMPORTANT:
+                            #
+                            # DO NOT retrieve session_token into context.
+                            # -------------------------------------------------
+
+                            "device": 1,
+
+                            "device_name": 1,
+
+                            "browser": 1,
+
+                            "platform": 1,
+
+                            "ip_address": 1,
+
+                            "user_agent": 1,
+
+                            "last_activity": 1,
+
+                            "created_at": 1,
+
+                            "updated_at": 1,
+
+                            "is_active": 1,
+
+                            "force_logout": 1,
+
+                            "logout_reason": 1
+                        }
+                    )
+
+                    .sort(
+                        "last_activity",
+                        -1
+                    )
+
+                )
+
+                # =================================================
+                # BUILD USER SESSION CONTEXT
+                # =================================================
+
+                user_sessions_context = []
+
+                for session_item in active_user_sessions:
+
+                    # -------------------------------------------------
+                    # INTERNAL SESSION TOKEN
+                    #
+                    # Used ONLY to compare current session.
+                    #
+                    # Never exposed to Gemini.
+                    # -------------------------------------------------
+
+                    item_token = str(
+                        session_item.get(
+                            "session_token"
+                        ) or ""
+                    ).strip()
+
+                    is_current_session = bool(
+
+                        current_session_token
+
+                        and
+
+                        item_token ==
+                        current_session_token
+
+                    )
+
+                    # -------------------------------------------------
+                    # DEVICE
+                    # -------------------------------------------------
+
+                    device = (
+                        session_item.get(
+                            "device"
+                        )
+                        or
+                        "Unknown Device"
+                    )
+
+                    # -------------------------------------------------
+                    # DEVICE NAME
+                    # -------------------------------------------------
+
+                    device_name = (
+                        session_item.get(
+                            "device_name"
+                        )
+                        or
+                        device
+                        or
+                        "Unknown Device"
+                    )
+
+                    # -------------------------------------------------
+                    # BROWSER
+                    # -------------------------------------------------
+
+                    browser = (
+                        session_item.get(
+                            "browser"
+                        )
+                        or
+                        "Unknown Browser"
+                    )
+
+                    # -------------------------------------------------
+                    # PLATFORM
+                    # -------------------------------------------------
+
+                    platform = (
+                        session_item.get(
+                            "platform"
+                        )
+                        or
+                        "Unknown Platform"
+                    )
+
+                    # -------------------------------------------------
+                    # IP
+                    # -------------------------------------------------
+
+                    ip_address = (
+                        session_item.get(
+                            "ip_address"
+                        )
+                        or
+                        "Unknown"
+                    )
+
+                    # -------------------------------------------------
+                    # USER AGENT
+                    #
+                    # User agent is not necessary for most AI
+                    # questions, therefore we intentionally do NOT
+                    # send the full user-agent string.
+                    # -------------------------------------------------
+
+                    # -------------------------------------------------
+                    # LAST ACTIVITY
+                    # -------------------------------------------------
+
+                    last_activity = (
+                        session_item.get(
+                            "last_activity"
+                        )
+                    )
+
+                    # -------------------------------------------------
+                    # CREATED AT
+                    # -------------------------------------------------
+
+                    created_at = (
+                        session_item.get(
+                            "created_at"
+                        )
+                    )
+
+                    # -------------------------------------------------
+                    # UPDATED AT
+                    # -------------------------------------------------
+
+                    updated_at = (
+                        session_item.get(
+                            "updated_at"
+                        )
+                    )
+
+                    # =================================================
+                    # SESSION CONTEXT
+                    # =================================================
+
+                    user_sessions_context.append({
+
+                        "session_id":
+                            str(
+                                session_item.get(
+                                    "id"
+                                    or
+                                    "_id"
+                                )
+                            ),
+
+                        "device":
+                            str(
+                                device
+                            ),
+
+                        "device_name":
+                            str(
+                                device_name
+                            ),
+
+                        "browser":
+                            str(
+                                browser
+                            ),
+
+                        "platform":
+                            str(
+                                platform
+                            ),
+
+                        "ip_address":
+                            str(
+                                ip_address
+                            ),
+
+                        "is_current":
+                            is_current_session,
+
+                        "is_active":
+                            bool(
+                                session_item.get(
+                                    "is_active",
+                                    True
+                                )
+                            ),
+
+                        "last_activity":
+                            format_eat_datetime(
+                                last_activity
+                            ),
+
+                        "created_at":
+                            format_eat_datetime(
+                                created_at
+                            ),
+
+                        "updated_at":
+                            format_eat_datetime(
+                                updated_at
+                            )
+
+                    })
+
+                # =================================================
+                # REMOVE ANY EMPTY / INVALID SESSION ID
+                # =================================================
+
+                for session_context in user_sessions_context:
+
+                    if (
+                        session_context.get(
+                            "session_id"
+                        )
+                        in {
+                            "None",
+                            ""
+                        }
+                    ):
+
+                        session_context.pop(
+                            "session_id",
+                            None
+                        )
+
+                # =================================================
+                # SESSION SUMMARY
+                # =================================================
+
+                current_session_found = any(
+
+                    item.get(
+                        "is_current"
+                    )
+                    is True
+
+                    for item
+                    in user_sessions_context
+
+                )
+
+                # =================================================
+                # STORE SUMMARY INSIDE SESSION CONTEXT
+                # =================================================
+
+                user_sessions_context = {
+
+                    "active_session_count":
+                        len(
+                            user_sessions_context
+                        ),
+
+                    "current_session_exists":
+                        current_session_found,
+
+                    "sessions":
+                        user_sessions_context
+
+                }
+
+            except Exception as session_error:
+
+                print(
+                    "================================================"
+                )
+
+                print(
+                    "MAAREYE AI USER SESSIONS ERROR"
+                )
+
+                print(
+                    repr(
+                        session_error
+                    )
+                )
+
+                print(
+                    "================================================"
+                )
+
+                user_sessions_context = {
+
+                    "active_session_count": 0,
+
+                    "current_session_exists": False,
+
+                    "sessions": []
+
+                }
+
         # ====================================================
         # GUEST
         # ====================================================
@@ -122078,7 +122785,17 @@ def ai_assistant():
 
             financial_context = {}
 
-            password_security_context = {}
+            password_security_context = []
+
+            user_sessions_context = {
+
+                "active_session_count": 0,
+
+                "current_session_exists": False,
+
+                "sessions": []
+
+            }
 
         # ====================================================
         # OWNER
@@ -122177,6 +122894,9 @@ Never reveal another user's:
 - security logs
 - AI conversations
 - login information
+- active sessions
+- device information
+- session information
 
 # ============================================================
 USERS COLLECTION
@@ -122237,6 +122957,71 @@ Explain that passwords cannot be displayed for security
 reasons.
 
 # ============================================================
+SESSION TOKEN SECURITY
+# ============================================================
+
+The user_sessions collection contains authentication
+session information.
+
+The AI may use SAFE session metadata to answer questions
+about the user's own active devices.
+
+However:
+
+NEVER reveal:
+
+- session_token
+- remember_token
+- authentication token
+- cookie value
+- secret token
+- OAuth token
+- API token
+- session secret
+
+Even if such information exists in MongoDB.
+
+Session tokens must never be included in the AI context.
+
+# ============================================================
+USER SESSIONS
+# ============================================================
+
+user_sessions is the SOURCE OF TRUTH for active sessions.
+
+The supplied session information belongs ONLY to the
+currently authenticated user.
+
+The AI may use:
+
+- active session count
+- device
+- device name
+- browser
+- platform
+- IP address
+- current session indicator
+- last activity
+- created time
+- updated time
+
+The AI may answer questions such as:
+
+- How many devices are currently signed in?
+- What devices are currently logged in?
+- Which browser am I using?
+- What platform am I using?
+- Which session is my current session?
+- Is there another active session?
+- When was a session last active?
+- What IP addresses are associated with my active sessions?
+
+The AI must NOT invent session information.
+
+If no active sessions are supplied, say that no active
+sessions were found in the current context.
+
+# ============================================================
 PASSWORD CHANGE LOGS
 # ============================================================
 
@@ -122271,6 +123056,8 @@ Persons belong to the authenticated user.
 
 AI conversation history belongs to the authenticated user.
 
+Active sessions belong to the authenticated user.
+
 # ============================================================
 GUEST USERS
 # ============================================================
@@ -122280,6 +123067,8 @@ If Logged in = False:
 Do NOT claim access to private user data.
 
 Do NOT invent user data.
+
+Do NOT claim to know the user's active sessions.
 
 # ============================================================
 SOURCE OF TRUTH
@@ -122299,6 +123088,10 @@ Never invent:
 - security events
 - passwords
 - chat history
+- active sessions
+- devices
+- browsers
+- IP addresses
 
 ============================================================
 """
@@ -122460,6 +123253,117 @@ Never answer a Person Ledger question from only one source.
 """
 
         # ====================================================
+        # SESSION-SPECIFIC AI RULES
+        # ====================================================
+
+        session_instruction = """
+
+# ============================================================
+USER SESSIONS — STRICT AI RULES
+# ============================================================
+
+When the user asks about:
+
+- active sessions
+- logged in devices
+- signed in devices
+- current device
+- current browser
+- current platform
+- other devices
+- other sessions
+- login sessions
+- session activity
+- last activity
+- device login information
+
+use ONLY:
+
+authenticated_user_context.user_sessions
+
+The session data belongs ONLY to the currently authenticated
+user.
+
+# ============================================================
+ACTIVE SESSION COUNT
+# ============================================================
+
+Use:
+
+user_sessions.active_session_count
+
+Do not count sessions manually from unrelated collections.
+
+# ============================================================
+CURRENT SESSION
+# ============================================================
+
+A session where:
+
+is_current = true
+
+is the current session.
+
+Never guess which session is current.
+
+# ============================================================
+OTHER SESSIONS
+# ============================================================
+
+A session where:
+
+is_current = false
+
+is an active session on another device/session.
+
+# ============================================================
+SAFE SESSION INFORMATION
+# ============================================================
+
+You may mention:
+
+- Device
+- Device name
+- Browser
+- Platform
+- IP address
+- Last activity
+- Created time
+- Updated time
+- Current Session status
+
+# ============================================================
+PRIVATE SESSION SECRETS
+# ============================================================
+
+NEVER mention or expose:
+
+- session_token
+- authentication token
+- cookie
+- remember token
+- secret
+- internal authentication identifier
+
+If the user asks for a session token, refuse to provide it
+and explain that authentication tokens are private security
+credentials.
+
+# ============================================================
+NO INVENTION
+# ============================================================
+
+If session information is not supplied:
+
+Do not invent it.
+
+Say that the current session context does not contain the
+requested information.
+
+============================================================
+"""
+
+        # ====================================================
         # COMBINE SYSTEM INSTRUCTIONS
         # ====================================================
 
@@ -122485,6 +123389,14 @@ Never answer a Person Ledger question from only one source.
             +
 
             person_ledger_instruction
+
+            +
+
+            "\n\n"
+
+            +
+
+            session_instruction
 
         )
 
@@ -122537,7 +123449,18 @@ Never answer a Person Ledger question from only one source.
                 ),
 
             "security_logs":
-                password_security_context
+                password_security_context,
+
+            # =================================================
+            # USER SESSIONS
+            #
+            # SAFE SESSION METADATA ONLY.
+            #
+            # NO session_token.
+            # =================================================
+
+            "user_sessions":
+                user_sessions_context
 
         }
 
@@ -122728,6 +123651,7 @@ Do not mix it with another user's information.
 
                 # -------------------------------------------------
                 # Explicit EAT ISO timestamp
+                #
                 # Example:
                 #
                 # 2026-09-09T09:26:36.187+03:00
@@ -123100,7 +124024,6 @@ Do not mix it with another user's information.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
