@@ -6455,7 +6455,7 @@ def profile_active_sessions():
     try:
 
         # ====================================================
-        # CURRENT USER
+        # CURRENT USER ID
         # ====================================================
 
         user_id = str(
@@ -6466,8 +6466,11 @@ def profile_active_sessions():
 
             return {
                 "success": False,
-                "message": "Invalid user."
-            }, 400
+                "force_logout": True,
+                "message": (
+                    "Invalid user session."
+                )
+            }, 200
 
         # ====================================================
         # CURRENT SESSION TOKEN
@@ -6478,6 +6481,35 @@ def profile_active_sessions():
                 "session_token"
             ) or ""
         ).strip()
+
+        # ====================================================
+        # NO CUSTOM SESSION TOKEN
+        #
+        # Flask-Login may still have a remember cookie,
+        # but this application requires our MongoDB session.
+        #
+        # IMPORTANT:
+        # Return 200 + force_logout instead of 401.
+        #
+        # This allows the JavaScript heartbeat to handle the
+        # logout without a page reload.
+        # ====================================================
+
+        if not current_session_token:
+
+            print(
+                "ACTIVE SESSIONS: NO CURRENT SESSION TOKEN | "
+                f"user_id={user_id}"
+            )
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has expired. "
+                    "Please login again."
+                )
+            }, 200
 
         # ====================================================
         # GET USER
@@ -6497,21 +6529,187 @@ def profile_active_sessions():
 
         except Exception:
 
-            user = mongo.db.users.find_one(
-                {
-                    "_id": user_id
-                }
-            )
+            try:
+
+                user = mongo.db.users.find_one(
+                    {
+                        "_id": user_id
+                    }
+                )
+
+            except Exception as e:
+
+                print(
+                    "ACTIVE SESSIONS USER LOOKUP ERROR:",
+                    repr(e)
+                )
+
+                user = None
+
+        # ====================================================
+        # USER NOT FOUND
+        # ====================================================
 
         if not user:
 
+            print(
+                "ACTIVE SESSIONS: USER NOT FOUND | "
+                f"user_id={user_id}"
+            )
+
             return {
                 "success": False,
-                "message": "User account not found."
-            }, 404
+                "force_logout": True,
+                "message": (
+                    "Your account could not be found. "
+                    "Please login again."
+                )
+            }, 200
 
         # ====================================================
-        # ACTIVE SESSIONS
+        # SESSION COLLECTION
+        # ====================================================
+
+        sessions_collection = (
+            user_sessions_collection()
+        )
+
+        # ====================================================
+        # CHECK CURRENT SESSION
+        #
+        # THIS IS THE MOST IMPORTANT PART.
+        #
+        # If another device has logged out this session,
+        # is_active will be False.
+        #
+        # In that case we return force_logout=True.
+        # ====================================================
+
+        try:
+
+            current_session = (
+                sessions_collection.find_one(
+                    {
+                        "session_token":
+                            current_session_token,
+
+                        "user_id":
+                            user_id
+                    }
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "ACTIVE SESSIONS CURRENT SESSION ERROR:",
+                repr(e)
+            )
+
+            # ------------------------------------------------
+            # Do NOT logout the user because MongoDB temporarily
+            # failed.
+            # ------------------------------------------------
+
+            return {
+                "success": False,
+                "force_logout": False,
+                "message": (
+                    "Unable to verify your session right now."
+                )
+            }, 200
+
+        # ====================================================
+        # CURRENT SESSION DOES NOT EXIST
+        # ====================================================
+
+        if not current_session:
+
+            print(
+                "ACTIVE SESSIONS: CURRENT SESSION NOT FOUND | "
+                f"user_id={user_id} | "
+                f"token={current_session_token}"
+            )
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has been logged out."
+                )
+            }, 200
+
+        # ====================================================
+        # CURRENT SESSION IS INACTIVE
+        # ====================================================
+
+        if not current_session.get(
+            "is_active",
+            False
+        ):
+
+            print(
+                "ACTIVE SESSIONS: CURRENT SESSION INACTIVE | "
+                f"user_id={user_id} | "
+                f"token={current_session_token}"
+            )
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has been logged out."
+                )
+            }, 200
+
+        # ====================================================
+        # CURRENT SESSION HAS FORCE LOGOUT FLAG
+        # ====================================================
+
+        if current_session.get(
+            "force_logout",
+            False
+        ):
+
+            print(
+                "ACTIVE SESSIONS: CURRENT SESSION FORCE LOGOUT | "
+                f"user_id={user_id} | "
+                f"token={current_session_token}"
+            )
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has been logged out."
+                )
+            }, 200
+
+        # ====================================================
+        # UPDATE CURRENT SESSION ACTIVITY
+        #
+        # Since this endpoint is excluded from
+        # before_app_request validation, we update activity
+        # here manually.
+        #
+        # This is important for the live Active Sessions UI.
+        # ====================================================
+
+        try:
+
+            update_session_activity(
+                current_session_token
+            )
+
+        except Exception as e:
+
+            print(
+                "ACTIVE SESSIONS ACTIVITY UPDATE ERROR:",
+                repr(e)
+            )
+
+        # ====================================================
+        # GET ALL ACTIVE SESSIONS
         # ====================================================
 
         try:
@@ -6525,19 +6723,23 @@ def profile_active_sessions():
         except Exception as e:
 
             print(
-                "ACTIVE SESSIONS API ERROR:",
+                "ACTIVE SESSIONS LIST ERROR:",
                 repr(e)
             )
 
             active_sessions = []
 
         # ====================================================
-        # PREPARE SESSIONS
+        # PREPARE RESPONSE
         # ====================================================
 
         output = []
 
         for item in active_sessions:
+
+            # ------------------------------------------------
+            # SESSION TOKEN
+            # ------------------------------------------------
 
             item_token = str(
                 item.get(
@@ -6545,8 +6747,14 @@ def profile_active_sessions():
                 ) or ""
             ).strip()
 
+            # ------------------------------------------------
+            # CURRENT SESSION
+            # ------------------------------------------------
+
             is_current = (
-                bool(current_session_token)
+                bool(
+                    current_session_token
+                )
                 and
                 item_token ==
                 current_session_token
@@ -6557,9 +6765,13 @@ def profile_active_sessions():
             # ------------------------------------------------
 
             device = (
-                item.get("device")
+                item.get(
+                    "device"
+                )
                 or
-                user.get("device")
+                user.get(
+                    "device"
+                )
                 or
                 "Unknown Device"
             )
@@ -6569,7 +6781,9 @@ def profile_active_sessions():
             # ------------------------------------------------
 
             device_name = (
-                item.get("device_name")
+                item.get(
+                    "device_name"
+                )
                 or
                 device
                 or
@@ -6581,9 +6795,13 @@ def profile_active_sessions():
             # ------------------------------------------------
 
             browser = (
-                item.get("browser")
+                item.get(
+                    "browser"
+                )
                 or
-                user.get("browser")
+                user.get(
+                    "browser"
+                )
                 or
                 "Unknown Browser"
             )
@@ -6593,28 +6811,36 @@ def profile_active_sessions():
             # ------------------------------------------------
 
             platform = (
-                item.get("platform")
+                item.get(
+                    "platform"
+                )
                 or
-                user.get("platform")
+                user.get(
+                    "platform"
+                )
                 or
                 "Unknown Platform"
             )
 
             # ------------------------------------------------
-            # IP
+            # IP ADDRESS
             # ------------------------------------------------
 
             ip_address = (
-                item.get("ip_address")
+                item.get(
+                    "ip_address"
+                )
                 or
-                user.get("last_login_ip")
+                user.get(
+                    "last_login_ip"
+                )
                 or
                 "Unknown"
             )
 
-            # ------------------------------------------------
+            # =================================================
             # LAST ACTIVITY
-            # ------------------------------------------------
+            # =================================================
 
             last_activity = item.get(
                 "last_activity"
@@ -6641,9 +6867,9 @@ def profile_active_sessions():
 
                 last_activity_text = ""
 
-            # ------------------------------------------------
+            # =================================================
             # CREATED AT
-            # ------------------------------------------------
+            # =================================================
 
             created_at = item.get(
                 "created_at"
@@ -6670,15 +6896,29 @@ def profile_active_sessions():
 
                 created_at_text = ""
 
+            # =================================================
+            # SESSION ID
+            # =================================================
+
+            session_id = str(
+                item.get(
+                    "id"
+                )
+                or
+                item.get(
+                    "_id"
+                )
+                or
+                ""
+            )
+
+            # =================================================
+            # APPEND SESSION
+            # =================================================
+
             output.append(
                 {
-                    "id": str(
-                        item.get("id")
-                        or
-                        item.get("_id")
-                        or
-                        ""
-                    ),
+                    "id": session_id,
 
                     "session_token": item_token,
 
@@ -6718,6 +6958,8 @@ def profile_active_sessions():
 
         # ====================================================
         # CURRENT SESSION FIRST
+        #
+        # Then newest activity first.
         # ====================================================
 
         output.sort(
@@ -6726,6 +6968,7 @@ def profile_active_sessions():
                     "is_current",
                     False
                 ),
+
                 x.get(
                     "last_activity"
                 ) or ""
@@ -6733,13 +6976,20 @@ def profile_active_sessions():
         )
 
         # ====================================================
-        # RESPONSE
+        # FINAL RESPONSE
         # ====================================================
 
         return {
             "success": True,
+
+            "force_logout": False,
+
             "sessions": output,
-            "count": len(output),
+
+            "count": len(
+                output
+            ),
+
             "current_session_token": (
                 current_session_token
             )
@@ -6748,16 +6998,34 @@ def profile_active_sessions():
     except Exception as e:
 
         print(
+            "=" * 70
+        )
+
+        print(
             "PROFILE ACTIVE SESSIONS ERROR:",
             repr(e)
         )
 
+        print(
+            "=" * 70
+        )
+
+        # ====================================================
+        # IMPORTANT:
+        #
+        # Do not force logout because of an unexpected server
+        # error. The next heartbeat can retry.
+        # ====================================================
+
         return {
             "success": False,
+            "force_logout": False,
             "message": (
                 "Unable to load active sessions."
             )
-        }, 500
+        }, 200
+
+
 
 
 # ============================================================
@@ -7465,51 +7733,100 @@ def validate_active_user_session():
     # ========================================================
 
     if request.endpoint:
-        if request.endpoint.startswith("static."):
+
+        if request.endpoint.startswith(
+            "static."
+        ):
             return None
 
     # ========================================================
-    # PATHS THAT MUST NEVER REQUIRE CUSTOM SESSION TOKEN
-    #
-    # IMPORTANT:
-    # OAuth flow can start while an old remember cookie still
-    # exists. These routes must be allowed to continue.
+    # REQUEST PATH
     # ========================================================
-
-    public_paths = {
-        "/login",
-        "/login/google",
-        "/google/callback",
-        "/register",
-        "/forgot-password",
-        "/reset-password",
-        "/verify-email",
-        "/check-username",
-        "/favicon.ico",
-    }
 
     request_path = (
         request.path
         or ""
     ).rstrip("/")
 
+    # ========================================================
+    # PUBLIC PATHS
+    #
+    # These routes must NEVER be blocked by the custom
+    # MongoDB session-token validation.
+    #
+    # IMPORTANT:
+    # /profile/active-sessions is included here because this
+    # endpoint must be able to tell JavaScript that the current
+    # session has been remotely logged out.
+    # ========================================================
+
+    public_paths = {
+
+        # ----------------------------------------------------
+        # Authentication
+        # ----------------------------------------------------
+
+        "/login",
+        "/login/google",
+        "/google/callback",
+
+        "/register",
+
+        "/forgot-password",
+        "/reset-password",
+
+        "/verify-email",
+        "/check-username",
+
+        "/favicon.ico",
+
+        # ----------------------------------------------------
+        # Session status endpoint
+        # ----------------------------------------------------
+
+        "/profile/active-sessions",
+    }
+
     if request_path in public_paths:
         return None
 
     # ========================================================
-    # ENDPOINTS THAT MUST NEVER REQUIRE CUSTOM SESSION TOKEN
+    # PUBLIC ENDPOINTS
+    #
+    # Same purpose as public_paths, but endpoint based.
     # ========================================================
 
     public_endpoints = {
+
+        # ----------------------------------------------------
+        # Authentication
+        # ----------------------------------------------------
+
         "main.login",
         "main.google_login",
         "main.google_callback",
+
         "main.logout",
+
         "main.register",
+
         "main.forgot_password",
         "main.reset_password",
+
         "main.verify_email",
         "main.check_username",
+
+        # ----------------------------------------------------
+        # Session status
+        #
+        # VERY IMPORTANT
+        #
+        # Do NOT validate this endpoint here.
+        # The endpoint itself checks the MongoDB session and
+        # tells the frontend whether it should logout.
+        # ----------------------------------------------------
+
+        "main.profile_active_sessions",
     }
 
     endpoint = (
@@ -7522,6 +7839,8 @@ def validate_active_user_session():
 
     # ========================================================
     # NOT LOGGED IN
+    #
+    # Flask-Login handles this situation.
     # ========================================================
 
     if not current_user.is_authenticated:
@@ -7541,8 +7860,8 @@ def validate_active_user_session():
     # ========================================================
     # NO CUSTOM SESSION TOKEN
     #
-    # Flask-Login may still authenticate through remember cookie.
-    # That is NOT enough for this application.
+    # Flask-Login remember cookie alone is NOT sufficient
+    # for this application.
     # ========================================================
 
     if not current_token:
@@ -7554,18 +7873,29 @@ def validate_active_user_session():
             f"endpoint={request.endpoint}"
         )
 
+        # ----------------------------------------------------
+        # Logout Flask-Login
+        # ----------------------------------------------------
+
         try:
+
             logout_user()
+
         except Exception as e:
+
             print(
                 "SESSION VALIDATION LOGOUT ERROR:",
                 repr(e)
             )
 
+        # ----------------------------------------------------
+        # Clear application session
+        # ----------------------------------------------------
+
         session.clear()
 
         # ----------------------------------------------------
-        # AJAX / API
+        # AJAX / JSON REQUEST
         # ----------------------------------------------------
 
         if (
@@ -7587,7 +7917,7 @@ def validate_active_user_session():
             }, 401
 
         # ----------------------------------------------------
-        # NORMAL REQUEST
+        # NORMAL PAGE REQUEST
         # ----------------------------------------------------
 
         return redirect(
@@ -7627,12 +7957,24 @@ def validate_active_user_session():
             repr(e)
         )
 
-        # Do not destroy the user's login because of a temporary
-        # MongoDB error.
+        # ----------------------------------------------------
+        # IMPORTANT:
+        #
+        # Temporary MongoDB error must NOT automatically
+        # logout the user.
+        # ----------------------------------------------------
+
         return None
 
     # ========================================================
-    # SESSION DOES NOT EXIST / WAS REMOTELY LOGGED OUT
+    # SESSION DOES NOT EXIST
+    #
+    # This normally means:
+    #
+    # - another device logged this session out
+    # - logout-all-other-devices was used
+    # - session was deleted
+    # - session became inactive
     # ========================================================
 
     if not active_session:
@@ -7643,15 +7985,30 @@ def validate_active_user_session():
             f"token={current_token}"
         )
 
+        # ----------------------------------------------------
+        # Logout Flask-Login
+        # ----------------------------------------------------
+
         try:
+
             logout_user()
+
         except Exception as e:
+
             print(
                 "SESSION VALIDATION LOGOUT ERROR:",
                 repr(e)
             )
 
+        # ----------------------------------------------------
+        # Clear application session
+        # ----------------------------------------------------
+
         session.clear()
+
+        # ----------------------------------------------------
+        # AJAX / JSON
+        # ----------------------------------------------------
 
         if (
             request.headers.get(
@@ -7670,6 +8027,10 @@ def validate_active_user_session():
                 )
             }, 401
 
+        # ----------------------------------------------------
+        # NORMAL PAGE
+        # ----------------------------------------------------
+
         return redirect(
             url_for(
                 "main.login"
@@ -7677,7 +8038,14 @@ def validate_active_user_session():
         )
 
     # ========================================================
-    # FORCE LOGOUT CHECK
+    # FORCE LOGOUT FLAG
+    #
+    # Normally is_active=False already prevents the session
+    # from being found above.
+    #
+    # This check is still kept for safety and compatibility
+    # with sessions where force_logout=True but is_active has
+    # not yet been changed.
     # ========================================================
 
     if active_session.get(
@@ -7691,15 +8059,30 @@ def validate_active_user_session():
             f"token={current_token}"
         )
 
+        # ----------------------------------------------------
+        # Logout Flask-Login
+        # ----------------------------------------------------
+
         try:
+
             logout_user()
+
         except Exception as e:
+
             print(
                 "FORCE LOGOUT USER ERROR:",
                 repr(e)
             )
 
+        # ----------------------------------------------------
+        # Clear application session
+        # ----------------------------------------------------
+
         session.clear()
+
+        # ----------------------------------------------------
+        # AJAX / JSON
+        # ----------------------------------------------------
 
         if (
             request.headers.get(
@@ -7718,6 +8101,10 @@ def validate_active_user_session():
                 )
             }, 401
 
+        # ----------------------------------------------------
+        # NORMAL PAGE
+        # ----------------------------------------------------
+
         return redirect(
             url_for(
                 "main.login"
@@ -7725,7 +8112,10 @@ def validate_active_user_session():
         )
 
     # ========================================================
-    # UPDATE ACTIVITY
+    # UPDATE SESSION ACTIVITY
+    #
+    # Every valid authenticated request refreshes the
+    # last_activity timestamp.
     # ========================================================
 
     try:
@@ -7740,6 +8130,10 @@ def validate_active_user_session():
             "SESSION ACTIVITY ERROR:",
             repr(e)
         )
+
+    # ========================================================
+    # REQUEST ALLOWED
+    # ========================================================
 
     return None
 
