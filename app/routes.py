@@ -62,6 +62,266 @@ def create_guest_session(mongo):
 
 
 
+# ============================================================
+# USER SESSIONS COLLECTION
+# ============================================================
+
+def user_sessions_collection():
+    return mongo.db.user_sessions
+
+
+# ============================================================
+# CREATE USER SESSION
+# ============================================================
+
+def create_user_session(
+    user_id,
+    session_token,
+    ip_address=None,
+    user_agent=None,
+    device=None,
+    browser=None,
+    platform=None,
+    payload=None
+):
+
+    now = datetime.now(timezone.utc)
+
+    session_id = str(uuid.uuid4())
+
+    document = {
+        "id": session_id,
+
+        # User reference
+        "user_id": str(user_id),
+
+        # Session
+        "session_token": session_token,
+
+        # Request / network
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+
+        # Device
+        "device": device,
+        "browser": browser,
+        "platform": platform,
+
+        # Optional session payload
+        "payload": payload,
+
+        # Status
+        "is_active": True,
+
+        # Activity
+        "last_activity": now,
+
+        # Timestamps
+        "created_at": now,
+        "updated_at": now
+    }
+
+    user_sessions_collection().insert_one(document)
+
+    return document
+
+
+# ============================================================
+# UPDATE SESSION ACTIVITY
+# ============================================================
+
+def update_session_activity(session_token):
+
+    if not session_token:
+        return None
+
+    now = datetime.now(timezone.utc)
+
+    return user_sessions_collection().update_one(
+        {
+            "session_token": str(session_token),
+            "is_active": True
+        },
+        {
+            "$set": {
+                "last_activity": now,
+                "updated_at": now
+            }
+        }
+    )
+
+
+# ============================================================
+# DEACTIVATE SESSION
+# ============================================================
+
+def deactivate_session(session_token):
+
+    if not session_token:
+        return None
+
+    now = datetime.now(timezone.utc)
+
+    return user_sessions_collection().update_one(
+        {
+            "session_token": str(session_token)
+        },
+        {
+            "$set": {
+                "is_active": False,
+                "updated_at": now
+            }
+        }
+    )
+
+
+# ============================================================
+# GET USER ACTIVE SESSIONS
+# ============================================================
+
+def get_user_active_sessions(user_id):
+
+    if not user_id:
+        return []
+
+    return list(
+        user_sessions_collection()
+        .find(
+            {
+                "user_id": str(user_id),
+                "is_active": True
+            }
+        )
+        .sort(
+            "last_activity",
+            -1
+        )
+    )
+
+
+# ============================================================
+# GET ALL USER SESSIONS
+# ============================================================
+
+def get_user_sessions(user_id):
+
+    if not user_id:
+        return []
+
+    return list(
+        user_sessions_collection()
+        .find(
+            {
+                "user_id": str(user_id)
+            }
+        )
+        .sort(
+            "last_activity",
+            -1
+        )
+    )
+
+
+# ============================================================
+# DEACTIVATE ALL USER SESSIONS
+# ============================================================
+
+def deactivate_all_user_sessions(user_id):
+
+    if not user_id:
+        return None
+
+    now = datetime.now(timezone.utc)
+
+    return user_sessions_collection().update_many(
+        {
+            "user_id": str(user_id),
+            "is_active": True
+        },
+        {
+            "$set": {
+                "is_active": False,
+                "updated_at": now
+            }
+        }
+    )
+
+
+# ============================================================
+# DELETE SESSION
+# ============================================================
+
+def delete_user_session(session_token):
+
+    if not session_token:
+        return None
+
+    return user_sessions_collection().delete_one(
+        {
+            "session_token": str(session_token)
+        }
+    )
+
+
+# ============================================================
+# DELETE ALL USER SESSIONS
+# ============================================================
+
+def delete_all_user_sessions(user_id):
+
+    if not user_id:
+        return None
+
+    return user_sessions_collection().delete_many(
+        {
+            "user_id": str(user_id)
+        }
+    )
+
+
+# ============================================================
+# CREATE MONGODB INDEXES
+# ============================================================
+
+def create_user_session_indexes():
+
+    collection = user_sessions_collection()
+
+    # Session ID
+    collection.create_index(
+        [("id", 1)],
+        unique=True
+    )
+
+    # User lookup
+    collection.create_index(
+        [("user_id", 1)]
+    )
+
+    # Session token
+    collection.create_index(
+        [("session_token", 1)],
+        unique=True
+    )
+
+    # Active sessions
+    collection.create_index(
+        [("is_active", 1)]
+    )
+
+    # Latest activity
+    collection.create_index(
+        [("last_activity", -1)]
+    )
+
+    # User + active sessions
+    collection.create_index(
+        [
+            ("user_id", 1),
+            ("is_active", 1)
+        ]
+    )
+
 
 
 @bp.route("/")
@@ -890,23 +1150,57 @@ def register():
 # LOGIN
 # ============================================================
 
+# ============================================================
+# LOGIN ROUTE
+# ============================================================
 
-@bp.route("/login", methods=["GET", "POST"])
+@bp.route(
+    "/login",
+    methods=["GET", "POST"]
+)
 def login():
 
-    # --------------------------------------------------------
+    # ========================================================
     # ALREADY LOGGED IN
-    # --------------------------------------------------------
+    # ========================================================
 
     if current_user.is_authenticated:
-        return redirect(
-            url_for("main.dashboard")
-        )
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        # If already authenticated but Flask session token
+        # is missing, don't blindly redirect to dashboard.
+        # ----------------------------------------------------
+
+        current_token = str(
+            session.get(
+                "session_token"
+            ) or ""
+        ).strip()
+
+        if current_token:
+
+            return redirect(
+                url_for(
+                    "main.dashboard"
+                )
+            )
+
+        # ----------------------------------------------------
+        # Broken/incomplete Flask session
+        # ----------------------------------------------------
+
+        try:
+            logout_user()
+        except Exception:
+            pass
+
+        session.clear()
 
 
-    # --------------------------------------------------------
+    # ========================================================
     # GET
-    # --------------------------------------------------------
+    # ========================================================
 
     if request.method == "GET":
 
@@ -921,19 +1215,33 @@ def login():
     # POST
     # ========================================================
 
-    login_value = request.form.get(
-        "login",
-        ""
+    login_value = (
+        request.form.get(
+            "login",
+            ""
+        )
+        or ""
     ).strip()
 
-    password = request.form.get(
-        "password",
-        ""
+    password = (
+        request.form.get(
+            "password",
+            ""
+        )
+        or ""
     )
 
+
     remember = (
-        request.form.get("remember")
-        in ["1", "true", "on", "yes"]
+        request.form.get(
+            "remember"
+        )
+        in [
+            "1",
+            "true",
+            "on",
+            "yes"
+        ]
     )
 
 
@@ -945,7 +1253,9 @@ def login():
 
         return render_template(
             "backend/auth/auth-login.html",
-            error_message="Fadlan geli Username, Email ama Phone.",
+            error_message=(
+                "Fadlan geli Username, Email ama Phone."
+            ),
             success_message=None
         )
 
@@ -958,13 +1268,15 @@ def login():
 
         return render_template(
             "backend/auth/auth-login.html",
-            error_message="Fadlan geli Password-ka.",
+            error_message=(
+                "Fadlan geli Password-ka."
+            ),
             success_message=None
         )
 
 
     # ========================================================
-    # NORMALIZE
+    # NORMALIZE LOGIN
     # ========================================================
 
     login_value = login_value.strip()
@@ -985,9 +1297,11 @@ def login():
 
     try:
 
-        user_data = mongo.db.users.find_one({
-            "username": login_value
-        })
+        user_data = mongo.db.users.find_one(
+            {
+                "username": login_value
+            }
+        )
 
     except Exception as e:
 
@@ -998,7 +1312,9 @@ def login():
 
         return render_template(
             "backend/auth/auth-login.html",
-            error_message="Database error ayaa dhacay.",
+            error_message=(
+                "Database error ayaa dhacay."
+            ),
             success_message=None
         )
 
@@ -1011,9 +1327,11 @@ def login():
 
         try:
 
-            user_data = mongo.db.users.find_one({
-                "email": login_lower
-            })
+            user_data = mongo.db.users.find_one(
+                {
+                    "email": login_lower
+                }
+            )
 
         except Exception as e:
 
@@ -1024,7 +1342,9 @@ def login():
 
             return render_template(
                 "backend/auth/auth-login.html",
-                error_message="Database error ayaa dhacay.",
+                error_message=(
+                    "Database error ayaa dhacay."
+                ),
                 success_message=None
             )
 
@@ -1037,9 +1357,11 @@ def login():
 
         try:
 
-            user_data = mongo.db.users.find_one({
-                "phone": login_value
-            })
+            user_data = mongo.db.users.find_one(
+                {
+                    "phone": login_value
+                }
+            )
 
         except Exception as e:
 
@@ -1050,7 +1372,9 @@ def login():
 
             return render_template(
                 "backend/auth/auth-login.html",
-                error_message="Database error ayaa dhacay.",
+                error_message=(
+                    "Database error ayaa dhacay."
+                ),
                 success_message=None
             )
 
@@ -1075,7 +1399,20 @@ def login():
     # USER ID
     # ========================================================
 
-    user_id = user_data.get("_id")
+    user_id = user_data.get(
+        "_id"
+    )
+
+
+    if not user_id:
+
+        return render_template(
+            "backend/auth/auth-login.html",
+            error_message=(
+                "User ID lama helin."
+            ),
+            success_message=None
+        )
 
 
     # ========================================================
@@ -1186,7 +1523,9 @@ def login():
 
         return render_template(
             "backend/auth/auth-login.html",
-            error_message="Password-ka waa khaldan yahay.",
+            error_message=(
+                "Password-ka waa khaldan yahay."
+            ),
             success_message=None
         )
 
@@ -1214,6 +1553,175 @@ def login():
             "RESET FAILED LOGIN ERROR:",
             repr(e)
         )
+
+
+    # ========================================================
+    # REQUEST INFORMATION
+    # ========================================================
+
+    try:
+
+        forwarded_for = (
+            request.headers.get(
+                "X-Forwarded-For"
+            )
+            or ""
+        )
+
+        if forwarded_for:
+
+            ip_address = (
+                forwarded_for
+                .split(",")[0]
+                .strip()
+            )
+
+        else:
+
+            ip_address = (
+                request.remote_addr
+                or "Unknown"
+            )
+
+    except Exception:
+
+        ip_address = "Unknown"
+
+
+    # ========================================================
+    # USER AGENT
+    # ========================================================
+
+    try:
+
+        user_agent = (
+            request.headers.get(
+                "User-Agent"
+            )
+            or "Unknown"
+        )
+
+    except Exception:
+
+        user_agent = "Unknown"
+
+
+    # ========================================================
+    # DEVICE / BROWSER / PLATFORM
+    # ========================================================
+
+    device = "Unknown"
+    browser = "Unknown"
+    platform = "Unknown"
+
+
+    try:
+
+        ua = user_agent.lower()
+
+
+        # ----------------------------------------------------
+        # PLATFORM
+        # ----------------------------------------------------
+
+        if "windows" in ua:
+
+            platform = "Windows"
+
+        elif "android" in ua:
+
+            platform = "Android"
+
+        elif "iphone" in ua:
+
+            platform = "iOS"
+
+        elif "ipad" in ua:
+
+            platform = "iPadOS"
+
+        elif (
+            "mac os" in ua
+            or "macintosh" in ua
+        ):
+
+            platform = "macOS"
+
+        elif "linux" in ua:
+
+            platform = "Linux"
+
+
+        # ----------------------------------------------------
+        # BROWSER
+        # ----------------------------------------------------
+
+        if "edg/" in ua:
+
+            browser = "Edge"
+
+        elif "opr/" in ua:
+
+            browser = "Opera"
+
+        elif "chrome/" in ua:
+
+            browser = "Chrome"
+
+        elif "firefox/" in ua:
+
+            browser = "Firefox"
+
+        elif "safari/" in ua:
+
+            browser = "Safari"
+
+
+        # ----------------------------------------------------
+        # DEVICE
+        # ----------------------------------------------------
+
+        if (
+            "mobile" in ua
+            or "android" in ua
+            or "iphone" in ua
+        ):
+
+            device = "Mobile"
+
+        elif "ipad" in ua:
+
+            device = "Tablet"
+
+        else:
+
+            device = "Desktop"
+
+
+    except Exception as e:
+
+        print(
+            "USER AGENT PARSE ERROR:",
+            repr(e)
+        )
+
+
+    # ========================================================
+    # CREATE SESSION TOKEN
+    # ========================================================
+
+    session_token = str(
+        uuid.uuid4()
+    )
+
+
+    # ========================================================
+    # CURRENT UTC TIME
+    # ========================================================
+
+    login_time = datetime.now(
+        timezone.utc
+    )
 
 
     # ========================================================
@@ -1270,44 +1778,105 @@ def login():
 
 
     # ========================================================
-    # UPDATE LOGIN DATA
+    # VERY IMPORTANT
+    #
+    # SAVE TOKEN INTO FLASK SESSION
+    #
+    # THIS WAS MISSING FROM YOUR ROUTE
     # ========================================================
 
     try:
 
-        from datetime import datetime
-        from uuid import uuid4
-
-        login_time = datetime.utcnow()
-
-        session_token = str(
-            uuid4()
+        session["session_token"] = (
+            session_token
         )
 
-        ip_address = (
-            request.headers.get(
-                "X-Forwarded-For"
-            )
-            or request.remote_addr
-            or "Unknown"
+        # Make sure Flask keeps the
+        # modified session.
+
+        session.modified = True
+
+    except Exception as e:
+
+        print(
+            "FLASK SESSION TOKEN ERROR:",
+            repr(e)
         )
 
-        if "," in ip_address:
+        logout_user()
 
-            ip_address = (
-                ip_address
-                .split(",")[0]
-                .strip()
-            )
+        session.clear()
 
-
-        user_agent = (
-            request.headers.get(
-                "User-Agent"
-            )
-            or "Unknown"
+        return render_template(
+            "backend/auth/auth-login.html",
+            error_message=(
+                "Login session lama kaydin karin."
+            ),
+            success_message=None
         )
 
+
+    # ========================================================
+    # CREATE MONGODB USER SESSION
+    # ========================================================
+
+    try:
+
+        create_user_session(
+            user_id=str(
+                user_id
+            ),
+            session_token=session_token,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device=device,
+            browser=browser,
+            platform=platform,
+            payload={
+                "remember": remember,
+                "login_method": "password"
+            }
+        )
+
+    except Exception as e:
+
+        print(
+            "CREATE USER SESSION ERROR:",
+            repr(e)
+        )
+
+        # ----------------------------------------------------
+        # ROLLBACK FLASK LOGIN
+        # ----------------------------------------------------
+
+        try:
+
+            logout_user()
+
+        except Exception as logout_error:
+
+            print(
+                "ROLLBACK LOGIN ERROR:",
+                repr(logout_error)
+            )
+
+        session.clear()
+
+        return render_template(
+            "backend/auth/auth-login.html",
+            error_message=(
+                "Login session-ka lama kaydin karin. "
+                "Fadlan mar kale isku day."
+            ),
+            success_message=None
+        )
+
+
+    # ========================================================
+    # UPDATE USER LOGIN DATA
+    # ========================================================
+
+    try:
 
         mongo.db.users.update_one(
 
@@ -1318,19 +1887,30 @@ def login():
             {
                 "$set": {
 
+                    # Authentication
                     "auth_status": "login",
 
+                    # Latest/current session
                     "session_token": session_token,
 
+                    # Login information
                     "login_time": login_time,
-
                     "last_seen": login_time,
-
                     "last_active": login_time,
 
+                    # Network
                     "last_login_ip": ip_address,
 
-                    "device": user_agent
+                    # Device
+                    "device": device,
+                    "browser": browser,
+                    "platform": platform,
+
+                    # User agent
+                    "user_agent": user_agent,
+
+                    # Updated timestamp
+                    "updated_at": login_time
 
                 }
             }
@@ -1340,9 +1920,30 @@ def login():
     except Exception as e:
 
         print(
-            "LOGIN DATA UPDATE ERROR:",
+            "LOGIN USER DATA UPDATE ERROR:",
             repr(e)
         )
+
+        # ----------------------------------------------------
+        # DO NOT destroy user_sessions here.
+        #
+        # Login is already valid.
+        # ----------------------------------------------------
+
+
+    # ========================================================
+    # DEBUG
+    # ========================================================
+
+    print(
+        "LOGIN SUCCESS | "
+        f"user_id={user_id} | "
+        f"session_token={session_token} | "
+        f"remember={remember} | "
+        f"device={device} | "
+        f"browser={browser} | "
+        f"platform={platform}"
+    )
 
 
     # ========================================================
@@ -1356,68 +1957,486 @@ def login():
     )
 
 
+
 @bp.app_errorhandler(403)
 def forbidden(error):
     return render_template('backend/errors/403.html'), 403
 
-@bp.route("/login/google")
+# ============================================================
+# GOOGLE LOGIN
+# ============================================================
+
+@bp.route(
+    "/login/google",
+    methods=["GET"]
+)
 def login_google():
-    redirect_uri = url_for("main.google_callback", _external=True)
-    print("REDIRECT URI:", redirect_uri)
-    return google.authorize_redirect(redirect_uri)
 
+    try:
 
+        # ====================================================
+        # CHECK CURRENT AUTHENTICATION
+        # ====================================================
+
+        if current_user.is_authenticated:
+
+            current_token = str(
+                session.get(
+                    "session_token"
+                )
+                or ""
+            ).strip()
+
+            # ------------------------------------------------
+            # Check whether the current custom session is valid.
+            # ------------------------------------------------
+
+            if current_token:
+
+                try:
+
+                    active_session = (
+                        user_sessions_collection()
+                        .find_one(
+                            {
+                                "session_token":
+                                    current_token,
+
+                                "user_id":
+                                    str(
+                                        current_user.id
+                                    ),
+
+                                "is_active":
+                                    True
+                            }
+                        )
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "GOOGLE LOGIN SESSION CHECK ERROR:",
+                        repr(e)
+                    )
+
+                    active_session = None
+
+                # ------------------------------------------------
+                # Already logged in correctly.
+                # ------------------------------------------------
+
+                if active_session:
+
+                    print(
+                        "GOOGLE LOGIN: "
+                        "USER ALREADY AUTHENTICATED"
+                    )
+
+                    return redirect(
+                        url_for(
+                            "main.dashboard"
+                        )
+                    )
+
+            # ------------------------------------------------
+            # Flask-Login says authenticated but our custom
+            # session is missing/invalid.
+            #
+            # Remove only Flask authentication and our own
+            # custom keys.
+            #
+            # DO NOT session.clear()
+            #
+            # Authlib needs the Flask session for OAuth state.
+            # ------------------------------------------------
+
+            print(
+                "GOOGLE LOGIN: "
+                "CLEARING STALE AUTHENTICATION"
+            )
+
+            try:
+
+                logout_user()
+
+            except Exception as e:
+
+                print(
+                    "GOOGLE LOGIN STALE LOGOUT ERROR:",
+                    repr(e)
+                )
+
+            session.pop(
+                "session_token",
+                None
+            )
+
+            session.pop(
+                "auth_provider",
+                None
+            )
+
+            session.modified = True
+
+        # ====================================================
+        # GOOGLE CALLBACK URL
+        # ====================================================
+
+        redirect_uri = url_for(
+            "main.google_callback",
+            _external=True
+        )
+
+        # ====================================================
+        # DEBUG BEFORE OAUTH
+        # ====================================================
+
+        print("=" * 70)
+        print(
+            "GOOGLE LOGIN START"
+        )
+        print(
+            "REDIRECT URI:",
+            redirect_uri
+        )
+        print(
+            "SESSION BEFORE OAUTH:",
+            dict(session)
+        )
+        print("=" * 70)
+
+        # ====================================================
+        # START GOOGLE OAUTH
+        #
+        # IMPORTANT:
+        #
+        # DO NOT call:
+        #
+        #     session.clear()
+        #
+        # after this.
+        #
+        # Authlib stores OAuth state in Flask session.
+        # ====================================================
+
+        response = (
+            google.authorize_redirect(
+                redirect_uri
+            )
+        )
+
+        # ====================================================
+        # DEBUG AFTER OAUTH STATE CREATION
+        # ====================================================
+
+        print("=" * 70)
+        print(
+            "GOOGLE OAUTH REDIRECT CREATED"
+        )
+        print(
+            "SESSION AFTER OAUTH:",
+            dict(session)
+        )
+        print("=" * 70)
+
+        return response
+
+    except Exception as e:
+
+        # ====================================================
+        # GOOGLE OAUTH ERROR
+        # ====================================================
+
+        print("=" * 70)
+        print(
+            "GOOGLE LOGIN REDIRECT ERROR"
+        )
+        print(
+            repr(e)
+        )
+        print("=" * 70)
+
+        flash(
+            "Google login lama bilaabin karin. Fadlan mar kale isku day.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
 
 
 # ============================================================
 # GOOGLE CALLBACK
 # ============================================================
-@bp.route("/google/callback")
+# ============================================================
+# GOOGLE CALLBACK
+# ============================================================
+@bp.route(
+    "/google/callback",
+    methods=["GET"]
+)
 def google_callback():
-
-    # ========================================================
-    # ALREADY LOGGED IN
-    # ========================================================
-
-    if current_user.is_authenticated:
-
-        return redirect(
-            url_for("main.dashboard")
-        )
-
-
-    # ========================================================
-    # IMPORTS
-    # ========================================================
 
     from datetime import datetime, timezone
     from uuid import uuid4
 
+    # ========================================================
+    # GOOGLE CALLBACK START
+    #
+    # IMPORTANT:
+    # DO NOT session.clear() BEFORE
+    # google.authorize_access_token()
+    #
+    # Authlib stores OAuth state inside Flask session.
+    # Clearing session before token verification causes:
+    #
+    # MismatchingStateError
+    #
+    # ========================================================
+
+    print("=" * 70)
+    print("GOOGLE CALLBACK START")
+    print(
+        "CALLBACK STATE:",
+        request.args.get("state")
+    )
+    print(
+        "SESSION BEFORE GOOGLE TOKEN:",
+        dict(session)
+    )
+    print("=" * 70)
 
     # ========================================================
-    # GOOGLE TOKEN
+    # CURRENT UTC TIME
+    # ========================================================
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+    # ========================================================
+    # CLIENT IP
     # ========================================================
 
     try:
 
-        token = google.authorize_access_token()
+        forwarded_for = (
+            request.headers.get(
+                "X-Forwarded-For"
+            )
+            or ""
+        ).strip()
+
+        if forwarded_for:
+
+            ip_address = (
+                forwarded_for
+                .split(",")[0]
+                .strip()
+            )
+
+        else:
+
+            ip_address = (
+                request.remote_addr
+                or "Unknown"
+            )
 
     except Exception as e:
 
-        print("=" * 60)
-        print("GOOGLE AUTHORIZE TOKEN ERROR:")
-        print(repr(e))
-        print("=" * 60)
+        print(
+            "GOOGLE IP DETECTION ERROR:",
+            repr(e)
+        )
 
-        error_text = str(e).lower()
+        ip_address = "Unknown"
+
+    # ========================================================
+    # USER AGENT
+    # ========================================================
+
+    try:
+
+        user_agent = (
+            request.headers.get(
+                "User-Agent"
+            )
+            or "Unknown"
+        ).strip()
+
+    except Exception as e:
+
+        print(
+            "GOOGLE USER AGENT ERROR:",
+            repr(e)
+        )
+
+        user_agent = "Unknown"
+
+    # ========================================================
+    # DEVICE / BROWSER / PLATFORM
+    # ========================================================
+
+    device = "Desktop"
+    browser = "Unknown"
+    platform = "Unknown"
+
+    try:
+
+        ua = user_agent.lower()
+
+        # ----------------------------------------------------
+        # PLATFORM
+        # ----------------------------------------------------
+
+        if "windows" in ua:
+
+            platform = "Windows"
+
+        elif "android" in ua:
+
+            platform = "Android"
+
+        elif "iphone" in ua:
+
+            platform = "iOS"
+
+        elif "ipad" in ua:
+
+            platform = "iPadOS"
+
+        elif (
+            "mac os" in ua
+            or "macintosh" in ua
+        ):
+
+            platform = "macOS"
+
+        elif "linux" in ua:
+
+            platform = "Linux"
+
+        # ----------------------------------------------------
+        # BROWSER
+        # ----------------------------------------------------
+
+        if "edg/" in ua:
+
+            browser = "Edge"
+
+        elif "opr/" in ua:
+
+            browser = "Opera"
+
+        elif "crios/" in ua:
+
+            browser = "Chrome"
+
+        elif "chrome/" in ua:
+
+            browser = "Chrome"
+
+        elif "firefox/" in ua:
+
+            browser = "Firefox"
+
+        elif (
+            "safari/" in ua
+            and "chrome/" not in ua
+            and "crios/" not in ua
+        ):
+
+            browser = "Safari"
+
+        # ----------------------------------------------------
+        # DEVICE
+        # ----------------------------------------------------
+
+        if "ipad" in ua:
+
+            device = "Tablet"
+
+        elif (
+            "iphone" in ua
+            or "android" in ua
+            or "mobile" in ua
+        ):
+
+            device = "Mobile"
+
+        else:
+
+            device = "Desktop"
+
+    except Exception as e:
+
+        print(
+            "GOOGLE USER AGENT PARSE ERROR:",
+            repr(e)
+        )
+
+    # ========================================================
+    # IMPORTANT OAUTH STEP
+    #
+    # THIS MUST HAPPEN BEFORE:
+    #
+    # logout_user()
+    # session.clear()
+    #
+    # ========================================================
+
+    try:
+
+        token = (
+            google.authorize_access_token()
+        )
+
+    except Exception as e:
+
+        print("=" * 70)
+        print("GOOGLE AUTHORIZE TOKEN ERROR")
+        print(
+            "ERROR:",
+            repr(e)
+        )
+        print(
+            "SESSION DURING TOKEN ERROR:",
+            dict(session)
+        )
+        print("=" * 70)
+
+        error_text = str(
+            e
+        ).lower()
 
         if (
-            "issued in the future" in error_text
-            or "iat" in error_text
+            "mismatchingstateerror"
+            in error_text
+            or "mismatching_state"
+            in error_text
+            or "mismatching state"
+            in error_text
         ):
 
             flash(
-                "Google login lama shaqayn karin sababtoo ah waqtiga computer-ka/server-ka ayaa khaldan. Fadlan sax Date & Time kadib isku day mar kale.",
+                "Google login state-ka lama xaqiijin karin. Fadlan Google login mar kale isku day.",
+                "danger"
+            )
+
+        elif (
+            "issued in the future"
+            in error_text
+            or "iat" in error_text
+            or "clock" in error_text
+            or "time" in error_text
+        ):
+
+            flash(
+                "Google login lama shaqayn karin sababtoo ah waqtiga computer-ka ama server-ka ayaa khaldan. Fadlan sax Date & Time kadib isku day mar kale.",
                 "danger"
             )
 
@@ -1429,35 +2448,197 @@ def google_callback():
             )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # GOOGLE USERINFO
+    # TOKEN SUCCESS
     # ========================================================
 
-    user_info = token.get(
-        "userinfo"
+    print("=" * 70)
+    print("GOOGLE ACCESS TOKEN VERIFIED")
+    print(
+        "TOKEN TYPE:",
+        type(token).__name__
     )
-
+    print("=" * 70)
 
     # ========================================================
-    # GET USERINFO IF TOKEN DOES NOT CONTAIN IT
+    # NOW IT IS SAFE TO HANDLE OLD FLASK-LOGIN STATE
+    #
+    # OAuth state has already been consumed.
+    #
+    # ========================================================
+
+    try:
+
+        if current_user.is_authenticated:
+
+            current_token = str(
+                session.get(
+                    "session_token"
+                )
+                or ""
+            ).strip()
+
+            # ------------------------------------------------
+            # Check whether current authentication is valid.
+            # ------------------------------------------------
+
+            if current_token:
+
+                try:
+
+                    active_session = (
+                        user_sessions_collection()
+                        .find_one(
+                            {
+                                "session_token":
+                                    current_token,
+
+                                "user_id":
+                                    str(
+                                        current_user.id
+                                    ),
+
+                                "is_active":
+                                    True
+                            }
+                        )
+                    )
+
+                except Exception as e:
+
+                    print(
+                        "GOOGLE EXISTING SESSION CHECK ERROR:",
+                        repr(e)
+                    )
+
+                    active_session = None
+
+                if active_session:
+
+                    print(
+                        "GOOGLE CALLBACK: "
+                        "USER ALREADY AUTHENTICATED"
+                    )
+
+                    return redirect(
+                        url_for(
+                            "main.dashboard"
+                        )
+                    )
+
+            # ------------------------------------------------
+            # Stale Flask-Login authentication.
+            # ------------------------------------------------
+
+            print(
+                "GOOGLE CALLBACK: "
+                "CLEARING STALE FLASK LOGIN"
+            )
+
+            try:
+
+                logout_user()
+
+            except Exception as e:
+
+                print(
+                    "GOOGLE STALE LOGOUT ERROR:",
+                    repr(e)
+                )
+
+            # ------------------------------------------------
+            # IMPORTANT:
+            #
+            # Do NOT clear the whole session here.
+            #
+            # We only remove OUR application keys.
+            # ------------------------------------------------
+
+            session.pop(
+                "session_token",
+                None
+            )
+
+            session.pop(
+                "auth_provider",
+                None
+            )
+
+            session.modified = True
+
+    except Exception as e:
+
+        print(
+            "GOOGLE OLD AUTH STATE ERROR:",
+            repr(e)
+        )
+
+        try:
+
+            logout_user()
+
+        except Exception:
+
+            pass
+
+        session.pop(
+            "session_token",
+            None
+        )
+
+        session.pop(
+            "auth_provider",
+            None
+        )
+
+        session.modified = True
+
+    # ========================================================
+    # GET USERINFO FROM TOKEN
+    # ========================================================
+
+    user_info = None
+
+    try:
+
+        user_info = (
+            token.get(
+                "userinfo"
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE TOKEN USERINFO ERROR:",
+            repr(e)
+        )
+
+    # ========================================================
+    # FALLBACK USERINFO
     # ========================================================
 
     if not user_info:
 
         try:
 
-            user_info = google.userinfo()
+            user_info = (
+                google.userinfo()
+            )
 
         except Exception as e:
 
+            print("=" * 70)
+            print("GOOGLE USERINFO ERROR")
             print(
-                "GOOGLE USERINFO ERROR:",
                 repr(e)
             )
+            print("=" * 70)
 
             flash(
                 "Google account information lama heli karin.",
@@ -1465,12 +2646,13 @@ def google_callback():
             )
 
             return redirect(
-                url_for("main.login")
+                url_for(
+                    "main.login"
+                )
             )
 
-
     # ========================================================
-    # USERINFO VALIDATION
+    # VALIDATE USERINFO
     # ========================================================
 
     if not user_info:
@@ -1481,53 +2663,54 @@ def google_callback():
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # GOOGLE ID
+    # GOOGLE DATA
     # ========================================================
 
-    google_id = (
-        user_info.get("sub")
+    google_id = str(
+        user_info.get(
+            "sub"
+        )
         or ""
     ).strip()
 
-
-    # ========================================================
-    # EMAIL
-    # ========================================================
-
-    email = (
-        user_info.get("email")
+    email = str(
+        user_info.get(
+            "email"
+        )
         or ""
     ).strip().lower()
 
-
-    # ========================================================
-    # FULL NAME
-    # ========================================================
-
-    fullname = (
-        user_info.get("name")
-        or user_info.get("given_name")
+    fullname = str(
+        user_info.get(
+            "name"
+        )
         or ""
     ).strip()
 
+    if not fullname:
 
-    # ========================================================
-    # GOOGLE PICTURE
-    # ========================================================
+        fullname = str(
+            user_info.get(
+                "given_name"
+            )
+            or ""
+        ).strip()
 
-    picture = (
-        user_info.get("picture")
+    picture = str(
+        user_info.get(
+            "picture"
+        )
         or ""
     ).strip()
 
-
     # ========================================================
-    # GOOGLE ID REQUIRED
+    # REQUIRED GOOGLE ID
     # ========================================================
 
     if not google_id:
@@ -1538,12 +2721,13 @@ def google_callback():
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # EMAIL REQUIRED
+    # REQUIRED EMAIL
     # ========================================================
 
     if not email:
@@ -1554,32 +2738,26 @@ def google_callback():
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # CURRENT TIME
+    # FIND USER BY GOOGLE ID
     # ========================================================
 
-    now = datetime.now(
-        timezone.utc
-    )
-
-
-    # ========================================================
-    # FIND EXISTING USER
-    #
-    # FIRST:
-    # Search by Google ID
-    # ========================================================
+    raw_user = None
 
     try:
 
-        raw_user = mongo.db.users.find_one(
-            {
-                "google": google_id
-            }
+        raw_user = (
+            mongo.db.users.find_one(
+                {
+                    "google":
+                        google_id
+                }
+            )
         )
 
     except Exception as e:
@@ -1595,23 +2773,26 @@ def google_callback():
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # SECOND:
-    # Search by EMAIL
+    # FALLBACK: FIND BY EMAIL
     # ========================================================
 
     if raw_user is None:
 
         try:
 
-            raw_user = mongo.db.users.find_one(
-                {
-                    "email": email
-                }
+            raw_user = (
+                mongo.db.users.find_one(
+                    {
+                        "email":
+                            email
+                    }
+                )
             )
 
         except Exception as e:
@@ -1627,301 +2808,288 @@ def google_callback():
             )
 
             return redirect(
-                url_for("main.login")
+                url_for(
+                    "main.login"
+                )
             )
 
+    # ========================================================
+    # NEW USER FLAG
+    # ========================================================
+
+    is_new_user = (
+        raw_user is None
+    )
 
     # ========================================================
-    # CREATE NEW USER IF NOT FOUND
+    # CREATE NEW USER
     # ========================================================
 
-    if raw_user is None:
+    if is_new_user:
 
-        print(
-            "GOOGLE USER NOT FOUND."
-        )
-
-        print(
-            "CREATING NEW USER:",
-            email
-        )
-
-
-        # ====================================================
-        # GENERATE BASE USERNAME
-        # ====================================================
+        # ----------------------------------------------------
+        # BASE USERNAME
+        # ----------------------------------------------------
 
         base_username = (
-            email.split("@")[0]
-        ).strip().lower()
-
-
-        # ----------------------------------------------------
-        # CLEAN USERNAME
-        # ----------------------------------------------------
+            email
+            .split("@")[0]
+            .strip()
+            .lower()
+        )
 
         allowed_chars = (
             "abcdefghijklmnopqrstuvwxyz"
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
             "0123456789"
-            "_"
-            "."
-            "-"
+            "_."
         )
 
-
         base_username = "".join(
-
             char
             for char in base_username
             if char in allowed_chars
-
         )
-
-
-        # ----------------------------------------------------
-        # FALLBACK USERNAME
-        # ----------------------------------------------------
 
         if not base_username:
 
-            base_username = "google_user"
+            base_username = (
+                "google_user"
+            )
 
+        base_username = (
+            base_username[:30]
+        )
 
-        # ====================================================
-        # UNIQUE USERNAME
-        # ====================================================
-
-        username = base_username
+        username = (
+            base_username
+        )
 
         counter = 1
 
+        while True:
 
-        while mongo.db.users.find_one(
-            {
-                "username": username
-            }
-        ):
+            existing_username = (
+                mongo.db.users.find_one(
+                    {
+                        "username":
+                            username
+                    },
+                    {
+                        "_id": 1
+                    }
+                )
+            )
+
+            if not existing_username:
+
+                break
+
+            suffix = (
+                f"_{counter}"
+            )
+
+            max_base_length = (
+                30 - len(suffix)
+            )
 
             username = (
-                f"{base_username}_{counter}"
+                base_username[
+                    :max_base_length
+                ]
+                + suffix
             )
 
             counter += 1
 
-
-        # ====================================================
-        # NEW USER DOCUMENT
-        # ====================================================
+        # ----------------------------------------------------
+        # CREATE USER DOCUMENT
+        # ----------------------------------------------------
 
         new_user = {
 
-            # ------------------------------------------------
-            # BASIC ACCOUNT
-            # ------------------------------------------------
+            "username":
+                username,
 
-            "username": username,
+            "fullname":
+                fullname,
 
-            "fullname": fullname,
+            "email":
+                email,
 
-            "email": email,
+            "password":
+                None,
 
-            # Google accounts don't need local password
-            "password": None,
+            "google":
+                google_id,
 
+            "google_email":
+                email,
 
-            # ------------------------------------------------
-            # GOOGLE
-            # ------------------------------------------------
+            "google_name":
+                fullname,
 
-            "google": google_id,
+            "google_picture":
+                picture,
 
-            "google_email": email,
+            "auth_provider":
+                "google",
 
-            "google_name": fullname,
+            "auth_status":
+                "login",
 
-            "google_picture": picture,
+            "is_verified":
+                True,
 
+            # Change to "user" if normal
+            # Google registrations should not
+            # automatically become admin.
+            "role":
+                "admin",
 
-            # ------------------------------------------------
-            # AUTH
-            # ------------------------------------------------
+            "role_id":
+                None,
 
-            "auth_provider": "google",
+            "status":
+                True,
 
-            "auth_status": "login",
+            "failed_login_attempts":
+                0,
 
-            "is_verified": True,
+            # Latest login metadata only.
+            # user_sessions is source of truth.
+            "session_token":
+                None,
 
+            "login_time":
+                now,
 
-            # ------------------------------------------------
-            # ROLE
-            # ------------------------------------------------
+            "last_seen":
+                now,
 
-            "role": "admin",
+            "last_active":
+                now,
 
-            "role_id": None,
+            "last_login_ip":
+                ip_address,
 
+            "device":
+                device,
 
-            # ------------------------------------------------
-            # ACCOUNT STATUS
-            # ------------------------------------------------
+            "browser":
+                browser,
 
-            "status": True,
+            "platform":
+                platform,
 
-            "failed_login_attempts": 0,
+            "user_agent":
+                user_agent,
 
+            "phone":
+                None,
 
-            # ------------------------------------------------
-            # SESSION
-            # ------------------------------------------------
+            "phone_verified":
+                False,
 
-            "session_token": str(
-                uuid4()
-            ),
+            "two_factor_enabled":
+                False,
 
-            "login_time": now,
+            "two_factor_code":
+                None,
 
-            "last_seen": now,
+            "two_factor_expires_at":
+                None,
 
-            "last_active": now,
+            "country":
+                None,
 
+            "city":
+                None,
 
-            # ------------------------------------------------
-            # IP
-            # ------------------------------------------------
+            "state":
+                None,
 
-            "last_login_ip": (
-                request.headers.get(
-                    "X-Forwarded-For"
-                )
-                or request.remote_addr
-                or "Unknown"
-            ),
+            "address":
+                None,
 
+            "bio":
+                None,
 
-            # ------------------------------------------------
-            # DEVICE
-            # ------------------------------------------------
+            "photo":
+                picture or None,
 
-            "device": (
-                request.headers.get(
-                    "User-Agent"
-                )
-                or "Unknown"
-            ),
+            "gender":
+                None,
 
+            "photo_visibility":
+                "everyone",
 
-            # ------------------------------------------------
-            # PHONE
-            # ------------------------------------------------
+            "facebook":
+                None,
 
-            "phone": None,
+            "twitter":
+                None,
 
-            "phone_verified": False,
+            "whatsapp":
+                None,
 
+            "instagram":
+                None,
 
-            # ------------------------------------------------
-            # TWO FACTOR
-            # ------------------------------------------------
+            "github":
+                None,
 
-            "two_factor_enabled": False,
+            "github_id":
+                None,
 
-            "two_factor_code": None,
+            "remember_token":
+                None,
 
-            "two_factor_expires_at": None,
+            "user_logs":
+                [],
 
+            "sessions":
+                [],
 
-            # ------------------------------------------------
-            # PROFILE
-            # ------------------------------------------------
+            "user_permissions":
+                [],
 
-            "country": None,
+            "patient_appointments":
+                [],
 
-            "city": None,
+            "doctor_appointments":
+                [],
 
-            "state": None,
+            "created_at":
+                now,
 
-            "address": None,
-
-            "bio": None,
-
-            "photo": picture,
-
-            "gender": None,
-
-            "photo_visibility": "everyone",
-
-
-            # ------------------------------------------------
-            # SOCIAL
-            # ------------------------------------------------
-
-            "facebook": None,
-
-            "twitter": None,
-
-            "google": google_id,
-
-            "whatsapp": None,
-
-            "instagram": None,
-
-            "github": None,
-
-            "github_id": None,
-
-
-            # ------------------------------------------------
-            # REMEMBER
-            # ------------------------------------------------
-
-            "remember_token": None,
-
-
-            # ------------------------------------------------
-            # RELATIONSHIPS
-            # ------------------------------------------------
-
-            "user_logs": [],
-
-            "sessions": [],
-
-            "user_permissions": [],
-
-            "patient_appointments": [],
-
-            "doctor_appointments": [],
-
-
-            # ------------------------------------------------
-            # TIMESTAMPS
-            # ------------------------------------------------
-
-            "created_at": now,
-
-            "updated_at": now
-
+            "updated_at":
+                now
         }
-
-
-        # ====================================================
-        # INSERT USER
-        # ====================================================
 
         try:
 
-            result = mongo.db.users.insert_one(
-                new_user
+            result = (
+                mongo.db.users.insert_one(
+                    new_user
+                )
+            )
+
+            raw_user = (
+                mongo.db.users.find_one(
+                    {
+                        "_id":
+                            result.inserted_id
+                    }
+                )
             )
 
         except Exception as e:
 
-            print("=" * 60)
-            print("GOOGLE CREATE USER ERROR:")
-            print(repr(e))
-            print("=" * 60)
-
+            print(
+                "GOOGLE CREATE USER ERROR:",
+                repr(e)
+            )
 
             flash(
                 "Google account lama abuuri karin database-ka.",
@@ -1929,54 +3097,10 @@ def google_callback():
             )
 
             return redirect(
-                url_for("main.login")
+                url_for(
+                    "main.login"
+                )
             )
-
-
-        # ====================================================
-        # GET CREATED USER
-        # ====================================================
-
-        raw_user = mongo.db.users.find_one(
-            {
-                "_id": result.inserted_id
-            }
-        )
-
-
-        # ====================================================
-        # VERIFY CREATION
-        # ====================================================
-
-        if not raw_user:
-
-            flash(
-                "Google account waa la abuuray laakiin user-ka lama soo celin karin.",
-                "danger"
-            )
-
-            return redirect(
-                url_for("main.login")
-            )
-
-
-        print(
-            "NEW GOOGLE USER CREATED:",
-            raw_user.get("username")
-        )
-
-
-    # ========================================================
-    # EXISTING USER
-    # ========================================================
-
-    else:
-
-        print(
-            "EXISTING USER FOUND:",
-            raw_user.get("username")
-        )
-
 
     # ========================================================
     # USER ID
@@ -1986,6 +3110,18 @@ def google_callback():
         "_id"
     )
 
+    if not user_id:
+
+        flash(
+            "User ID lama helin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
 
     # ========================================================
     # ACCOUNT STATUS
@@ -1996,8 +3132,7 @@ def google_callback():
         True
     )
 
-
-    if status in [
+    disabled_values = {
         False,
         0,
         "false",
@@ -2005,7 +3140,9 @@ def google_callback():
         "inactive",
         "disabled",
         "blocked"
-    ]:
+    }
+
+    if status in disabled_values:
 
         flash(
             "Account-kaaga waa disabled ama blocked.",
@@ -2013,143 +3150,203 @@ def google_callback():
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
+    # ========================================================
+    # CREATE UNIQUE SESSION TOKEN
+    # ========================================================
+
+    session_token = str(
+        uuid4()
+    )
 
     # ========================================================
-    # UPDATE GOOGLE LOGIN INFORMATION
+    # CREATE MONGODB SESSION
     #
-    # This also links Google to an existing email account.
+    # user_sessions = SOURCE OF TRUTH
     # ========================================================
 
     try:
 
-        ip_address = (
-            request.headers.get(
-                "X-Forwarded-For"
-            )
-            or request.remote_addr
-            or "Unknown"
+        create_user_session(
+            user_id=str(
+                user_id
+            ),
+
+            session_token=session_token,
+
+            ip_address=ip_address,
+
+            user_agent=user_agent,
+
+            device=device,
+
+            browser=browser,
+
+            platform=platform,
+
+            payload={
+                "auth_provider":
+                    "google",
+
+                "google_id":
+                    google_id,
+
+                "login_type":
+                    "google",
+
+                "email":
+                    email
+            }
         )
 
+    except Exception as e:
 
-        if "," in ip_address:
+        print("=" * 70)
+        print("GOOGLE SESSION CREATE ERROR")
+        print(
+            repr(e)
+        )
+        print("=" * 70)
 
-            ip_address = (
-                ip_address
-                .split(",")[0]
-                .strip()
-            )
-
-
-        user_agent = (
-            request.headers.get(
-                "User-Agent"
-            )
-            or "Unknown"
+        flash(
+            "Google login session lama kaydin karin. Fadlan mar kale isku day.",
+            "danger"
         )
 
-
-        session_token = str(
-            uuid4()
+        return redirect(
+            url_for(
+                "main.login"
+            )
         )
 
+    # ========================================================
+    # UPDATE USER LOGIN METADATA
+    # ========================================================
+
+    update_data = {
+
+        "google":
+            google_id,
+
+        "google_email":
+            email,
+
+        "google_name":
+            (
+                fullname
+                or raw_user.get(
+                    "google_name"
+                )
+                or raw_user.get(
+                    "fullname"
+                )
+                or ""
+            ),
+
+        "google_picture":
+            (
+                picture
+                or raw_user.get(
+                    "google_picture"
+                )
+                or ""
+            ),
+
+        "auth_provider":
+            "google",
+
+        "auth_status":
+            "login",
+
+        "is_verified":
+            True,
+
+        "session_token":
+            session_token,
+
+        "login_time":
+            now,
+
+        "last_seen":
+            now,
+
+        "last_active":
+            now,
+
+        "last_login_ip":
+            ip_address,
+
+        "device":
+            device,
+
+        "browser":
+            browser,
+
+        "platform":
+            platform,
+
+        "user_agent":
+            user_agent,
+
+        "updated_at":
+            now
+    }
+
+    if picture:
+
+        update_data[
+            "photo"
+        ] = picture
+
+    try:
 
         mongo.db.users.update_one(
-
             {
-                "_id": user_id
+                "_id":
+                    user_id
             },
-
             {
-                "$set": {
-
-                    # ----------------------------------------
-                    # GOOGLE
-                    # ----------------------------------------
-
-                    "google": google_id,
-
-                    "google_email": email,
-
-                    "google_name": fullname,
-
-                    "google_picture": picture,
-
-
-                    # ----------------------------------------
-                    # AUTH
-                    # ----------------------------------------
-
-                    "auth_provider": "google",
-
-                    "auth_status": "login",
-
-                    "is_verified": True,
-
-
-                    # ----------------------------------------
-                    # SESSION
-                    # ----------------------------------------
-
-                    "session_token": session_token,
-
-                    "login_time": now,
-
-                    "last_seen": now,
-
-                    "last_active": now,
-
-
-                    # ----------------------------------------
-                    # SECURITY
-                    # ----------------------------------------
-
-                    "last_login_ip": ip_address,
-
-
-                    # ----------------------------------------
-                    # DEVICE
-                    # ----------------------------------------
-
-                    "device": user_agent,
-
-
-                    # ----------------------------------------
-                    # PROFILE PHOTO
-                    # ----------------------------------------
-
-                    "photo": picture,
-
-
-                    # ----------------------------------------
-                    # UPDATED
-                    # ----------------------------------------
-
-                    "updated_at": now
-
-                },
-
-                "$setOnInsert": {
-
-                    "created_at": now
-
-                }
-
+                "$set":
+                    update_data
             }
-
         )
 
     except Exception as e:
 
         print(
-            "GOOGLE LOGIN UPDATE ERROR:",
+            "GOOGLE USER UPDATE ERROR:",
             repr(e)
         )
 
-        # We don't stop login here.
+        # Session already exists in Mongo.
+        # If user metadata update failed, rollback.
+        try:
 
+            deactivate_session(
+                session_token
+            )
+
+        except Exception as rollback_error:
+
+            print(
+                "GOOGLE USER UPDATE ROLLBACK ERROR:",
+                repr(rollback_error)
+            )
+
+        flash(
+            "Google account-ka lama cusboonaysiin karin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
 
     # ========================================================
     # REFRESH USER
@@ -2157,10 +3354,13 @@ def google_callback():
 
     try:
 
-        updated_user = mongo.db.users.find_one(
-            {
-                "_id": user_id
-            }
+        updated_user = (
+            mongo.db.users.find_one(
+                {
+                    "_id":
+                        user_id
+                }
+            )
         )
 
     except Exception as e:
@@ -2170,11 +3370,14 @@ def google_callback():
             repr(e)
         )
 
+        updated_user = None
+
+    if not updated_user:
+
         updated_user = raw_user
 
-
     # ========================================================
-    # CREATE USER OBJECT
+    # CREATE FLASK LOGIN USER
     # ========================================================
 
     try:
@@ -2190,15 +3393,25 @@ def google_callback():
             repr(e)
         )
 
+        try:
+
+            deactivate_session(
+                session_token
+            )
+
+        except Exception:
+            pass
+
         flash(
             "Google user account lama diyaarin karin.",
             "danger"
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
-
 
     # ========================================================
     # FLASK LOGIN
@@ -2218,39 +3431,285 @@ def google_callback():
             repr(e)
         )
 
+        try:
+
+            deactivate_session(
+                session_token
+            )
+
+        except Exception:
+            pass
+
+        # At this point OAuth state has already been consumed,
+        # so clearing authentication state is safe.
+
+        session.clear()
+
         flash(
             "Login session lama abuuri karin.",
             "danger"
         )
 
         return redirect(
-            url_for("main.login")
+            url_for(
+                "main.login"
+            )
         )
 
+    # ========================================================
+    # SAVE OUR CUSTOM SESSION TOKEN
+    #
+    # IMPORTANT:
+    # MUST BE AFTER login_user()
+    # ========================================================
+
+    try:
+
+        session[
+            "session_token"
+        ] = session_token
+
+        session[
+            "auth_provider"
+        ] = "google"
+
+        session.modified = True
+
+    except Exception as e:
+
+        print("=" * 70)
+        print(
+            "GOOGLE SESSION TOKEN SAVE ERROR"
+        )
+        print(
+            repr(e)
+        )
+        print("=" * 70)
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        try:
+
+            deactivate_session(
+                session_token
+            )
+
+        except Exception as rollback_error:
+
+            print(
+                "GOOGLE SESSION ROLLBACK ERROR:",
+                repr(rollback_error)
+            )
+
+        session.clear()
+
+        flash(
+            "Google login session lama kaydin karin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
+
+    # ========================================================
+    # VERIFY FLASK SESSION TOKEN
+    # ========================================================
+
+    saved_token = str(
+        session.get(
+            "session_token"
+        )
+        or ""
+    ).strip()
+
+    if saved_token != session_token:
+
+        print("=" * 70)
+        print(
+            "GOOGLE SESSION TOKEN VERIFICATION FAILED"
+        )
+        print(
+            "EXPECTED:",
+            session_token
+        )
+        print(
+            "SAVED:",
+            saved_token
+        )
+        print("=" * 70)
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        try:
+
+            deactivate_session(
+                session_token
+            )
+
+        except Exception:
+            pass
+
+        session.clear()
+
+        flash(
+            "Login session lama xaqiijin karin. Fadlan mar kale isku day.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
+
+    # ========================================================
+    # VERIFY MONGODB SESSION
+    # ========================================================
+
+    try:
+
+        verified_session = (
+            user_sessions_collection()
+            .find_one(
+                {
+                    "session_token":
+                        session_token,
+
+                    "user_id":
+                        str(
+                            user_id
+                        ),
+
+                    "is_active":
+                        True
+                }
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE SESSION VERIFY DB ERROR:",
+            repr(e)
+        )
+
+        verified_session = None
+
+    if not verified_session:
+
+        print(
+            "GOOGLE SESSION VERIFICATION FAILED"
+        )
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        session.clear()
+
+        flash(
+            "Google login session database-ka lagama xaqiijin karin.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
+
+    # ========================================================
+    # UPDATE ACTIVITY ONE FINAL TIME
+    # ========================================================
+
+    try:
+
+        update_session_activity(
+            session_token
+        )
+
+    except Exception as e:
+
+        print(
+            "GOOGLE FINAL SESSION ACTIVITY ERROR:",
+            repr(e)
+        )
+
+    # ========================================================
+    # SUCCESS DEBUG
+    # ========================================================
+
+    print("=" * 70)
+    print(
+        "GOOGLE LOGIN SUCCESS"
+    )
+    print(
+        "USER ID:",
+        user_id
+    )
+    print(
+        "EMAIL:",
+        email
+    )
+    print(
+        "SESSION TOKEN:",
+        session_token
+    )
+    print(
+        "SESSION SAVED:",
+        bool(
+            session.get(
+                "session_token"
+            )
+        )
+    )
+    print(
+        "DEVICE:",
+        device
+    )
+    print(
+        "BROWSER:",
+        browser
+    )
+    print(
+        "PLATFORM:",
+        platform
+    )
+    print("=" * 70)
 
     # ========================================================
     # SUCCESS MESSAGE
     # ========================================================
 
-    if raw_user.get("created_at") == now:
+    if is_new_user:
 
-        message = (
-            "Google account cusub ayaa la sameeyay, "
-            "si guul leh ayaadna u gashay."
+        flash(
+            "Google account cusub ayaa la sameeyay, si guul leh ayaadna u gashay.",
+            "success"
         )
 
     else:
 
-        message = (
-            "Google login si guul leh ayuu u dhacay."
+        flash(
+            "Google login si guul leh ayuu u dhacay.",
+            "success"
         )
-
-
-    flash(
-        message,
-        "success"
-    )
-
 
     # ========================================================
     # DASHBOARD
@@ -2261,7 +3720,6 @@ def google_callback():
             "main.dashboard"
         )
     )
-
 
 @bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -4632,27 +6090,346 @@ def get_device_info(user_agent):
 # PROFILE
 # ============================================================
 
-@bp.route("/profile", methods=["GET"])
+@bp.route(
+    "/profile",
+    methods=["GET"]
+)
 @login_required
 def profile():
 
-    from bson import ObjectId
-    from datetime import datetime
-
-    # ========================================================
-    # CURRENT USER ID
-    # ========================================================
+    from datetime import datetime, timezone
 
     try:
 
-        user_id = ObjectId(
-            str(current_user.id)
+        # ========================================================
+        # CURRENT USER ID
+        # ========================================================
+
+        user_id = str(
+            current_user.id
+        ).strip()
+
+        if not user_id:
+            flash(
+                "Unable to identify your account.",
+                "danger"
+            )
+
+            return redirect(
+                url_for("main.login")
+            )
+
+        # ========================================================
+        # CURRENT SESSION TOKEN
+        # ========================================================
+
+        current_session_token = str(
+            session.get(
+                "session_token"
+            ) or ""
+        ).strip()
+
+        # ========================================================
+        # UPDATE CURRENT SESSION ACTIVITY
+        # ========================================================
+
+        if current_session_token:
+
+            try:
+
+                update_session_activity(
+                    current_session_token
+                )
+
+            except Exception as e:
+
+                print(
+                    "PROFILE SESSION ACTIVITY ERROR:",
+                    repr(e)
+                )
+
+        # ========================================================
+        # GET USER FROM MONGODB
+        # ========================================================
+
+        try:
+
+            user = mongo.db.users.find_one(
+                {
+                    "_id": ObjectId(
+                        user_id
+                    )
+                }
+            )
+
+        except Exception:
+
+            user = mongo.db.users.find_one(
+                {
+                    "_id": user_id
+                }
+            )
+
+        # ========================================================
+        # USER NOT FOUND
+        # ========================================================
+
+        if not user:
+
+            flash(
+                "User account not found.",
+                "danger"
+            )
+
+            logout_user()
+
+            session.clear()
+
+            return redirect(
+                url_for("main.login")
+            )
+
+        # ========================================================
+        # ACTIVE SESSIONS
+        #
+        # user_sessions IS THE SOURCE OF TRUTH
+        # ========================================================
+
+        try:
+
+            active_sessions = (
+                get_user_active_sessions(
+                    user_id
+                )
+            )
+
+        except Exception as e:
+
+            print(
+                "GET ACTIVE SESSIONS ERROR:",
+                repr(e)
+            )
+
+            active_sessions = []
+
+        # ========================================================
+        # MARK CURRENT SESSION
+        # ========================================================
+
+        for item in active_sessions:
+
+            item_token = str(
+                item.get(
+                    "session_token"
+                ) or ""
+            ).strip()
+
+            item["is_current"] = (
+                bool(current_session_token)
+                and
+                item_token ==
+                current_session_token
+            )
+
+            # ====================================================
+            # DEVICE FALLBACK
+            # ====================================================
+
+            if not item.get("device"):
+
+                item["device"] = (
+                    user.get("device")
+                    or
+                    "Unknown Device"
+                )
+
+            # ====================================================
+            # BROWSER FALLBACK
+            # ====================================================
+
+            if not item.get("browser"):
+
+                item["browser"] = (
+                    user.get("browser")
+                    or
+                    "Unknown Browser"
+                )
+
+            # ====================================================
+            # PLATFORM FALLBACK
+            # ====================================================
+
+            if not item.get("platform"):
+
+                item["platform"] = (
+                    user.get("platform")
+                    or
+                    "Unknown Platform"
+                )
+
+            # ====================================================
+            # IP FALLBACK
+            # ====================================================
+
+            if not item.get("ip_address"):
+
+                item["ip_address"] = (
+                    user.get("last_login_ip")
+                    or
+                    "Unknown"
+                )
+
+            # ====================================================
+            # DEVICE NAME
+            # ====================================================
+
+            if not item.get("device_name"):
+
+                item["device_name"] = (
+                    item.get("device")
+                    or
+                    "Unknown Device"
+                )
+
+            # ====================================================
+            # USER AGENT FALLBACK
+            # ====================================================
+
+            if not item.get("user_agent"):
+
+                item["user_agent"] = (
+                    user.get(
+                        "user_agent"
+                    )
+                    or
+                    ""
+                )
+
+        # ========================================================
+        # SORT CURRENT SESSION FIRST
+        # ========================================================
+
+        active_sessions.sort(
+            key=lambda x: (
+                not x.get(
+                    "is_current",
+                    False
+                ),
+                x.get(
+                    "last_activity"
+                ) or datetime.min.replace(
+                    tzinfo=timezone.utc
+                )
+            )
         )
 
-    except Exception:
+        # ========================================================
+        # MAKE USER ID AVAILABLE AS `id`
+        #
+        # Helps the template:
+        # {{ user.id }}
+        # ========================================================
+
+        if "_id" in user:
+
+            user["id"] = str(
+                user["_id"]
+            )
+
+        # ========================================================
+        # CURRENT SESSION INFORMATION
+        # ========================================================
+
+        current_session = None
+
+        for item in active_sessions:
+
+            if item.get(
+                "is_current"
+            ):
+
+                current_session = item
+
+                break
+
+        # ========================================================
+        # FALLBACK CURRENT DEVICE DATA
+        #
+        # If current session exists, use its latest information.
+        # ========================================================
+
+        if current_session:
+
+            if current_session.get(
+                "device"
+            ):
+
+                user["device"] = (
+                    current_session.get(
+                        "device"
+                    )
+                )
+
+            if current_session.get(
+                "device_name"
+            ):
+
+                user["device_name"] = (
+                    current_session.get(
+                        "device_name"
+                    )
+                )
+
+            if current_session.get(
+                "browser"
+            ):
+
+                user["browser"] = (
+                    current_session.get(
+                        "browser"
+                    )
+                )
+
+            if current_session.get(
+                "platform"
+            ):
+
+                user["platform"] = (
+                    current_session.get(
+                        "platform"
+                    )
+                )
+
+            if current_session.get(
+                "ip_address"
+            ):
+
+                user["last_login_ip"] = (
+                    current_session.get(
+                        "ip_address"
+                    )
+                )
+
+        # ========================================================
+        # RENDER PROFILE
+        # ========================================================
+
+        return render_template(
+            "backend/pages/components/users/profile.html",
+            user=user,
+            active_sessions=active_sessions,
+            current_session_token=current_session_token
+        )
+
+    except Exception as e:
+
+        print(
+            "PROFILE ROUTE ERROR:",
+            repr(e)
+        )
 
         flash(
-            "Invalid user account.",
+            "Unable to load your profile.",
             "danger"
         )
 
@@ -4660,10 +6437,91 @@ def profile():
             url_for("main.dashboard")
         )
 
+# ============================================================
+# LOGOUT OTHER USER SESSION
+# ============================================================
 
-    # ========================================================
-    # GET LATEST USER FROM MONGODB
-    # ========================================================
+@bp.route(
+    "/profile/logout-session/<session_token>",
+    methods=["POST"]
+)
+@login_required
+def logout_other_session(session_token):
+
+    from bson import ObjectId
+    from datetime import datetime, timezone
+    from werkzeug.security import check_password_hash
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    try:
+        user_id = ObjectId(
+            str(current_user.id)
+        )
+    except Exception:
+        return {
+            "success": False,
+            "message": "Invalid user account."
+        }, 400
+
+    # ============================================================
+    # TARGET SESSION TOKEN
+    # ============================================================
+
+    target_token = str(
+        session_token or ""
+    ).strip()
+
+    if not target_token:
+        return {
+            "success": False,
+            "message": "Invalid session."
+        }, 400
+
+    # ============================================================
+    # CURRENT SESSION TOKEN
+    # ============================================================
+
+    current_token = str(
+        session.get("session_token") or ""
+    ).strip()
+
+    # ============================================================
+    # NEVER LOGOUT CURRENT SESSION
+    # ============================================================
+
+    if (
+        current_token
+        and target_token == current_token
+    ):
+        return {
+            "success": False,
+            "message": "Current session cannot be logged out from here."
+        }, 400
+
+    # ============================================================
+    # REQUEST DATA
+    # ============================================================
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    password = str(
+        data.get("password") or ""
+    )
+
+    if not password:
+        return {
+            "success": False,
+            "message": "Please enter your password."
+        }, 400
+
+    # ============================================================
+    # GET CURRENT USER
+    # ============================================================
 
     user_data = mongo.db.users.find_one(
         {
@@ -4671,271 +6529,483 @@ def profile():
         }
     )
 
-
-    # ========================================================
-    # USER NOT FOUND
-    # ========================================================
-
     if not user_data:
+        return {
+            "success": False,
+            "message": "User account not found."
+        }, 404
 
-        flash(
-            "User account not found.",
-            "danger"
+    # ============================================================
+    # VERIFY PASSWORD
+    # ============================================================
+
+    stored_password = str(
+        user_data.get("password") or ""
+    )
+
+    if not stored_password:
+        return {
+            "success": False,
+            "message": "Password authentication is unavailable."
+        }, 400
+
+    try:
+
+        password_valid = check_password_hash(
+            stored_password,
+            password
         )
+
+    except Exception as e:
+
+        print(
+            "PASSWORD VERIFY ERROR:",
+            repr(e)
+        )
+
+        password_valid = False
+
+    if not password_valid:
+        return {
+            "success": False,
+            "message": "Incorrect password."
+        }, 401
+
+    # ============================================================
+    # FIND TARGET ACTIVE SESSION
+    #
+    # IMPORTANT:
+    # user_sessions IS THE SOURCE OF TRUTH
+    # ============================================================
+
+    target_session = (
+        user_sessions_collection().find_one(
+            {
+                "session_token": target_token,
+                "user_id": str(user_id),
+                "is_active": True
+            }
+        )
+    )
+
+    if not target_session:
+        return {
+            "success": False,
+            "message": "Session not found or already logged out."
+        }, 404
+
+    # ============================================================
+    # LOGOUT TIME
+    # ============================================================
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+    # ============================================================
+    # FORCE LOGOUT TARGET SESSION
+    # ============================================================
+
+    try:
+
+        result = (
+            user_sessions_collection()
+            .update_one(
+                {
+                    "_id": target_session["_id"],
+                    "user_id": str(user_id),
+                    "session_token": target_token,
+                    "is_active": True
+                },
+                {
+                    "$set": {
+                        "is_active": False,
+                        "force_logout": True,
+                        "logout_reason": "remote_logout",
+                        "logged_out_at": now,
+                        "updated_at": now
+                    }
+                }
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "FORCE LOGOUT SESSION ERROR:",
+            repr(e)
+        )
+
+        return {
+            "success": False,
+            "message": "Unable to logout this session."
+        }, 500
+
+    # ============================================================
+    # VERIFY UPDATE
+    # ============================================================
+
+    if result.modified_count != 1:
+
+        return {
+            "success": False,
+            "message": "Session is already logged out."
+        }, 404
+
+    # ============================================================
+    # OPTIONAL LEGACY users.sessions UPDATE
+    #
+    # DO NOT RUN ARRAY UPDATE IF sessions DOES NOT EXIST.
+    # user_sessions remains the source of truth.
+    # ============================================================
+
+    try:
+
+        sessions_value = user_data.get(
+            "sessions"
+        )
+
+        if isinstance(
+            sessions_value,
+            list
+        ):
+
+            mongo.db.users.update_one(
+                {
+                    "_id": user_id,
+                    "sessions": {
+                        "$elemMatch": {
+                            "session_token": target_token
+                        }
+                    }
+                },
+                {
+                    "$set": {
+                        "sessions.$[item].is_active": False,
+                        "sessions.$[item].force_logout": True,
+                        "sessions.$[item].logout_reason": "remote_logout",
+                        "sessions.$[item].logged_out_at": now,
+                        "sessions.$[item].updated_at": now
+                    }
+                },
+                array_filters=[
+                    {
+                        "item.session_token":
+                            target_token
+                    }
+                ]
+            )
+
+    except Exception as e:
+
+        # This must NOT make the real session
+        # logout fail because user_sessions
+        # was already successfully updated.
+
+        print(
+            "OPTIONAL LEGACY SESSION UPDATE ERROR:",
+            repr(e)
+        )
+
+    # ============================================================
+    # SUCCESS
+    # ============================================================
+
+    return {
+        "success": True,
+        "message": "Session has been force logged out successfully."
+    }, 200
+
+
+# ============================================================
+# VALIDATE ACTIVE USER SESSION
+# ============================================================
+
+@bp.before_app_request
+def validate_active_user_session():
+
+    # ========================================================
+    # STATIC FILES
+    # ========================================================
+
+    if request.endpoint:
+        if request.endpoint.startswith("static."):
+            return None
+
+    # ========================================================
+    # PATHS THAT MUST NEVER REQUIRE CUSTOM SESSION TOKEN
+    #
+    # IMPORTANT:
+    # OAuth flow can start while an old remember cookie still
+    # exists. These routes must be allowed to continue.
+    # ========================================================
+
+    public_paths = {
+        "/login",
+        "/login/google",
+        "/google/callback",
+        "/register",
+        "/forgot-password",
+        "/reset-password",
+        "/verify-email",
+        "/check-username",
+        "/favicon.ico",
+    }
+
+    request_path = (
+        request.path
+        or ""
+    ).rstrip("/")
+
+    if request_path in public_paths:
+        return None
+
+    # ========================================================
+    # ENDPOINTS THAT MUST NEVER REQUIRE CUSTOM SESSION TOKEN
+    # ========================================================
+
+    public_endpoints = {
+        "main.login",
+        "main.google_login",
+        "main.google_callback",
+        "main.logout",
+        "main.register",
+        "main.forgot_password",
+        "main.reset_password",
+        "main.verify_email",
+        "main.check_username",
+    }
+
+    endpoint = (
+        request.endpoint
+        or ""
+    )
+
+    if endpoint in public_endpoints:
+        return None
+
+    # ========================================================
+    # NOT LOGGED IN
+    # ========================================================
+
+    if not current_user.is_authenticated:
+        return None
+
+    # ========================================================
+    # GET CUSTOM SESSION TOKEN
+    # ========================================================
+
+    current_token = str(
+        session.get(
+            "session_token"
+        )
+        or ""
+    ).strip()
+
+    # ========================================================
+    # NO CUSTOM SESSION TOKEN
+    #
+    # Flask-Login may still authenticate through remember cookie.
+    # That is NOT enough for this application.
+    # ========================================================
+
+    if not current_token:
+
+        print(
+            "SESSION VALIDATION: NO SESSION TOKEN | "
+            f"user_id={current_user.id} | "
+            f"path={request.path} | "
+            f"endpoint={request.endpoint}"
+        )
+
+        try:
+            logout_user()
+        except Exception as e:
+            print(
+                "SESSION VALIDATION LOGOUT ERROR:",
+                repr(e)
+            )
+
+        session.clear()
+
+        # ----------------------------------------------------
+        # AJAX / API
+        # ----------------------------------------------------
+
+        if (
+            request.headers.get(
+                "X-Requested-With"
+            )
+            == "XMLHttpRequest"
+            or
+            request.is_json
+        ):
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has expired. "
+                    "Please login again."
+                )
+            }, 401
+
+        # ----------------------------------------------------
+        # NORMAL REQUEST
+        # ----------------------------------------------------
 
         return redirect(
-            url_for("main.dashboard")
+            url_for(
+                "main.login"
+            )
         )
 
-
     # ========================================================
-    # CURRENT USER AGENT
-    # ========================================================
-
-    current_user_agent = request.headers.get(
-        "User-Agent",
-        ""
-    )
-
-
-    # ========================================================
-    # GET DEVICE INFORMATION
+    # CHECK MONGODB SESSION
     # ========================================================
 
-    device_info = get_device_info(
-        current_user_agent
-    )
+    try:
 
+        active_session = (
+            user_sessions_collection()
+            .find_one(
+                {
+                    "session_token":
+                        current_token,
 
-    # ========================================================
-    # FIX MISSING DEVICE INFORMATION
-    #
-    # Haddii MongoDB horey u lahaa:
-    #
-    # device = None
-    # browser = None
-    # platform = None
-    #
-    # profile-ka hadda wuxuu isticmaali karaa
-    # current browser information.
-    # ========================================================
+                    "user_id":
+                        str(
+                            current_user.id
+                        ),
 
-    device = (
-        user_data.get("device")
-        or device_info["device"]
-    )
-
-    device_name = (
-        user_data.get("device_name")
-        or device_info["device_name"]
-    )
-
-    browser = (
-        user_data.get("browser")
-        or device_info["browser"]
-    )
-
-    platform = (
-        user_data.get("platform")
-        or device_info["platform"]
-    )
-
-    interface_name = (
-        user_data.get("interface_name")
-        or device_info["interface_name"]
-    )
-
-
-    # ========================================================
-    # BUILD PROFILE DATA
-    #
-    # Waxaan sameyneynaa copy si aan database object-ka
-    # original-ka u beddelin.
-    # ========================================================
-
-    profile_data = dict(user_data)
-
-
-    profile_data["device"] = device
-    profile_data["device_name"] = device_name
-    profile_data["browser"] = browser
-    profile_data["platform"] = platform
-    profile_data["interface_name"] = interface_name
-
-
-    # ========================================================
-    # AUTH STATUS
-    # ========================================================
-
-    profile_data["auth_status"] = (
-        user_data.get("auth_status")
-        or "login"
-    )
-
-
-    # ========================================================
-    # AUTH PROVIDER
-    # ========================================================
-
-    profile_data["auth_provider"] = (
-        user_data.get("auth_provider")
-        or "local"
-    )
-
-
-    # ========================================================
-    # PASSWORD SECURITY
-    # ========================================================
-
-    profile_data["last_password_change"] = (
-        user_data.get(
-            "last_password_change"
+                    "is_active":
+                        True
+                }
+            )
         )
-    )
 
-    profile_data["password_changed_ip"] = (
-        user_data.get(
-            "password_changed_ip"
+    except Exception as e:
+
+        print(
+            "SESSION VALIDATION DB ERROR:",
+            repr(e)
         )
-    )
 
-    profile_data["password_changed_user_agent"] = (
-        user_data.get(
-            "password_changed_user_agent"
+        # Do not destroy the user's login because of a temporary
+        # MongoDB error.
+        return None
+
+    # ========================================================
+    # SESSION DOES NOT EXIST / WAS REMOTELY LOGGED OUT
+    # ========================================================
+
+    if not active_session:
+
+        print(
+            "SESSION VALIDATION FAILED | "
+            f"user_id={current_user.id} | "
+            f"token={current_token}"
         )
-    )
 
+        try:
+            logout_user()
+        except Exception as e:
+            print(
+                "SESSION VALIDATION LOGOUT ERROR:",
+                repr(e)
+            )
 
-    # ========================================================
-    # LOGIN INFORMATION
-    # ========================================================
+        session.clear()
 
-    profile_data["last_login_ip"] = (
-        user_data.get(
-            "last_login_ip"
+        if (
+            request.headers.get(
+                "X-Requested-With"
+            )
+            == "XMLHttpRequest"
+            or
+            request.is_json
+        ):
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has been logged out."
+                )
+            }, 401
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
         )
-    )
 
-    profile_data["last_active"] = (
-        user_data.get(
-            "last_active"
+    # ========================================================
+    # FORCE LOGOUT CHECK
+    # ========================================================
+
+    if active_session.get(
+        "force_logout",
+        False
+    ):
+
+        print(
+            "SESSION VALIDATION FORCE LOGOUT | "
+            f"user_id={current_user.id} | "
+            f"token={current_token}"
         )
-    )
 
-    profile_data["login_time"] = (
-        user_data.get(
-            "login_time"
+        try:
+            logout_user()
+        except Exception as e:
+            print(
+                "FORCE LOGOUT USER ERROR:",
+                repr(e)
+            )
+
+        session.clear()
+
+        if (
+            request.headers.get(
+                "X-Requested-With"
+            )
+            == "XMLHttpRequest"
+            or
+            request.is_json
+        ):
+
+            return {
+                "success": False,
+                "force_logout": True,
+                "message": (
+                    "Your session has been logged out."
+                )
+            }, 401
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
         )
-    )
 
-    profile_data["failed_login_attempts"] = (
-        user_data.get(
-            "failed_login_attempts",
-            0
+    # ========================================================
+    # UPDATE ACTIVITY
+    # ========================================================
+
+    try:
+
+        update_session_activity(
+            current_token
         )
-    )
 
+    except Exception as e:
 
-    # ========================================================
-    # VERIFICATION
-    # ========================================================
-
-    profile_data["is_verified"] = (
-        user_data.get(
-            "is_verified",
-            False
+        print(
+            "SESSION ACTIVITY ERROR:",
+            repr(e)
         )
-    )
 
-    profile_data["phone_verified"] = (
-        user_data.get(
-            "phone_verified",
-            False
-        )
-    )
-
-    profile_data["two_factor_enabled"] = (
-        user_data.get(
-            "two_factor_enabled",
-            False
-        )
-    )
-
-
-    # ========================================================
-    # PHOTO VISIBILITY
-    # ========================================================
-
-    profile_data["photo_visibility"] = (
-        user_data.get(
-            "photo_visibility",
-            "everyone"
-        )
-    )
-
-
-    # ========================================================
-    # STATUS
-    # ========================================================
-
-    profile_data["status"] = (
-        user_data.get(
-            "status",
-            True
-        )
-    )
-
-
-    # ========================================================
-    # REFRESH CURRENT USER
-    # ========================================================
-
-    current_user.data = profile_data
-
-
-    # ========================================================
-    # BUILD USER OBJECT
-    # ========================================================
-
-    user = User(
-        profile_data
-    )
-
-
-    # ========================================================
-    # EXTRA ATTRIBUTES
-    #
-    # User class-ka haddii fields-kan uusan constructor-ka
-    # ku jirin, si toos ah ayaan ugu dari karnaa object-ka.
-    # ========================================================
-
-    user.last_password_change = (
-        profile_data.get(
-            "last_password_change"
-        )
-    )
-
-    user.password_changed_ip = (
-        profile_data.get(
-            "password_changed_ip"
-        )
-    )
-
-    user.password_changed_user_agent = (
-        profile_data.get(
-            "password_changed_user_agent"
-        )
-    )
-
-
-    # ========================================================
-    # PROFILE PAGE
-    # ========================================================
-
-    return render_template(
-        "backend/pages/components/users/profile.html",
-        user=user
-    )
+    return None
 
 
 
