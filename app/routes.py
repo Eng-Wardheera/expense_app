@@ -8214,12 +8214,17 @@ def check_current_password():
 # CHANGE PASSWORD
 # ============================================================
 
-@bp.route("/change-password", methods=["GET", "POST"])
+
+@bp.route(
+    "/change-password",
+    methods=["GET", "POST"]
+)
 @login_required
 def change_password():
 
     from bson import ObjectId
-    from datetime import datetime
+    from datetime import datetime, timezone
+
     from werkzeug.security import (
         check_password_hash,
         generate_password_hash
@@ -8230,7 +8235,12 @@ def change_password():
     # ========================================================
 
     try:
-        user_id = ObjectId(str(current_user.id))
+
+        user_id = ObjectId(
+            str(
+                current_user.id
+            )
+        )
 
     except Exception:
 
@@ -8240,7 +8250,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.dashboard")
+            url_for(
+                "main.dashboard"
+            )
         )
 
     # ========================================================
@@ -8261,7 +8273,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.dashboard")
+            url_for(
+                "main.dashboard"
+            )
         )
 
     # ========================================================
@@ -8270,18 +8284,26 @@ def change_password():
 
     if request.method == "GET":
 
-        user = User(user_data)
+        user = User(
+            user_data
+        )
 
-        # Password history
+        # ----------------------------------------------------
+        # PASSWORD HISTORY
+        # ----------------------------------------------------
+
         password_history = list(
-            mongo.db.password_change_logs.find(
+            mongo.db.password_change_logs
+            .find(
                 {
                     "user_id": user_id
                 }
-            ).sort(
+            )
+            .sort(
                 "changed_at",
                 -1
-            ).limit(10)
+            )
+            .limit(10)
         )
 
         return render_template(
@@ -8321,7 +8343,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     if not new_password:
@@ -8332,7 +8356,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     if not confirm_password:
@@ -8343,7 +8369,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8358,36 +8386,48 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
     # STORED PASSWORD
     # ========================================================
 
-    stored_password = user_data.get("password")
+    stored_password = (
+        user_data.get(
+            "password"
+        )
+    )
 
     if not stored_password:
 
         flash(
-            "Your account does not have a valid password. Please contact the administrator.",
+            "Your account does not have a valid password. "
+            "Please contact the administrator.",
             "danger"
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
     # VERIFY CURRENT PASSWORD
-    # IMPORTANT
     # ========================================================
 
     try:
 
-        password_valid = check_password_hash(
-            str(stored_password),
-            old_password
+        password_valid = (
+            check_password_hash(
+                str(
+                    stored_password
+                ),
+                old_password
+            )
         )
 
     except Exception as e:
@@ -8407,7 +8447,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8416,9 +8458,13 @@ def change_password():
 
     try:
 
-        same_password = check_password_hash(
-            str(stored_password),
-            new_password
+        same_password = (
+            check_password_hash(
+                str(
+                    stored_password
+                ),
+                new_password
+            )
         )
 
     except Exception:
@@ -8433,7 +8479,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8448,7 +8496,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8466,7 +8516,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8484,7 +8536,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8502,7 +8556,127 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
+        )
+
+    # ========================================================
+    # CURRENT SESSION TOKEN
+    #
+    # IMPORTANT:
+    #
+    # This device MUST remain logged in after changing
+    # the password.
+    # ========================================================
+
+    current_session_token = str(
+        session.get(
+            "session_token"
+        )
+        or ""
+    ).strip()
+
+    if not current_session_token:
+
+        print(
+            "CHANGE PASSWORD: CURRENT SESSION TOKEN "
+            "NOT FOUND | "
+            f"user_id={user_id}"
+        )
+
+        flash(
+            "Your current session could not be verified. "
+            "Please login again.",
+            "danger"
+        )
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        session.clear()
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
+
+    # ========================================================
+    # VERIFY CURRENT SESSION BEFORE PASSWORD CHANGE
+    #
+    # Prevent changing password from a stale/invalid
+    # custom session.
+    # ========================================================
+
+    try:
+
+        current_session = (
+            user_sessions_collection()
+            .find_one(
+                {
+                    "session_token":
+                        current_session_token,
+
+                    "user_id":
+                        str(
+                            user_id
+                        ),
+
+                    "is_active":
+                        True
+                }
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "CHANGE PASSWORD CURRENT SESSION ERROR:",
+            repr(e)
+        )
+
+        flash(
+            "Unable to verify your current session. "
+            "Please try again.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.change_password"
+            )
+        )
+
+    if not current_session:
+
+        print(
+            "CHANGE PASSWORD: CURRENT SESSION INVALID | "
+            f"user_id={user_id}"
+        )
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        session.clear()
+
+        flash(
+            "Your session has expired. Please login again.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
         )
 
     # ========================================================
@@ -8511,8 +8685,10 @@ def change_password():
 
     try:
 
-        hashed_password = generate_password_hash(
-            new_password
+        hashed_password = (
+            generate_password_hash(
+                new_password
+            )
         )
 
     except Exception as e:
@@ -8528,14 +8704,20 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
     # CURRENT TIME
+    #
+    # USE UTC-AWARE DATETIME
     # ========================================================
 
-    now = datetime.utcnow()
+    now = datetime.now(
+        timezone.utc
+    )
 
     # ========================================================
     # IP ADDRESS
@@ -8547,11 +8729,19 @@ def change_password():
 
     if ip_address:
 
-        ip_address = ip_address.split(",")[0].strip()
+        ip_address = (
+            ip_address
+            .split(",")[0]
+            .strip()
+        )
 
     else:
 
-        ip_address = request.remote_addr or "Unknown"
+        ip_address = (
+            request.remote_addr
+            or
+            "Unknown"
+        )
 
     # ========================================================
     # USER AGENT
@@ -8591,39 +8781,51 @@ def change_password():
     )
 
     # ========================================================
-    # UPDATE USER
+    # UPDATE USER PASSWORD
     # ========================================================
 
     try:
 
-        result = mongo.db.users.update_one(
-            {
-                "_id": user_id
-            },
-            {
-                "$set": {
+        result = (
+            mongo.db.users.update_one(
+                {
+                    "_id": user_id
+                },
+                {
+                    "$set": {
 
-                    "password": hashed_password,
+                        "password":
+                            hashed_password,
 
-                    "last_password_change": now,
+                        "last_password_change":
+                            now,
 
-                    "password_changed_ip": ip_address,
+                        "password_changed_ip":
+                            ip_address,
 
-                    "password_changed_user_agent": user_agent,
+                        "password_changed_user_agent":
+                            user_agent,
 
-                    "device": device,
+                        "device":
+                            device,
 
-                    "device_name": device_name,
+                        "device_name":
+                            device_name,
 
-                    "browser": browser,
+                        "browser":
+                            browser,
 
-                    "platform": platform,
+                        "platform":
+                            platform,
 
-                    "interface_name": interface_name,
+                        "interface_name":
+                            interface_name,
 
-                    "updated_at": now
+                        "updated_at":
+                            now
+                    }
                 }
-            }
+            )
         )
 
     except Exception as e:
@@ -8639,7 +8841,9 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
         )
 
     # ========================================================
@@ -8654,7 +8858,148 @@ def change_password():
         )
 
         return redirect(
-            url_for("main.change_password")
+            url_for(
+                "main.change_password"
+            )
+        )
+
+    # ========================================================
+    # FORCE LOGOUT ALL OTHER SESSIONS
+    #
+    # IMPORTANT:
+    #
+    # Current session is EXCLUDED.
+    #
+    # Other sessions become:
+    #
+    # is_active = False
+    # force_logout = True
+    #
+    # Their browser's JS heartbeat will detect this and
+    # redirect them to /login WITHOUT page reload.
+    # ========================================================
+
+    sessions_collection = (
+        user_sessions_collection()
+    )
+
+    other_sessions_query = {
+
+        "user_id":
+            str(
+                user_id
+            ),
+
+        "is_active":
+            True,
+
+        "session_token": {
+            "$ne":
+                current_session_token
+        }
+    }
+
+    try:
+
+        logout_result = (
+            sessions_collection
+            .update_many(
+                other_sessions_query,
+                {
+                    "$set": {
+
+                        "is_active":
+                            False,
+
+                        "force_logout":
+                            True,
+
+                        "logout_reason":
+                            "password_changed",
+
+                        "logged_out_at":
+                            now,
+
+                        "updated_at":
+                            now
+                    }
+                }
+            )
+        )
+
+        logged_out_sessions = (
+            logout_result.modified_count
+        )
+
+    except Exception as e:
+
+        print(
+            "PASSWORD CHANGE FORCE LOGOUT ERROR:",
+            repr(e)
+        )
+
+        logged_out_sessions = 0
+
+    # ========================================================
+    # OPTIONAL LEGACY users.sessions UPDATE
+    #
+    # user_sessions remains the SOURCE OF TRUTH.
+    #
+    # This is only for compatibility with older data.
+    # ========================================================
+
+    try:
+
+        sessions_value = user_data.get(
+            "sessions"
+        )
+
+        if isinstance(
+            sessions_value,
+            list
+        ):
+
+            mongo.db.users.update_one(
+                {
+                    "_id": user_id
+                },
+                {
+                    "$set": {
+
+                        "sessions.$[item].is_active":
+                            False,
+
+                        "sessions.$[item].force_logout":
+                            True,
+
+                        "sessions.$[item].logout_reason":
+                            "password_changed",
+
+                        "sessions.$[item].logged_out_at":
+                            now,
+
+                        "sessions.$[item].updated_at":
+                            now
+                    }
+                },
+                array_filters=[
+                    {
+                        "item.is_active":
+                            True,
+
+                        "item.session_token": {
+                            "$ne":
+                                current_session_token
+                        }
+                    }
+                ]
+            )
+
+    except Exception as e:
+
+        print(
+            "OPTIONAL LEGACY PASSWORD SESSION UPDATE ERROR:",
+            repr(e)
         )
 
     # ========================================================
@@ -8665,44 +9010,69 @@ def change_password():
 
         mongo.db.password_change_logs.insert_one(
             {
-                "user_id": user_id,
+                "user_id":
+                    user_id,
 
-                "username": user_data.get(
-                    "username"
-                ),
+                "username":
+                    user_data.get(
+                        "username"
+                    ),
 
-                "fullname": user_data.get(
-                    "fullname"
-                ),
+                "fullname":
+                    user_data.get(
+                        "fullname"
+                    ),
 
-                "email": user_data.get(
-                    "email"
-                ),
+                "email":
+                    user_data.get(
+                        "email"
+                    ),
 
-                "auth_provider": user_data.get(
-                    "auth_provider",
-                    "local"
-                ),
+                "auth_provider":
+                    user_data.get(
+                        "auth_provider",
+                        "local"
+                    ),
 
-                "action": "password_changed",
+                "action":
+                    "password_changed",
 
-                "changed_at": now,
+                "changed_at":
+                    now,
 
-                "created_at": now,
+                "created_at":
+                    now,
 
-                "ip_address": ip_address,
+                "ip_address":
+                    ip_address,
 
-                "user_agent": user_agent,
+                "user_agent":
+                    user_agent,
 
-                "device": device,
+                "device":
+                    device,
 
-                "device_name": device_name,
+                "device_name":
+                    device_name,
 
-                "browser": browser,
+                "browser":
+                    browser,
 
-                "platform": platform,
+                "platform":
+                    platform,
 
-                "interface_name": interface_name
+                "interface_name":
+                    interface_name,
+
+                # ------------------------------------------------
+                # SESSION INFORMATION
+                # ------------------------------------------------
+
+                "current_session_token":
+                    current_session_token,
+
+                "logged_out_other_sessions":
+                    logged_out_sessions
             }
         )
 
@@ -8714,25 +9084,91 @@ def change_password():
         )
 
     # ========================================================
+    # VERIFY CURRENT SESSION STILL ACTIVE
+    #
+    # IMPORTANT:
+    # Password change MUST NOT logout this device.
+    # ========================================================
+
+    try:
+
+        current_session_after_change = (
+            sessions_collection.find_one(
+                {
+                    "session_token":
+                        current_session_token,
+
+                    "user_id":
+                        str(
+                            user_id
+                        ),
+
+                    "is_active":
+                        True
+                }
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "CURRENT SESSION AFTER PASSWORD CHANGE ERROR:",
+            repr(e)
+        )
+
+        current_session_after_change = None
+
+    if not current_session_after_change:
+
+        print(
+            "SECURITY WARNING: CURRENT SESSION WAS NOT "
+            "FOUND AFTER PASSWORD CHANGE | "
+            f"user_id={user_id}"
+        )
+
+        try:
+
+            logout_user()
+
+        except Exception:
+            pass
+
+        session.clear()
+
+        return redirect(
+            url_for(
+                "main.login"
+            )
+        )
+
+    # ========================================================
     # REFRESH CURRENT USER
     # ========================================================
 
-    updated_user_data = mongo.db.users.find_one(
-        {
-            "_id": user_id
-        }
+    updated_user_data = (
+        mongo.db.users.find_one(
+            {
+                "_id": user_id
+            }
+        )
     )
 
     if updated_user_data:
 
-        current_user.data = updated_user_data
-
-        current_user.password = updated_user_data.get(
-            "password"
+        current_user.data = (
+            updated_user_data
         )
 
-        current_user.updated_at = updated_user_data.get(
-            "updated_at"
+        current_user.password = (
+            updated_user_data.get(
+                "password"
+            )
+        )
+
+        current_user.updated_at = (
+            updated_user_data.get(
+                "updated_at"
+            )
         )
 
         current_user.last_password_change = (
@@ -8753,20 +9189,28 @@ def change_password():
             )
         )
 
-        current_user.device = updated_user_data.get(
-            "device"
+        current_user.device = (
+            updated_user_data.get(
+                "device"
+            )
         )
 
-        current_user.device_name = updated_user_data.get(
-            "device_name"
+        current_user.device_name = (
+            updated_user_data.get(
+                "device_name"
+            )
         )
 
-        current_user.browser = updated_user_data.get(
-            "browser"
+        current_user.browser = (
+            updated_user_data.get(
+                "browser"
+            )
         )
 
-        current_user.platform = updated_user_data.get(
-            "platform"
+        current_user.platform = (
+            updated_user_data.get(
+                "platform"
+            )
         )
 
         current_user.interface_name = (
@@ -8779,14 +9223,29 @@ def change_password():
     # SUCCESS
     # ========================================================
 
-    flash(
-        "Password changed successfully.",
-        "success"
-    )
+    if logged_out_sessions > 0:
+
+        flash(
+            "Password changed successfully. "
+            f"{logged_out_sessions} other device"
+            f"{'s' if logged_out_sessions != 1 else ''} "
+            "have been logged out.",
+            "success"
+        )
+
+    else:
+
+        flash(
+            "Password changed successfully.",
+            "success"
+        )
 
     return redirect(
-        url_for("main.change_password")
+        url_for(
+            "main.change_password"
+        )
     )
+
 
 
 # ============================================================
