@@ -123132,23 +123132,708 @@ contact information.
 # ============================================================
 # MAAREYE AI ASSISTANT
 # ============================================================
+
+# ============================================================
+# MAAREYE AI SAVINGS ANALYSIS HELPERS
+# ============================================================
+
+
+
+# ============================================================
+# SAFE INT
+# ============================================================
+
+def ai_safe_int(value, default=0):
+
+    if value is None:
+        return default
+
+    try:
+        return int(value)
+
+    except Exception:
+
+        try:
+            return int(float(value))
+
+        except Exception:
+            return default
+
+
+# ============================================================
+# EAT DATETIME
+# ============================================================
+
+def ai_saving_datetime(value):
+
+    if not value:
+        return None
+
+    try:
+
+        if isinstance(value, datetime):
+
+            if value.tzinfo is None:
+
+                value = pytz.utc.localize(value)
+
+            value = value.astimezone(EAT)
+
+            return value.isoformat(
+                timespec="milliseconds"
+            )
+
+        return str(value)
+
+    except Exception:
+
+        return str(value)
+
+
+# ============================================================
+# EAT DATE
+# ============================================================
+
+def ai_saving_date(value):
+
+    if not value:
+        return None
+
+    try:
+
+        if isinstance(value, datetime):
+
+            if value.tzinfo is None:
+                value = pytz.utc.localize(value)
+
+            return value.astimezone(EAT).date()
+
+        if isinstance(value, date):
+
+            return value
+
+        if isinstance(value, str):
+
+            value = value.strip()
+
+            if not value:
+                return None
+
+            # ISO datetime
+            try:
+
+                parsed = datetime.fromisoformat(
+                    value.replace("Z", "+00:00")
+                )
+
+                if parsed.tzinfo is None:
+
+                    parsed = pytz.utc.localize(
+                        parsed
+                    )
+
+                return parsed.astimezone(
+                    EAT
+                ).date()
+
+            except Exception:
+                pass
+
+            # Date only
+            try:
+
+                return datetime.strptime(
+                    value[:10],
+                    "%Y-%m-%d"
+                ).date()
+
+            except Exception:
+                return None
+
+        return None
+
+    except Exception:
+
+        return None
+
+
+# ============================================================
+# CURRENT EAT DATE
+# ============================================================
+
+def ai_current_eat_date():
+
+    return datetime.now(
+        EAT
+    ).date()
+
+
+# ============================================================
+# CALCULATE SAVING ANALYSIS
 #
 # IMPORTANT:
 #
-# DO NOT USE @login_required
+# These values are NOT written back to MongoDB.
 #
-# Guest users are allowed to use the AI.
-#
-# Logged-in users receive their own MongoDB data.
-#
+# They are calculated dynamically for AI analysis.
 # ============================================================
-# ============================================================
-# AI ASSISTANT
-# USER-SPECIFIC + CHAT MEMORY
-# ============================================================
-# ============================================================
-# EAT TIMEZONE
-# ============================================================
+
+def ai_calculate_saving_analysis(
+    saving,
+    today=None
+):
+
+    today = (
+        today
+        or
+        ai_current_eat_date()
+    )
+
+    target_amount = ai_safe_float(
+        saving.get(
+            "target_amount"
+        )
+    )
+
+    current_balance = ai_safe_float(
+        saving.get(
+            "current_balance"
+        )
+    )
+
+    # ========================================================
+    # PROTECT AGAINST INVALID VALUES
+    # ========================================================
+
+    if target_amount < 0:
+        target_amount = 0.0
+
+    if current_balance < 0:
+        current_balance = 0.0
+
+    # ========================================================
+    # REMAINING
+    #
+    # Never trust stored remaining_amount.
+    # ========================================================
+
+    calculated_remaining = max(
+        target_amount - current_balance,
+        0.0
+    )
+
+    # ========================================================
+    # PROGRESS
+    #
+    # Never trust stored progress.
+    # ========================================================
+
+    if target_amount > 0:
+
+        calculated_progress = round(
+            (
+                current_balance
+                /
+                target_amount
+            )
+            * 100,
+            2
+        )
+
+        calculated_progress = min(
+            max(
+                calculated_progress,
+                0
+            ),
+            100
+        )
+
+    else:
+
+        calculated_progress = 0.0
+
+    # ========================================================
+    # MATURITY
+    # ========================================================
+
+    maturity_date = ai_saving_date(
+        saving.get(
+            "maturity_date"
+        )
+    )
+
+    start_date = ai_saving_date(
+        saving.get(
+            "start_date"
+        )
+    )
+
+    # ========================================================
+    # DAYS REMAINING
+    #
+    # Dynamic calculation.
+    # ========================================================
+
+    calculated_days_remaining = None
+
+    if maturity_date:
+
+        calculated_days_remaining = (
+            maturity_date - today
+        ).days
+
+        # Never return negative remaining days
+        calculated_days_remaining = max(
+            calculated_days_remaining,
+            0
+        )
+
+    # ========================================================
+    # TOTAL PLAN DAYS
+    # ========================================================
+
+    total_plan_days = None
+
+    if start_date and maturity_date:
+
+        total_plan_days = (
+            maturity_date - start_date
+        ).days
+
+        total_plan_days = max(
+            total_plan_days,
+            0
+        )
+
+    # ========================================================
+    # REQUIRED SAVING
+    #
+    # This is based on:
+    #
+    # remaining amount
+    #
+    # AND
+    #
+    # days remaining
+    #
+    # Not the stale values stored in MongoDB.
+    # ========================================================
+
+    calculated_daily_required = 0.0
+    calculated_weekly_required = 0.0
+    calculated_monthly_required = 0.0
+
+    if (
+        calculated_remaining > 0
+        and
+        calculated_days_remaining
+        and
+        calculated_days_remaining > 0
+    ):
+
+        calculated_daily_required = round(
+            calculated_remaining
+            /
+            calculated_days_remaining,
+            2
+        )
+
+        calculated_weekly_required = round(
+            calculated_daily_required
+            * 7,
+            2
+        )
+
+        calculated_monthly_required = round(
+            calculated_daily_required
+            * 30.4375,
+            2
+        )
+
+    elif calculated_remaining <= 0:
+
+        calculated_daily_required = 0.0
+        calculated_weekly_required = 0.0
+        calculated_monthly_required = 0.0
+
+    # ========================================================
+    # STATUS
+    # ========================================================
+
+    status = str(
+        saving.get(
+            "status",
+            "unknown"
+        )
+        or
+        "unknown"
+    ).strip().lower()
+
+    # ========================================================
+    # MATURITY STATE
+    # ========================================================
+
+    if calculated_remaining <= 0:
+
+        maturity_state = "target_reached"
+
+    elif maturity_date and today > maturity_date:
+
+        maturity_state = "maturity_passed"
+
+    elif maturity_date and today == maturity_date:
+
+        maturity_state = "matures_today"
+
+    elif maturity_date:
+
+        maturity_state = "before_maturity"
+
+    else:
+
+        maturity_state = "no_maturity_date"
+
+    # ========================================================
+    # PLAN STATE
+    # ========================================================
+
+    if status == "paused":
+
+        plan_state = "paused"
+
+    elif status in {
+        "completed",
+        "complete",
+        "finished"
+    }:
+
+        plan_state = "completed"
+
+    elif status in {
+        "cancelled",
+        "canceled"
+    }:
+
+        plan_state = "cancelled"
+
+    elif status == "active":
+
+        plan_state = "active"
+
+    else:
+
+        plan_state = status or "unknown"
+
+    # ========================================================
+    # RECORDED VALUES
+    #
+    # Keep them for transparency.
+    # ========================================================
+
+    recorded = {
+
+        "days_remaining":
+            ai_safe_int(
+                saving.get(
+                    "days_remaining"
+                )
+            ),
+
+        "remaining_amount":
+            round(
+                ai_safe_float(
+                    saving.get(
+                        "remaining_amount"
+                    )
+                ),
+                2
+            ),
+
+        "progress":
+            round(
+                ai_safe_float(
+                    saving.get(
+                        "progress"
+                    )
+                ),
+                2
+            ),
+
+        "daily_required":
+            round(
+                ai_safe_float(
+                    saving.get(
+                        "daily_required"
+                    )
+                ),
+                2
+            ),
+
+        "weekly_required":
+            round(
+                ai_safe_float(
+                    saving.get(
+                        "weekly_required"
+                    )
+                ),
+                2
+            ),
+
+        "monthly_required":
+            round(
+                ai_safe_float(
+                    saving.get(
+                        "monthly_required"
+                    )
+                ),
+                2
+            )
+
+    }
+
+    # ========================================================
+    # CALCULATED VALUES
+    # ========================================================
+
+    calculated = {
+
+        "days_remaining":
+            calculated_days_remaining,
+
+        "remaining_amount":
+            round(
+                calculated_remaining,
+                2
+            ),
+
+        "progress":
+            calculated_progress,
+
+        "daily_required":
+            calculated_daily_required,
+
+        "weekly_required":
+            calculated_weekly_required,
+
+        "monthly_required":
+            calculated_monthly_required,
+
+        "total_plan_days":
+            total_plan_days,
+
+        "maturity_state":
+            maturity_state,
+
+        "plan_state":
+            plan_state,
+
+        "calculated_on":
+            today.isoformat()
+
+    }
+
+    # ========================================================
+    # DETECT STALE DATA
+    # ========================================================
+
+    differences = {}
+
+    if (
+        recorded["days_remaining"]
+        !=
+        (
+            calculated_days_remaining
+            if calculated_days_remaining is not None
+            else 0
+        )
+    ):
+
+        differences[
+            "days_remaining"
+        ] = True
+
+    if not math.isclose(
+        recorded["remaining_amount"],
+        calculated_remaining,
+        abs_tol=0.01
+    ):
+
+        differences[
+            "remaining_amount"
+        ] = True
+
+    if not math.isclose(
+        recorded["progress"],
+        calculated_progress,
+        abs_tol=0.01
+    ):
+
+        differences[
+            "progress"
+        ] = True
+
+    if not math.isclose(
+        recorded["daily_required"],
+        calculated_daily_required,
+        abs_tol=0.01
+    ):
+
+        differences[
+            "daily_required"
+        ] = True
+
+    if not math.isclose(
+        recorded["weekly_required"],
+        calculated_weekly_required,
+        abs_tol=0.01
+    ):
+
+        differences[
+            "weekly_required"
+        ] = True
+
+    if not math.isclose(
+        recorded["monthly_required"],
+        calculated_monthly_required,
+        abs_tol=0.01
+    ):
+
+        differences[
+            "monthly_required"
+        ] = True
+
+    # ========================================================
+    # ANALYSIS FLAGS
+    # ========================================================
+
+    if calculated_remaining <= 0:
+
+        recommendation_state = "target_reached"
+
+    elif calculated_days_remaining == 0:
+
+        recommendation_state = "deadline_today"
+
+    elif (
+        calculated_days_remaining is not None
+        and
+        calculated_days_remaining > 0
+        and
+        calculated_remaining > 0
+    ):
+
+        recommendation_state = "saving_required"
+
+    else:
+
+        recommendation_state = "insufficient_date_data"
+
+    # ========================================================
+    # FINAL AI SAVING OBJECT
+    # ========================================================
+
+    return {
+
+        # ====================================================
+        # SOURCE DATA
+        # ====================================================
+
+        "source":
+
+            "MongoDB savings collection",
+
+        "recorded":
+
+            recorded,
+
+        # ====================================================
+        # RAW IMPORTANT VALUES
+        # ====================================================
+
+        "target_amount":
+            round(
+                target_amount,
+                2
+            ),
+
+        "current_balance":
+            round(
+                current_balance,
+                2
+            ),
+
+        "status":
+            status,
+
+        "start_date":
+            (
+                start_date.isoformat()
+                if start_date
+                else None
+            ),
+
+        "maturity_date":
+            (
+                maturity_date.isoformat()
+                if maturity_date
+                else None
+            ),
+
+        # ====================================================
+        # CALCULATED VALUES
+        # ====================================================
+
+        "calculated":
+            calculated,
+
+        # ====================================================
+        # DATA QUALITY
+        # ====================================================
+
+        "recorded_values_stale":
+            bool(
+                differences
+            ),
+
+        "stale_fields":
+            list(
+                differences.keys()
+            ),
+
+        # ====================================================
+        # ANALYSIS
+        # ====================================================
+
+        "analysis": {
+
+            "recommendation_state":
+                recommendation_state,
+
+            "remaining_amount":
+                round(
+                    calculated_remaining,
+                    2
+                ),
+
+            "progress_percent":
+                calculated_progress,
+
+            "days_remaining":
+                calculated_days_remaining,
+
+            "daily_required":
+                calculated_daily_required,
+
+            "weekly_required":
+                calculated_weekly_required,
+
+            "monthly_required":
+                calculated_monthly_required
+
+        }
+
+    }
+
 
 @bp.route(
     "/ai-assistant",
@@ -123158,9 +123843,9 @@ def ai_assistant():
 
     try:
 
-        # ====================================================
+        # ============================================================
         # REQUEST
-        # ====================================================
+        # ============================================================
 
         data = (
             request.get_json(
@@ -123183,18 +123868,22 @@ def ai_assistant():
             or []
         )
 
-        # ----------------------------------------------------
-        # Validate history
-        # ----------------------------------------------------
+        # ============================================================
+        # VALIDATE HISTORY
+        # ============================================================
 
-        if not isinstance(history, list):
+        if not isinstance(
+            history,
+            list
+        ):
+
             history = []
 
-        # ----------------------------------------------------
-        # Limit client supplied history
-        # ----------------------------------------------------
-
         history = history[-30:]
+
+        # ============================================================
+        # MESSAGE VALIDATION
+        # ============================================================
 
         if not message:
 
@@ -123207,14 +123896,14 @@ def ai_assistant():
 
             }), 400
 
-        # ====================================================
+        # ============================================================
         # GEMINI CONFIGURATION
-        # ====================================================
+        # ============================================================
 
         if not GEMINI_API_KEY:
 
             print(
-                "================================================"
+                "=" * 80
             )
 
             print(
@@ -123222,7 +123911,7 @@ def ai_assistant():
             )
 
             print(
-                "================================================"
+                "=" * 80
             )
 
             return jsonify({
@@ -123236,14 +123925,14 @@ def ai_assistant():
 
             }), 500
 
-        # ====================================================
+        # ============================================================
         # GEMINI CLIENT
-        # ====================================================
+        # ============================================================
 
         if not gemini_client:
 
             print(
-                "================================================"
+                "=" * 80
             )
 
             print(
@@ -123251,7 +123940,7 @@ def ai_assistant():
             )
 
             print(
-                "================================================"
+                "=" * 80
             )
 
             return jsonify({
@@ -123264,9 +123953,9 @@ def ai_assistant():
 
             }), 500
 
-        # ====================================================
+        # ============================================================
         # LOGIN STATUS
-        # ====================================================
+        # ============================================================
 
         is_logged_in = bool(
 
@@ -123282,33 +123971,53 @@ def ai_assistant():
 
         )
 
-        # ====================================================
-        # DEFAULT VALUES
-        # ====================================================
+        # ============================================================
+        # DEFAULT CONTEXT
+        # ============================================================
 
         current_user_id = None
 
         user_object_id = None
 
+        user_ids = []
+
         user_profile_result = {}
 
         financial_context = {}
 
+        savings_context = []
+
+        savings_analysis_context = []
+
+        savings_summary = {}
+
         password_security_context = []
 
-        user_sessions_context = []
+        user_sessions_context = {
+
+            "active_session_count": 0,
+
+            "current_session_exists": False,
+
+            "current_session": None,
+
+            "other_active_sessions": [],
+
+            "sessions": []
+
+        }
 
         owner = {}
 
-        # ====================================================
+        # ============================================================
         # LOGGED-IN USER
-        # ====================================================
+        # ============================================================
 
         if is_logged_in:
 
-            # =================================================
+            # ========================================================
             # CURRENT USER ID
-            # =================================================
+            # ========================================================
 
             current_user_id = (
                 ai_get_current_user_id()
@@ -123326,9 +124035,9 @@ def ai_assistant():
 
                 }), 401
 
-            # =================================================
-            # NORMALIZE USER ID
-            # =================================================
+            # ========================================================
+            # OBJECT ID
+            # ========================================================
 
             try:
 
@@ -123353,19 +124062,16 @@ def ai_assistant():
 
                 user_object_id = None
 
-            # =================================================
-            # USER IDS
-            #
-            # Some collections use ObjectId.
-            # Some older collections use string.
-            #
-            # Therefore we support BOTH.
-            # =================================================
+            # ========================================================
+            # USER ID VARIANTS
+            # ========================================================
 
             user_ids = [
+
                 str(
                     current_user_id
                 )
+
             ]
 
             if user_object_id:
@@ -123374,34 +124080,34 @@ def ai_assistant():
                     user_object_id
                 )
 
-            # -------------------------------------------------
-            # Remove duplicates
-            # -------------------------------------------------
+            unique_user_ids = []
 
-            user_ids = list(
-                dict.fromkeys(
-                    user_ids
-                )
-            )
+            for uid in user_ids:
 
-            # =================================================
+                if uid not in unique_user_ids:
+
+                    unique_user_ids.append(
+                        uid
+                    )
+
+            user_ids = unique_user_ids
+
+            # ========================================================
             # USER PROFILE
-            #
-            # This must return ONLY the currently logged-in
-            # user's users document.
-            # =================================================
+            # ========================================================
 
             try:
 
                 user_profile_result = (
                     ai_get_user_profile()
-                    or {}
+                    or
+                    {}
                 )
 
             except Exception as profile_error:
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 print(
@@ -123415,32 +124121,27 @@ def ai_assistant():
                 )
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 user_profile_result = {}
 
-            # =================================================
+            # ========================================================
             # FINANCIAL CONTEXT
-            #
-            # IMPORTANT:
-            #
-            # ai_get_financial_context()
-            #
-            # must filter EVERYTHING by current user.
-            # =================================================
+            # ========================================================
 
             try:
 
                 financial_context = (
                     ai_get_financial_context()
-                    or {}
+                    or
+                    {}
                 )
 
             except Exception as financial_error:
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 print(
@@ -123454,7 +124155,7 @@ def ai_assistant():
                 )
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 return jsonify({
@@ -123468,106 +124169,671 @@ def ai_assistant():
 
                 }), 500
 
-            # =================================================
-            # PASSWORD / SECURITY CONTEXT
+            # ========================================================
+            # SAVINGS — RAW SOURCE DATA
             #
-            # ONLY SECURITY METADATA.
+            # MongoDB is the source.
             #
-            # NEVER send password/hash/session secrets to AI.
-            # =================================================
+            # IMPORTANT:
+            #
+            # We do NOT trust stored calculated fields blindly.
+            # ========================================================
+
+            try:
+
+                savings_query = {
+
+                    "user_id": {
+                        "$in": user_ids
+                    }
+
+                }
+
+                savings_projection = {
+
+                    "_id": 1,
+
+                    "user_id": 1,
+
+                    "title": 1,
+
+                    "description": 1,
+
+                    "target_amount": 1,
+
+                    "current_balance": 1,
+
+                    "account_id": 1,
+
+                    "start_date": 1,
+
+                    "maturity_date": 1,
+
+                    "status": 1,
+
+                    "created_at": 1,
+
+                    "updated_at": 1,
+
+                    # Stored / legacy calculated fields
+                    "daily_required": 1,
+
+                    "days_remaining": 1,
+
+                    "monthly_required": 1,
+
+                    "progress": 1,
+
+                    "remaining_amount": 1,
+
+                    "weekly_required": 1
+
+                }
+
+                savings_documents = list(
+
+                    mongo.db.savings
+                    .find(
+                        savings_query,
+                        savings_projection
+                    )
+                    .sort(
+                        "created_at",
+                        -1
+                    )
+
+                )
+
+                savings_context = []
+
+                savings_analysis_context = []
+
+                # ====================================================
+                # CURRENT EAT DATE
+                # ====================================================
+
+                analysis_today = (
+                    ai_current_eat_date()
+                )
+
+                # ====================================================
+                # PROCESS EACH SAVING
+                # ====================================================
+
+                for saving in savings_documents:
+
+                    # =================================================
+                    # DYNAMIC ANALYSIS
+                    # =================================================
+
+                    calculated_analysis = (
+                        ai_calculate_saving_analysis(
+                            saving,
+                            today=analysis_today
+                        )
+                    )
+
+                    # =================================================
+                    # SAFE RAW VALUES
+                    # =================================================
+
+                    raw_saving = {
+
+                        "_id":
+                            str(
+                                saving.get(
+                                    "_id"
+                                )
+                            ),
+
+                        "user_id":
+                            str(
+                                saving.get(
+                                    "user_id"
+                                )
+                            ),
+
+                        "title":
+                            saving.get(
+                                "title"
+                            )
+                            or
+                            "",
+
+                        "description":
+                            saving.get(
+                                "description"
+                            )
+                            or
+                            "",
+
+                        "target_amount":
+                            ai_safe_float(
+                                saving.get(
+                                    "target_amount"
+                                )
+                            ),
+
+                        "current_balance":
+                            ai_safe_float(
+                                saving.get(
+                                    "current_balance"
+                                )
+                            ),
+
+                        "account_id":
+                            (
+                                str(
+                                    saving.get(
+                                        "account_id"
+                                    )
+                                )
+                                if saving.get(
+                                    "account_id"
+                                )
+                                else None
+                            ),
+
+                        "start_date":
+                            ai_saving_datetime(
+                                saving.get(
+                                    "start_date"
+                                )
+                            ),
+
+                        "maturity_date":
+                            ai_saving_datetime(
+                                saving.get(
+                                    "maturity_date"
+                                )
+                            ),
+
+                        "status":
+                            saving.get(
+                                "status"
+                            )
+                            or
+                            "unknown",
+
+                        "created_at":
+                            ai_saving_datetime(
+                                saving.get(
+                                    "created_at"
+                                )
+                            ),
+
+                        "updated_at":
+                            ai_saving_datetime(
+                                saving.get(
+                                    "updated_at"
+                                )
+                            ),
+
+                        # =================================================
+                        # STORED VALUES
+                        #
+                        # These are preserved only for comparison.
+                        # =================================================
+
+                        "recorded_daily_required":
+                            ai_safe_float(
+                                saving.get(
+                                    "daily_required"
+                                )
+                            ),
+
+                        "recorded_weekly_required":
+                            ai_safe_float(
+                                saving.get(
+                                    "weekly_required"
+                                )
+                            ),
+
+                        "recorded_monthly_required":
+                            ai_safe_float(
+                                saving.get(
+                                    "monthly_required"
+                                )
+                            ),
+
+                        "recorded_days_remaining":
+                            ai_safe_int(
+                                saving.get(
+                                    "days_remaining"
+                                )
+                            ),
+
+                        "recorded_progress":
+                            ai_safe_float(
+                                saving.get(
+                                    "progress"
+                                )
+                            ),
+
+                        "recorded_remaining_amount":
+                            ai_safe_float(
+                                saving.get(
+                                    "remaining_amount"
+                                )
+                            )
+
+                    }
+
+                    # =================================================
+                    # FINAL SAVING CONTEXT
+                    #
+                    # RAW DATA + DYNAMIC ANALYSIS
+                    # =================================================
+
+                    final_saving = {
+
+                        **raw_saving,
+
+                        "analysis":
+                            calculated_analysis
+
+                    }
+
+                    savings_context.append(
+                        raw_saving
+                    )
+
+                    savings_analysis_context.append(
+                        final_saving
+                    )
+
+                # ====================================================
+                # SAVINGS SUMMARY
+                #
+                # CALCULATED FROM CURRENT RAW BALANCES.
+                # ====================================================
+
+                total_target = 0.0
+
+                total_balance = 0.0
+
+                total_remaining = 0.0
+
+                active_count = 0
+
+                paused_count = 0
+
+                completed_count = 0
+
+                cancelled_count = 0
+
+                total_daily_required = 0.0
+
+                total_weekly_required = 0.0
+
+                total_monthly_required = 0.0
+
+                stale_savings_count = 0
+
+                for saving in savings_analysis_context:
+
+                    analysis = saving.get(
+                        "analysis",
+                        {}
+                    )
+
+                    calculated = analysis.get(
+                        "calculated",
+                        {}
+                    )
+
+                    target = ai_safe_float(
+                        saving.get(
+                            "target_amount"
+                        )
+                    )
+
+                    balance = ai_safe_float(
+                        saving.get(
+                            "current_balance"
+                        )
+                    )
+
+                    remaining = ai_safe_float(
+                        analysis
+                        .get(
+                            "analysis",
+                            {}
+                        )
+                        .get(
+                            "remaining_amount",
+                            0
+                        )
+                    )
+
+                    # Fallback
+                    if remaining <= 0 and target > balance:
+
+                        remaining = (
+                            target
+                            -
+                            balance
+                        )
+
+                    total_target += target
+
+                    total_balance += balance
+
+                    total_remaining += max(
+                        remaining,
+                        0
+                    )
+
+                    total_daily_required += (
+                        ai_safe_float(
+                            analysis
+                            .get(
+                                "analysis",
+                                {}
+                            )
+                            .get(
+                                "daily_required",
+                                0
+                            )
+                        )
+                    )
+
+                    total_weekly_required += (
+                        ai_safe_float(
+                            analysis
+                            .get(
+                                "analysis",
+                                {}
+                            )
+                            .get(
+                                "weekly_required",
+                                0
+                            )
+                        )
+                    )
+
+                    total_monthly_required += (
+                        ai_safe_float(
+                            analysis
+                            .get(
+                                "analysis",
+                                {}
+                            )
+                            .get(
+                                "monthly_required",
+                                0
+                            )
+                        )
+                    )
+
+                    if saving.get(
+                        "analysis",
+                        {}
+                    ).get(
+                        "recorded_values_stale",
+                        False
+                    ):
+
+                        stale_savings_count += 1
+
+                    status = str(
+                        saving.get(
+                            "status",
+                            ""
+                        )
+                        or
+                        ""
+                    ).lower()
+
+                    if status == "active":
+
+                        active_count += 1
+
+                    elif status == "paused":
+
+                        paused_count += 1
+
+                    elif status in {
+                        "completed",
+                        "complete",
+                        "finished"
+                    }:
+
+                        completed_count += 1
+
+                    elif status in {
+                        "cancelled",
+                        "canceled"
+                    }:
+
+                        cancelled_count += 1
+
+                # ====================================================
+                # OVERALL PROGRESS
+                # ====================================================
+
+                if total_target > 0:
+
+                    overall_progress = round(
+                        (
+                            total_balance
+                            /
+                            total_target
+                        )
+                        * 100,
+                        2
+                    )
+
+                    overall_progress = min(
+                        max(
+                            overall_progress,
+                            0
+                        ),
+                        100
+                    )
+
+                else:
+
+                    overall_progress = 0.0
+
+                # ====================================================
+                # FINAL SUMMARY
+                # ====================================================
+
+                savings_summary = {
+
+                    "count":
+                        len(
+                            savings_analysis_context
+                        ),
+
+                    "active_count":
+                        active_count,
+
+                    "paused_count":
+                        paused_count,
+
+                    "completed_count":
+                        completed_count,
+
+                    "cancelled_count":
+                        cancelled_count,
+
+                    "total_target_amount":
+                        round(
+                            total_target,
+                            2
+                        ),
+
+                    "total_current_balance":
+                        round(
+                            total_balance,
+                            2
+                        ),
+
+                    "total_remaining_amount":
+                        round(
+                            max(
+                                total_remaining,
+                                0
+                            ),
+                            2
+                        ),
+
+                    "overall_progress":
+                        overall_progress,
+
+                    "calculated_daily_required":
+                        round(
+                            total_daily_required,
+                            2
+                        ),
+
+                    "calculated_weekly_required":
+                        round(
+                            total_weekly_required,
+                            2
+                        ),
+
+                    "calculated_monthly_required":
+                        round(
+                            total_monthly_required,
+                            2
+                        ),
+
+                    "calculated_on":
+                        analysis_today.isoformat(),
+
+                    "stale_savings_count":
+                        stale_savings_count
+
+                }
+
+                # ====================================================
+                # ADD TO FINANCIAL CONTEXT
+                # ====================================================
+
+                financial_context = dict(
+                    financial_context
+                    or
+                    {}
+                )
+
+                financial_context[
+                    "savings"
+                ] = savings_analysis_context
+
+                financial_context[
+                    "savings_summary"
+                ] = savings_summary
+
+                # ====================================================
+                # IMPORTANT:
+                #
+                # Explicit separate context.
+                # ====================================================
+
+                financial_context[
+                    "savings_analysis"
+                ] = {
+
+                    "calculated_on":
+                        analysis_today.isoformat(),
+
+                    "source":
+                        "MongoDB raw savings + dynamic server calculation",
+
+                    "records":
+                        savings_analysis_context,
+
+                    "summary":
+                        savings_summary
+
+                }
+
+            except Exception as savings_error:
+
+                print(
+                    "=" * 80
+                )
+
+                print(
+                    "MAAREYE AI SAVINGS CONTEXT ERROR"
+                )
+
+                print(
+                    repr(
+                        savings_error
+                    )
+                )
+
+                print(
+                    "=" * 80
+                )
+
+                savings_context = []
+
+                savings_analysis_context = []
+
+                savings_summary = {}
+
+            # ========================================================
+            # PASSWORD SECURITY CONTEXT
+            # ========================================================
 
             try:
 
                 security_query = {
+
                     "user_id": {
                         "$in": user_ids
                     }
+
+                }
+
+                security_projection = {
+
+                    "_id": 1,
+
+                    "user_id": 1,
+
+                    "username": 1,
+
+                    "action": 1,
+
+                    "changed_at": 1,
+
+                    "created_at": 1,
+
+                    "ip_address": 1,
+
+                    "device": 1,
+
+                    "browser": 1,
+
+                    "platform": 1,
+
+                    "device_name": 1,
+
+                    "interface_name": 1
+
                 }
 
                 security_logs = list(
 
-                    mongo.db.password_change_logs
-
+                    mongo.db
+                    .password_change_logs
                     .find(
                         security_query,
-                        {
-                            "_id": 1,
-                            "user_id": 1,
-                            "username": 1,
-                            "action": 1,
-                            "changed_at": 1,
-                            "created_at": 1,
-                            "ip_address": 1,
-                            "device": 1,
-                            "browser": 1,
-                            "platform": 1,
-                            "device_name": 1,
-                            "interface_name": 1,
-
-                            # NEVER retrieve:
-                            #
-                            # password
-                            # password_hash
-                            # token
-                            # secret
-                        }
+                        security_projection
                     )
-
                     .sort(
                         "changed_at",
                         -1
                     )
-
                     .limit(100)
 
                 )
-
-                password_security_context = []
-
-                # =================================================
-                # EAT DATE FORMATTER
-                # =================================================
-
-                def format_eat_datetime(value):
-
-                    if not value:
-
-                        return None
-
-                    try:
-
-                        # -----------------------------------------
-                        # If MongoDB returns naive UTC datetime,
-                        # explicitly mark it as UTC first.
-                        # -----------------------------------------
-
-                        if value.tzinfo is None:
-
-                            value = pytz.utc.localize(
-                                value
-                            )
-
-                        # -----------------------------------------
-                        # Convert UTC/aware datetime to EAT
-                        # -----------------------------------------
-
-                        value_eat = value.astimezone(
-                            EAT
-                        )
-
-                        return value_eat.isoformat(
-                            timespec="milliseconds"
-                        )
-
-                    except Exception:
-
-                        return str(
-                            value
-                        )
-
-                # =================================================
-                # BUILD SECURITY CONTEXT
-                # =================================================
 
                 for log in security_logs:
 
@@ -123575,12 +124841,16 @@ def ai_assistant():
 
                         "_id":
                             str(
-                                log.get("_id")
+                                log.get(
+                                    "_id"
+                                )
                             ),
 
                         "user_id":
                             str(
-                                log.get("user_id")
+                                log.get(
+                                    "user_id"
+                                )
                             ),
 
                         "username":
@@ -123594,14 +124864,14 @@ def ai_assistant():
                             ),
 
                         "changed_at":
-                            format_eat_datetime(
+                            ai_saving_datetime(
                                 log.get(
                                     "changed_at"
                                 )
                             ),
 
                         "created_at":
-                            format_eat_datetime(
+                            ai_saving_datetime(
                                 log.get(
                                     "created_at"
                                 )
@@ -123642,7 +124912,11 @@ def ai_assistant():
             except Exception as security_error:
 
                 print(
-                    "MAAREYE AI SECURITY LOG ERROR:"
+                    "=" * 80
+                )
+
+                print(
+                    "MAAREYE AI SECURITY LOG ERROR"
                 )
 
                 print(
@@ -123651,97 +124925,115 @@ def ai_assistant():
                     )
                 )
 
+                print(
+                    "=" * 80
+                )
+
                 password_security_context = []
 
-            # =================================================
-            # USER SESSIONS CONTEXT
-            #
-            # user_sessions IS THE SOURCE OF TRUTH.
-            #
-            # ONLY ACTIVE SESSIONS BELONGING TO THE CURRENT
-            # AUTHENTICATED USER ARE INCLUDED.
-            #
-            # IMPORTANT:
-            #
-            # session_token is NEVER sent to Gemini.
-            # =================================================
+            # ========================================================
+            # USER SESSIONS
+            # ========================================================
 
             try:
 
-                # =================================================
-                # CURRENT SESSION TOKEN
-                #
-                # Used ONLY internally to identify current session.
-                #
-                # NEVER include it in AI context.
-                # =================================================
+                sessions_collection = (
+                    user_sessions_collection()
+                )
 
                 current_session_token = str(
+
                     session.get(
                         "session_token"
-                    ) or ""
+                    )
+                    or
+                    ""
+
                 ).strip()
 
-                # =================================================
-                # CURRENT USER SESSION QUERY
-                # =================================================
+                session_user_ids = [
+
+                    str(
+                        current_user_id
+                    )
+
+                ]
+
+                if user_object_id:
+
+                    session_user_ids.append(
+                        user_object_id
+                    )
+
+                session_user_ids_unique = []
+
+                for uid in session_user_ids:
+
+                    if uid not in session_user_ids_unique:
+
+                        session_user_ids_unique.append(
+                            uid
+                        )
+
+                session_user_ids = (
+                    session_user_ids_unique
+                )
 
                 session_query = {
-                    "user_id": str(
-                        current_user_id
-                    ),
-                    "is_active": True
+
+                    "user_id": {
+                        "$in": session_user_ids
+                    },
+
+                    "is_active": True,
+
+                    "force_logout": {
+                        "$ne": True
+                    }
+
                 }
 
-                # =================================================
-                # GET ACTIVE SESSIONS
-                # =================================================
+                session_projection = {
+
+                    "_id": 1,
+
+                    "id": 1,
+
+                    "user_id": 1,
+
+                    "session_token": 1,
+
+                    "device": 1,
+
+                    "device_name": 1,
+
+                    "browser": 1,
+
+                    "platform": 1,
+
+                    "ip_address": 1,
+
+                    "last_activity": 1,
+
+                    "created_at": 1,
+
+                    "updated_at": 1,
+
+                    "is_active": 1,
+
+                    "force_logout": 1,
+
+                    "logout_reason": 1
+
+                }
 
                 active_user_sessions = list(
 
-                    user_sessions_collection()
-
+                    sessions_collection
                     .find(
                         session_query,
-                        {
-                            "_id": 1,
-
-                            "id": 1,
-
-                            "user_id": 1,
-
-                            # -------------------------------------------------
-                            # IMPORTANT:
-                            #
-                            # DO NOT retrieve session_token into context.
-                            # -------------------------------------------------
-
-                            "device": 1,
-
-                            "device_name": 1,
-
-                            "browser": 1,
-
-                            "platform": 1,
-
-                            "ip_address": 1,
-
-                            "user_agent": 1,
-
-                            "last_activity": 1,
-
-                            "created_at": 1,
-
-                            "updated_at": 1,
-
-                            "is_active": 1,
-
-                            "force_logout": 1,
-
-                            "logout_reason": 1
-                        }
+                        session_projection
                     )
-
                     .sort(
                         "last_activity",
                         -1
@@ -123749,26 +125041,41 @@ def ai_assistant():
 
                 )
 
-                # =================================================
-                # BUILD USER SESSION CONTEXT
-                # =================================================
+                # ====================================================
+                # UPDATE CURRENT ACTIVITY
+                # ====================================================
 
-                user_sessions_context = []
+                if current_session_token:
+
+                    try:
+
+                        update_session_activity(
+                            current_session_token
+                        )
+
+                    except Exception as activity_error:
+
+                        print(
+                            "MAAREYE AI SESSION ACTIVITY UPDATE ERROR:",
+                            repr(
+                                activity_error
+                            )
+                        )
+
+                safe_sessions = []
+
+                current_session = None
 
                 for session_item in active_user_sessions:
 
-                    # -------------------------------------------------
-                    # INTERNAL SESSION TOKEN
-                    #
-                    # Used ONLY to compare current session.
-                    #
-                    # Never exposed to Gemini.
-                    # -------------------------------------------------
-
                     item_token = str(
+
                         session_item.get(
                             "session_token"
-                        ) or ""
+                        )
+                        or
+                        ""
+
                     ).strip()
 
                     is_current_session = bool(
@@ -123777,125 +125084,108 @@ def ai_assistant():
 
                         and
 
-                        item_token ==
+                        item_token
+                        ==
                         current_session_token
 
                     )
 
-                    # -------------------------------------------------
-                    # DEVICE
-                    # -------------------------------------------------
-
                     device = (
+
                         session_item.get(
                             "device"
                         )
+
                         or
+
                         "Unknown Device"
+
                     )
 
-                    # -------------------------------------------------
-                    # DEVICE NAME
-                    # -------------------------------------------------
-
                     device_name = (
+
                         session_item.get(
                             "device_name"
                         )
+
                         or
+
                         device
+
                         or
+
                         "Unknown Device"
+
                     )
 
-                    # -------------------------------------------------
-                    # BROWSER
-                    # -------------------------------------------------
-
                     browser = (
+
                         session_item.get(
                             "browser"
                         )
+
                         or
+
                         "Unknown Browser"
+
                     )
 
-                    # -------------------------------------------------
-                    # PLATFORM
-                    # -------------------------------------------------
-
                     platform = (
+
                         session_item.get(
                             "platform"
                         )
+
                         or
+
                         "Unknown Platform"
+
                     )
 
-                    # -------------------------------------------------
-                    # IP
-                    # -------------------------------------------------
-
                     ip_address = (
+
                         session_item.get(
                             "ip_address"
                         )
+
                         or
+
                         "Unknown"
+
                     )
 
-                    # -------------------------------------------------
-                    # USER AGENT
-                    #
-                    # User agent is not necessary for most AI
-                    # questions, therefore we intentionally do NOT
-                    # send the full user-agent string.
-                    # -------------------------------------------------
+                    raw_session_id = (
 
-                    # -------------------------------------------------
-                    # LAST ACTIVITY
-                    # -------------------------------------------------
-
-                    last_activity = (
                         session_item.get(
-                            "last_activity"
+                            "id"
                         )
-                    )
 
-                    # -------------------------------------------------
-                    # CREATED AT
-                    # -------------------------------------------------
+                        or
 
-                    created_at = (
                         session_item.get(
-                            "created_at"
+                            "_id"
                         )
+
                     )
 
-                    # -------------------------------------------------
-                    # UPDATED AT
-                    # -------------------------------------------------
+                    session_id = (
 
-                    updated_at = (
-                        session_item.get(
-                            "updated_at"
+                        str(
+                            raw_session_id
                         )
+
+                        if raw_session_id
+
+                        else
+
+                        None
+
                     )
 
-                    # =================================================
-                    # SESSION CONTEXT
-                    # =================================================
-
-                    user_sessions_context.append({
+                    safe_session = {
 
                         "session_id":
-                            str(
-                                session_item.get(
-                                    "id"
-                                    or
-                                    "_id"
-                                )
-                            ),
+                            session_id,
 
                         "device":
                             str(
@@ -123934,82 +125224,103 @@ def ai_assistant():
                             ),
 
                         "last_activity":
-                            format_eat_datetime(
-                                last_activity
+                            ai_saving_datetime(
+                                session_item.get(
+                                    "last_activity"
+                                )
                             ),
 
                         "created_at":
-                            format_eat_datetime(
-                                created_at
+                            ai_saving_datetime(
+                                session_item.get(
+                                    "created_at"
+                                )
                             ),
 
                         "updated_at":
-                            format_eat_datetime(
-                                updated_at
+                            ai_saving_datetime(
+                                session_item.get(
+                                    "updated_at"
+                                )
                             )
 
-                    })
+                    }
 
-                # =================================================
-                # REMOVE ANY EMPTY / INVALID SESSION ID
-                # =================================================
+                    if is_current_session:
 
-                for session_context in user_sessions_context:
-
-                    if (
-                        session_context.get(
-                            "session_id"
-                        )
-                        in {
-                            "None",
-                            ""
-                        }
-                    ):
-
-                        session_context.pop(
-                            "session_id",
-                            None
+                        current_session = (
+                            safe_session
                         )
 
-                # =================================================
-                # SESSION SUMMARY
-                # =================================================
+                    if session_id:
 
-                current_session_found = any(
+                        safe_sessions.append(
+                            safe_session
+                        )
 
-                    item.get(
-                        "is_current"
+                safe_sessions.sort(
+
+                    key=lambda item: (
+
+                        not bool(
+                            item.get(
+                                "is_current",
+                                False
+                            )
+                        ),
+
+                        item.get(
+                            "last_activity"
+                        )
+                        or
+                        ""
+
                     )
-                    is True
-
-                    for item
-                    in user_sessions_context
 
                 )
 
-                # =================================================
-                # STORE SUMMARY INSIDE SESSION CONTEXT
-                # =================================================
+                other_active_sessions = [
+
+                    item
+
+                    for item
+
+                    in safe_sessions
+
+                    if not item.get(
+                        "is_current",
+                        False
+                    )
+
+                ]
 
                 user_sessions_context = {
 
                     "active_session_count":
                         len(
-                            user_sessions_context
+                            safe_sessions
                         ),
 
                     "current_session_exists":
-                        current_session_found,
+                        bool(
+                            current_session
+                        ),
+
+                    "current_session":
+                        current_session,
+
+                    "other_active_sessions":
+                        other_active_sessions,
 
                     "sessions":
-                        user_sessions_context
+                        safe_sessions
 
                 }
 
             except Exception as session_error:
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 print(
@@ -124023,22 +125334,31 @@ def ai_assistant():
                 )
 
                 print(
-                    "================================================"
+                    "=" * 80
                 )
 
                 user_sessions_context = {
 
-                    "active_session_count": 0,
+                    "active_session_count":
+                        0,
 
-                    "current_session_exists": False,
+                    "current_session_exists":
+                        False,
 
-                    "sessions": []
+                    "current_session":
+                        None,
+
+                    "other_active_sessions":
+                        [],
+
+                    "sessions":
+                        []
 
                 }
 
-        # ====================================================
+        # ============================================================
         # GUEST
-        # ====================================================
+        # ============================================================
 
         else:
 
@@ -124050,27 +125370,43 @@ def ai_assistant():
 
             financial_context = {}
 
+            savings_context = []
+
+            savings_analysis_context = []
+
+            savings_summary = {}
+
             password_security_context = []
 
             user_sessions_context = {
 
-                "active_session_count": 0,
+                "active_session_count":
+                    0,
 
-                "current_session_exists": False,
+                "current_session_exists":
+                    False,
 
-                "sessions": []
+                "current_session":
+                    None,
+
+                "other_active_sessions":
+                    [],
+
+                "sessions":
+                    []
 
             }
 
-        # ====================================================
+        # ============================================================
         # OWNER
-        # ====================================================
+        # ============================================================
 
         try:
 
             owner = (
                 ai_get_owner()
-                or {}
+                or
+                {}
             )
 
         except Exception as owner_error:
@@ -124087,9 +125423,9 @@ def ai_assistant():
 
             owner = {}
 
-        # ====================================================
-        # SYSTEM INSTRUCTION
-        # ====================================================
+        # ============================================================
+        # BASE SYSTEM INSTRUCTION
+        # ============================================================
 
         try:
 
@@ -124123,9 +125459,9 @@ def ai_assistant():
 
             system_instruction = ""
 
-        # ====================================================
+        # ============================================================
         # SECURITY RULES
-        # ====================================================
+        # ============================================================
 
         security_instruction = """
 
@@ -124136,13 +125472,13 @@ MAAREYE USER DATA SECURITY
 The authenticated user is the ONLY owner of the supplied
 private user context.
 
-If the user is logged in:
+If Logged in = True:
 
 Use ONLY data belonging to the currently authenticated user.
 
 Never mix data from another user.
 
-Never search or infer another user's private data.
+Never invent private user data.
 
 Never reveal another user's:
 
@@ -124161,36 +125497,57 @@ Never reveal another user's:
 - login information
 - active sessions
 - device information
-- session information
 
 # ============================================================
-USERS COLLECTION
+MONGODB SOURCE OF TRUTH
 # ============================================================
 
-The supplied USER PROFILE belongs ONLY to the currently
-authenticated user.
+MongoDB is the source of truth for RECORDED values.
 
-It may contain profile information such as:
+However, some MongoDB fields are cached/calculated fields.
 
-- username
-- fullname
-- email
-- phone
-- country
-- city
-- state
-- address
-- bio
-- photo
-- gender
-- role
-- status
-- verification status
-- authentication provider
-- device information
-- login metadata
+Examples:
 
-Use these details only when relevant to the user's question.
+- days_remaining
+- remaining_amount
+- progress
+- daily_required
+- weekly_required
+- monthly_required
+
+These fields may become stale as time passes.
+
+Therefore:
+
+RAW DATABASE VALUES
++
+CURRENT SERVER DATE
++
+MATHEMATICAL CALCULATION
+
+must be used when a fresh analysis is required.
+
+Never blindly repeat stale cached calculations.
+
+# ============================================================
+NO INVENTION
+# ============================================================
+
+Never invent:
+
+- transactions
+- accounts
+- balances
+- savings
+- persons
+- transfers
+- security events
+- passwords
+- sessions
+- devices
+- dates
+
+If the requested data is not supplied, say it is not available.
 
 # ============================================================
 PASSWORD SECURITY
@@ -124203,167 +125560,227 @@ NEVER reveal:
 - password field
 - session_token
 - remember_token
-- two_factor_code
-- two_factor secret
 - API keys
-- authentication secrets
+- OAuth tokens
 - private credentials
 
-If the user asks:
+If the user asks for a password:
 
-"What is my password?"
-"Tell me my password."
-"What was my password?"
-"Show me my password."
-
-Do NOT reveal or guess it.
-
-Explain that passwords cannot be displayed for security
-reasons.
+Explain that passwords cannot be displayed.
 
 # ============================================================
-SESSION TOKEN SECURITY
-# ============================================================
-
-The user_sessions collection contains authentication
-session information.
-
-The AI may use SAFE session metadata to answer questions
-about the user's own active devices.
-
-However:
-
-NEVER reveal:
-
-- session_token
-- remember_token
-- authentication token
-- cookie value
-- secret token
-- OAuth token
-- API token
-- session secret
-
-Even if such information exists in MongoDB.
-
-Session tokens must never be included in the AI context.
-
-# ============================================================
-USER SESSIONS
-# ============================================================
-
-user_sessions is the SOURCE OF TRUTH for active sessions.
-
-The supplied session information belongs ONLY to the
-currently authenticated user.
-
-The AI may use:
-
-- active session count
-- device
-- device name
-- browser
-- platform
-- IP address
-- current session indicator
-- last activity
-- created time
-- updated time
-
-The AI may answer questions such as:
-
-- How many devices are currently signed in?
-- What devices are currently logged in?
-- Which browser am I using?
-- What platform am I using?
-- Which session is my current session?
-- Is there another active session?
-- When was a session last active?
-- What IP addresses are associated with my active sessions?
-
-The AI must NOT invent session information.
-
-If no active sessions are supplied, say that no active
-sessions were found in the current context.
-
-# ============================================================
-PASSWORD CHANGE LOGS
-# ============================================================
-
-password_change_logs may be used ONLY for security history.
-
-For example:
-
-- when password was changed
-- how many password changes occurred
-- password change event dates
-- security event metadata
-
-Never expose a password or password hash.
-
-# ============================================================
-USER-SPECIFIC DATA
-# ============================================================
-
-Categories belong to the authenticated user.
-
-Transactions belong to the authenticated user.
-
-Accounts belong to the authenticated user.
-
-Savings belong to the authenticated user.
-
-Saving transactions belong to the authenticated user.
-
-Transfers belong to the authenticated user.
-
-Persons belong to the authenticated user.
-
-AI conversation history belongs to the authenticated user.
-
-Active sessions belong to the authenticated user.
-
-# ============================================================
-GUEST USERS
+GUEST
 # ============================================================
 
 If Logged in = False:
 
-Do NOT claim access to private user data.
+Do not claim access to private financial data.
 
-Do NOT invent user data.
-
-Do NOT claim to know the user's active sessions.
-
-# ============================================================
-SOURCE OF TRUTH
-# ============================================================
-
-MongoDB context is the source of truth.
-
-Never invent:
-
-- users
-- balances
-- transactions
-- categories
-- savings
-- transfers
-- persons
-- security events
-- passwords
-- chat history
-- active sessions
-- devices
-- browsers
-- IP addresses
+Do not invent user data.
 
 ============================================================
 """
 
-        # ====================================================
+        # ============================================================
+        # SAVINGS RULES — DYNAMIC ANALYSIS
+        # ============================================================
+
+        savings_instruction = """
+
+# ============================================================
+SAVINGS — SOURCE + ANALYSIS RULES
+# ============================================================
+
+When the user asks about:
+
+- savings
+- saving plans
+- saving goals
+- target amount
+- current savings
+- saved amount
+- remaining amount
+- savings progress
+- daily saving
+- weekly saving
+- monthly saving
+- maturity date
+- deadline
+- active saving plans
+- paused saving plans
+- completed saving plans
+
+use:
+
+financial_context.savings_analysis
+
+and:
+
+financial_context.savings_summary
+
+as the PRIMARY savings analysis context.
+
+# ============================================================
+IMPORTANT — RECORDED VS CALCULATED
+# ============================================================
+
+The savings record may contain cached fields such as:
+
+- days_remaining
+- remaining_amount
+- progress
+- daily_required
+- weekly_required
+- monthly_required
+
+These values can become stale.
+
+The AI MUST prefer:
+
+analysis.calculated
+
+over:
+
+recorded
+
+when the two differ.
+
+# ============================================================
+CALCULATED VALUES
+# ============================================================
+
+The server dynamically calculates:
+
+remaining_amount
+=
+target_amount - current_balance
+
+progress
+=
+current_balance / target_amount * 100
+
+days_remaining
+=
+maturity_date - CURRENT_EAT_DATE
+
+daily_required
+=
+remaining_amount / days_remaining
+
+weekly_required
+=
+daily_required * 7
+
+monthly_required
+=
+daily_required * 30.4375
+
+These are mathematical calculations based on supplied
+MongoDB values and the current server date.
+
+# ============================================================
+DATA QUALITY
+# ============================================================
+
+If:
+
+recorded_values_stale = true
+
+then do NOT blindly repeat the recorded values.
+
+You may explain:
+
+"Qiimaha kaydsanaa wuu duugoobay; waxaan dib uga
+xisaabiyay xogta hadda jirta."
+
+Do not modify MongoDB unless the user explicitly asks for
+a database update.
+
+# ============================================================
+PAUSED SAVINGS
+# ============================================================
+
+If status = paused:
+
+Clearly state that the saving plan is currently paused.
+
+Required daily/weekly/monthly values should be interpreted
+as:
+
+"what would be required if the plan resumed today"
+
+Do NOT claim the user is currently required to save that
+amount while the plan is paused.
+
+# ============================================================
+TARGET
+# ============================================================
+
+If current_balance >= target_amount:
+
+The target has been reached.
+
+progress should not be presented as more than 100%.
+
+remaining_amount = 0.
+
+# ============================================================
+MULTIPLE SAVINGS
+# ============================================================
+
+When multiple savings exist:
+
+- distinguish by title
+- never merge different plans incorrectly
+- analyze each saving separately
+- use savings_summary for overall totals
+
+# ============================================================
+ANALYSIS
+# ============================================================
+
+The AI is allowed to perform mathematical analysis using
+the supplied values.
+
+For example:
+
+- compare savings plans
+- identify the plan closest to maturity
+- identify the plan with highest progress
+- identify plans with stale cached values
+- calculate differences
+- calculate percentages
+- explain whether the target is realistic
+- calculate required saving rates
+- compare target vs current balance
+
+These are ANALYSIS, not invented database records.
+
+Clearly distinguish:
+
+Recorded data
+vs
+Calculated analysis
+vs
+Recommendation.
+
+# ============================================================
+NO DATABASE FABRICATION
+# ============================================================
+
+Never claim that a calculated recommendation was recorded
+in MongoDB.
+
+If you calculate something yourself, say:
+
+"Waxaan ka xisaabiyay xogta hadda jirta."
+
+============================================================
+"""
+
+        # ============================================================
         # PERSON LEDGER RULES
-        # ====================================================
+        # ============================================================
 
         person_ledger_instruction = """
 
@@ -124375,13 +125792,11 @@ When answering questions about:
 
 - Persons
 - Person Ledger
-- people
 - person balances
 - person payments
-- amounts owed to/from a person
+- money owed
+- money received
 - person reports
-- money given to a person
-- money received from a person
 
 use ONLY:
 
@@ -124399,74 +125814,29 @@ The Person Ledger combines:
 2. person_opening_transactions
 
 # ============================================================
-NORMAL TRANSACTIONS
-# ============================================================
-
-Person references can independently come from:
-
-transactions.person_name
-transactions.description
-transactions.note
-
-Example:
-
-person_name = Asad
-description = Ahmed
-note = Hassan
-
-These are three separate person references.
-
-Do NOT merge them.
-
-# ============================================================
-OPENING TRANSACTIONS
-# ============================================================
-
-Person references can independently come from:
-
-person_opening_transactions.person_name
-person_opening_transactions.description
-person_opening_transactions.note
-
-# ============================================================
 NORMALIZATION
 # ============================================================
 
-These are the same person:
+Person matching is case-insensitive.
+
+Examples:
 
 Asad
 asad
 ASAD
 AsAd
-By Asad
-by Asad
-BY ASAD
-By: Asad
-by:Asad
 
-The leading By prefix is ignored.
+are the same normalized person.
 
-Matching is case-insensitive.
+Ignore leading:
 
-# ============================================================
-DEDUPLICATION
-# ============================================================
-
-If the SAME normalized person appears in multiple fields of
-the SAME record, count that record only once for that person.
-
-Example:
-
-person_name = Asad
-description = asad
-note = By Asad
-
-Count only ONE Asad record.
-
-Do NOT multiply the amount.
+By
+By:
+by
+by:
 
 # ============================================================
-DIFFERENT PEOPLE
+DIFFERENT REFERENCES
 # ============================================================
 
 If:
@@ -124475,199 +125845,213 @@ person_name = Asad
 description = Ahmed
 note = Hassan
 
-then:
+these are independent references.
 
-Asad
-Ahmed
-Hassan
-
-are independent person references.
-
-Each receives the record according to the supplied ledger
-context.
+Do not merge them automatically.
 
 # ============================================================
-PERSON BALANCE
+DEDUPLICATION
 # ============================================================
 
-Net = Income - Expense
+If the same normalized person appears multiple times inside
+the SAME record, count that record only once.
 
-Always use normalized person identity.
+Never multiply the amount.
 
-If person is not found in the supplied context:
+# ============================================================
+BALANCE
+# ============================================================
+
+Net = Income - Expense.
+
+Use the supplied ledger context.
+
+If person is not found:
 
 Say that the person was not found.
 
-Never invent a person's balance.
-
-# ============================================================
-OPENING + NORMAL
-# ============================================================
-
-Always consider BOTH:
-
-person_opening_transactions
-
-AND
-
-transactions
-
-Never answer a Person Ledger question from only one source.
+Never invent a balance.
 
 ============================================================
 """
 
-        # ====================================================
-        # SESSION-SPECIFIC AI RULES
-        # ====================================================
+        # ============================================================
+        # SESSION RULES
+        # ============================================================
 
         session_instruction = """
 
 # ============================================================
-USER SESSIONS — STRICT AI RULES
+USER SESSIONS
 # ============================================================
 
 When the user asks about:
 
 - active sessions
 - logged in devices
-- signed in devices
 - current device
-- current browser
-- current platform
+- browser
+- platform
 - other devices
-- other sessions
 - login sessions
-- session activity
 - last activity
-- device login information
 
 use ONLY:
 
 authenticated_user_context.user_sessions
 
-The session data belongs ONLY to the currently authenticated
-user.
-
 # ============================================================
-ACTIVE SESSION COUNT
+NO TOKEN
 # ============================================================
 
-Use:
+NEVER reveal:
 
-user_sessions.active_session_count
-
-Do not count sessions manually from unrelated collections.
+- session_token
+- authentication token
+- cookies
+- remember token
+- secrets
 
 # ============================================================
 CURRENT SESSION
 # ============================================================
 
-A session where:
-
 is_current = true
 
-is the current session.
+means current browser/device.
 
-Never guess which session is current.
+Never guess current device.
 
 # ============================================================
 OTHER SESSIONS
 # ============================================================
 
-A session where:
-
 is_current = false
 
-is an active session on another device/session.
+means another active session.
 
-# ============================================================
-SAFE SESSION INFORMATION
-# ============================================================
+Use:
 
-You may mention:
+other_active_sessions
 
-- Device
-- Device name
-- Browser
-- Platform
-- IP address
-- Last activity
-- Created time
-- Updated time
-- Current Session status
-
-# ============================================================
-PRIVATE SESSION SECRETS
-# ============================================================
-
-NEVER mention or expose:
-
-- session_token
-- authentication token
-- cookie
-- remember token
-- secret
-- internal authentication identifier
-
-If the user asks for a session token, refuse to provide it
-and explain that authentication tokens are private security
-credentials.
-
-# ============================================================
-NO INVENTION
-# ============================================================
-
-If session information is not supplied:
-
-Do not invent it.
-
-Say that the current session context does not contain the
-requested information.
+when asked about other devices.
 
 ============================================================
 """
 
-        # ====================================================
+        # ============================================================
+        # ANALYSIS QUALITY RULES
+        # ============================================================
+
+        analysis_instruction = """
+
+# ============================================================
+MAAREYE AI — ANALYTICAL REASONING
+# ============================================================
+
+You are allowed to ANALYZE the supplied data.
+
+Do not behave like a database printer.
+
+When useful:
+
+1. Read the raw/source values.
+2. Check whether cached calculated values are stale.
+3. Perform mathematical calculations yourself.
+4. Compare values.
+5. Identify inconsistencies.
+6. Explain what the numbers mean.
+7. Give practical recommendations.
+8. Clearly distinguish facts from calculations.
+
+# ============================================================
+FACT
+# ============================================================
+
+A FACT is directly supplied by MongoDB.
+
+Example:
+
+target_amount = 500
+
+# ============================================================
+CALCULATION
+# ============================================================
+
+A CALCULATION is derived mathematically from supplied data.
+
+Example:
+
+500 target - 0 saved = 500 remaining.
+
+This is valid analysis.
+
+# ============================================================
+RECOMMENDATION
+# ============================================================
+
+A recommendation is advice based on the facts/calculations.
+
+Example:
+
+"If the plan resumes today, saving approximately $4.50/day
+would be required."
+
+Do not present recommendations as recorded transactions.
+
+# ============================================================
+IMPORTANT
+# ============================================================
+
+Never invent transactions merely to make an analysis look
+complete.
+
+Never invent future income.
+
+Never invent future deposits.
+
+Never claim a calculated amount was actually deposited.
+
+============================================================
+"""
+
+        # ============================================================
         # COMBINE SYSTEM INSTRUCTIONS
-        # ====================================================
+        # ============================================================
 
         system_instruction = (
 
             str(
                 system_instruction
-                or ""
+                or
+                ""
             )
 
-            +
+            + "\n\n"
 
-            "\n\n"
+            + security_instruction
 
-            +
+            + "\n\n"
 
-            security_instruction
+            + savings_instruction
 
-            +
+            + "\n\n"
 
-            "\n\n"
+            + person_ledger_instruction
 
-            +
+            + "\n\n"
 
-            person_ledger_instruction
+            + session_instruction
 
-            +
+            + "\n\n"
 
-            "\n\n"
-
-            +
-
-            session_instruction
+            + analysis_instruction
 
         )
 
-        # ====================================================
+        # ============================================================
         # BUILD USER PROMPT
-        # ====================================================
+        # ============================================================
 
         try:
 
@@ -124693,9 +126077,9 @@ requested information.
 
             prompt = message
 
-        # ====================================================
-        # CURRENT USER SECURITY CONTEXT
-        # ====================================================
+        # ============================================================
+        # AUTHENTICATED USER SECURITY CONTEXT
+        # ============================================================
 
         authenticated_user_context = {
 
@@ -124716,22 +126100,14 @@ requested information.
             "security_logs":
                 password_security_context,
 
-            # =================================================
-            # USER SESSIONS
-            #
-            # SAFE SESSION METADATA ONLY.
-            #
-            # NO session_token.
-            # =================================================
-
             "user_sessions":
                 user_sessions_context
 
         }
 
-        # ====================================================
+        # ============================================================
         # REAL CONTEXT
-        # ====================================================
+        # ============================================================
 
         context_text = f"""
 
@@ -124768,6 +126144,33 @@ CURRENT USER FINANCIAL CONTEXT
 {ai_json(financial_context)}
 
 # ============================================================
+RAW SAVINGS
+# ============================================================
+
+{ai_json(savings_context)}
+
+# ============================================================
+DYNAMIC SAVINGS ANALYSIS
+# ============================================================
+
+{ai_json(savings_analysis_context)}
+
+# ============================================================
+DYNAMIC SAVINGS SUMMARY
+# ============================================================
+
+{ai_json(savings_summary)}
+
+# ============================================================
+CURRENT ANALYSIS DATE
+# ============================================================
+
+{ai_current_eat_date().isoformat()}
+
+Timezone:
+Africa/Nairobi / EAT / UTC+03:00
+
+# ============================================================
 OWNER CONTACT
 # ============================================================
 
@@ -124777,37 +126180,38 @@ OWNER CONTACT
 END OF CURRENT USER CONTEXT
 # ============================================================
 
-The context above belongs to the currently authenticated
-user only.
+The context above belongs ONLY to the currently authenticated
+user.
 
-Do not mix it with another user's information.
+Use the supplied data for factual claims.
+
+You may calculate derived values from the supplied data.
+
+Do not fabricate database records.
 
 """
 
-        # ====================================================
+        # ============================================================
         # FINAL PROMPT
-        # ====================================================
+        # ============================================================
 
         final_prompt = (
 
             str(
                 prompt
-                or ""
+                or
+                ""
             )
 
-            +
+            + "\n\n"
 
-            "\n\n"
-
-            +
-
-            context_text
+            + context_text
 
         )
 
-        # ====================================================
+        # ============================================================
         # GEMINI REQUEST
-        # ====================================================
+        # ============================================================
 
         response = (
 
@@ -124836,9 +126240,9 @@ Do not mix it with another user's information.
 
         )
 
-        # ====================================================
+        # ============================================================
         # RESPONSE TEXT
-        # ====================================================
+        # ============================================================
 
         answer = ""
 
@@ -124852,89 +126256,41 @@ Do not mix it with another user's information.
                     None
                 )
 
-                or ""
+                or
+                ""
 
             ).strip()
 
-        # ====================================================
+        # ============================================================
         # EMPTY RESPONSE
-        # ====================================================
+        # ============================================================
 
         if not answer:
 
             answer = (
-
                 "Waan ka xumahay, jawaab lama helin "
                 "hadda. Fadlan isku day mar kale."
-
             )
 
-        # ====================================================
-        # SAVE AI MESSAGE
-        #
-        # Collection:
-        # ai_chat_messages
-        #
-        # Each user's messages are isolated by user_id.
-        # ====================================================
+        # ============================================================
+        # SAVE CHAT
+        # ============================================================
 
         saved_message_id = None
 
         try:
 
-            # ------------------------------------------------
-            # Only save conversations for authenticated users.
-            #
-            # Guest messages are NOT stored as private
-            # user history.
-            # ------------------------------------------------
-
             if is_logged_in and current_user_id:
-
-                # =================================================
-                # EAT TIMEZONE
-                # =================================================
-                #
-                # Africa/Nairobi = EAT = UTC+03:00
-                #
-                # Example:
-                #
-                # 09:26 EAT
-                #
-                # is equivalent to:
-                #
-                # 06:26 UTC
-                #
-                # MongoDB BSON Date may display the instant
-                # as UTC, therefore we ALSO store explicit
-                # EAT ISO strings.
-                # =================================================
 
                 now_eat = datetime.now(
                     EAT
                 )
 
-                # -------------------------------------------------
-                # Explicit EAT ISO timestamp
-                #
-                # Example:
-                #
-                # 2026-09-09T09:26:36.187+03:00
-                # -------------------------------------------------
-
                 eat_iso = now_eat.isoformat(
                     timespec="milliseconds"
                 )
 
-                # =================================================
-                # CHAT DOCUMENT
-                # =================================================
-
                 chat_document = {
-
-                    # ------------------------------------------------
-                    # USER ID
-                    # ------------------------------------------------
 
                     "user_id":
                         (
@@ -124950,19 +126306,11 @@ Do not mix it with another user's information.
                             current_user_id
                         ),
 
-                    # ------------------------------------------------
-                    # USER MESSAGE
-                    # ------------------------------------------------
-
                     "message":
                         message,
 
                     "user_message":
                         message,
-
-                    # ------------------------------------------------
-                    # AI ANSWER
-                    # ------------------------------------------------
 
                     "answer":
                         answer,
@@ -124970,44 +126318,17 @@ Do not mix it with another user's information.
                     "assistant_message":
                         answer,
 
-                    # ------------------------------------------------
-                    # MODEL
-                    # ------------------------------------------------
-
                     "model":
                         GEMINI_MODEL,
 
-                    # ------------------------------------------------
-                    # LOGIN STATUS
-                    # ------------------------------------------------
-
                     "logged_in":
                         True,
-
-                    # =================================================
-                    # MONGODB DATE FIELDS
-                    #
-                    # These remain real datetime values so MongoDB
-                    # can sort/query them correctly.
-                    #
-                    # NOTE:
-                    # MongoDB Compass may display these BSON dates
-                    # in UTC (+00:00).
-                    # =================================================
 
                     "created_at":
                         now_eat,
 
                     "updated_at":
                         now_eat,
-
-                    # =================================================
-                    # EXPLICIT EAT DISPLAY FIELDS
-                    #
-                    # These preserve the visible EAT timezone:
-                    #
-                    # 2026-09-09T09:26:36.187+03:00
-                    # =================================================
 
                     "created_at_eat":
                         eat_iso,
@@ -125017,16 +126338,10 @@ Do not mix it with another user's information.
 
                 }
 
-                # =================================================
-                # INSERT CHAT MESSAGE
-                # =================================================
-
                 chat_result = (
 
                     mongo.db
-
                     .ai_chat_messages
-
                     .insert_one(
                         chat_document
                     )
@@ -125039,13 +126354,8 @@ Do not mix it with another user's information.
 
         except Exception as chat_save_error:
 
-            # -----------------------------------------------
-            # Do NOT fail the AI response just because
-            # chat history could not be saved.
-            # -----------------------------------------------
-
             print(
-                "================================================"
+                "=" * 80
             )
 
             print(
@@ -125059,16 +126369,17 @@ Do not mix it with another user's information.
             )
 
             print(
-                "================================================"
+                "=" * 80
             )
 
-        # ====================================================
+        # ============================================================
         # SUCCESS
-        # ====================================================
+        # ============================================================
 
         return jsonify({
 
-            "success": True,
+            "success":
+                True,
 
             "answer":
                 answer,
@@ -125086,9 +126397,9 @@ Do not mix it with another user's information.
 
         }), 200
 
-    # ========================================================
+    # =================================================================
     # GLOBAL EXCEPTION
-    # ========================================================
+    # =================================================================
 
     except Exception as e:
 
@@ -125101,7 +126412,7 @@ Do not mix it with another user's information.
         )
 
         print(
-            "================================================"
+            "=" * 80
         )
 
         print(
@@ -125109,47 +126420,45 @@ Do not mix it with another user's information.
         )
 
         print(
-            repr(e)
+            repr(
+                e
+            )
         )
 
         print(
-            "================================================"
+            "=" * 80
         )
 
-        # ====================================================
-        # QUOTA / RATE LIMIT
-        # ====================================================
+        # ============================================================
+        # QUOTA
+        # ============================================================
 
         if (
 
-            "429"
-            in error_text
+            "429" in error_text
 
             or
 
-            "quota"
-            in error_lower
+            "quota" in error_lower
 
             or
 
-            "resource exhausted"
-            in error_lower
+            "resource exhausted" in error_lower
 
             or
 
-            "rate limit"
-            in error_lower
+            "rate limit" in error_lower
 
             or
 
-            "too many requests"
-            in error_lower
+            "too many requests" in error_lower
 
         ):
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "answer":
                     "AI Assistant-ka wuxuu gaaray "
@@ -125158,40 +126467,36 @@ Do not mix it with another user's information.
 
             }), 429
 
-        # ====================================================
-        # AUTHENTICATION
-        # ====================================================
+        # ============================================================
+        # AUTH
+        # ============================================================
 
         if (
 
-            "api key"
-            in error_lower
+            "api key" in error_lower
 
             or
 
-            "unauthenticated"
-            in error_lower
+            "unauthenticated" in error_lower
 
             or
 
-            "permission denied"
-            in error_lower
+            "permission denied" in error_lower
 
             or
 
-            "authentication"
-            in error_lower
+            "authentication" in error_lower
 
             or
 
-            "invalid api key"
-            in error_lower
+            "invalid api key" in error_lower
 
         ):
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "answer":
                     "AI configuration-ka ayaa cilad qaba. "
@@ -125199,50 +126504,44 @@ Do not mix it with another user's information.
 
             }), 500
 
-        # ====================================================
+        # ============================================================
         # MONGODB
-        # ====================================================
+        # ============================================================
 
         if (
 
-            "mongodb"
-            in error_lower
+            "mongodb" in error_lower
 
             or
 
-            "mongo"
-            in error_lower
+            "mongo" in error_lower
 
             or
 
-            "objectid"
-            in error_lower
+            "objectid" in error_lower
 
             or
 
-            "pymongo"
-            in error_lower
+            "pymongo" in error_lower
 
             or
 
-            "bson"
-            in error_lower
+            "bson" in error_lower
 
             or
 
-            "duplicate key"
-            in error_lower
+            "duplicate key" in error_lower
 
             or
 
-            "cursor"
-            in error_lower
+            "cursor" in error_lower
 
         ):
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "answer":
                     "Xogta Maareye ayaa cilad ku timid. "
@@ -125250,25 +126549,24 @@ Do not mix it with another user's information.
 
             }), 500
 
-        # ====================================================
-        # JSON / REQUEST
-        # ====================================================
+        # ============================================================
+        # REQUEST / JSON
+        # ============================================================
 
         if (
 
-            "json"
-            in error_lower
+            "json" in error_lower
 
             or
 
-            "request"
-            in error_lower
+            "request" in error_lower
 
         ):
 
             return jsonify({
 
-                "success": False,
+                "success":
+                    False,
 
                 "answer":
                     "Codsiga AI Assistant-ka lama fahmin. "
@@ -125276,21 +126574,20 @@ Do not mix it with another user's information.
 
             }), 400
 
-        # ====================================================
+        # ============================================================
         # GENERAL
-        # ====================================================
+        # ============================================================
 
         return jsonify({
 
-            "success": False,
+            "success":
+                False,
 
             "answer":
                 "Waan ka xumahay, cilad ayaa ka dhacday "
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
-
 
 
 
