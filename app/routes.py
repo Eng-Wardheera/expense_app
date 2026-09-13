@@ -123835,6 +123835,358 @@ def ai_calculate_saving_analysis(
     }
 
 
+# ============================================================
+# AI PERSON LEDGER INTENT DETECTOR
+# ============================================================
+
+def ai_is_person_ledger_question(message):
+    """
+    Detect questions that are primarily about a person/person ledger.
+
+    IMPORTANT:
+    This is intentionally conservative.
+    If the user clearly asks about a person and money paid/received/owed,
+    treat it as Person Ledger intent.
+
+    Examples:
+        "Samiro lacag ma siin karaa?"
+        "Samiro intee ayaan siiyay?"
+        "Maxaan Samiro siiyay?"
+        "Samiro lacag ma iga rabtaa?"
+        "Qofkee lacag badan ayaan siiyay?"
+        "Xisaabta Samiro sidee tahay?"
+    """
+
+    text = ai_clean_text(
+        message
+    ) or ""
+
+    text = text.strip().lower()
+
+    if not text:
+        return False
+
+    person_terms = [
+        "samiro",
+        "person ledger",
+        "person",
+        "qof",
+        "qofka",
+        "qofkii",
+        "xisaabta qofka",
+        "xisaab qof",
+        "qof lacag",
+        "lacag siiyay",
+        "lacag siiyey",
+        "lacag siiyo",
+        "lacag siin",
+        "lacag la siiyay",
+        "lacag loo siiyay",
+        "lacag iga rabta",
+        "lacag iga rabaa",
+        "lacag iga qaaday",
+        "lacag aan siiyay",
+        "lacag aan siiyey",
+        "hore ugu bixiyay",
+        "hore ugu bixiyey",
+        "hore loo bixiyay",
+        "hore loo bixiyey",
+        "ugu bixiyay",
+        "ugu bixiyey",
+        "lacag badan",
+        "inta aan siiyay",
+        "inte ayaan siiyay",
+        "intee ayaan siiyay",
+        "intee ayaan siiyey",
+        "xisaabtiisa",
+        "xisaabteeda",
+        "net balance",
+        "balance-ka qof",
+        "balance qof"
+    ]
+
+    return any(
+        term in text
+        for term in person_terms
+    )
+
+
+
+
+"""Maareye AI Assistant — advanced route.
+
+This file is a complete replacement for the existing /ai-assistant route.
+It preserves the existing route logic and adds strict Person Ledger
+scope isolation, explicit savings detection, and historical payment
+alerts.
+"""
+
+
+# ============================================================
+# MAAREYE AI — ADVANCED PERSON LEDGER INTENT DETECTION
+# ============================================================
+
+def ai_is_explicit_savings_question(message):
+    """
+    Returns True only when the user's actual message explicitly
+    asks about savings / keyd / withdrawing from savings.
+
+    This is intentionally strict so Person Ledger questions do not
+    accidentally activate savings recommendations.
+    """
+    text = ai_clean_text(message) or ""
+    text = text.strip().lower()
+
+    if not text:
+        return False
+
+    savings_terms = [
+        "saving",
+        "savings",
+        "saving plan",
+        "saving plans",
+        "saving goal",
+        "saving goals",
+        "keyd",
+        "kayd",
+        "keydka",
+        "kaydka",
+        "keydkeyga",
+        "kaydkeyga",
+        "lacagta keydka",
+        "lacagta kaydka",
+        "qorshaha keydka",
+        "qorshaha kaydka",
+        "qorshe keyd",
+        "qorshe kayd",
+        "withdraw saving",
+        "withdraw savings",
+        "saving withdrawal",
+        "saving withdrawal",
+        "ka saar keyd",
+        "ka saar kayd",
+        "keyd ka saar",
+        "kayd ka saar",
+        "keydka ka qaad",
+        "kaydka ka qaad",
+        "keyd jab",
+        "kayd jab",
+        "breaking savings",
+        "break savings",
+        "saving balance",
+        "savings balance",
+        "keyd balance",
+        "kayd balance",
+        "target savings",
+        "target amount",
+        "maturity date",
+        "daily saving",
+        "weekly saving",
+        "monthly saving",
+    ]
+
+    return any(term in text for term in savings_terms)
+
+
+def ai_is_person_ledger_question(message, financial_context=None):
+    """
+    Advanced Person Ledger intent classifier.
+
+    Goal:
+        Detect questions about a named person/person ledger without
+        allowing generic financial questions to accidentally activate
+        Person Ledger mode.
+
+    A Person Ledger question is detected by:
+        1. explicit Person Ledger terminology;
+        2. Somali/English person-payment terminology;
+        3. a known person name supplied by the current user's
+           Person Ledger context.
+
+    IMPORTANT:
+        This function does NOT read MongoDB directly and does not
+        invent names. It only uses the already-authenticated user's
+        supplied financial context.
+    """
+    text = ai_clean_text(message) or ""
+    text = text.strip().lower()
+
+    if not text:
+        return False
+
+    explicit_person_terms = [
+        "person ledger",
+        "person-ledger",
+        "person balance",
+        "person payment",
+        "person payments",
+        "person report",
+        "person reports",
+        "person account",
+        "person accounts",
+        "xisaabta qofka",
+        "xisaab qof",
+        "xisaabta qof",
+        "qofka xisaabtiisa",
+        "qofka xisaabteeda",
+        "xisaabtiisa",
+        "xisaabteeda",
+        "balance-ka qof",
+        "balance qof",
+        "lacag qof",
+        "qof lacag",
+        "qofkii",
+        "qofka",
+        "qof",
+        "dadka",
+        "qof aan siiyay",
+        "qof aan siiyey",
+        "qof aan lacag siiyay",
+        "qof aan lacag siiyey",
+        "lacag aan siiyay",
+        "lacag aan siiyey",
+        "lacag la siiyay",
+        "lacag loo siiyay",
+        "lacag loo bixiyay",
+        "lacag loo bixiyey",
+        "lacag siiyay",
+        "lacag siiyey",
+        "lacag siiyo",
+        "lacag siin",
+        "lacag siinta",
+        "lacag ka siiyay",
+        "lacag ka siiyey",
+        "lacag iga qaaday",
+        "lacag iga qaatay",
+        "lacag iga rabta",
+        "lacag iga rabaa",
+        "hore ugu bixiyay",
+        "hore ugu bixiyey",
+        "hore loo bixiyay",
+        "hore loo bixiyey",
+        "inta aan siiyay",
+        "inta aan siiyey",
+        "intee ayaan siiyay",
+        "intee ayaan siiyey",
+        "inte ayaan siiyay",
+        "inte ayaan siiyey",
+        "imisa ayaan siiyay",
+        "imisa ayaan siiyey",
+        "lacag badan",
+        "lacag badan oo aan siiyay",
+        "lacag badan oo aan siiyey",
+        "money i gave",
+        "money given",
+        "money paid to",
+        "paid to",
+        "gave",
+        "given to",
+        "owed",
+        "owes me",
+        "what i gave",
+        "how much i gave",
+        "how much paid",
+        "net balance",
+    ]
+
+    if any(term in text for term in explicit_person_terms):
+        return True
+
+    # ------------------------------------------------------------
+    # Known person names from authenticated Person Ledger context.
+    # This avoids requiring hardcoded names such as "Samiro".
+    # ------------------------------------------------------------
+    if isinstance(financial_context, dict):
+        known_names = set()
+
+        person_summary = financial_context.get(
+            "person_summary",
+            []
+        )
+
+        if isinstance(person_summary, list):
+            for item in person_summary:
+                if not isinstance(item, dict):
+                    continue
+
+                for key in (
+                    "person",
+                    "person_name",
+                    "name",
+                    "personName",
+                    "person_name_normalized",
+                ):
+                    value = item.get(key)
+
+                    if isinstance(value, str):
+                        value = value.strip().lower()
+
+                        if len(value) >= 2:
+                            known_names.add(value)
+
+        elif isinstance(person_summary, dict):
+            for key, value in person_summary.items():
+                if isinstance(key, str) and len(key.strip()) >= 2:
+                    known_names.add(key.strip().lower())
+
+                if isinstance(value, dict):
+                    for name_key in (
+                        "person",
+                        "person_name",
+                        "name",
+                    ):
+                        name_value = value.get(name_key)
+
+                        if isinstance(name_value, str):
+                            name_value = name_value.strip().lower()
+
+                            if len(name_value) >= 2:
+                                known_names.add(name_value)
+
+        # Also inspect summary transactions only for person names.
+        for collection_key in (
+            "person_ledger_transactions",
+            "person_opening_transactions",
+        ):
+            records = financial_context.get(
+                collection_key,
+                []
+            )
+
+            if not isinstance(records, list):
+                continue
+
+            for item in records[:1000]:
+                if not isinstance(item, dict):
+                    continue
+
+                for key in (
+                    "person",
+                    "person_name",
+                    "name",
+                    "personName",
+                ):
+                    value = item.get(key)
+
+                    if isinstance(value, str):
+                        value = value.strip().lower()
+
+                        if len(value) >= 2:
+                            known_names.add(value)
+
+        # Longest names first prevents short names from matching inside
+        # longer names accidentally.
+        for name in sorted(
+            known_names,
+            key=len,
+            reverse=True
+        ):
+            if name and name in text:
+                return True
+
+    return False
+
+
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -124010,6 +124362,15 @@ def ai_assistant():
         owner = {}
 
         # ============================================================
+        # REQUEST INTENT DEFAULTS
+        # ============================================================
+
+        explicit_savings_intent = False
+        person_ledger_intent = False
+        request_scope = "GENERAL_FINANCIAL"
+        savings_context_allowed = True
+
+        # ============================================================
         # LOGGED-IN USER
         # ============================================================
 
@@ -124170,612 +124531,689 @@ def ai_assistant():
                 }), 500
 
             # ========================================================
-            # SAVINGS — RAW SOURCE DATA
-            #
-            # MongoDB is the source.
-            #
-            # IMPORTANT:
-            #
-            # We do NOT trust stored calculated fields blindly.
+            # ADVANCED REQUEST INTENT / SCOPE
             # ========================================================
 
-            try:
+            explicit_savings_intent = (
+                ai_is_explicit_savings_question(
+                    message
+                )
+            )
 
-                savings_query = {
+            person_ledger_intent = (
+                ai_is_person_ledger_question(
+                    message,
+                    financial_context
+                )
+            )
 
-                    "user_id": {
-                        "$in": user_ids
+            # --------------------------------------------------------
+            # Scope policy:
+            #
+            # PERSON_LEDGER_ONLY
+            #     Person Ledger + account/balance information when
+            #     required to answer affordability.
+            #
+            # PERSON_LEDGER_PLUS_SAVINGS
+            #     Only when the user explicitly mentions savings.
+            #
+            # GENERAL_FINANCIAL
+            #     Full authenticated financial context.
+            # --------------------------------------------------------
+
+            if (
+                person_ledger_intent
+                and
+                explicit_savings_intent
+            ):
+
+                request_scope = (
+                    "PERSON_LEDGER_PLUS_SAVINGS"
+                )
+
+            elif person_ledger_intent:
+
+                request_scope = (
+                    "PERSON_LEDGER_ONLY"
+                )
+
+            else:
+
+                request_scope = (
+                    "GENERAL_FINANCIAL"
+                )
+
+            savings_context_allowed = bool(
+                (
+                    not person_ledger_intent
+                )
+                or
+                explicit_savings_intent
+            )
+
+            if savings_context_allowed:
+
+                # ========================================================
+                # SAVINGS — RAW SOURCE DATA
+                #
+                # MongoDB is the source.
+                #
+                # IMPORTANT:
+                #
+                # We do NOT trust stored calculated fields blindly.
+                # ========================================================
+
+                try:
+
+                    savings_query = {
+
+                        "user_id": {
+                            "$in": user_ids
+                        }
+
                     }
 
-                }
+                    savings_projection = {
 
-                savings_projection = {
+                        "_id": 1,
 
-                    "_id": 1,
+                        "user_id": 1,
 
-                    "user_id": 1,
+                        "title": 1,
 
-                    "title": 1,
+                        "description": 1,
 
-                    "description": 1,
+                        "target_amount": 1,
 
-                    "target_amount": 1,
+                        "current_balance": 1,
 
-                    "current_balance": 1,
+                        "account_id": 1,
 
-                    "account_id": 1,
+                        "start_date": 1,
 
-                    "start_date": 1,
+                        "maturity_date": 1,
 
-                    "maturity_date": 1,
+                        "status": 1,
 
-                    "status": 1,
+                        "created_at": 1,
 
-                    "created_at": 1,
+                        "updated_at": 1,
 
-                    "updated_at": 1,
+                        # Stored / legacy calculated fields
+                        "daily_required": 1,
 
-                    # Stored / legacy calculated fields
-                    "daily_required": 1,
+                        "days_remaining": 1,
 
-                    "days_remaining": 1,
+                        "monthly_required": 1,
 
-                    "monthly_required": 1,
+                        "progress": 1,
 
-                    "progress": 1,
+                        "remaining_amount": 1,
 
-                    "remaining_amount": 1,
+                        "weekly_required": 1
 
-                    "weekly_required": 1
+                    }
 
-                }
+                    savings_documents = list(
 
-                savings_documents = list(
-
-                    mongo.db.savings
-                    .find(
-                        savings_query,
-                        savings_projection
-                    )
-                    .sort(
-                        "created_at",
-                        -1
-                    )
-
-                )
-
-                savings_context = []
-
-                savings_analysis_context = []
-
-                # ====================================================
-                # CURRENT EAT DATE
-                # ====================================================
-
-                analysis_today = (
-                    ai_current_eat_date()
-                )
-
-                # ====================================================
-                # PROCESS EACH SAVING
-                # ====================================================
-
-                for saving in savings_documents:
-
-                    # =================================================
-                    # DYNAMIC ANALYSIS
-                    # =================================================
-
-                    calculated_analysis = (
-                        ai_calculate_saving_analysis(
-                            saving,
-                            today=analysis_today
+                        mongo.db.savings
+                        .find(
+                            savings_query,
+                            savings_projection
                         )
+                        .sort(
+                            "created_at",
+                            -1
+                        )
+
                     )
 
-                    # =================================================
-                    # SAFE RAW VALUES
-                    # =================================================
+                    savings_context = []
 
-                    raw_saving = {
+                    savings_analysis_context = []
 
-                        "_id":
-                            str(
-                                saving.get(
-                                    "_id"
-                                )
-                            ),
+                    # ====================================================
+                    # CURRENT EAT DATE
+                    # ====================================================
 
-                        "user_id":
-                            str(
-                                saving.get(
-                                    "user_id"
-                                )
-                            ),
+                    analysis_today = (
+                        ai_current_eat_date()
+                    )
 
-                        "title":
-                            saving.get(
-                                "title"
+                    # ====================================================
+                    # PROCESS EACH SAVING
+                    # ====================================================
+
+                    for saving in savings_documents:
+
+                        # =================================================
+                        # DYNAMIC ANALYSIS
+                        # =================================================
+
+                        calculated_analysis = (
+                            ai_calculate_saving_analysis(
+                                saving,
+                                today=analysis_today
                             )
-                            or
-                            "",
+                        )
 
-                        "description":
-                            saving.get(
-                                "description"
-                            )
-                            or
-                            "",
+                        # =================================================
+                        # SAFE RAW VALUES
+                        # =================================================
 
-                        "target_amount":
-                            ai_safe_float(
-                                saving.get(
-                                    "target_amount"
-                                )
-                            ),
+                        raw_saving = {
 
-                        "current_balance":
-                            ai_safe_float(
-                                saving.get(
-                                    "current_balance"
-                                )
-                            ),
-
-                        "account_id":
-                            (
+                            "_id":
                                 str(
                                     saving.get(
+                                        "_id"
+                                    )
+                                ),
+
+                            "user_id":
+                                str(
+                                    saving.get(
+                                        "user_id"
+                                    )
+                                ),
+
+                            "title":
+                                saving.get(
+                                    "title"
+                                )
+                                or
+                                "",
+
+                            "description":
+                                saving.get(
+                                    "description"
+                                )
+                                or
+                                "",
+
+                            "target_amount":
+                                ai_safe_float(
+                                    saving.get(
+                                        "target_amount"
+                                    )
+                                ),
+
+                            "current_balance":
+                                ai_safe_float(
+                                    saving.get(
+                                        "current_balance"
+                                    )
+                                ),
+
+                            "account_id":
+                                (
+                                    str(
+                                        saving.get(
+                                            "account_id"
+                                        )
+                                    )
+                                    if saving.get(
                                         "account_id"
                                     )
-                                )
-                                if saving.get(
-                                    "account_id"
-                                )
-                                else None
-                            ),
+                                    else None
+                                ),
 
-                        "start_date":
-                            ai_saving_datetime(
+                            "start_date":
+                                ai_saving_datetime(
+                                    saving.get(
+                                        "start_date"
+                                    )
+                                ),
+
+                            "maturity_date":
+                                ai_saving_datetime(
+                                    saving.get(
+                                        "maturity_date"
+                                    )
+                                ),
+
+                            "status":
                                 saving.get(
-                                    "start_date"
+                                    "status"
                                 )
-                            ),
+                                or
+                                "unknown",
 
-                        "maturity_date":
-                            ai_saving_datetime(
-                                saving.get(
-                                    "maturity_date"
+                            "created_at":
+                                ai_saving_datetime(
+                                    saving.get(
+                                        "created_at"
+                                    )
+                                ),
+
+                            "updated_at":
+                                ai_saving_datetime(
+                                    saving.get(
+                                        "updated_at"
+                                    )
+                                ),
+
+                            # =================================================
+                            # STORED VALUES
+                            #
+                            # These are preserved only for comparison.
+                            # =================================================
+
+                            "recorded_daily_required":
+                                ai_safe_float(
+                                    saving.get(
+                                        "daily_required"
+                                    )
+                                ),
+
+                            "recorded_weekly_required":
+                                ai_safe_float(
+                                    saving.get(
+                                        "weekly_required"
+                                    )
+                                ),
+
+                            "recorded_monthly_required":
+                                ai_safe_float(
+                                    saving.get(
+                                        "monthly_required"
+                                    )
+                                ),
+
+                            "recorded_days_remaining":
+                                ai_safe_int(
+                                    saving.get(
+                                        "days_remaining"
+                                    )
+                                ),
+
+                            "recorded_progress":
+                                ai_safe_float(
+                                    saving.get(
+                                        "progress"
+                                    )
+                                ),
+
+                            "recorded_remaining_amount":
+                                ai_safe_float(
+                                    saving.get(
+                                        "remaining_amount"
+                                    )
                                 )
-                            ),
 
-                        "status":
-                            saving.get(
-                                "status"
-                            )
-                            or
-                            "unknown",
-
-                        "created_at":
-                            ai_saving_datetime(
-                                saving.get(
-                                    "created_at"
-                                )
-                            ),
-
-                        "updated_at":
-                            ai_saving_datetime(
-                                saving.get(
-                                    "updated_at"
-                                )
-                            ),
+                        }
 
                         # =================================================
-                        # STORED VALUES
+                        # FINAL SAVING CONTEXT
                         #
-                        # These are preserved only for comparison.
+                        # RAW DATA + DYNAMIC ANALYSIS
                         # =================================================
 
-                        "recorded_daily_required":
-                            ai_safe_float(
-                                saving.get(
-                                    "daily_required"
-                                )
-                            ),
+                        final_saving = {
 
-                        "recorded_weekly_required":
-                            ai_safe_float(
-                                saving.get(
-                                    "weekly_required"
-                                )
-                            ),
+                            **raw_saving,
 
-                        "recorded_monthly_required":
-                            ai_safe_float(
-                                saving.get(
-                                    "monthly_required"
-                                )
-                            ),
+                            "analysis":
+                                calculated_analysis
 
-                        "recorded_days_remaining":
-                            ai_safe_int(
-                                saving.get(
-                                    "days_remaining"
-                                )
-                            ),
+                        }
 
-                        "recorded_progress":
-                            ai_safe_float(
-                                saving.get(
-                                    "progress"
-                                )
-                            ),
+                        savings_context.append(
+                            raw_saving
+                        )
 
-                        "recorded_remaining_amount":
-                            ai_safe_float(
-                                saving.get(
-                                    "remaining_amount"
-                                )
-                            )
+                        savings_analysis_context.append(
+                            final_saving
+                        )
 
-                    }
-
-                    # =================================================
-                    # FINAL SAVING CONTEXT
+                    # ====================================================
+                    # SAVINGS SUMMARY
                     #
-                    # RAW DATA + DYNAMIC ANALYSIS
-                    # =================================================
+                    # CALCULATED FROM CURRENT RAW BALANCES.
+                    # ====================================================
 
-                    final_saving = {
+                    total_target = 0.0
 
-                        **raw_saving,
+                    total_balance = 0.0
 
-                        "analysis":
-                            calculated_analysis
+                    total_remaining = 0.0
 
-                    }
+                    active_count = 0
 
-                    savings_context.append(
-                        raw_saving
-                    )
+                    paused_count = 0
 
-                    savings_analysis_context.append(
-                        final_saving
-                    )
+                    completed_count = 0
 
-                # ====================================================
-                # SAVINGS SUMMARY
-                #
-                # CALCULATED FROM CURRENT RAW BALANCES.
-                # ====================================================
+                    cancelled_count = 0
 
-                total_target = 0.0
+                    total_daily_required = 0.0
 
-                total_balance = 0.0
+                    total_weekly_required = 0.0
 
-                total_remaining = 0.0
+                    total_monthly_required = 0.0
 
-                active_count = 0
+                    stale_savings_count = 0
 
-                paused_count = 0
+                    for saving in savings_analysis_context:
 
-                completed_count = 0
-
-                cancelled_count = 0
-
-                total_daily_required = 0.0
-
-                total_weekly_required = 0.0
-
-                total_monthly_required = 0.0
-
-                stale_savings_count = 0
-
-                for saving in savings_analysis_context:
-
-                    analysis = saving.get(
-                        "analysis",
-                        {}
-                    )
-
-                    calculated = analysis.get(
-                        "calculated",
-                        {}
-                    )
-
-                    target = ai_safe_float(
-                        saving.get(
-                            "target_amount"
-                        )
-                    )
-
-                    balance = ai_safe_float(
-                        saving.get(
-                            "current_balance"
-                        )
-                    )
-
-                    remaining = ai_safe_float(
-                        analysis
-                        .get(
+                        analysis = saving.get(
                             "analysis",
                             {}
                         )
-                        .get(
-                            "remaining_amount",
+
+                        calculated = analysis.get(
+                            "calculated",
+                            {}
+                        )
+
+                        target = ai_safe_float(
+                            saving.get(
+                                "target_amount"
+                            )
+                        )
+
+                        balance = ai_safe_float(
+                            saving.get(
+                                "current_balance"
+                            )
+                        )
+
+                        remaining = ai_safe_float(
+                            analysis
+                            .get(
+                                "analysis",
+                                {}
+                            )
+                            .get(
+                                "remaining_amount",
+                                0
+                            )
+                        )
+
+                        # Fallback
+                        if remaining <= 0 and target > balance:
+
+                            remaining = (
+                                target
+                                -
+                                balance
+                            )
+
+                        total_target += target
+
+                        total_balance += balance
+
+                        total_remaining += max(
+                            remaining,
                             0
                         )
-                    )
 
-                    # Fallback
-                    if remaining <= 0 and target > balance:
-
-                        remaining = (
-                            target
-                            -
-                            balance
-                        )
-
-                    total_target += target
-
-                    total_balance += balance
-
-                    total_remaining += max(
-                        remaining,
-                        0
-                    )
-
-                    total_daily_required += (
-                        ai_safe_float(
-                            analysis
-                            .get(
-                                "analysis",
-                                {}
-                            )
-                            .get(
-                                "daily_required",
-                                0
+                        total_daily_required += (
+                            ai_safe_float(
+                                analysis
+                                .get(
+                                    "analysis",
+                                    {}
+                                )
+                                .get(
+                                    "daily_required",
+                                    0
+                                )
                             )
                         )
-                    )
 
-                    total_weekly_required += (
-                        ai_safe_float(
-                            analysis
-                            .get(
-                                "analysis",
-                                {}
-                            )
-                            .get(
-                                "weekly_required",
-                                0
-                            )
-                        )
-                    )
-
-                    total_monthly_required += (
-                        ai_safe_float(
-                            analysis
-                            .get(
-                                "analysis",
-                                {}
-                            )
-                            .get(
-                                "monthly_required",
-                                0
+                        total_weekly_required += (
+                            ai_safe_float(
+                                analysis
+                                .get(
+                                    "analysis",
+                                    {}
+                                )
+                                .get(
+                                    "weekly_required",
+                                    0
+                                )
                             )
                         )
-                    )
 
-                    if saving.get(
-                        "analysis",
-                        {}
-                    ).get(
-                        "recorded_values_stale",
-                        False
-                    ):
+                        total_monthly_required += (
+                            ai_safe_float(
+                                analysis
+                                .get(
+                                    "analysis",
+                                    {}
+                                )
+                                .get(
+                                    "monthly_required",
+                                    0
+                                )
+                            )
+                        )
 
-                        stale_savings_count += 1
+                        if saving.get(
+                            "analysis",
+                            {}
+                        ).get(
+                            "recorded_values_stale",
+                            False
+                        ):
 
-                    status = str(
-                        saving.get(
-                            "status",
+                            stale_savings_count += 1
+
+                        status = str(
+                            saving.get(
+                                "status",
+                                ""
+                            )
+                            or
                             ""
-                        )
-                        or
-                        ""
-                    ).lower()
+                        ).lower()
 
-                    if status == "active":
+                        if status == "active":
 
-                        active_count += 1
+                            active_count += 1
 
-                    elif status == "paused":
+                        elif status == "paused":
 
-                        paused_count += 1
+                            paused_count += 1
 
-                    elif status in {
-                        "completed",
-                        "complete",
-                        "finished"
-                    }:
+                        elif status in {
+                            "completed",
+                            "complete",
+                            "finished"
+                        }:
 
-                        completed_count += 1
+                            completed_count += 1
 
-                    elif status in {
-                        "cancelled",
-                        "canceled"
-                    }:
+                        elif status in {
+                            "cancelled",
+                            "canceled"
+                        }:
 
-                        cancelled_count += 1
+                            cancelled_count += 1
 
-                # ====================================================
-                # OVERALL PROGRESS
-                # ====================================================
+                    # ====================================================
+                    # OVERALL PROGRESS
+                    # ====================================================
 
-                if total_target > 0:
+                    if total_target > 0:
 
-                    overall_progress = round(
-                        (
-                            total_balance
-                            /
-                            total_target
-                        )
-                        * 100,
-                        2
-                    )
-
-                    overall_progress = min(
-                        max(
-                            overall_progress,
-                            0
-                        ),
-                        100
-                    )
-
-                else:
-
-                    overall_progress = 0.0
-
-                # ====================================================
-                # FINAL SUMMARY
-                # ====================================================
-
-                savings_summary = {
-
-                    "count":
-                        len(
-                            savings_analysis_context
-                        ),
-
-                    "active_count":
-                        active_count,
-
-                    "paused_count":
-                        paused_count,
-
-                    "completed_count":
-                        completed_count,
-
-                    "cancelled_count":
-                        cancelled_count,
-
-                    "total_target_amount":
-                        round(
-                            total_target,
+                        overall_progress = round(
+                            (
+                                total_balance
+                                /
+                                total_target
+                            )
+                            * 100,
                             2
-                        ),
+                        )
 
-                    "total_current_balance":
-                        round(
-                            total_balance,
-                            2
-                        ),
-
-                    "total_remaining_amount":
-                        round(
+                        overall_progress = min(
                             max(
-                                total_remaining,
+                                overall_progress,
                                 0
                             ),
-                            2
-                        ),
+                            100
+                        )
 
-                    "overall_progress":
-                        overall_progress,
+                    else:
 
-                    "calculated_daily_required":
-                        round(
-                            total_daily_required,
-                            2
-                        ),
+                        overall_progress = 0.0
 
-                    "calculated_weekly_required":
-                        round(
-                            total_weekly_required,
-                            2
-                        ),
+                    # ====================================================
+                    # FINAL SUMMARY
+                    # ====================================================
 
-                    "calculated_monthly_required":
-                        round(
-                            total_monthly_required,
-                            2
-                        ),
+                    savings_summary = {
 
-                    "calculated_on":
-                        analysis_today.isoformat(),
+                        "count":
+                            len(
+                                savings_analysis_context
+                            ),
 
-                    "stale_savings_count":
-                        stale_savings_count
+                        "active_count":
+                            active_count,
 
-                }
+                        "paused_count":
+                            paused_count,
 
-                # ====================================================
-                # ADD TO FINANCIAL CONTEXT
-                # ====================================================
+                        "completed_count":
+                            completed_count,
 
-                financial_context = dict(
-                    financial_context
-                    or
-                    {}
-                )
+                        "cancelled_count":
+                            cancelled_count,
 
-                financial_context[
-                    "savings"
-                ] = savings_analysis_context
+                        "total_target_amount":
+                            round(
+                                total_target,
+                                2
+                            ),
 
-                financial_context[
-                    "savings_summary"
-                ] = savings_summary
+                        "total_current_balance":
+                            round(
+                                total_balance,
+                                2
+                            ),
 
-                # ====================================================
-                # IMPORTANT:
-                #
-                # Explicit separate context.
-                # ====================================================
+                        "total_remaining_amount":
+                            round(
+                                max(
+                                    total_remaining,
+                                    0
+                                ),
+                                2
+                            ),
 
-                financial_context[
-                    "savings_analysis"
-                ] = {
+                        "overall_progress":
+                            overall_progress,
 
-                    "calculated_on":
-                        analysis_today.isoformat(),
+                        "calculated_daily_required":
+                            round(
+                                total_daily_required,
+                                2
+                            ),
 
-                    "source":
-                        "MongoDB raw savings + dynamic server calculation",
+                        "calculated_weekly_required":
+                            round(
+                                total_weekly_required,
+                                2
+                            ),
 
-                    "records":
-                        savings_analysis_context,
+                        "calculated_monthly_required":
+                            round(
+                                total_monthly_required,
+                                2
+                            ),
 
-                    "summary":
-                        savings_summary
+                        "calculated_on":
+                            analysis_today.isoformat(),
 
-                }
+                        "stale_savings_count":
+                            stale_savings_count
 
-            except Exception as savings_error:
+                    }
 
-                print(
-                    "=" * 80
-                )
+                    # ====================================================
+                    # ADD TO FINANCIAL CONTEXT
+                    # ====================================================
 
-                print(
-                    "MAAREYE AI SAVINGS CONTEXT ERROR"
-                )
-
-                print(
-                    repr(
-                        savings_error
+                    financial_context = dict(
+                        financial_context
+                        or
+                        {}
                     )
-                )
+
+                    financial_context[
+                        "savings"
+                    ] = savings_analysis_context
+
+                    financial_context[
+                        "savings_summary"
+                    ] = savings_summary
+
+                    # ====================================================
+                    # IMPORTANT:
+                    #
+                    # Explicit separate context.
+                    # ====================================================
+
+                    financial_context[
+                        "savings_analysis"
+                    ] = {
+
+                        "calculated_on":
+                            analysis_today.isoformat(),
+
+                        "source":
+                            "MongoDB raw savings + dynamic server calculation",
+
+                        "records":
+                            savings_analysis_context,
+
+                        "summary":
+                            savings_summary
+
+                    }
+
+                except Exception as savings_error:
+
+                    print(
+                        "=" * 80
+                    )
+
+                    print(
+                        "MAAREYE AI SAVINGS CONTEXT ERROR"
+                    )
+
+                    print(
+                        repr(
+                            savings_error
+                        )
+                    )
+
+                    print(
+                        "=" * 80
+                    )
+
+                    savings_context = []
+
+                    savings_analysis_context = []
+
+                    savings_summary = {}
+
+            else:
+
+                # Person Ledger requests intentionally do not load
+                # or expose savings data unless the user explicitly
+                # asks about savings in the same request.
+                savings_context = []
+                savings_analysis_context = []
+                savings_summary = {}
 
                 print(
-                    "=" * 80
+                    "MAAREYE AI SCOPE: savings context suppressed "
+                    "for PERSON_LEDGER_ONLY request"
                 )
-
-                savings_context = []
-
-                savings_analysis_context = []
-
-                savings_summary = {}
 
             # ========================================================
             # PASSWORD SECURITY CONTEXT
@@ -125785,36 +126223,33 @@ If you calculate something yourself, say:
         person_ledger_instruction = """
 
 # ============================================================
-PERSON LEDGER — STRICT RULES
+PERSON LEDGER — ADVANCED STRICT SCOPE
 # ============================================================
 
-When answering questions about:
+The current request may be classified as a Person Ledger request.
 
-- Persons
-- Person Ledger
-- person balances
-- person payments
-- money owed
-- money received
-- person reports
+When the request is about a person, person payments, person balance,
+money previously given to a person, or whether the user can give a
+person more money:
 
-use ONLY:
+PRIMARY SOURCE:
 
-financial_context.person_summary
-
-financial_context.person_ledger_transactions
-
-financial_context.person_opening_transactions
-
-financial_context.person_ledger_summary
+- financial_context.person_summary
+- financial_context.person_ledger_transactions
+- financial_context.person_opening_transactions
+- financial_context.person_ledger_summary
 
 The Person Ledger combines:
 
-1. transactions
+1. normal transactions
 2. person_opening_transactions
 
+Net:
+
+Income - Expense
+
 # ============================================================
-NORMALIZATION
+PERSON MATCHING
 # ============================================================
 
 Person matching is case-insensitive.
@@ -125826,53 +126261,174 @@ asad
 ASAD
 AsAd
 
-are the same normalized person.
+are the same person.
 
-Ignore leading:
+Ignore a leading:
 
 By
 By:
 by
 by:
 
+when interpreting a person reference.
+
+Do not automatically merge person_name, description and note if they
+refer to different people. Use the supplied ledger context.
+
 # ============================================================
-DIFFERENT REFERENCES
+CRITICAL — PERSON LEDGER SCOPE ISOLATION
 # ============================================================
 
-If:
+If request_scope = PERSON_LEDGER_ONLY:
 
-person_name = Asad
-description = Ahmed
-note = Hassan
+1. ANSWER FROM PERSON LEDGER FIRST.
+2. Do NOT mention savings.
+3. Do NOT display savings totals.
+4. Do NOT display savings balance.
+5. Do NOT suggest "Saving Withdrawal".
+6. Do NOT suggest breaking a savings plan.
+7. Do NOT suggest taking money from savings.
+8. Do NOT create a savings solution.
+9. Do NOT use savings as a fallback when an account balance is low.
+10. Do NOT add a savings section to the answer.
+11. Do NOT say the user can use savings unless the user's actual
+    message explicitly asks about savings.
+12. If normal account balance is relevant to "can I give/pay?",
+    account/balance data may be used if it is supplied.
+13. If normal account funds are insufficient, simply explain that
+    the available account balance is insufficient. Do not solve the
+    problem by proposing savings withdrawal.
 
-these are independent references.
+This rule has higher priority than generic recommendation behavior.
 
-Do not merge them automatically.
+# ============================================================
+PERSON PAYMENT WARNING / ALERT
+# ============================================================
+
+If the user asks whether they can give/pay a person more money, first
+check that person's historical Person Ledger.
+
+If the person has already received a notable or large amount of money,
+give a clear warning before giving the recommendation.
+
+Preferred warning format:
+
+⚠️ Digniin:
+Qofkan hore lacag badan ayaa loo siiyay: $X
+(wadarta/number of relevant records if supplied).
+
+Then explain the current balance/available account situation.
+
+The warning is an ALERT, not an automatic prohibition.
+
+Do NOT claim:
+
+- that the person is forbidden from receiving money;
+- that the person owes the user;
+- that the user must stop paying them;
+
+unless the supplied database context explicitly supports that claim.
+
+For example, if the Person Ledger shows a historical expense of
+$375.60 to Samiro, that amount is relevant to a "Samiro lacag ma siin
+karaa?" question and should trigger a warning. Do NOT respond by
+offering savings withdrawal merely because the user's normal account
+balance is low.
+
+# ============================================================
+AFFORDABILITY
+# ============================================================
+
+For questions such as:
+
+"Samiro lacag ma siin karaa?"
+"Can I give Samiro money?"
+"Ma siin karaa qofkan lacag?"
+
+You may use:
+
+1. the person's historical Person Ledger;
+2. current normal account/balance information supplied by the
+   financial context.
+
+You may calculate:
+
+available balance - requested amount
+
+ONLY when the requested amount is actually supplied.
+
+If the user did not provide the amount, do not invent one.
+
+If available normal account balance is insufficient:
+
+- say so clearly;
+- do not invent future income;
+- do not propose savings withdrawal unless explicitly requested.
+
+# ============================================================
+NO SAVINGS CROSS-CONTAMINATION
+# ============================================================
+
+A Person Ledger result must NOT automatically include:
+
+- savings plans
+- savings target
+- savings progress
+- savings balance
+- savings remaining amount
+- daily/weekly/monthly saving requirement
+- maturity date
+- "withdraw savings"
+- "break savings"
+
+unless the user's actual message explicitly asks about savings.
+
+If request_scope = PERSON_LEDGER_PLUS_SAVINGS, then savings may be
+discussed, but keep Person Ledger facts and Savings facts clearly
+separated.
+
+# ============================================================
+NO INVENTION
+# ============================================================
+
+If a person is not found:
+
+Say that the person was not found in the supplied Person Ledger.
+
+Never invent a person balance.
+
+Never invent a transaction.
+
+Never invent a payment amount.
+
+Never invent a warning amount.
 
 # ============================================================
 DEDUPLICATION
 # ============================================================
 
-If the same normalized person appears multiple times inside
-the SAME record, count that record only once.
+If the same normalized person appears multiple times inside the SAME
+record, count that record only once.
 
-Never multiply the amount.
+Never multiply an amount merely because the name appears more than
+once in the same source record.
 
 # ============================================================
-BALANCE
+FACT VS CALCULATION VS ALERT
 # ============================================================
 
-Net = Income - Expense.
+FACT:
+Directly supplied by MongoDB.
 
-Use the supplied ledger context.
+CALCULATION:
+Mathematically derived from supplied data.
 
-If person is not found:
+ALERT:
+A warning generated from a material historical fact, such as a large
+previous Person Ledger expense.
 
-Say that the person was not found.
+Do not present an alert as a database restriction.
 
-Never invent a balance.
-
-============================================================
 """
 
         # ============================================================
@@ -126016,6 +126572,101 @@ Never claim a calculated amount was actually deposited.
 """
 
         # ============================================================
+        # REQUEST SCOPE ENFORCEMENT
+        # ============================================================
+
+        if request_scope == "PERSON_LEDGER_ONLY":
+
+            scope_instruction = """
+
+# ============================================================
+HARD SCOPE ENFORCEMENT — PERSON LEDGER ONLY
+# ============================================================
+
+The current user request is PERSON_LEDGER_ONLY.
+
+The assistant MUST stay inside Person Ledger scope.
+
+ALLOWED:
+- person ledger facts;
+- person historical income/expense;
+- person net balance;
+- person transaction counts;
+- relevant normal account balance when needed to answer whether
+  the user can afford a new payment;
+- mathematical calculations from those supplied values;
+- a clear warning/alert when historical person spending is notable.
+
+FORBIDDEN:
+- savings;
+- savings balance;
+- savings plans;
+- savings progress;
+- savings target;
+- savings remaining amount;
+- savings withdrawal;
+- breaking savings;
+- suggesting the user withdraw savings;
+- suggesting savings as a fallback.
+
+Even if the user's account balance is insufficient, DO NOT introduce
+savings as a solution.
+
+If historical person spending is high, lead with:
+
+⚠️ Digniin
+
+and explain the actual recorded amount.
+
+The warning must be factual and must not become an unsupported claim
+that the person is prohibited from receiving money.
+
+Do not create a "Savings" section.
+
+Do not mention savings indirectly as a recommendation.
+
+"""
+
+        elif request_scope == "PERSON_LEDGER_PLUS_SAVINGS":
+
+            scope_instruction = """
+
+# ============================================================
+REQUEST SCOPE — PERSON LEDGER + EXPLICIT SAVINGS
+# ============================================================
+
+The user explicitly mentioned both a Person Ledger topic and savings.
+
+You may discuss both.
+
+RULE:
+- Person Ledger facts must come from Person Ledger context.
+- Savings facts must come from savings_analysis / savings_summary.
+- Keep the two topics clearly separated.
+- Do not confuse a person's historical expense with a savings balance.
+- If warning about prior payments to a person, show the Person Ledger
+  warning separately from any savings information.
+- Never imply that a savings balance is money already paid to the person.
+
+"""
+
+        else:
+
+            scope_instruction = """
+
+# ============================================================
+REQUEST SCOPE — GENERAL FINANCIAL
+# ============================================================
+
+Use the supplied authenticated financial context according to the
+user's actual question.
+
+Do not introduce unrelated financial sections merely because data
+exists.
+
+"""
+
+        # ============================================================
         # COMBINE SYSTEM INSTRUCTIONS
         # ============================================================
 
@@ -126046,6 +126697,10 @@ Never claim a calculated amount was actually deposited.
             + "\n\n"
 
             + analysis_instruction
+
+            + "\n\n"
+
+            + scope_instruction
 
         )
 
@@ -126088,6 +126743,16 @@ Never claim a calculated amount was actually deposited.
                     is_logged_in
                 ),
 
+            "request_intent": {
+                "person_ledger": bool(
+                    person_ledger_intent
+                ),
+                "explicit_savings": bool(
+                    explicit_savings_intent
+                ),
+                "scope": request_scope
+            },
+
             "current_user_id":
                 (
                     str(
@@ -126125,6 +126790,15 @@ Current authenticated user ID:
     else "GUEST"
 }
 
+Request scope:
+{request_scope}
+
+Person Ledger intent:
+{person_ledger_intent}
+
+Explicit savings intent:
+{explicit_savings_intent}
+
 # ============================================================
 AUTHENTICATED USER SECURITY CONTEXT
 # ============================================================
@@ -126144,22 +126818,37 @@ CURRENT USER FINANCIAL CONTEXT
 {ai_json(financial_context)}
 
 # ============================================================
-RAW SAVINGS
+SAVINGS CONTEXT
 # ============================================================
 
-{ai_json(savings_context)}
+{
+    ai_json(savings_context)
+    if savings_context_allowed
+    else
+    "SUPPRESSED BY REQUEST SCOPE — PERSON_LEDGER_ONLY"
+}
 
 # ============================================================
 DYNAMIC SAVINGS ANALYSIS
 # ============================================================
 
-{ai_json(savings_analysis_context)}
+{
+    ai_json(savings_analysis_context)
+    if savings_context_allowed
+    else
+    "SUPPRESSED BY REQUEST SCOPE — PERSON_LEDGER_ONLY"
+}
 
 # ============================================================
 DYNAMIC SAVINGS SUMMARY
 # ============================================================
 
-{ai_json(savings_summary)}
+{
+    ai_json(savings_summary)
+    if savings_context_allowed
+    else
+    "SUPPRESSED BY REQUEST SCOPE — PERSON_LEDGER_ONLY"
+}
 
 # ============================================================
 CURRENT ANALYSIS DATE
@@ -126392,6 +127081,19 @@ Do not fabricate database records.
                     is_logged_in
                 ),
 
+            "request_scope":
+                request_scope,
+
+            "person_ledger_intent":
+                bool(
+                    person_ledger_intent
+                ),
+
+            "explicit_savings_intent":
+                bool(
+                    explicit_savings_intent
+                ),
+
             "message_id":
                 saved_message_id
 
@@ -126588,7 +127290,6 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 # ============================================================
