@@ -329,13 +329,6 @@
             </th>
 
 
-            <!--
-            <th>
-                Note
-            </th>
-            -->
-
-
         </tr>
 
 
@@ -430,15 +423,6 @@
 
 
 
-                    <!--
-                    <td>
-
-                        {{ invoice.note or '' }}
-
-                    </td>
-                    -->
-
-
                 </tr>
 
 
@@ -489,25 +473,6 @@
 
 
     <div class="col-md-7">
-
-
-        <!--
-        <h6 class="fw-bold">
-
-            Terms & Conditions
-
-        </h6>
-
-
-        <p class="text-muted">
-
-            This invoice was generated automatically
-            from the financial management system.
-
-        </p>
-        -->
-
-
     </div>
 
 
@@ -774,23 +739,23 @@
 @media print {
 
 
-    /* --------------------------------------------------------
-       PAGE
-    -------------------------------------------------------- */
+    /* ========================================================
+       A4 PAGE
+    ======================================================== */
 
     @page {
 
         size: A4 portrait;
 
-        margin: 12mm 10mm 12mm 10mm;
+        margin: 10mm 9mm 12mm 9mm;
 
     }
 
 
 
-    /* --------------------------------------------------------
-       BODY
-    -------------------------------------------------------- */
+    /* ========================================================
+       GLOBAL PRINT RESET
+    ======================================================== */
 
     html,
     body {
@@ -815,13 +780,13 @@
 
 
 
-    /* --------------------------------------------------------
+    /* ========================================================
        HIDE EVERYTHING EXCEPT INVOICE
-    -------------------------------------------------------- */
+    ======================================================== */
 
     body * {
 
-        visibility: hidden;
+        visibility: hidden !important;
 
     }
 
@@ -829,48 +794,11 @@
     .invoice-container,
     .invoice-container * {
 
-        visibility: visible;
+        visibility: visible !important;
 
     }
 
 
-
-    /* --------------------------------------------------------
-       REMOVE POSITION ABSOLUTE
-       This is important for multi-page invoices.
-    -------------------------------------------------------- */
-
-    .invoice-container {
-
-        position: relative !important;
-
-        left: auto !important;
-
-        top: auto !important;
-
-        width: 100% !important;
-
-        max-width: none !important;
-
-        margin: 0 !important;
-
-        padding: 0 !important;
-
-        border: 0 !important;
-
-        box-shadow: none !important;
-
-        overflow: visible !important;
-
-        display: block !important;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       HIDE PRINT CONTROLS
-    -------------------------------------------------------- */
 
     .no-print {
 
@@ -882,9 +810,9 @@
 
 
 
-    /* --------------------------------------------------------
-       REMOVE BOOTSTRAP CONTAINER RESTRICTIONS
-    -------------------------------------------------------- */
+    /* ========================================================
+       REMOVE BOOTSTRAP / CARD RESTRICTIONS
+    ======================================================== */
 
     .main-content,
     .container,
@@ -906,9 +834,43 @@
 
 
 
-    .row {
+    .invoice-container {
+
+        position: static !important;
+
+        left: auto !important;
+
+        top: auto !important;
+
+        display: block !important;
 
         width: 100% !important;
+
+        max-width: 100% !important;
+
+        height: auto !important;
+
+        min-height: 0 !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        border: 0 !important;
+
+        border-radius: 0 !important;
+
+        box-shadow: none !important;
+
+        overflow: visible !important;
+
+        transform: none !important;
+
+    }
+
+
+
+    .row {
 
         margin-left: 0 !important;
 
@@ -918,87 +880,43 @@
 
 
 
-    /* --------------------------------------------------------
-       COLUMNS
-    -------------------------------------------------------- */
+    /* ========================================================
+       HEADER
+    ======================================================== */
+
+    .invoice-header {
+
+        width: 100% !important;
+
+        display: flex !important;
+
+        flex-wrap: nowrap !important;
+
+        align-items: center !important;
+
+        margin-left: 0 !important;
+
+        margin-right: 0 !important;
+
+        padding-bottom: 10px !important;
+
+        margin-bottom: 12px !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
 
     .invoice-header .col-sm-6 {
 
         width: 50% !important;
 
-        float: left;
+        max-width: 50% !important;
 
-    }
-
-
-
-    .invoice-person-info .col-md-6 {
-
-        width: 50% !important;
-
-        float: left;
-
-    }
-
-
-
-    .invoice-footer-total .col-md-7 {
-
-        width: 58.333333% !important;
-
-        float: left;
-
-    }
-
-
-
-    .invoice-footer-total .col-md-5 {
-
-        width: 41.666667% !important;
-
-        float: left;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       CLEAR FLOATS
-    -------------------------------------------------------- */
-
-    .invoice-header::after,
-    .invoice-person-info::after,
-    .invoice-footer-total::after {
-
-        content: "";
-
-        display: table;
-
-        clear: both;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       HEADER
-    -------------------------------------------------------- */
-
-    .invoice-header {
-
-        display: flex !important;
-
-        align-items: center !important;
-
-        width: 100% !important;
-
-        margin-bottom: 15px !important;
-
-        padding-bottom: 12px !important;
-
-        break-inside: avoid;
-
-        page-break-inside: avoid;
+        flex: 0 0 50% !important;
 
     }
 
@@ -1006,9 +924,9 @@
 
     .invoice-logo {
 
-        width: 65px !important;
+        width: 62px !important;
 
-        height: 65px !important;
+        height: 62px !important;
 
     }
 
@@ -1016,9 +934,27 @@
 
     .invoice-company-info h3 {
 
-        font-size: 17px !important;
+        font-size: 16px !important;
 
-        margin-bottom: 3px !important;
+        line-height: 1.25 !important;
+
+        margin-bottom: 2px !important;
+
+    }
+
+
+
+    .invoice-company-info .fs-13 {
+
+        font-size: 10px !important;
+
+    }
+
+
+
+    .invoice-title-area {
+
+        font-size: 10px !important;
 
     }
 
@@ -1028,33 +964,43 @@
 
         font-size: 22px !important;
 
-        margin-bottom: 4px !important;
+        margin-bottom: 3px !important;
 
     }
 
 
 
-    .invoice-title-area {
-
-        font-size: 11px !important;
-
-    }
-
-
-
-    /* --------------------------------------------------------
+    /* ========================================================
        PERSON INFO
-    -------------------------------------------------------- */
+    ======================================================== */
 
     .invoice-person-info {
 
-        padding: 10px !important;
+        display: flex !important;
 
-        margin-bottom: 15px !important;
+        flex-wrap: nowrap !important;
 
-        break-inside: avoid;
+        width: 100% !important;
 
-        page-break-inside: avoid;
+        padding: 9px !important;
+
+        margin-bottom: 12px !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-person-info .col-md-6 {
+
+        width: 50% !important;
+
+        max-width: 50% !important;
+
+        flex: 0 0 50% !important;
 
     }
 
@@ -1062,7 +1008,7 @@
 
     .invoice-person-info h6 {
 
-        font-size: 10px !important;
+        font-size: 9px !important;
 
         margin-bottom: 3px !important;
 
@@ -1072,7 +1018,7 @@
 
     .invoice-person-info h4 {
 
-        font-size: 16px !important;
+        font-size: 15px !important;
 
         margin-bottom: 0 !important;
 
@@ -1082,17 +1028,21 @@
 
     .invoice-summary {
 
-        font-size: 10px !important;
+        font-size: 9.5px !important;
 
-        line-height: 1.6 !important;
+        line-height: 1.5 !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
+    /* ========================================================
        TABLE WRAPPER
-    -------------------------------------------------------- */
+       
+       CRITICAL:
+       overflow:auto/hidden can make browser PDF pagination
+       behave incorrectly. Therefore everything is visible.
+    ======================================================== */
 
     .invoice-table-wrapper {
 
@@ -1102,70 +1052,131 @@
 
         max-width: 100% !important;
 
+        height: auto !important;
+
+        max-height: none !important;
+
         overflow: visible !important;
 
         overflow-x: visible !important;
 
         overflow-y: visible !important;
 
-        height: auto !important;
+        position: static !important;
 
-        max-height: none !important;
+        transform: none !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
+    /* ========================================================
        TABLE
-    -------------------------------------------------------- */
+    ======================================================== */
 
     .invoice-table {
+
+        display: table !important;
 
         width: 100% !important;
 
         max-width: 100% !important;
 
-        border-collapse: collapse !important;
+        height: auto !important;
 
         table-layout: fixed !important;
 
-        font-size: 9.5px !important;
+        border-collapse: collapse !important;
+
+        border-spacing: 0 !important;
 
         margin: 0 !important;
+
+        font-size: 9px !important;
 
     }
 
 
 
-    .invoice-table th,
-    .invoice-table td {
+    /* ========================================================
+       TABLE HEADER REPEATS ON EVERY PAGE
+    ======================================================== */
 
-        padding: 5px 6px !important;
+    .invoice-table thead {
+
+        display: table-header-group !important;
+
+    }
+
+
+
+    .invoice-table tbody {
+
+        display: table-row-group !important;
+
+    }
+
+
+
+    /* ========================================================
+       THE IMPORTANT PART:
+       NEVER SPLIT ONE TR BETWEEN TWO A4 PAGES
+    ======================================================== */
+
+    .invoice-table tr,
+    .invoice-table tbody tr,
+    .invoice-row {
+
+        display: table-row !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+        -webkit-column-break-inside: avoid !important;
+
+        -webkit-region-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-table td,
+    .invoice-table th {
+
+        display: table-cell !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
 
         vertical-align: middle !important;
 
         border: 1px solid #dee2e6 !important;
 
-        white-space: normal !important;
+        padding: 4px 5px !important;
 
-        word-break: break-word !important;
+        line-height: 1.25 !important;
+
+        word-break: normal !important;
 
         overflow-wrap: anywhere !important;
+
+        white-space: normal !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
+    /* ========================================================
        COLUMN WIDTHS
-    -------------------------------------------------------- */
+    ======================================================== */
 
     .invoice-table .col-number {
 
         width: 5% !important;
 
-        text-align: center;
+        text-align: center !important;
 
     }
 
@@ -1201,7 +1212,7 @@
 
         width: 15% !important;
 
-        text-align: center;
+        text-align: center !important;
 
     }
 
@@ -1211,89 +1222,22 @@
 
         width: 15% !important;
 
+        text-align: right !important;
+
         white-space: nowrap !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
-       TABLE HEADER REPEATS ON EVERY PDF PAGE
-    -------------------------------------------------------- */
+    /* ========================================================
+       CELL CONTENT
+    ======================================================== */
 
-    .invoice-table thead {
+    .invoice-item,
+    .invoice-reference {
 
-        display: table-header-group !important;
-
-    }
-
-
-
-    .invoice-table tfoot {
-
-        display: table-footer-group !important;
-
-    }
-
-
-
-    .invoice-table tbody {
-
-        display: table-row-group !important;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       ROWS
-    -------------------------------------------------------- */
-
-    .invoice-table tr {
-
-        break-inside: avoid !important;
-
-        page-break-inside: avoid !important;
-
-    }
-
-
-
-    .invoice-table tbody tr {
-
-        break-inside: avoid !important;
-
-        page-break-inside: avoid !important;
-
-    }
-
-
-
-    .invoice-table td {
-
-        break-inside: avoid !important;
-
-        page-break-inside: avoid !important;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       BADGES
-    -------------------------------------------------------- */
-
-    .invoice-table .badge {
-
-        display: inline-block !important;
-
-        font-size: 8px !important;
-
-        padding: 3px 5px !important;
-
-        white-space: normal !important;
-
-        line-height: 1.2 !important;
+        overflow-wrap: anywhere !important;
 
         word-break: break-word !important;
 
@@ -1301,33 +1245,93 @@
 
 
 
-    /* --------------------------------------------------------
-       AMOUNT
-    -------------------------------------------------------- */
+    .invoice-reference .badge {
 
-    .invoice-amount {
+        display: inline-block !important;
 
-        white-space: nowrap !important;
+        white-space: normal !important;
 
-        word-break: normal !important;
+        word-break: break-word !important;
+
+        overflow-wrap: anywhere !important;
+
+        line-height: 1.2 !important;
+
+        font-size: 7.5px !important;
+
+        padding: 2px 4px !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
-       TOTAL SECTION
-    -------------------------------------------------------- */
+    .invoice-table .badge {
+
+        font-size: 7.5px !important;
+
+        padding: 2px 4px !important;
+
+        line-height: 1.2 !important;
+
+    }
+
+
+
+    /* ========================================================
+       NO BREAK INSIDE TABLE CONTENT
+    ======================================================== */
+
+    .invoice-table tbody tr {
+
+        orphans: 2 !important;
+
+        widows: 2 !important;
+
+    }
+
+
+
+    /* ========================================================
+       TOTALS
+    ======================================================== */
 
     .invoice-footer-total {
 
-        margin-top: 15px !important;
+        width: 100% !important;
+
+        display: flex !important;
+
+        flex-wrap: nowrap !important;
+
+        margin-top: 12px !important;
 
         break-inside: avoid !important;
 
         page-break-inside: avoid !important;
 
-        width: 100% !important;
+    }
+
+
+
+    .invoice-footer-total .col-md-7 {
+
+        width: 58.333333% !important;
+
+        max-width: 58.333333% !important;
+
+        flex: 0 0 58.333333% !important;
+
+    }
+
+
+
+    .invoice-footer-total .col-md-5 {
+
+        width: 41.666667% !important;
+
+        max-width: 41.666667% !important;
+
+        flex: 0 0 41.666667% !important;
 
     }
 
@@ -1337,9 +1341,23 @@
 
         width: 100% !important;
 
-        font-size: 10px !important;
+        font-size: 9px !important;
 
         margin-bottom: 0 !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-total-table tr {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
 
     }
 
@@ -1347,19 +1365,21 @@
 
     .invoice-total-table td {
 
-        padding: 5px 6px !important;
+        padding: 4px 5px !important;
 
     }
 
 
 
-    /* --------------------------------------------------------
+    /* ========================================================
        ACCOUNT MANAGER
-    -------------------------------------------------------- */
+    ======================================================== */
 
     .invoice-manager {
 
-        margin-top: 20px !important;
+        width: 100% !important;
+
+        margin-top: 18px !important;
 
         break-inside: avoid !important;
 
@@ -1371,9 +1391,9 @@
 
     .invoice-manager hr {
 
-        margin-top: 10px !important;
+        margin-top: 8px !important;
 
-        margin-bottom: 10px !important;
+        margin-bottom: 8px !important;
 
     }
 
@@ -1381,9 +1401,9 @@
 
     .invoice-manager h6 {
 
-        font-size: 11px !important;
+        font-size: 10px !important;
 
-        margin-bottom: 3px !important;
+        margin-bottom: 2px !important;
 
     }
 
@@ -1391,7 +1411,7 @@
 
     .invoice-manager p {
 
-        font-size: 10px !important;
+        font-size: 9px !important;
 
         margin-bottom: 0 !important;
 
@@ -1399,45 +1419,9 @@
 
 
 
-    /* --------------------------------------------------------
-       REMOVE UNNECESSARY SPACING
-    -------------------------------------------------------- */
-
-    .p-4 {
-
-        padding: 0 !important;
-
-    }
-
-
-
-    .mb-4 {
-
-        margin-bottom: 12px !important;
-
-    }
-
-
-
-    .mt-4 {
-
-        margin-top: 12px !important;
-
-    }
-
-
-
-    .mt-5 {
-
-        margin-top: 20px !important;
-
-    }
-
-
-
-    /* --------------------------------------------------------
-       BACKGROUND COLORS
-    -------------------------------------------------------- */
+    /* ========================================================
+       COLORS
+    ======================================================== */
 
     .bg-light {
 
@@ -1495,10 +1479,6 @@
 
 
 
-    /* --------------------------------------------------------
-       TEXT COLORS
-    -------------------------------------------------------- */
-
     .text-success {
 
         color: #198754 !important;
@@ -1531,49 +1511,34 @@
 
 
 
-    /* --------------------------------------------------------
-       LINKS
-    -------------------------------------------------------- */
+    /* ========================================================
+       PRINT COLOR
+    ======================================================== */
 
-    a {
+    .invoice-container,
+    .invoice-container * {
 
-        text-decoration: none !important;
+        -webkit-print-color-adjust: exact !important;
 
-    }
-
-
-
-    /* --------------------------------------------------------
-       PREVENT EMPTY PAGE / EXTRA CONTENT
-    -------------------------------------------------------- */
-
-    .invoice-container > * {
-
-        max-width: 100% !important;
+        print-color-adjust: exact !important;
 
     }
-
 
 }
 
 
 
-
-
-
 /* ============================================================
-   SMALL SCREEN
+   MOBILE
 ============================================================ */
 
 @media screen and (max-width: 767px) {
-
 
     .invoice-container {
 
         padding: 15px !important;
 
     }
-
 
     .invoice-logo {
 
@@ -1583,13 +1548,11 @@
 
     }
 
-
     .invoice-company-info h3 {
 
         font-size: 15px;
 
     }
-
 
     .invoice-title-area h2 {
 
@@ -1597,13 +1560,11 @@
 
     }
 
-
     .invoice-table {
 
         font-size: 12px;
 
     }
-
 
 }
 
