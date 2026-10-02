@@ -1,7 +1,7 @@
+
 {% extends 'backend/home/base.html' %}
 
 {% block title %} {{ person_name }} Invoice {% endblock %}
-
 
 {% block content %}
 
@@ -49,21 +49,24 @@
 <div class="d-flex justify-content-end gap-2 mb-3 no-print">
 
 
-<button onclick="window.print()"
-class="btn btn-danger btn-sm">
+<button
+    onclick="window.print()"
+    type="button"
+    class="btn btn-danger btn-sm">
 
-<i class="feather icon-printer"></i>
-Print Invoice
+    <i class="feather icon-printer"></i>
+    Print Invoice
 
 </button>
 
 
 
-<a href="{{ url_for('main.persons') }}"
-class="btn btn-outline-secondary btn-sm">
+<a
+    href="{{ url_for('main.persons') }}"
+    class="btn btn-outline-secondary btn-sm">
 
-<i class="feather icon-arrow-left"></i>
-Back
+    <i class="feather icon-arrow-left"></i>
+    Back
 
 </a>
 
@@ -74,368 +77,398 @@ Back
 
 
 
+<!-- ==========================================================
+     INVOICE CONTAINER
+========================================================== -->
+
 <div class="card invoice-container p-4 border-0 shadow-sm">
 
 
 
-<!-- HEADER -->
+<!-- ==========================================================
+     HEADER
+========================================================== -->
 
-<div class="row align-items-center border-bottom pb-4 mb-4">
-
-
-<div class="col-sm-6 d-flex align-items-center gap-3">
-
-
-<img 
-src="{{ url_for('static', filename=g.site_logo.sub_logo) 
-if g.site_logo and g.site_logo.sub_logo 
-else url_for('static', filename='backend/uploads/images/logo.png') }}"
-style="width:80px;height:80px;object-fit:contain;">
+<div class="row align-items-center border-bottom pb-4 mb-4 invoice-header">
 
 
-
-<div>
-
-
-<h3 class="fw-bold text-uppercase">
-
-{% if current_user.school %}
-
-{{ current_user.school.name }}
-
-{% else %}
-
-Expense Management
-
-{% endif %}
-
-</h3>
+    <div class="col-sm-6 d-flex align-items-center gap-3">
 
 
-<div class="text-muted fs-13">
-
-{{ current_user.phone or '' }}
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
+        <img
+            src="{{ url_for(
+                'static',
+                filename=g.site_logo.sub_logo
+            ) if g.site_logo and g.site_logo.sub_logo
+            else url_for(
+                'static',
+                filename='backend/uploads/images/logo.png'
+            ) }}"
+            class="invoice-logo"
+            alt="Logo"
+        >
 
 
-<div class="col-sm-6 text-end">
+        <div class="invoice-company-info">
 
 
-<h2 class="text-primary fw-bold">
+            <h3 class="fw-bold text-uppercase mb-1">
 
-INVOICE
+                {% if current_user.school %}
 
-</h2>
+                    {{ current_user.school.name }}
 
+                {% else %}
 
-<div>
+                    Expense Management
 
-<strong>Date:</strong>
+                {% endif %}
 
-{{ now.strftime('%d %b, %Y') if now else '' }}
-
-</div>
-
-
-</div>
+            </h3>
 
 
-</div>
+            <div class="text-muted fs-13">
+
+                {{ current_user.phone or '' }}
+
+            </div>
+
+
+        </div>
+
+
+    </div>
 
 
 
 
 
-
-<!-- PERSON INFO -->
-
-
-<div class="row bg-light rounded p-3 mb-4">
+    <div class="col-sm-6 text-end invoice-title-area">
 
 
-<div class="col-md-6">
+        <h2 class="text-primary fw-bold mb-2">
+
+            INVOICE
+
+        </h2>
 
 
-<h6 class="fw-bold text-uppercase">
+        <div>
 
-Invoice To
+            <strong>Date:</strong>
 
-</h6>
+            {{ now.strftime('%d %b, %Y') if now else '' }}
+
+        </div>
 
 
-<h4 class="text-dark">
-
-{{ person_name }}
-
-</h4>
+    </div>
 
 
 </div>
 
 
 
-<div class="col-md-6">
 
 
-<div class="row">
+
+<!-- ==========================================================
+     PERSON INFORMATION
+========================================================== -->
+
+<div class="row bg-light rounded p-3 mb-4 invoice-person-info">
 
 
-<div class="col-6 text-muted">
-Total Income
+    <div class="col-md-6">
+
+
+        <h6 class="fw-bold text-uppercase">
+
+            Invoice To
+
+        </h6>
+
+
+        <h4 class="text-dark invoice-person-name">
+
+            {{ person_name }}
+
+        </h4>
+
+
+    </div>
+
+
+
+    <div class="col-md-6">
+
+
+        <div class="row invoice-summary">
+
+
+            <div class="col-6 text-muted">
+
+                Total Income
+
+            </div>
+
+
+            <div class="col-6 text-end text-success fw-bold">
+
+                ${{ "{:,.2f}".format(total_income) }}
+
+            </div>
+
+
+
+
+            <div class="col-6 text-muted">
+
+                Total Expense
+
+            </div>
+
+
+            <div class="col-6 text-end text-danger fw-bold">
+
+                ${{ "{:,.2f}".format(total_expense) }}
+
+            </div>
+
+
+
+
+
+            <div class="col-6 text-muted">
+
+                Balance
+
+            </div>
+
+
+            <div class="col-6 text-end fw-bold">
+
+                {% if balance >= 0 %}
+
+                    <span class="text-success">
+
+                        ${{ "{:,.2f}".format(balance) }}
+
+                    </span>
+
+                {% else %}
+
+                    <span class="text-danger">
+
+                        ${{ "{:,.2f}".format(balance) }}
+
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+
+
+        </div>
+
+
+    </div>
+
+
 </div>
 
 
-<div class="col-6 text-end text-success fw-bold">
 
-${{ "{:,.2f}".format(total_income) }}
 
-</div>
 
 
+<!-- ==========================================================
+     TRANSACTION TABLE
+========================================================== -->
 
+<div class="table-responsive invoice-table-wrapper">
 
-<div class="col-6 text-muted">
-Total Expense
-</div>
 
+<table class="table table-bordered align-middle invoice-table">
 
-<div class="col-6 text-end text-danger fw-bold">
 
-${{ "{:,.2f}".format(total_expense) }}
+    <thead class="table-light">
 
-</div>
 
+        <tr>
 
 
+            <th class="col-number">
+                #
+            </th>
 
 
-<div class="col-6 text-muted">
-Balance
-</div>
+            <th class="col-date">
+                Date
+            </th>
 
 
-<div class="col-6 text-end fw-bold">
+            <th class="col-item">
+                Item
+            </th>
 
-{% if balance >= 0 %}
 
-<span class="text-success">
+            <th class="col-reference">
+                Reference
+            </th>
 
-${{ "{:,.2f}".format(balance) }}
 
-</span>
+            <th class="col-type">
+                Type
+            </th>
 
 
-{% else %}
+            <th class="text-end col-amount">
+                Amount
+            </th>
 
-<span class="text-danger">
 
-${{ "{:,.2f}".format(balance) }}
+            <!--
+            <th>
+                Note
+            </th>
+            -->
 
-</span>
 
-{% endif %}
+        </tr>
 
-</div>
 
+    </thead>
 
 
-</div>
 
+    <tbody>
 
-</div>
 
+        {% if invoices %}
 
-</div>
 
+            {% for invoice in invoices %}
 
 
+                <tr class="invoice-row">
 
 
+                    <td class="col-number">
 
-<!-- TRANSACTION TABLE -->
+                        {{ loop.index }}
 
+                    </td>
 
-<div class="table-responsive">
 
+                    <td class="col-date">
 
-<table class="table table-bordered align-middle">
+                        {{ invoice.date.strftime('%d %b %Y')
+                           if invoice.date else '' }}
 
+                    </td>
 
-<thead class="table-light">
 
 
-<tr>
+                    <td class="fw-bold col-item invoice-item">
 
+                        {{ invoice.item }}
 
-<th>#</th>
+                    </td>
 
 
-<th>Date</th>
 
+                    <td class="col-reference invoice-reference">
 
-<th>Item</th>
+                        <span class="badge bg-secondary">
 
+                            {{ invoice.reference }}
 
-<th>Reference</th>
+                        </span>
 
+                    </td>
 
-<th>Type</th>
 
 
-<th class="text-end">
-Amount
-</th>
 
+                    <td class="col-type">
 
-<!-- <th>
-Note
-</th> -->
 
+                        {% if invoice.type == 'income' %}
 
 
-</tr>
+                            <span class="badge bg-success">
 
+                                Income
 
-</thead>
+                            </span>
 
 
+                        {% else %}
 
-<tbody>
 
+                            <span class="badge bg-danger">
 
-{% if invoices %}
+                                Expense
 
+                            </span>
 
-{% for invoice in invoices %}
 
+                        {% endif %}
 
-<tr>
 
+                    </td>
 
-<td>
-{{ loop.index }}
-</td>
 
 
-<td>
+                    <td class="text-end fw-bold col-amount invoice-amount">
 
-{{ invoice.date.strftime('%d %b %Y') 
-if invoice.date else '' }}
+                        ${{ "{:,.2f}".format(invoice.amount) }}
 
-</td>
+                    </td>
 
 
 
-<td class="fw-bold">
+                    <!--
+                    <td>
 
-{{ invoice.item }}
+                        {{ invoice.note or '' }}
 
-</td>
+                    </td>
+                    -->
 
 
+                </tr>
 
-<td>
 
-<span class="badge bg-secondary">
 
-{{ invoice.reference }}
+            {% endfor %}
 
-</span>
 
-</td>
+        {% else %}
 
 
+            <tr>
 
 
-<td>
+                <td
+                    colspan="6"
+                    class="text-center py-5">
 
+                    No Transactions Found
 
-{% if invoice.type == 'income' %}
+                </td>
 
 
-<span class="badge bg-success">
+            </tr>
 
-Income
 
-</span>
+        {% endif %}
 
 
-{% else %}
 
-
-<span class="badge bg-danger">
-
-Expense
-
-</span>
-
-
-{% endif %}
-
-
-</td>
-
-
-
-<td class="text-end fw-bold">
-
-
-${{ "{:,.2f}".format(invoice.amount) }}
-
-
-</td>
-
-
-
-<!-- <td>
-
-{{ invoice.note or '' }}
-
-</td> -->
-
-
-
-</tr>
-
-
-
-{% endfor %}
-
-
-{% else %}
-
-
-<tr>
-
-
-<td colspan="7"
-class="text-center py-5">
-
-
-No Transactions Found
-
-
-</td>
-
-
-</tr>
-
-
-{% endif %}
-
-
-
-</tbody>
+    </tbody>
 
 
 </table>
@@ -448,121 +481,98 @@ No Transactions Found
 
 
 
-<!-- FOOTER TOTAL -->
+<!-- ==========================================================
+     FOOTER TOTAL
+========================================================== -->
 
+<div class="row mt-4 invoice-footer-total">
 
-<div class="row mt-4">
 
+    <div class="col-md-7">
 
-<div class="col-md-7">
 
+        <!--
+        <h6 class="fw-bold">
 
-<!-- <h6 class="fw-bold">
+            Terms & Conditions
 
-Terms & Conditions
+        </h6>
 
-</h6>
 
+        <p class="text-muted">
 
-<p class="text-muted">
+            This invoice was generated automatically
+            from the financial management system.
 
-This invoice was generated automatically from the financial management system.
+        </p>
+        -->
 
-</p> -->
 
+    </div>
 
-</div>
 
 
+    <div class="col-md-5">
 
-<div class="col-md-5">
 
+        <table class="table invoice-total-table">
 
-<table class="table">
 
+            <tr>
 
-<tr>
+                <td>
+                    Total Income
+                </td>
 
-<td>
-Total Income
-</td>
 
+                <td class="text-end text-success fw-bold">
 
-<td class="text-end text-success fw-bold">
+                    ${{ "{:,.2f}".format(total_income) }}
 
-${{ "{:,.2f}".format(total_income) }}
+                </td>
 
-</td>
+            </tr>
 
-</tr>
 
 
+            <tr>
 
-<tr>
+                <td>
+                    Total Expense
+                </td>
 
-<td>
-Total Expense
-</td>
 
+                <td class="text-end text-danger fw-bold">
 
-<td class="text-end text-danger fw-bold">
+                    ${{ "{:,.2f}".format(total_expense) }}
 
-${{ "{:,.2f}".format(total_expense) }}
+                </td>
 
-</td>
+            </tr>
 
-</tr>
 
 
+            <tr class="table-dark">
 
-<tr class="table-dark">
+                <td>
+                    Balance
+                </td>
 
-<td>
-Balance
-</td>
 
+                <td class="text-end">
 
-<td class="text-end">
+                    ${{ "{:,.2f}".format(balance) }}
 
-${{ "{:,.2f}".format(balance) }}
+                </td>
 
-</td>
 
+            </tr>
 
-</tr>
 
+        </table>
 
-</table>
 
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<div class="text-center mt-5">
-
-
-<hr>
-
-
-<h6>
-
-Account Manager
-
-</h6>
-
-
-<p>
-
-{{ current_user.fullname }}
-
-</p>
+    </div>
 
 
 </div>
@@ -572,6 +582,37 @@ Account Manager
 
 
 
+<!-- ==========================================================
+     ACCOUNT MANAGER
+========================================================== -->
+
+<div class="text-center mt-5 invoice-manager">
+
+
+    <hr>
+
+
+    <h6>
+
+        Account Manager
+
+    </h6>
+
+
+    <p>
+
+        {{ current_user.fullname }}
+
+    </p>
+
+
+</div>
+
+
+
+
+
+
 </div>
 
 
@@ -587,52 +628,981 @@ Account Manager
 
 
 
+
+<!-- ==========================================================
+     SCREEN + PRINT STYLES
+========================================================== -->
 
 <style>
 
 
-@media print {
-
-
-body * {
-
-visibility:hidden;
-
-}
-
-
-
-.invoice-container,
-.invoice-container * {
-
-visibility:visible;
-
-}
-
-
+/* ============================================================
+   NORMAL SCREEN
+============================================================ */
 
 .invoice-container {
 
-position:absolute;
+    background: #ffffff;
 
-left:0;
+    width: 100%;
 
-top:0;
+    overflow: visible;
 
-width:100%;
+}
 
-box-shadow:none!important;
+
+.invoice-logo {
+
+    width: 80px;
+
+    height: 80px;
+
+    object-fit: contain;
+
+    flex-shrink: 0;
+
+}
+
+
+.invoice-company-info {
+
+    min-width: 0;
+
+}
+
+
+.invoice-company-info h3 {
+
+    word-break: break-word;
+
+}
+
+
+.invoice-person-name {
+
+    word-break: break-word;
+
+}
+
+
+.invoice-table-wrapper {
+
+    width: 100%;
+
+    overflow-x: auto;
+
+}
+
+
+.invoice-table {
+
+    width: 100%;
+
+    margin-bottom: 0;
+
+    table-layout: auto;
+
+}
+
+
+.invoice-table th,
+.invoice-table td {
+
+    vertical-align: middle;
+
+}
+
+
+.invoice-item {
+
+    min-width: 150px;
+
+    word-break: break-word;
+
+    overflow-wrap: anywhere;
+
+}
+
+
+.invoice-reference {
+
+    word-break: break-word;
+
+    overflow-wrap: anywhere;
+
+}
+
+
+.invoice-reference .badge {
+
+    white-space: normal;
+
+    word-break: break-word;
+
+}
+
+
+.invoice-amount {
+
+    white-space: nowrap;
+
+}
+
+
+.invoice-total-table {
+
+    margin-bottom: 0;
+
+}
+
+
+.invoice-manager {
+
+    page-break-inside: avoid;
 
 }
 
 
 
-.no-print {
 
-display:none!important;
+
+
+/* ============================================================
+   PRINT SETTINGS
+============================================================ */
+
+@media print {
+
+
+    /* --------------------------------------------------------
+       PAGE
+    -------------------------------------------------------- */
+
+    @page {
+
+        size: A4 portrait;
+
+        margin: 12mm 10mm 12mm 10mm;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       BODY
+    -------------------------------------------------------- */
+
+    html,
+    body {
+
+        width: 100% !important;
+
+        height: auto !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        background: #ffffff !important;
+
+        overflow: visible !important;
+
+        -webkit-print-color-adjust: exact !important;
+
+        print-color-adjust: exact !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       HIDE EVERYTHING EXCEPT INVOICE
+    -------------------------------------------------------- */
+
+    body * {
+
+        visibility: hidden;
+
+    }
+
+
+    .invoice-container,
+    .invoice-container * {
+
+        visibility: visible;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       REMOVE POSITION ABSOLUTE
+       This is important for multi-page invoices.
+    -------------------------------------------------------- */
+
+    .invoice-container {
+
+        position: relative !important;
+
+        left: auto !important;
+
+        top: auto !important;
+
+        width: 100% !important;
+
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+        border: 0 !important;
+
+        box-shadow: none !important;
+
+        overflow: visible !important;
+
+        display: block !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       HIDE PRINT CONTROLS
+    -------------------------------------------------------- */
+
+    .no-print {
+
+        display: none !important;
+
+        visibility: hidden !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       REMOVE BOOTSTRAP CONTAINER RESTRICTIONS
+    -------------------------------------------------------- */
+
+    .main-content,
+    .container,
+    .container-sm,
+    .container-md,
+    .container-lg,
+    .container-xl,
+    .container-xxl {
+
+        width: 100% !important;
+
+        max-width: none !important;
+
+        margin: 0 !important;
+
+        padding: 0 !important;
+
+    }
+
+
+
+    .row {
+
+        width: 100% !important;
+
+        margin-left: 0 !important;
+
+        margin-right: 0 !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       COLUMNS
+    -------------------------------------------------------- */
+
+    .invoice-header .col-sm-6 {
+
+        width: 50% !important;
+
+        float: left;
+
+    }
+
+
+
+    .invoice-person-info .col-md-6 {
+
+        width: 50% !important;
+
+        float: left;
+
+    }
+
+
+
+    .invoice-footer-total .col-md-7 {
+
+        width: 58.333333% !important;
+
+        float: left;
+
+    }
+
+
+
+    .invoice-footer-total .col-md-5 {
+
+        width: 41.666667% !important;
+
+        float: left;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       CLEAR FLOATS
+    -------------------------------------------------------- */
+
+    .invoice-header::after,
+    .invoice-person-info::after,
+    .invoice-footer-total::after {
+
+        content: "";
+
+        display: table;
+
+        clear: both;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       HEADER
+    -------------------------------------------------------- */
+
+    .invoice-header {
+
+        display: flex !important;
+
+        align-items: center !important;
+
+        width: 100% !important;
+
+        margin-bottom: 15px !important;
+
+        padding-bottom: 12px !important;
+
+        break-inside: avoid;
+
+        page-break-inside: avoid;
+
+    }
+
+
+
+    .invoice-logo {
+
+        width: 65px !important;
+
+        height: 65px !important;
+
+    }
+
+
+
+    .invoice-company-info h3 {
+
+        font-size: 17px !important;
+
+        margin-bottom: 3px !important;
+
+    }
+
+
+
+    .invoice-title-area h2 {
+
+        font-size: 22px !important;
+
+        margin-bottom: 4px !important;
+
+    }
+
+
+
+    .invoice-title-area {
+
+        font-size: 11px !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       PERSON INFO
+    -------------------------------------------------------- */
+
+    .invoice-person-info {
+
+        padding: 10px !important;
+
+        margin-bottom: 15px !important;
+
+        break-inside: avoid;
+
+        page-break-inside: avoid;
+
+    }
+
+
+
+    .invoice-person-info h6 {
+
+        font-size: 10px !important;
+
+        margin-bottom: 3px !important;
+
+    }
+
+
+
+    .invoice-person-info h4 {
+
+        font-size: 16px !important;
+
+        margin-bottom: 0 !important;
+
+    }
+
+
+
+    .invoice-summary {
+
+        font-size: 10px !important;
+
+        line-height: 1.6 !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       TABLE WRAPPER
+    -------------------------------------------------------- */
+
+    .invoice-table-wrapper {
+
+        display: block !important;
+
+        width: 100% !important;
+
+        max-width: 100% !important;
+
+        overflow: visible !important;
+
+        overflow-x: visible !important;
+
+        overflow-y: visible !important;
+
+        height: auto !important;
+
+        max-height: none !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       TABLE
+    -------------------------------------------------------- */
+
+    .invoice-table {
+
+        width: 100% !important;
+
+        max-width: 100% !important;
+
+        border-collapse: collapse !important;
+
+        table-layout: fixed !important;
+
+        font-size: 9.5px !important;
+
+        margin: 0 !important;
+
+    }
+
+
+
+    .invoice-table th,
+    .invoice-table td {
+
+        padding: 5px 6px !important;
+
+        vertical-align: middle !important;
+
+        border: 1px solid #dee2e6 !important;
+
+        white-space: normal !important;
+
+        word-break: break-word !important;
+
+        overflow-wrap: anywhere !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       COLUMN WIDTHS
+    -------------------------------------------------------- */
+
+    .invoice-table .col-number {
+
+        width: 5% !important;
+
+        text-align: center;
+
+    }
+
+
+
+    .invoice-table .col-date {
+
+        width: 15% !important;
+
+        white-space: nowrap !important;
+
+    }
+
+
+
+    .invoice-table .col-item {
+
+        width: 30% !important;
+
+    }
+
+
+
+    .invoice-table .col-reference {
+
+        width: 20% !important;
+
+    }
+
+
+
+    .invoice-table .col-type {
+
+        width: 15% !important;
+
+        text-align: center;
+
+    }
+
+
+
+    .invoice-table .col-amount {
+
+        width: 15% !important;
+
+        white-space: nowrap !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       TABLE HEADER REPEATS ON EVERY PDF PAGE
+    -------------------------------------------------------- */
+
+    .invoice-table thead {
+
+        display: table-header-group !important;
+
+    }
+
+
+
+    .invoice-table tfoot {
+
+        display: table-footer-group !important;
+
+    }
+
+
+
+    .invoice-table tbody {
+
+        display: table-row-group !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       ROWS
+    -------------------------------------------------------- */
+
+    .invoice-table tr {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-table tbody tr {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-table td {
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       BADGES
+    -------------------------------------------------------- */
+
+    .invoice-table .badge {
+
+        display: inline-block !important;
+
+        font-size: 8px !important;
+
+        padding: 3px 5px !important;
+
+        white-space: normal !important;
+
+        line-height: 1.2 !important;
+
+        word-break: break-word !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       AMOUNT
+    -------------------------------------------------------- */
+
+    .invoice-amount {
+
+        white-space: nowrap !important;
+
+        word-break: normal !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       TOTAL SECTION
+    -------------------------------------------------------- */
+
+    .invoice-footer-total {
+
+        margin-top: 15px !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+        width: 100% !important;
+
+    }
+
+
+
+    .invoice-total-table {
+
+        width: 100% !important;
+
+        font-size: 10px !important;
+
+        margin-bottom: 0 !important;
+
+    }
+
+
+
+    .invoice-total-table td {
+
+        padding: 5px 6px !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       ACCOUNT MANAGER
+    -------------------------------------------------------- */
+
+    .invoice-manager {
+
+        margin-top: 20px !important;
+
+        break-inside: avoid !important;
+
+        page-break-inside: avoid !important;
+
+    }
+
+
+
+    .invoice-manager hr {
+
+        margin-top: 10px !important;
+
+        margin-bottom: 10px !important;
+
+    }
+
+
+
+    .invoice-manager h6 {
+
+        font-size: 11px !important;
+
+        margin-bottom: 3px !important;
+
+    }
+
+
+
+    .invoice-manager p {
+
+        font-size: 10px !important;
+
+        margin-bottom: 0 !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       REMOVE UNNECESSARY SPACING
+    -------------------------------------------------------- */
+
+    .p-4 {
+
+        padding: 0 !important;
+
+    }
+
+
+
+    .mb-4 {
+
+        margin-bottom: 12px !important;
+
+    }
+
+
+
+    .mt-4 {
+
+        margin-top: 12px !important;
+
+    }
+
+
+
+    .mt-5 {
+
+        margin-top: 20px !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       BACKGROUND COLORS
+    -------------------------------------------------------- */
+
+    .bg-light {
+
+        background-color: #f8f9fa !important;
+
+    }
+
+
+
+    .table-light {
+
+        background-color: #f8f9fa !important;
+
+    }
+
+
+
+    .table-dark {
+
+        background-color: #212529 !important;
+
+        color: #ffffff !important;
+
+    }
+
+
+
+    .bg-success {
+
+        background-color: #198754 !important;
+
+        color: #ffffff !important;
+
+    }
+
+
+
+    .bg-danger {
+
+        background-color: #dc3545 !important;
+
+        color: #ffffff !important;
+
+    }
+
+
+
+    .bg-secondary {
+
+        background-color: #6c757d !important;
+
+        color: #ffffff !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       TEXT COLORS
+    -------------------------------------------------------- */
+
+    .text-success {
+
+        color: #198754 !important;
+
+    }
+
+
+
+    .text-danger {
+
+        color: #dc3545 !important;
+
+    }
+
+
+
+    .text-primary {
+
+        color: #0d6efd !important;
+
+    }
+
+
+
+    .text-muted {
+
+        color: #6c757d !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       LINKS
+    -------------------------------------------------------- */
+
+    a {
+
+        text-decoration: none !important;
+
+    }
+
+
+
+    /* --------------------------------------------------------
+       PREVENT EMPTY PAGE / EXTRA CONTENT
+    -------------------------------------------------------- */
+
+    .invoice-container > * {
+
+        max-width: 100% !important;
+
+    }
+
 
 }
 
+
+
+
+
+
+/* ============================================================
+   SMALL SCREEN
+============================================================ */
+
+@media screen and (max-width: 767px) {
+
+
+    .invoice-container {
+
+        padding: 15px !important;
+
+    }
+
+
+    .invoice-logo {
+
+        width: 60px;
+
+        height: 60px;
+
+    }
+
+
+    .invoice-company-info h3 {
+
+        font-size: 15px;
+
+    }
+
+
+    .invoice-title-area h2 {
+
+        font-size: 20px;
+
+    }
+
+
+    .invoice-table {
+
+        font-size: 12px;
+
+    }
 
 
 }
@@ -643,3 +1613,4 @@ display:none!important;
 
 
 {% endblock %}
+
