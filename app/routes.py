@@ -70,6 +70,7 @@ def user_sessions_collection():
     return mongo.db.user_sessions
 
 
+
 # ============================================================
 # CREATE USER SESSION
 # ============================================================
@@ -114748,27 +114749,6 @@ def report_export_transfers():
 # ============================================================
 # PERSONS EXPORT REPORT
 # ============================================================
-# URL:
-# {{ url_for('main.report_export_persons') }}
-#
-# Template:
-# backend/pages/components/reports/report_export_persons.html
-#
-# Features:
-# - Date range
-# - Person filter
-# - Transaction type filter
-# - Account filter
-# - Search filter
-# - Person details
-# - Last transaction
-# - Opening transactions
-# - Excel export
-# - CSV export
-# - JSON export
-# - User scoped data
-# - ObjectId + string user_id support
-# ============================================================
 
 # Excel
 from openpyxl import Workbook
@@ -119164,58 +119144,6 @@ def ai_get_user_profile():
 # ============================================================
 # PERSON LEDGER
 # ============================================================
-#
-# PERSON SOURCES
-#
-# transactions:
-#   1. person_name
-#   2. description
-#   3. note
-#
-# person_opening_transactions:
-#   1. person_name
-#   2. description
-#   3. note
-#
-# IMPORTANT:
-#
-# Each field is read independently.
-#
-# Example:
-#
-# person_name  = "Asad"
-# description  = "Ahmed"
-# note         = "Hassan"
-#
-# This creates:
-#
-# Asad
-# Ahmed
-# Hassan
-#
-# They are NOT forced to be the same person.
-#
-# "By Asad"
-# "by Asad"
-# "BY ASAD"
-# "By: Asad"
-#
-# ALL become:
-#
-# Asad
-#
-# Same person is case-insensitive:
-#
-# Asad
-# asad
-# ASAD
-# By Asad
-#
-# ALL = same person.
-#
-# If the SAME normalized person appears in multiple fields
-# of ONE record, that record is counted only ONCE.
-#
 # ============================================================
 
 
@@ -124187,6 +124115,7 @@ def ai_is_person_ledger_question(message, financial_context=None):
     return False
 
 
+
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -124228,7 +124157,6 @@ def ai_assistant():
             history,
             list
         ):
-
             history = []
 
         history = history[-30:]
@@ -124242,6 +124170,8 @@ def ai_assistant():
             return jsonify({
 
                 "success": False,
+
+                "error": "invalid_message",
 
                 "answer":
                     "Fadlan su'aashaada qor."
@@ -124269,6 +124199,9 @@ def ai_assistant():
             return jsonify({
 
                 "success": False,
+
+                "error":
+                    "missing_api_key",
 
                 "answer":
                     "Gemini API key lama dejin. "
@@ -124298,6 +124231,9 @@ def ai_assistant():
             return jsonify({
 
                 "success": False,
+
+                "error":
+                    "client_not_initialized",
 
                 "answer":
                     "AI service-ka hadda lama heli karo. "
@@ -124366,8 +124302,13 @@ def ai_assistant():
         # ============================================================
 
         explicit_savings_intent = False
+
         person_ledger_intent = False
-        request_scope = "GENERAL_FINANCIAL"
+
+        request_scope = (
+            "GENERAL_FINANCIAL"
+        )
+
         savings_context_allowed = True
 
         # ============================================================
@@ -124389,6 +124330,9 @@ def ai_assistant():
                 return jsonify({
 
                     "success": False,
+
+                    "error":
+                        "user_not_identified",
 
                     "answer":
                         "Account-kaaga lama aqoonsan. "
@@ -124523,10 +124467,696 @@ def ai_assistant():
 
                     "success": False,
 
+                    "error":
+                        "financial_context_error",
+
                     "answer":
                         "Xogta maaliyadeed ee Maareye "
                         "lama akhrin karin hadda. "
                         "Fadlan isku day mar kale."
+
+                }), 500
+
+            # ========================================================
+            # LIVE PERSON LEDGER — MONGODB SOURCE OF TRUTH
+            # ========================================================
+            # IMPORTANT:
+            # Do NOT rely on a previously cached person ledger.
+            # Every /ai-assistant request rebuilds the Person Ledger
+            # directly from the CURRENT MongoDB documents belonging
+            # to the authenticated user.
+            #
+            # Sources:
+            #   1. transactions
+            #   2. person_opening_transactions
+            #
+            # The two sources are merged only for the authenticated
+            # user's ledger. No other user's records are included.
+            # ========================================================
+
+            try:
+
+                live_person_transactions = []
+                live_person_opening_transactions = []
+
+                person_summary = {}
+                person_ledger_summary = {}
+
+                # ----------------------------------------------------
+                # SAFE HELPERS — LOCAL TO THIS REQUEST
+                # ----------------------------------------------------
+
+                def _live_person_text(value):
+                    if value is None:
+                        return ""
+                    try:
+                        return str(value).strip()
+                    except Exception:
+                        return ""
+
+                def _live_person_normalize(value):
+                    """Normalize a person reference consistently."""
+                    value = _live_person_text(value)
+                    if not value:
+                        return ""
+
+                    value = re.sub(
+                        r"^\s*by\s*:?\s*",
+                        "",
+                        value,
+                        flags=re.IGNORECASE
+                    )
+
+                    value = re.sub(
+                        r"\s+",
+                        " ",
+                        value
+                    ).strip()
+
+                    return value.casefold()
+
+                def _live_person_display(value):
+                    value = _live_person_text(value)
+                    if not value:
+                        return ""
+
+                    value = re.sub(
+                        r"^\s*by\s*:?\s*",
+                        "",
+                        value,
+                        flags=re.IGNORECASE
+                    )
+
+                    value = re.sub(
+                        r"\s+",
+                        " ",
+                        value
+                    ).strip()
+
+                    return value
+
+                def _live_person_amount(value):
+                    try:
+                        return abs(
+                            float(
+                                ai_safe_float(value)
+                            )
+                        )
+                    except Exception:
+                        try:
+                            return abs(float(value or 0))
+                        except Exception:
+                            return 0.0
+
+                def _live_person_date(doc):
+                    """Pick the newest meaningful date without inventing one."""
+                    for field in (
+                        "date",
+                        "transaction_date",
+                        "paid_at",
+                        "received_at",
+                        "created_at",
+                        "updated_at"
+                    ):
+                        value = doc.get(field)
+                        if value is not None:
+                            try:
+                                return ai_saving_datetime(value)
+                            except Exception:
+                                return _live_person_text(value)
+                    return None
+
+                def _live_person_type(doc):
+                    """Resolve income/expense from common Maareye fields."""
+                    candidates = (
+                        doc.get("type"),
+                        doc.get("transaction_type"),
+                        doc.get("kind"),
+                        doc.get("direction"),
+                        doc.get("entry_type"),
+                        doc.get("flow_type")
+                    )
+
+                    for candidate in candidates:
+                        raw = _live_person_text(candidate).lower()
+                        if not raw:
+                            continue
+
+                        if any(
+                            token in raw
+                            for token in (
+                                "income",
+                                "credit",
+                                "deposit",
+                                "received",
+                                "receive",
+                                "inflow",
+                                "revenue"
+                            )
+                        ):
+                            return "income"
+
+                        if any(
+                            token in raw
+                            for token in (
+                                "expense",
+                                "debit",
+                                "withdraw",
+                                "withdrawal",
+                                "payment",
+                                "paid",
+                                "outflow",
+                                "spend",
+                                "purchase"
+                            )
+                        ):
+                            return "expense"
+
+                    # Some records encode the sign in amount.
+                    for field in (
+                        "amount",
+                        "value",
+                        "total",
+                        "money"
+                    ):
+                        if field in doc and doc.get(field) is not None:
+                            try:
+                                raw_amount = float(doc.get(field))
+                                if raw_amount < 0:
+                                    return "expense"
+                            except Exception:
+                                pass
+
+                    return "expense"
+
+                def _live_person_sources(doc):
+                    """
+                    Return independent person references from a record.
+
+                    A record can mention a person in person_name,
+                    description and/or note. The same normalized name
+                    inside one record is counted only once.
+                    """
+                    candidates = []
+
+                    for field in (
+                        "person_name",
+                        "person",
+                        "description",
+                        "note"
+                    ):
+                        raw = doc.get(field)
+                        if raw is None:
+                            continue
+
+                        # Handle accidental arrays without changing the
+                        # normal string-based schema.
+                        if isinstance(raw, (list, tuple, set)):
+                            values = list(raw)
+                        else:
+                            values = [raw]
+
+                        for value in values:
+                            display = _live_person_display(value)
+                            normalized = _live_person_normalize(value)
+
+                            if not normalized:
+                                continue
+
+                            candidates.append(
+                                (
+                                    normalized,
+                                    display,
+                                    field
+                                )
+                            )
+
+                    # Same person appearing in multiple fields of the
+                    # SAME MongoDB record is one ledger event.
+                    unique = []
+                    seen = set()
+
+                    for normalized, display, field in candidates:
+                        if normalized in seen:
+                            continue
+                        seen.add(normalized)
+                        unique.append({
+                            "key": normalized,
+                            "name": display,
+                            "source_field": field
+                        })
+
+                    return unique
+
+                def _live_person_safe_record(doc, source):
+                    """Convert BSON/Mongo values to JSON-safe ledger data."""
+                    people = _live_person_sources(doc)
+                    if not people:
+                        return None
+
+                    amount = _live_person_amount(
+                        doc.get(
+                            "amount",
+                            doc.get(
+                                "value",
+                                doc.get(
+                                    "total",
+                                    doc.get("money", 0)
+                                )
+                            )
+                        )
+                    )
+
+                    flow = _live_person_type(doc)
+
+                    person_names = [
+                        item["name"]
+                        for item in people
+                        if item.get("name")
+                    ]
+
+                    person_keys = [
+                        item["key"]
+                        for item in people
+                        if item.get("key")
+                    ]
+
+                    return {
+                        "_id": (
+                            str(doc.get("_id"))
+                            if doc.get("_id") is not None
+                            else None
+                        ),
+                        "source": source,
+                        "person_names": person_names,
+                        "person_keys": person_keys,
+                        "person_name": (
+                            person_names[0]
+                            if person_names
+                            else None
+                        ),
+                        "amount": round(amount, 2),
+                        "type": flow,
+                        "date": _live_person_date(doc),
+                        "created_at": (
+                            ai_saving_datetime(doc.get("created_at"))
+                            if doc.get("created_at") is not None
+                            else None
+                        ),
+                        "updated_at": (
+                            ai_saving_datetime(doc.get("updated_at"))
+                            if doc.get("updated_at") is not None
+                            else None
+                        ),
+                        "description": _live_person_text(
+                            doc.get("description")
+                        ),
+                        "note": _live_person_text(
+                            doc.get("note")
+                        ),
+                        "category": _live_person_text(
+                            doc.get("category")
+                        ),
+                        "account_id": (
+                            str(doc.get("account_id"))
+                            if doc.get("account_id") is not None
+                            else None
+                        )
+                    }
+
+                # ----------------------------------------------------
+                # USER-SCOPED QUERY
+                # ----------------------------------------------------
+                # user_ids contains both string and ObjectId variants,
+                # allowing the ledger to work with legacy documents
+                # regardless of which representation was stored.
+                live_person_user_query = {
+                    "user_id": {
+                        "$in": user_ids
+                    }
+                }
+
+                # ----------------------------------------------------
+                # NORMAL TRANSACTIONS — LIVE READ
+                # ----------------------------------------------------
+                transaction_projection = {
+                    "_id": 1,
+                    "user_id": 1,
+                    "amount": 1,
+                    "value": 1,
+                    "total": 1,
+                    "money": 1,
+                    "type": 1,
+                    "transaction_type": 1,
+                    "kind": 1,
+                    "direction": 1,
+                    "entry_type": 1,
+                    "flow_type": 1,
+                    "person_name": 1,
+                    "person": 1,
+                    "description": 1,
+                    "note": 1,
+                    "category": 1,
+                    "account_id": 1,
+                    "date": 1,
+                    "transaction_date": 1,
+                    "paid_at": 1,
+                    "received_at": 1,
+                    "created_at": 1,
+                    "updated_at": 1
+                }
+
+                transaction_documents = list(
+                    mongo.db.transactions.find(
+                        live_person_user_query,
+                        transaction_projection
+                    ).sort(
+                        [
+                            ("date", -1),
+                            ("created_at", -1),
+                            ("_id", -1)
+                        ]
+                    )
+                )
+
+                for transaction in transaction_documents:
+                    safe_record = _live_person_safe_record(
+                        transaction,
+                        "transactions"
+                    )
+                    if safe_record:
+                        live_person_transactions.append(
+                            safe_record
+                        )
+
+                # ----------------------------------------------------
+                # OPENING TRANSACTIONS — LIVE READ
+                # ----------------------------------------------------
+                opening_projection = {
+                    "_id": 1,
+                    "user_id": 1,
+                    "amount": 1,
+                    "value": 1,
+                    "total": 1,
+                    "money": 1,
+                    "type": 1,
+                    "transaction_type": 1,
+                    "kind": 1,
+                    "direction": 1,
+                    "entry_type": 1,
+                    "flow_type": 1,
+                    "person_name": 1,
+                    "person": 1,
+                    "description": 1,
+                    "note": 1,
+                    "category": 1,
+                    "account_id": 1,
+                    "date": 1,
+                    "transaction_date": 1,
+                    "paid_at": 1,
+                    "received_at": 1,
+                    "created_at": 1,
+                    "updated_at": 1
+                }
+
+                opening_documents = list(
+                    mongo.db.person_opening_transactions.find(
+                        live_person_user_query,
+                        opening_projection
+                    ).sort(
+                        [
+                            ("date", -1),
+                            ("created_at", -1),
+                            ("_id", -1)
+                        ]
+                    )
+                )
+
+                for opening in opening_documents:
+                    safe_record = _live_person_safe_record(
+                        opening,
+                        "person_opening_transactions"
+                    )
+                    if safe_record:
+                        live_person_opening_transactions.append(
+                            safe_record
+                        )
+
+                # ----------------------------------------------------
+                # COMBINED LEDGER
+                # ----------------------------------------------------
+                combined_person_ledger = (
+                    live_person_transactions
+                    +
+                    live_person_opening_transactions
+                )
+
+                # Newest first. If a record has no date, its empty date
+                # naturally stays below dated records.
+                combined_person_ledger.sort(
+                    key=lambda item: (
+                        item.get("date") or "",
+                        item.get("created_at") or "",
+                        item.get("_id") or ""
+                    ),
+                    reverse=True
+                )
+
+                # ----------------------------------------------------
+                # PERSON SUMMARY
+                # ----------------------------------------------------
+                person_work = {}
+
+                for record in combined_person_ledger:
+                    amount = _live_person_amount(
+                        record.get("amount")
+                    )
+                    flow = (
+                        _live_person_text(
+                            record.get("type")
+                        ).lower()
+                    )
+
+                    # A single MongoDB record may reference more than one
+                    # person. Each person receives the record once.
+                    for person_key, person_name in zip(
+                        record.get("person_keys") or [],
+                        record.get("person_names") or []
+                    ):
+                        if not person_key:
+                            continue
+
+                        bucket = person_work.setdefault(
+                            person_key,
+                            {
+                                "person_name": person_name,
+                                "normalized_name": person_key,
+                                "income": 0.0,
+                                "expense": 0.0,
+                                "net": 0.0,
+                                "transaction_count": 0,
+                                "normal_transaction_count": 0,
+                                "opening_transaction_count": 0,
+                                "transactions": []
+                            }
+                        )
+
+                        # Preserve the first useful display name.
+                        if not bucket.get("person_name") and person_name:
+                            bucket["person_name"] = person_name
+
+                        if flow == "income":
+                            bucket["income"] += amount
+                        else:
+                            bucket["expense"] += amount
+
+                        bucket["transaction_count"] += 1
+
+                        if record.get("source") == "transactions":
+                            bucket["normal_transaction_count"] += 1
+                        else:
+                            bucket["opening_transaction_count"] += 1
+
+                        # Store a compact record for the person's own
+                        # history. This remains JSON-safe.
+                        bucket["transactions"].append({
+                            "_id": record.get("_id"),
+                            "source": record.get("source"),
+                            "amount": amount,
+                            "type": flow,
+                            "date": record.get("date"),
+                            "description": record.get("description") or "",
+                            "note": record.get("note") or ""
+                        })
+
+                # Finalize balances and order summaries by total
+                # historical activity, without losing any person.
+                person_summary_list = []
+
+                for person_key, bucket in person_work.items():
+                    income = round(
+                        float(bucket.get("income", 0.0)),
+                        2
+                    )
+                    expense = round(
+                        float(bucket.get("expense", 0.0)),
+                        2
+                    )
+                    net = round(
+                        income - expense,
+                        2
+                    )
+
+                    bucket["income"] = income
+                    bucket["expense"] = expense
+                    bucket["net"] = net
+
+                    bucket["transactions"].sort(
+                        key=lambda item: (
+                            item.get("date") or "",
+                            item.get("_id") or ""
+                        ),
+                        reverse=True
+                    )
+
+                    person_summary_list.append(bucket)
+
+                person_summary_list.sort(
+                    key=lambda item: (
+                        float(item.get("expense", 0.0)),
+                        float(item.get("income", 0.0)),
+                        item.get("person_name") or ""
+                    ),
+                    reverse=True
+                )
+
+                # ----------------------------------------------------
+                # SUMMARY METADATA
+                # ----------------------------------------------------
+                total_person_income = round(
+                    sum(
+                        float(item.get("income", 0.0))
+                        for item in person_summary_list
+                    ),
+                    2
+                )
+
+                total_person_expense = round(
+                    sum(
+                        float(item.get("expense", 0.0))
+                        for item in person_summary_list
+                    ),
+                    2
+                )
+
+                person_ledger_summary = {
+                    "person_count": len(person_summary_list),
+                    "ledger_record_count": len(
+                        combined_person_ledger
+                    ),
+                    "normal_transaction_record_count": len(
+                        live_person_transactions
+                    ),
+                    "opening_transaction_record_count": len(
+                        live_person_opening_transactions
+                    ),
+                    "total_income": total_person_income,
+                    "total_expense": total_person_expense,
+                    "net": round(
+                        total_person_income
+                        -
+                        total_person_expense,
+                        2
+                    ),
+                    "source": (
+                        "LIVE MongoDB transactions + "
+                        "person_opening_transactions"
+                    ),
+                    "loaded_at": (
+                        ai_saving_datetime(
+                            datetime.now(timezone.utc)
+                        )
+                    )
+                }
+
+                person_summary = {
+                    "people": person_summary_list,
+                    "count": len(person_summary_list)
+                }
+
+                # ----------------------------------------------------
+                # INJECT LIVE DATA INTO THE CONTEXT USED BY GEMINI
+                # ----------------------------------------------------
+                financial_context = dict(
+                    financial_context
+                    or
+                    {}
+                )
+
+                financial_context["person_summary"] = person_summary
+                financial_context["person_ledger_transactions"] = (
+                    combined_person_ledger
+                )
+                financial_context["person_opening_transactions"] = (
+                    live_person_opening_transactions
+                )
+                financial_context["person_ledger_summary"] = (
+                    person_ledger_summary
+                )
+
+                # Explicit source metadata makes it harder for the model
+                # to mistake an old cached context for the live ledger.
+                financial_context["person_ledger_source"] = {
+                    "mode": "LIVE",
+                    "database": "MongoDB",
+                    "collections": [
+                        "transactions",
+                        "person_opening_transactions"
+                    ],
+                    "authenticated_user_only": True,
+                    "refreshed_for_every_request": True
+                }
+
+                print(
+                    "MAAREYE AI LIVE PERSON LEDGER:",
+                    "normal=",
+                    len(live_person_transactions),
+                    "opening=",
+                    len(live_person_opening_transactions),
+                    "people=",
+                    len(person_summary_list)
+                )
+
+            except Exception as person_ledger_error:
+
+                print(
+                    "=" * 80
+                )
+
+                print(
+                    "MAAREYE AI LIVE PERSON LEDGER ERROR"
+                )
+
+                print(
+                    repr(
+                        person_ledger_error
+                    )
+                )
+
+                print(
+                    "=" * 80
+                )
+
+                return jsonify({
+
+                    "success": False,
+
+                    "error":
+                        "person_ledger_context_error",
+
+                    "answer":
+                        "Person Ledger-ka hadda lama akhrin karin "
+                        "si toos ah MongoDB. Fadlan isku day mar kale."
 
                 }), 500
 
@@ -124591,19 +125221,17 @@ def ai_assistant():
                 explicit_savings_intent
             )
 
+            # ========================================================
+            # SAVINGS CONTEXT
+            # ========================================================
+
             if savings_context_allowed:
 
-                # ========================================================
-                # SAVINGS — RAW SOURCE DATA
-                #
-                # MongoDB is the source.
-                #
-                # IMPORTANT:
-                #
-                # We do NOT trust stored calculated fields blindly.
-                # ========================================================
-
                 try:
+
+                    # =================================================
+                    # SAVINGS — RAW SOURCE DATA
+                    # =================================================
 
                     savings_query = {
 
@@ -124672,23 +125300,23 @@ def ai_assistant():
 
                     savings_analysis_context = []
 
-                    # ====================================================
+                    # =================================================
                     # CURRENT EAT DATE
-                    # ====================================================
+                    # =================================================
 
                     analysis_today = (
                         ai_current_eat_date()
                     )
 
-                    # ====================================================
+                    # =================================================
                     # PROCESS EACH SAVING
-                    # ====================================================
+                    # =================================================
 
                     for saving in savings_documents:
 
-                        # =================================================
+                        # =============================================
                         # DYNAMIC ANALYSIS
-                        # =================================================
+                        # =============================================
 
                         calculated_analysis = (
                             ai_calculate_saving_analysis(
@@ -124697,9 +125325,9 @@ def ai_assistant():
                             )
                         )
 
-                        # =================================================
+                        # =============================================
                         # SAFE RAW VALUES
-                        # =================================================
+                        # =============================================
 
                         raw_saving = {
 
@@ -124793,11 +125421,9 @@ def ai_assistant():
                                     )
                                 ),
 
-                            # =================================================
+                            # =========================================
                             # STORED VALUES
-                            #
-                            # These are preserved only for comparison.
-                            # =================================================
+                            # =========================================
 
                             "recorded_daily_required":
                                 ai_safe_float(
@@ -124843,11 +125469,9 @@ def ai_assistant():
 
                         }
 
-                        # =================================================
+                        # =============================================
                         # FINAL SAVING CONTEXT
-                        #
-                        # RAW DATA + DYNAMIC ANALYSIS
-                        # =================================================
+                        # =============================================
 
                         final_saving = {
 
@@ -124866,11 +125490,9 @@ def ai_assistant():
                             final_saving
                         )
 
-                    # ====================================================
+                    # =================================================
                     # SAVINGS SUMMARY
-                    #
-                    # CALCULATED FROM CURRENT RAW BALANCES.
-                    # ====================================================
+                    # =================================================
 
                     total_target = 0.0
 
@@ -124901,11 +125523,6 @@ def ai_assistant():
                             {}
                         )
 
-                        calculated = analysis.get(
-                            "calculated",
-                            {}
-                        )
-
                         target = ai_safe_float(
                             saving.get(
                                 "target_amount"
@@ -124918,20 +125535,53 @@ def ai_assistant():
                             )
                         )
 
-                        remaining = ai_safe_float(
-                            analysis
-                            .get(
+                        # =============================================
+                        # SUPPORT MULTIPLE ANALYSIS SHAPES
+                        # =============================================
+
+                        analysis_data = (
+                            analysis.get(
                                 "analysis",
                                 {}
                             )
-                            .get(
+                            if isinstance(
+                                analysis,
+                                dict
+                            )
+                            else {}
+                        )
+
+                        calculated = (
+                            analysis.get(
+                                "calculated",
+                                {}
+                            )
+                            if isinstance(
+                                analysis,
+                                dict
+                            )
+                            else {}
+                        )
+
+                        # =============================================
+                        # REMAINING
+                        # =============================================
+
+                        remaining = ai_safe_float(
+                            analysis_data.get(
                                 "remaining_amount",
-                                0
+                                calculated.get(
+                                    "remaining_amount",
+                                    0
+                                )
                             )
                         )
 
-                        # Fallback
-                        if remaining <= 0 and target > balance:
+                        if (
+                            remaining <= 0
+                            and
+                            target > balance
+                        ):
 
                             remaining = (
                                 target
@@ -124939,66 +125589,92 @@ def ai_assistant():
                                 balance
                             )
 
-                        total_target += target
-
-                        total_balance += balance
-
-                        total_remaining += max(
+                        remaining = max(
                             remaining,
                             0
                         )
 
-                        total_daily_required += (
-                            ai_safe_float(
-                                analysis
-                                .get(
-                                    "analysis",
-                                    {}
-                                )
-                                .get(
+                        total_target += target
+
+                        total_balance += balance
+
+                        total_remaining += remaining
+
+                        # =============================================
+                        # DAILY
+                        # =============================================
+
+                        daily_required = ai_safe_float(
+                            analysis_data.get(
+                                "daily_required",
+                                calculated.get(
                                     "daily_required",
                                     0
                                 )
                             )
                         )
 
-                        total_weekly_required += (
-                            ai_safe_float(
-                                analysis
-                                .get(
-                                    "analysis",
-                                    {}
-                                )
-                                .get(
+                        total_daily_required += (
+                            daily_required
+                        )
+
+                        # =============================================
+                        # WEEKLY
+                        # =============================================
+
+                        weekly_required = ai_safe_float(
+                            analysis_data.get(
+                                "weekly_required",
+                                calculated.get(
                                     "weekly_required",
                                     0
                                 )
                             )
                         )
 
-                        total_monthly_required += (
-                            ai_safe_float(
-                                analysis
-                                .get(
-                                    "analysis",
-                                    {}
-                                )
-                                .get(
+                        total_weekly_required += (
+                            weekly_required
+                        )
+
+                        # =============================================
+                        # MONTHLY
+                        # =============================================
+
+                        monthly_required = ai_safe_float(
+                            analysis_data.get(
+                                "monthly_required",
+                                calculated.get(
                                     "monthly_required",
                                     0
                                 )
                             )
                         )
 
-                        if saving.get(
-                            "analysis",
-                            {}
-                        ).get(
-                            "recorded_values_stale",
-                            False
+                        total_monthly_required += (
+                            monthly_required
+                        )
+
+                        # =============================================
+                        # STALE
+                        # =============================================
+
+                        if (
+                            isinstance(
+                                analysis,
+                                dict
+                            )
+                            and
+                            analysis.get(
+                                "recorded_values_stale",
+                                False
+                            )
                         ):
 
                             stale_savings_count += 1
+
+                        # =============================================
+                        # STATUS
+                        # =============================================
 
                         status = str(
                             saving.get(
@@ -125018,51 +125694,61 @@ def ai_assistant():
                             paused_count += 1
 
                         elif status in {
+
                             "completed",
                             "complete",
                             "finished"
+
                         }:
 
                             completed_count += 1
 
                         elif status in {
+
                             "cancelled",
                             "canceled"
+
                         }:
 
                             cancelled_count += 1
 
-                    # ====================================================
+                    # =================================================
                     # OVERALL PROGRESS
-                    # ====================================================
+                    # =================================================
 
                     if total_target > 0:
 
                         overall_progress = round(
+
                             (
                                 total_balance
                                 /
                                 total_target
                             )
                             * 100,
+
                             2
+
                         )
 
                         overall_progress = min(
+
                             max(
                                 overall_progress,
                                 0
                             ),
+
                             100
+
                         )
 
                     else:
 
                         overall_progress = 0.0
 
-                    # ====================================================
+                    # =================================================
                     # FINAL SUMMARY
-                    # ====================================================
+                    # =================================================
 
                     savings_summary = {
 
@@ -125133,9 +125819,9 @@ def ai_assistant():
 
                     }
 
-                    # ====================================================
+                    # =================================================
                     # ADD TO FINANCIAL CONTEXT
-                    # ====================================================
+                    # =================================================
 
                     financial_context = dict(
                         financial_context
@@ -125150,12 +125836,6 @@ def ai_assistant():
                     financial_context[
                         "savings_summary"
                     ] = savings_summary
-
-                    # ====================================================
-                    # IMPORTANT:
-                    #
-                    # Explicit separate context.
-                    # ====================================================
 
                     financial_context[
                         "savings_analysis"
@@ -125203,11 +125883,14 @@ def ai_assistant():
 
             else:
 
-                # Person Ledger requests intentionally do not load
-                # or expose savings data unless the user explicitly
-                # asks about savings in the same request.
+                # ====================================================
+                # PERSON LEDGER ONLY
+                # ====================================================
+
                 savings_context = []
+
                 savings_analysis_context = []
+
                 savings_summary = {}
 
                 print(
@@ -126020,7 +126703,7 @@ Do not invent user data.
 """
 
         # ============================================================
-        # SAVINGS RULES — DYNAMIC ANALYSIS
+        # SAVINGS RULES
         # ============================================================
 
         savings_instruction = """
@@ -126328,12 +127011,6 @@ Do NOT claim:
 - that the user must stop paying them;
 
 unless the supplied database context explicitly supports that claim.
-
-For example, if the Person Ledger shows a historical expense of
-$375.60 to Samiro, that amount is relevant to a "Samiro lacag ma siin
-karaa?" question and should trigger a warning. Do NOT respond by
-offering savings withdrawal merely because the user's normal account
-balance is low.
 
 # ============================================================
 AFFORDABILITY
@@ -126744,13 +127421,20 @@ exists.
                 ),
 
             "request_intent": {
-                "person_ledger": bool(
-                    person_ledger_intent
-                ),
-                "explicit_savings": bool(
-                    explicit_savings_intent
-                ),
-                "scope": request_scope
+
+                "person_ledger":
+                    bool(
+                        person_ledger_intent
+                    ),
+
+                "explicit_savings":
+                    bool(
+                        explicit_savings_intent
+                    ),
+
+                "scope":
+                    request_scope
+
             },
 
             "current_user_id":
@@ -126900,34 +127584,486 @@ Do not fabricate database records.
 
         # ============================================================
         # GEMINI REQUEST
+        #
+        # IMPORTANT:
+        #
+        # We do NOT automatically retry here.
+        #
+        # A daily quota error such as:
+        #
+        # GenerateRequestsPerDayPerProjectPerModel-FreeTier
+        #
+        # will NOT be fixed by retrying after 18 seconds.
+        #
         # ============================================================
 
-        response = (
+        try:
 
-            gemini_client
+            response = (
 
-            .models
+                gemini_client
 
-            .generate_content(
+                .models
 
-                model=GEMINI_MODEL,
+                .generate_content(
 
-                contents=final_prompt,
+                    model=GEMINI_MODEL,
 
-                config=types.GenerateContentConfig(
+                    contents=final_prompt,
 
-                    system_instruction=
-                        system_instruction,
+                    config=types.GenerateContentConfig(
 
-                    temperature=0.15,
+                        system_instruction=
+                            system_instruction,
 
-                    max_output_tokens=2048
+                        temperature=0.15,
+
+                        max_output_tokens=2048
+
+                    )
 
                 )
 
             )
 
-        )
+        except Exception as gemini_error:
+
+            # ========================================================
+            # GEMINI ERROR TEXT
+            # ========================================================
+
+            gemini_error_text = str(
+                gemini_error
+            )
+
+            gemini_error_lower = (
+                gemini_error_text.lower()
+            )
+
+            print(
+                "=" * 80
+            )
+
+            print(
+                "MAAREYE AI GEMINI REQUEST ERROR"
+            )
+
+            print(
+                repr(
+                    gemini_error
+                )
+            )
+
+            print(
+                "=" * 80
+            )
+
+            # ========================================================
+            # 429 / RESOURCE EXHAUSTED
+            # ========================================================
+
+            is_quota_error = bool(
+
+                "429" in gemini_error_text
+
+                or
+
+                "resource_exhausted"
+                in gemini_error_lower
+
+                or
+
+                "resource exhausted"
+                in gemini_error_lower
+
+                or
+
+                "quota exceeded"
+                in gemini_error_lower
+
+                or
+
+                "rate limit"
+                in gemini_error_lower
+
+                or
+
+                "too many requests"
+                in gemini_error_lower
+
+            )
+
+            if is_quota_error:
+
+                # ====================================================
+                # DEFAULT RETRY
+                # ====================================================
+
+                retry_after = None
+
+                # ====================================================
+                # TRY TO READ retryDelay FROM GEMINI ERROR
+                #
+                # Examples:
+                #
+                # retryDelay: '18s'
+                # retryDelay: '18.168555001s'
+                # ====================================================
+
+                try:
+
+                    retry_match = re.search(
+
+                        r"retryDelay['\"]?\s*:\s*['\"]?([0-9.]+)s",
+
+                        gemini_error_text,
+
+                        re.IGNORECASE
+
+                    )
+
+                    if retry_match:
+
+                        retry_after = int(
+                            float(
+                                retry_match.group(
+                                    1
+                                )
+                            )
+                        )
+
+                except Exception:
+
+                    retry_after = None
+
+                # ====================================================
+                # SECOND RETRY PATTERN
+                # ====================================================
+
+                if retry_after is None:
+
+                    try:
+
+                        retry_match = re.search(
+
+                            r"retry.*?([0-9]+(?:\.[0-9]+)?)\s*s",
+
+                            gemini_error_text,
+
+                            re.IGNORECASE
+
+                        )
+
+                        if retry_match:
+
+                            retry_after = int(
+                                float(
+                                    retry_match.group(
+                                        1
+                                    )
+                                )
+                            )
+
+                    except Exception:
+
+                        retry_after = None
+
+                # ====================================================
+                # DETECT DAILY QUOTA
+                # ====================================================
+
+                daily_quota_error = bool(
+
+                    "perday" in gemini_error_lower
+
+                    or
+
+                    "per_day" in gemini_error_lower
+
+                    or
+
+                    "perdayperproject" in gemini_error_lower
+
+                    or
+
+                    "generate_requests_per_day"
+                    in gemini_error_lower
+
+                    or
+
+                    "generaterequestsperday"
+                    in gemini_error_lower
+
+                    or
+
+                    "quotaid" in gemini_error_lower
+                    and
+                    "day" in gemini_error_lower
+
+                    or
+
+                    "free_tier_requests"
+                    in gemini_error_lower
+
+                )
+
+                # ====================================================
+                # DETECT TEMPORARY RATE LIMIT
+                # ====================================================
+
+                temporary_rate_limit = bool(
+
+                    not daily_quota_error
+
+                    and
+
+                    (
+                        retry_after is not None
+
+                        or
+
+                        "perminute"
+                        in gemini_error_lower
+
+                        or
+
+                        "per_minute"
+                        in gemini_error_lower
+
+                        or
+
+                        "requests per minute"
+                        in gemini_error_lower
+                    )
+
+                )
+
+                # ====================================================
+                # DAILY QUOTA RESPONSE
+                # ====================================================
+
+                if daily_quota_error:
+
+                    answer = (
+
+                        "Maareye AI wuxuu gaaray xadka "
+                        "isticmaalka Gemini API ee maanta "
+                        "ee project-kan. "
+
+                        "Fadlan isku day mar kale marka "
+                        "quota-ga uu reset-gareeyo, ama "
+                        "Gemini project-ka u gudub qorshe "
+                        "leh quota ka badan."
+
+                    )
+
+                    return jsonify({
+
+                        "success":
+                            False,
+
+                        "error":
+                            "quota_exceeded",
+
+                        "error_code":
+                            "DAILY_QUOTA_EXCEEDED",
+
+                        "quota_type":
+                            "daily",
+
+                        "answer":
+                            answer,
+
+                        "retry_after":
+                            retry_after,
+
+                        "model":
+                            GEMINI_MODEL,
+
+                        "logged_in":
+                            bool(
+                                is_logged_in
+                            ),
+
+                        "request_scope":
+                            request_scope,
+
+                        "person_ledger_intent":
+                            bool(
+                                person_ledger_intent
+                            ),
+
+                        "explicit_savings_intent":
+                            bool(
+                                explicit_savings_intent
+                            )
+
+                    }), 429
+
+                # ====================================================
+                # TEMPORARY RATE LIMIT RESPONSE
+                # ====================================================
+
+                if temporary_rate_limit:
+
+                    if retry_after is None:
+
+                        retry_after = 20
+
+                    answer = (
+
+                        "Maareye AI wuxuu hadda gaaray "
+                        "xadka requests-ka ku-meelgaarka ah. "
+
+                        f"Fadlan sug qiyaastii "
+                        f"{retry_after} ilbiriqsi kadibna "
+                        "mar kale isku day."
+
+                    )
+
+                    return jsonify({
+
+                        "success":
+                            False,
+
+                        "error":
+                            "rate_limit",
+
+                        "error_code":
+                            "TEMPORARY_RATE_LIMIT",
+
+                        "quota_type":
+                            "temporary",
+
+                        "answer":
+                            answer,
+
+                        "retry_after":
+                            retry_after,
+
+                        "model":
+                            GEMINI_MODEL,
+
+                        "logged_in":
+                            bool(
+                                is_logged_in
+                            ),
+
+                        "request_scope":
+                            request_scope,
+
+                        "person_ledger_intent":
+                            bool(
+                                person_ledger_intent
+                            ),
+
+                        "explicit_savings_intent":
+                            bool(
+                                explicit_savings_intent
+                            )
+
+                    }), 429
+
+                # ====================================================
+                # UNKNOWN 429
+                # ====================================================
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "error":
+                        "quota_exceeded",
+
+                    "error_code":
+                        "GEMINI_429",
+
+                    "quota_type":
+                        "unknown",
+
+                    "answer":
+                        "AI Assistant-ka wuxuu gaaray "
+                        "xadka isticmaalka Gemini hadda. "
+                        "Fadlan isku day wax yar kadib.",
+
+                    "retry_after":
+                        retry_after,
+
+                    "model":
+                        GEMINI_MODEL,
+
+                    "logged_in":
+                        bool(
+                            is_logged_in
+                        ),
+
+                    "request_scope":
+                        request_scope
+
+                }), 429
+
+            # ========================================================
+            # AUTH / API KEY
+            # ========================================================
+
+            if (
+
+                "api key" in gemini_error_lower
+
+                or
+
+                "unauthenticated"
+                in gemini_error_lower
+
+                or
+
+                "permission denied"
+                in gemini_error_lower
+
+                or
+
+                "authentication"
+                in gemini_error_lower
+
+                or
+
+                "invalid api key"
+                in gemini_error_lower
+
+            ):
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "error":
+                        "authentication_error",
+
+                    "answer":
+                        "AI configuration-ka ayaa cilad qaba. "
+                        "Fadlan la xiriir owner-ka Maareye."
+
+                }), 500
+
+            # ========================================================
+            # OTHER GEMINI ERROR
+            # ========================================================
+
+            return jsonify({
+
+                "success":
+                    False,
+
+                "error":
+                    "gemini_error",
+
+                "answer":
+                    "Gemini AI service-ka ayaa hadda cilad "
+                    "la kulmay. Fadlan isku day mar kale."
+
+            }), 500
 
         # ============================================================
         # RESPONSE TEXT
@@ -126946,6 +128082,7 @@ Do not fabricate database records.
                 )
 
                 or
+
                 ""
 
             ).strip()
@@ -127012,6 +128149,19 @@ Do not fabricate database records.
 
                     "logged_in":
                         True,
+
+                    "request_scope":
+                        request_scope,
+
+                    "person_ledger_intent":
+                        bool(
+                            person_ledger_intent
+                        ),
+
+                    "explicit_savings_intent":
+                        bool(
+                            explicit_savings_intent
+                        ),
 
                     "created_at":
                         now_eat,
@@ -127132,7 +128282,7 @@ Do not fabricate database records.
         )
 
         # ============================================================
-        # QUOTA
+        # QUOTA / RATE LIMIT
         # ============================================================
 
         if (
@@ -127149,6 +128299,10 @@ Do not fabricate database records.
 
             or
 
+            "resource_exhausted" in error_lower
+
+            or
+
             "rate limit" in error_lower
 
             or
@@ -127157,15 +128311,132 @@ Do not fabricate database records.
 
         ):
 
+            # ========================================================
+            # RETRY AFTER
+            # ========================================================
+
+            retry_after = None
+
+            try:
+
+                retry_match = re.search(
+
+                    r"retryDelay['\"]?\s*:\s*['\"]?([0-9.]+)s",
+
+                    error_text,
+
+                    re.IGNORECASE
+
+                )
+
+                if retry_match:
+
+                    retry_after = int(
+                        float(
+                            retry_match.group(
+                                1
+                            )
+                        )
+                    )
+
+            except Exception:
+
+                retry_after = None
+
+            # ========================================================
+            # DAILY QUOTA
+            # ========================================================
+
+            daily_quota_error = bool(
+
+                "perday" in error_lower
+
+                or
+
+                "per_day" in error_lower
+
+                or
+
+                "generate_requests_per_day"
+                in error_lower
+
+                or
+
+                "generaterequestsperday"
+                in error_lower
+
+                or
+
+                "free_tier_requests"
+                in error_lower
+
+            )
+
+            if daily_quota_error:
+
+                return jsonify({
+
+                    "success":
+                        False,
+
+                    "error":
+                        "quota_exceeded",
+
+                    "error_code":
+                        "DAILY_QUOTA_EXCEEDED",
+
+                    "quota_type":
+                        "daily",
+
+                    "answer":
+                        "Maareye AI wuxuu gaaray xadka "
+                        "isticmaalka Gemini API ee maanta "
+                        "ee project-kan. Fadlan isku day "
+                        "mar kale marka quota-ga uu "
+                        "reset-gareeyo, ama kordhi quota-ga "
+                        "Gemini project-ka.",
+
+                    "retry_after":
+                        retry_after,
+
+                    "model":
+                        GEMINI_MODEL
+
+                }), 429
+
+            # ========================================================
+            # TEMPORARY RATE LIMIT
+            # ========================================================
+
+            if retry_after is None:
+
+                retry_after = 20
+
             return jsonify({
 
                 "success":
                     False,
 
+                "error":
+                    "rate_limit",
+
+                "error_code":
+                    "TEMPORARY_RATE_LIMIT",
+
+                "quota_type":
+                    "temporary",
+
                 "answer":
-                    "AI Assistant-ka wuxuu gaaray "
-                    "xadka isticmaalka hadda. "
-                    "Fadlan isku day wax yar kadib."
+                    "AI Assistant-ka wuxuu hadda gaaray "
+                    "xadka requests-ka ku-meelgaarka ah. "
+                    f"Fadlan sug qiyaastii {retry_after} "
+                    "ilbiriqsi kadibna mar kale isku day.",
+
+                "retry_after":
+                    retry_after,
+
+                "model":
+                    GEMINI_MODEL
 
             }), 429
 
@@ -127199,6 +128470,9 @@ Do not fabricate database records.
 
                 "success":
                     False,
+
+                "error":
+                    "authentication_error",
 
                 "answer":
                     "AI configuration-ka ayaa cilad qaba. "
@@ -127245,6 +128519,9 @@ Do not fabricate database records.
                 "success":
                     False,
 
+                "error":
+                    "database_error",
+
                 "answer":
                     "Xogta Maareye ayaa cilad ku timid. "
                     "Fadlan isku day mar kale."
@@ -127270,6 +128547,9 @@ Do not fabricate database records.
                 "success":
                     False,
 
+                "error":
+                    "request_error",
+
                 "answer":
                     "Codsiga AI Assistant-ka lama fahmin. "
                     "Fadlan isku day mar kale."
@@ -127285,11 +128565,17 @@ Do not fabricate database records.
             "success":
                 False,
 
+            "error":
+                "internal_ai_error",
+
             "answer":
                 "Waan ka xumahay, cilad ayaa ka dhacday "
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
+
 
 
 # ============================================================
@@ -127949,9 +129235,6 @@ def ai_assistant_history():
 
 # ============================================================
 # AI ASSISTANT MESSAGE
-# ============================================================
-# PUT    -> EDIT MESSAGE
-# DELETE -> DELETE MESSAGE
 # ============================================================
 
 @bp.route(
@@ -129311,39 +130594,4130 @@ Do not expose credentials or secrets.
 # SUPERADMIN ONLY
 # ============================================================
 
-@bp.route("/ai-assistant/people-history")
+@bp.route("/ai-assistant/people-history", methods=["GET"])
 @login_required
 def ai_people_history():
 
+    # ============================================================
+    # IMPORTS
+    # ============================================================
+
+    import re
+    import unicodedata
+    from difflib import SequenceMatcher
+    from datetime import datetime, timezone
+
+    from bson import ObjectId
+    from flask import (
+        abort,
+        current_app,
+        jsonify,
+        render_template,
+        request,
+    )
+
+    # ============================================================
+    # SUPERADMIN ONLY
+    # ============================================================
+
     try:
 
-        # ====================================================
-        # SUPERADMIN ONLY
-        # ====================================================
-
         current_role = str(
-            getattr(current_user, "role", "")
+            getattr(
+                current_user,
+                "role",
+                ""
+            )
         ).strip().lower()
 
         if current_role != "superadmin":
-
             return abort(403)
 
-        # ====================================================
+        # ========================================================
+        # CURRENT USER ID
+        # ========================================================
+
+        raw_user_id = getattr(
+            current_user,
+            "id",
+            None
+        )
+
+        if raw_user_id is None:
+            raw_user_id = getattr(
+                current_user,
+                "_id",
+                None
+            )
+
+        if raw_user_id is None:
+            return abort(401)
+
+        # ========================================================
+        # OBJECT ID / STRING USER ID SUPPORT
+        # ========================================================
+
+        user_id_values = []
+
+        try:
+
+            if isinstance(
+                raw_user_id,
+                ObjectId
+            ):
+
+                user_object_id = raw_user_id
+
+                user_id_values = [
+                    user_object_id,
+                    str(user_object_id)
+                ]
+
+            else:
+
+                raw_user_id_string = str(
+                    raw_user_id
+                ).strip()
+
+                if ObjectId.is_valid(
+                    raw_user_id_string
+                ):
+
+                    user_object_id = ObjectId(
+                        raw_user_id_string
+                    )
+
+                    user_id_values = [
+                        user_object_id,
+                        raw_user_id_string
+                    ]
+
+                else:
+
+                    user_object_id = None
+
+                    user_id_values = [
+                        raw_user_id_string
+                    ]
+
+        except Exception:
+
+            user_object_id = None
+
+            user_id_values = [
+                str(raw_user_id)
+            ]
+
+        # ========================================================
+        # MONGO COLLECTIONS
+        # ========================================================
+
+        transactions_collection = mongo.db.transactions
+
+        opening_collection = (
+            mongo.db.person_opening_transactions
+        )
+
+        # ========================================================
+        # NORMALIZATION HELPERS
+        # ========================================================
+
+        def clean_text(value):
+
+            if value is None:
+                return ""
+
+            try:
+
+                value = str(value)
+
+                value = unicodedata.normalize(
+                    "NFKC",
+                    value
+                )
+
+            except Exception:
+                value = str(value)
+
+            value = value.replace(
+                "\x00",
+                " "
+            )
+
+            value = re.sub(
+                r"\s+",
+                " ",
+                value
+            )
+
+            return value.strip()
+
+        # ========================================================
+        # PERSON NAME NORMALIZATION
+        # ========================================================
+
+        def normalize_person_name(value):
+
+            value = clean_text(value)
+
+            if not value:
+                return ""
+
+            # ----------------------------------------------------
+            # Remove surrounding punctuation
+            # ----------------------------------------------------
+
+            value = re.sub(
+                r"^[\s,.;:|/_\\\-]+",
+                "",
+                value
+            )
+
+            value = re.sub(
+                r"[\s,.;:|/_\\\-]+$",
+                "",
+                value
+            )
+
+            # ----------------------------------------------------
+            # Collapse whitespace
+            # ----------------------------------------------------
+
+            value = re.sub(
+                r"\s+",
+                " ",
+                value
+            )
+
+            # ----------------------------------------------------
+            # Case insensitive canonical form
+            # ----------------------------------------------------
+
+            value = value.casefold()
+
+            return value.strip()
+
+        # ========================================================
+        # NAME KEY
+        # ========================================================
+
+        def person_key(value):
+
+            value = normalize_person_name(
+                value
+            )
+
+            if not value:
+                return ""
+
+            # Remove harmless punctuation
+            value = re.sub(
+                r"[^a-z0-9\s]",
+                "",
+                value
+            )
+
+            # Collapse spaces
+            value = re.sub(
+                r"\s+",
+                " ",
+                value
+            )
+
+            return value.strip()
+
+        # ========================================================
+        # FUZZY NAME SIMILARITY
+        # ========================================================
+
+        def names_are_same(
+            name_a,
+            name_b
+        ):
+
+            a = person_key(
+                name_a
+            )
+
+            b = person_key(
+                name_b
+            )
+
+            if not a or not b:
+                return False
+
+            if a == b:
+                return True
+
+            # ----------------------------------------------------
+            # Very short names require exact match
+            # ----------------------------------------------------
+
+            if len(a) <= 3 or len(b) <= 3:
+                return False
+
+            # ----------------------------------------------------
+            # Remove spaces for typo matching
+            # Example:
+            # Samiro
+            # Samiiro
+            # ----------------------------------------------------
+
+            a_compact = a.replace(
+                " ",
+                ""
+            )
+
+            b_compact = b.replace(
+                " ",
+                ""
+            )
+
+            if a_compact == b_compact:
+                return True
+
+            similarity = SequenceMatcher(
+                None,
+                a_compact,
+                b_compact
+            ).ratio()
+
+            # ----------------------------------------------------
+            # Strong fuzzy match
+            # ----------------------------------------------------
+
+            if similarity >= 0.90:
+                return True
+
+            # ----------------------------------------------------
+            # Slightly different spelling for longer names
+            # ----------------------------------------------------
+
+            if (
+                len(a_compact) >= 7
+                and len(b_compact) >= 7
+                and similarity >= 0.86
+            ):
+                return True
+
+            return False
+
+        # ========================================================
+        # EXTRACT "BY PERSON"
+        #
+        # Examples:
+        #
+        # "payment by Samiro"
+        # "received by Samiiro"
+        # "paid by Ahmed"
+        # ========================================================
+
+        def extract_by_person(value):
+
+            value = clean_text(
+                value
+            )
+
+            if not value:
+                return ""
+
+            patterns = [
+
+                r"\bby\s+([A-Za-z][A-Za-z .'\-]{1,80})$",
+
+                r"\bby\s+([A-Za-z][A-Za-z .'\-]{1,80})\b",
+
+                r"\bfrom\s+([A-Za-z][A-Za-z .'\-]{1,80})$",
+
+                r"\bfrom\s+([A-Za-z][A-Za-z .'\-]{1,80})\b",
+
+                r"\bfor\s+([A-Za-z][A-Za-z .'\-]{1,80})$",
+            ]
+
+            for pattern in patterns:
+
+                match = re.search(
+                    pattern,
+                    value,
+                    flags=re.IGNORECASE
+                )
+
+                if not match:
+                    continue
+
+                candidate = clean_text(
+                    match.group(1)
+                )
+
+                if not candidate:
+                    continue
+
+                # ------------------------------------------------
+                # Remove trailing common words
+                # ------------------------------------------------
+
+                candidate = re.sub(
+                    r"\s+(payment|salary|money|cash|fee|expense|income)$",
+                    "",
+                    candidate,
+                    flags=re.IGNORECASE
+                )
+
+                candidate = candidate.strip()
+
+                if candidate:
+                    return candidate
+
+            return ""
+
+        # ========================================================
+        # GET PERSON CANDIDATES FROM A RECORD
+        # ========================================================
+
+        def get_person_candidates(
+            record,
+            source
+        ):
+
+            candidates = []
+
+            # ----------------------------------------------------
+            # 1. Explicit person_name
+            # ----------------------------------------------------
+
+            explicit_name = clean_text(
+                record.get(
+                    "person_name",
+                    ""
+                )
+            )
+
+            if explicit_name:
+
+                candidates.append(
+                    (
+                        explicit_name,
+                        "person_name"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # 2. description
+            #
+            # Opening transaction often uses:
+            #
+            # description = Buule
+            # ----------------------------------------------------
+
+            description = clean_text(
+                record.get(
+                    "description",
+                    ""
+                )
+            )
+
+            # For opening transactions description
+            # is a valid person source when person_name
+            # is absent.
+
+            if (
+                description
+                and not explicit_name
+            ):
+
+                candidates.append(
+                    (
+                        description,
+                        "description"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # 3. note
+            # ----------------------------------------------------
+
+            note = clean_text(
+                record.get(
+                    "note",
+                    ""
+                )
+            )
+
+            # Only use note directly when there is no
+            # explicit name and the text looks like a name.
+
+            if (
+                note
+                and not explicit_name
+                and source == "opening"
+            ):
+
+                # Avoid generic accounting notes
+                generic_notes = {
+                    "saving",
+                    "saved",
+                    "salary",
+                    "payment",
+                    "income",
+                    "expense",
+                    "cash",
+                    "money",
+                }
+
+                if (
+                    normalize_person_name(note)
+                    not in generic_notes
+                ):
+
+                    candidates.append(
+                        (
+                            note,
+                            "note"
+                        )
+                    )
+
+            # ----------------------------------------------------
+            # 4. item
+            # ----------------------------------------------------
+
+            item = clean_text(
+                record.get(
+                    "item",
+                    ""
+                )
+            )
+
+            # Item is mainly useful for Person Payment
+            # records when explicit person_name is absent.
+
+            category = clean_text(
+                record.get(
+                    "category",
+                    ""
+                )
+            ).casefold()
+
+            if (
+                item
+                and not explicit_name
+                and (
+                    "person" in category
+                    or "payment" in category
+                )
+            ):
+
+                candidates.append(
+                    (
+                        item,
+                        "item"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # 5. Search "by PERSON" in description
+            # ----------------------------------------------------
+
+            by_description = extract_by_person(
+                description
+            )
+
+            if by_description:
+
+                candidates.append(
+                    (
+                        by_description,
+                        "description_by"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # 6. Search "by PERSON" in note
+            # ----------------------------------------------------
+
+            by_note = extract_by_person(
+                note
+            )
+
+            if by_note:
+
+                candidates.append(
+                    (
+                        by_note,
+                        "note_by"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # 7. Search "by PERSON" in item
+            # ----------------------------------------------------
+
+            by_item = extract_by_person(
+                item
+            )
+
+            if by_item:
+
+                candidates.append(
+                    (
+                        by_item,
+                        "item_by"
+                    )
+                )
+
+            # ----------------------------------------------------
+            # Remove empty / duplicate candidates
+            # ----------------------------------------------------
+
+            unique = []
+
+            seen = set()
+
+            for candidate, source_field in candidates:
+
+                candidate = clean_text(
+                    candidate
+                )
+
+                key = person_key(
+                    candidate
+                )
+
+                if not key:
+                    continue
+
+                if key in seen:
+                    continue
+
+                seen.add(
+                    key
+                )
+
+                unique.append(
+                    (
+                        candidate,
+                        source_field
+                    )
+                )
+
+            return unique
+
+        # ========================================================
+        # DATE SERIALIZATION
+        # ========================================================
+
+        def serialize_datetime(value):
+
+            if value is None:
+                return None
+
+            if isinstance(
+                value,
+                datetime
+            ):
+
+                try:
+
+                    if value.tzinfo is None:
+
+                        value = value.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    return value.isoformat()
+
+                except Exception:
+                    return str(value)
+
+            return str(value)
+
+        # ========================================================
+        # OBJECT ID SERIALIZATION
+        # ========================================================
+
+        def serialize_value(value):
+
+            if isinstance(
+                value,
+                ObjectId
+            ):
+
+                return str(value)
+
+            if isinstance(
+                value,
+                datetime
+            ):
+
+                return serialize_datetime(
+                    value
+                )
+
+            if isinstance(
+                value,
+                dict
+            ):
+
+                return {
+                    str(k): serialize_value(v)
+                    for k, v in value.items()
+                }
+
+            if isinstance(
+                value,
+                list
+            ):
+
+                return [
+                    serialize_value(v)
+                    for v in value
+                ]
+
+            return value
+
+        # ========================================================
+        # MONEY
+        # ========================================================
+
+        def safe_amount(value):
+
+            try:
+
+                if value is None:
+                    return 0.0
+
+                return float(
+                    value
+                )
+
+            except Exception:
+
+                return 0.0
+
+        # ========================================================
+        # FETCH USER TRANSACTIONS
+        # ========================================================
+
+        user_filter = {
+            "user_id": {
+                "$in": user_id_values
+            }
+        }
+
+        normal_transactions = list(
+            transactions_collection.find(
+                user_filter
+            ).sort(
+                "date",
+                -1
+            )
+        )
+
+        opening_transactions = list(
+            opening_collection.find(
+                user_filter
+            ).sort(
+                "date",
+                -1
+            )
+        )
+
+        # ========================================================
+        # PEOPLE MASTER
+        # ========================================================
+
+        people = []
+
+        # ========================================================
+        # FIND OR CREATE PERSON
+        # ========================================================
+
+        def find_person(
+            candidate_name
+        ):
+
+            candidate_name = clean_text(
+                candidate_name
+            )
+
+            if not candidate_name:
+                return None
+
+            # ----------------------------------------------------
+            # Exact normalized / fuzzy duplicate search
+            # ----------------------------------------------------
+
+            for person in people:
+
+                if names_are_same(
+                    candidate_name,
+                    person["canonical_name"]
+                ):
+
+                    # ------------------------------------------------
+                    # Preserve aliases
+                    # ------------------------------------------------
+
+                    existing_aliases = {
+                        person_key(x)
+                        for x in person[
+                            "aliases"
+                        ]
+                    }
+
+                    if (
+                        person_key(
+                            candidate_name
+                        )
+                        not in existing_aliases
+                    ):
+
+                        person[
+                            "aliases"
+                        ].append(
+                            candidate_name
+                        )
+
+                    return person
+
+            # ----------------------------------------------------
+            # Create new person
+            # ----------------------------------------------------
+
+            new_person = {
+
+                "person_id": (
+                    "person_"
+                    + str(
+                        len(people) + 1
+                    )
+                ),
+
+                "canonical_name": candidate_name,
+
+                "display_name": candidate_name,
+
+                "aliases": [
+                    candidate_name
+                ],
+
+                "income": 0.0,
+
+                "expense": 0.0,
+
+                "net": 0.0,
+
+                "income_count": 0,
+
+                "expense_count": 0,
+
+                "transaction_count": 0,
+
+                "transactions": [],
+
+                "opening_transactions": [],
+
+                "all_transactions": [],
+
+            }
+
+            people.append(
+                new_person
+            )
+
+            return new_person
+
+        # ========================================================
+        # ADD TRANSACTION TO PERSON
+        # ========================================================
+
+        def add_to_person(
+            person,
+            transaction,
+            source,
+            person_source_field
+        ):
+
+            transaction_type = clean_text(
+                transaction.get(
+                    "transaction_type",
+                    transaction.get(
+                        "type",
+                        ""
+                    )
+                )
+            ).casefold()
+
+            amount = safe_amount(
+                transaction.get(
+                    "amount",
+                    0
+                )
+            )
+
+            if transaction_type in {
+                "income",
+                "in",
+                "credit",
+                "received",
+            }:
+
+                normalized_type = "income"
+
+                person[
+                    "income"
+                ] += amount
+
+                person[
+                    "income_count"
+                ] += 1
+
+            elif transaction_type in {
+                "expense",
+                "out",
+                "debit",
+                "paid",
+            }:
+
+                normalized_type = "expense"
+
+                person[
+                    "expense"
+                ] += amount
+
+                person[
+                    "expense_count"
+                ] += 1
+
+            else:
+
+                # ------------------------------------------------
+                # Opening records may use "type"
+                # ------------------------------------------------
+
+                normalized_type = (
+                    "income"
+                    if transaction_type
+                    == "income"
+                    else "expense"
+                    if transaction_type
+                    == "expense"
+                    else "unknown"
+                )
+
+                if normalized_type == "income":
+
+                    person[
+                        "income"
+                    ] += amount
+
+                    person[
+                        "income_count"
+                    ] += 1
+
+                elif normalized_type == "expense":
+
+                    person[
+                        "expense"
+                    ] += amount
+
+                    person[
+                        "expense_count"
+                    ] += 1
+
+            # ====================================================
+            # SERIALIZED TRANSACTION
+            # ====================================================
+
+            serialized = serialize_value(
+                transaction
+            )
+
+            serialized[
+                "source"
+            ] = source
+
+            serialized[
+                "person_source_field"
+            ] = person_source_field
+
+            serialized[
+                "normalized_transaction_type"
+            ] = normalized_type
+
+            serialized[
+                "amount"
+            ] = amount
+
+            # Make source collection explicit
+            if source == "transactions":
+
+                serialized[
+                    "source_collection"
+                ] = "transactions"
+
+            else:
+
+                serialized[
+                    "source_collection"
+                ] = (
+                    "person_opening_transactions"
+                )
+
+            # ====================================================
+            # APPEND
+            # ====================================================
+
+            person[
+                "all_transactions"
+            ].append(
+                serialized
+            )
+
+            if source == "transactions":
+
+                person[
+                    "transactions"
+                ].append(
+                    serialized
+                )
+
+            elif source == "opening":
+
+                person[
+                    "opening_transactions"
+                ].append(
+                    serialized
+                )
+
+            person[
+                "transaction_count"
+            ] += 1
+
+        # ========================================================
+        # PROCESS NORMAL TRANSACTIONS
+        # ========================================================
+
+        for transaction in normal_transactions:
+
+            candidates = get_person_candidates(
+                transaction,
+                "transactions"
+            )
+
+            # ----------------------------------------------------
+            # If no person information exists,
+            # do not invent a person.
+            # ----------------------------------------------------
+
+            if not candidates:
+                continue
+
+            # ----------------------------------------------------
+            # Multiple candidate names in the same record
+            # are deduplicated before insertion.
+            # ----------------------------------------------------
+
+            matched_people = []
+
+            for candidate_name, source_field in candidates:
+
+                person = find_person(
+                    candidate_name
+                )
+
+                if not person:
+                    continue
+
+                # Same person appearing twice in the
+                # same transaction must only receive
+                # the transaction once.
+
+                already_added = any(
+                    p["person_id"]
+                    == person["person_id"]
+                    for p in matched_people
+                )
+
+                if already_added:
+                    continue
+
+                matched_people.append(
+                    person
+                )
+
+                add_to_person(
+                    person,
+                    transaction,
+                    "transactions",
+                    source_field
+                )
+
+        # ========================================================
+        # PROCESS OPENING TRANSACTIONS
+        # ========================================================
+
+        for transaction in opening_transactions:
+
+            candidates = get_person_candidates(
+                transaction,
+                "opening"
+            )
+
+            if not candidates:
+                continue
+
+            matched_people = []
+
+            for candidate_name, source_field in candidates:
+
+                person = find_person(
+                    candidate_name
+                )
+
+                if not person:
+                    continue
+
+                already_added = any(
+                    p["person_id"]
+                    == person["person_id"]
+                    for p in matched_people
+                )
+
+                if already_added:
+                    continue
+
+                matched_people.append(
+                    person
+                )
+
+                add_to_person(
+                    person,
+                    transaction,
+                    "opening",
+                    source_field
+                )
+
+        # ========================================================
+        # FINALIZE PEOPLE
+        # ========================================================
+
+        for person in people:
+
+            person[
+                "net"
+            ] = round(
+                person["income"]
+                - person["expense"],
+                2
+            )
+
+            person[
+                "income"
+            ] = round(
+                person["income"],
+                2
+            )
+
+            person[
+                "expense"
+            ] = round(
+                person["expense"],
+                2
+            )
+
+            person[
+                "net"
+            ] = round(
+                person["net"],
+                2
+            )
+
+            # ----------------------------------------------------
+            # Sort person's history newest first
+            # ----------------------------------------------------
+
+            person[
+                "all_transactions"
+            ].sort(
+                key=lambda x: str(
+                    x.get(
+                        "date",
+                        ""
+                    )
+                ),
+                reverse=True
+            )
+
+            person[
+                "transactions"
+            ].sort(
+                key=lambda x: str(
+                    x.get(
+                        "date",
+                        ""
+                    )
+                ),
+                reverse=True
+            )
+
+            person[
+                "opening_transactions"
+            ].sort(
+                key=lambda x: str(
+                    x.get(
+                        "date",
+                        ""
+                    )
+                ),
+                reverse=True
+            )
+
+            # ----------------------------------------------------
+            # Best display name
+            #
+            # Prefer the first explicit-looking alias,
+            # but keep all aliases.
+            # ----------------------------------------------------
+
+            if person["aliases"]:
+
+                person[
+                    "display_name"
+                ] = person[
+                    "aliases"
+                ][0]
+
+        # ========================================================
+        # SORT PEOPLE
+        # ========================================================
+
+        people.sort(
+            key=lambda person: (
+                -person[
+                    "transaction_count"
+                ],
+                person[
+                    "display_name"
+                ].casefold()
+            )
+        )
+
+        # ========================================================
+        # GLOBAL SUMMARY
+        # ========================================================
+
+        total_income = round(
+            sum(
+                person["income"]
+                for person in people
+            ),
+            2
+        )
+
+        total_expense = round(
+            sum(
+                person["expense"]
+                for person in people
+            ),
+            2
+        )
+
+        total_net = round(
+            total_income
+            - total_expense,
+            2
+        )
+
+        total_person_transactions = sum(
+            person[
+                "transaction_count"
+            ]
+            for person in people
+        )
+
+        total_opening_transactions = sum(
+            len(
+                person[
+                    "opening_transactions"
+                ]
+            )
+            for person in people
+        )
+
+        total_normal_transactions = sum(
+            len(
+                person[
+                    "transactions"
+                ]
+            )
+            for person in people
+        )
+
+        # ========================================================
+        # AI CONTEXT
+        #
+        # This is intentionally generated from current MongoDB
+        # data on every request.
+        # ========================================================
+
+        ai_people_context = {
+
+            "generated_at": (
+                datetime.now(
+                    timezone.utc
+                ).isoformat()
+            ),
+
+            "user_id": str(
+                raw_user_id
+            ),
+
+            "summary": {
+
+                "people_count": len(
+                    people
+                ),
+
+                "income": total_income,
+
+                "expense": total_expense,
+
+                "net": total_net,
+
+                "person_transactions": (
+                    total_person_transactions
+                ),
+
+                "normal_transactions": (
+                    total_normal_transactions
+                ),
+
+                "opening_transactions": (
+                    total_opening_transactions
+                ),
+            },
+
+            "people": people,
+        }
+
+        # ========================================================
+        # OPTIONAL JSON MODE
+        #
+        # /ai-assistant/people-history?format=json
+        #
+        # Useful for JavaScript / AI frontend.
+        # ========================================================
+
+        output_format = str(
+            request.args.get(
+                "format",
+                ""
+            )
+        ).strip().lower()
+
+        if output_format == "json":
+
+            return jsonify({
+
+                "success": True,
+
+                "data": ai_people_context,
+
+            })
+
+        # ========================================================
         # RENDER PAGE
-        # ====================================================
+        # ========================================================
 
         return render_template(
-            "backend/pages/components/users/ai_peropole_history.html"
+
+            "backend/pages/components/users/ai_peropole_history.html",
+
+            people=people,
+
+            ai_people_context=ai_people_context,
+
+            people_count=len(
+                people
+            ),
+
+            total_income=total_income,
+
+            total_expense=total_expense,
+
+            total_net=total_net,
+
+            total_person_transactions=(
+                total_person_transactions
+            ),
+
+            total_normal_transactions=(
+                total_normal_transactions
+            ),
+
+            total_opening_transactions=(
+                total_opening_transactions
+            ),
+
+        )
+
+    except Exception as exc:
+
+        current_app.logger.exception(
+            "AI People History Error: %s",
+            exc
+        )
+
+        # ========================================================
+        # JSON ERROR
+        # ========================================================
+
+        try:
+
+            output_format = str(
+                request.args.get(
+                    "format",
+                    ""
+                )
+            ).strip().lower()
+
+        except Exception:
+
+            output_format = ""
+
+        if output_format == "json":
+
+            return jsonify({
+
+                "success": False,
+
+                "error": (
+                    "Unable to load people history."
+                ),
+
+            }), 500
+
+        # ========================================================
+        # NORMAL PAGE ERROR
+        # ========================================================
+
+        return abort(500)
+    
+
+
+# ============================================================
+# MY AI CONVERSATIONS
+# ============================================================
+
+
+@bp.route(
+    "/ai-assistant/my-conversations",
+    methods=["GET"]
+)
+@login_required
+def my_ai_conversations():
+
+    # ============================================================
+    # IMPORTS
+    # ============================================================
+
+    from datetime import datetime, date, timezone
+    from bson import ObjectId
+    from flask import request, render_template
+    import re
+
+
+    # ============================================================
+    # COLLECTIONS
+    # ============================================================
+
+    users_collection = mongo.db.users
+    messages_collection = mongo.db.ai_chat_messages
+
+
+    # ============================================================
+    # BASIC DEFAULTS
+    # ============================================================
+
+    users = []
+    conversations = []
+
+    selected_user = None
+    selected_user_id = None
+
+    total_users = 0
+    total_conversations = 0
+    total_messages = 0
+
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    current_user_raw_id = getattr(
+        current_user,
+        "id",
+        None
+    )
+
+    if current_user_raw_id is None:
+        current_user_raw_id = getattr(
+            current_user,
+            "_id",
+            None
+        )
+
+
+    # ============================================================
+    # CURRENT ROLE
+    # ============================================================
+
+    current_role = (
+        getattr(
+            current_user,
+            "role",
+            None
+        )
+        or ""
+    )
+
+    current_role = str(
+        current_role
+    ).strip().lower()
+
+
+    # Normalize common role names
+    role_aliases = {
+        "super_admin": "superadmin",
+        "super-admin": "superadmin",
+        "super admin": "superadmin",
+
+        "school-admin": "school_admin",
+        "school admin": "school_admin",
+
+        "institution-admin": "institution_admin",
+        "institution admin": "institution_admin",
+
+        "branch-admin": "branch_admin",
+        "branch admin": "branch_admin",
+    }
+
+    current_role = role_aliases.get(
+        current_role,
+        current_role
+    )
+
+
+    # ============================================================
+    # OBJECT ID HELPER
+    # ============================================================
+
+    def to_object_id(value):
+
+        if value is None:
+            return None
+
+        if isinstance(
+            value,
+            ObjectId
+        ):
+            return value
+
+        try:
+
+            value_string = str(
+                value
+            ).strip()
+
+            if not value_string:
+                return None
+
+            if ObjectId.is_valid(
+                value_string
+            ):
+                return ObjectId(
+                    value_string
+                )
+
+        except Exception:
+            pass
+
+        return None
+
+
+    # ============================================================
+    # ID VALUES
+    #
+    # Returns both:
+    #   ObjectId(...)
+    #   "objectid-string"
+    #
+    # This is important because old/new Mongo documents may
+    # store user_id in different formats.
+    # ============================================================
+
+    def id_values(value):
+
+        values = []
+
+        if value is None:
+            return values
+
+        if isinstance(
+            value,
+            ObjectId
+        ):
+
+            values.append(
+                value
+            )
+
+            values.append(
+                str(value)
+            )
+
+            return values
+
+
+        value_string = str(
+            value
+        ).strip()
+
+        if not value_string:
+            return values
+
+
+        values.append(
+            value_string
+        )
+
+
+        object_id = to_object_id(
+            value_string
+        )
+
+        if object_id is not None:
+
+            values.append(
+                object_id
+            )
+
+
+        return values
+
+
+    # ============================================================
+    # FIRST VALUE
+    # ============================================================
+
+    def first_value(
+        document,
+        *keys
+    ):
+
+        if not document:
+            return None
+
+        for key in keys:
+
+            try:
+
+                value = document.get(
+                    key
+                )
+
+            except Exception:
+                value = None
+
+
+            if value is not None:
+
+                if isinstance(
+                    value,
+                    str
+                ):
+
+                    if value.strip():
+                        return value.strip()
+
+                else:
+                    return value
+
+        return None
+
+
+    # ============================================================
+    # STRING VALUE
+    # ============================================================
+
+    def string_value(value):
+
+        if value is None:
+            return ""
+
+        if isinstance(
+            value,
+            str
+        ):
+            return value.strip()
+
+        try:
+            return str(
+                value
+            ).strip()
+        except Exception:
+            return ""
+
+
+    # ============================================================
+    # DATETIME PARSER
+    # ============================================================
+
+    def parse_datetime(value):
+
+        if value is None:
+            return None
+
+
+        if isinstance(
+            value,
+            datetime
+        ):
+
+            dt = value
+
+            if dt.tzinfo is None:
+
+                dt = dt.replace(
+                    tzinfo=timezone.utc
+                )
+
+            return dt
+
+
+        if isinstance(
+            value,
+            date
+        ):
+
+            return datetime.combine(
+                value,
+                datetime.min.time()
+            ).replace(
+                tzinfo=timezone.utc
+            )
+
+
+        if isinstance(
+            value,
+            ObjectId
+        ):
+
+            try:
+
+                return value.generation_time
+
+            except Exception:
+                return None
+
+
+        text = string_value(
+            value
+        )
+
+        if not text:
+            return None
+
+
+        # --------------------------------------------------------
+        # ISO / Mongo style
+        # --------------------------------------------------------
+
+        candidates = [
+            text,
+            text.replace(
+                "Z",
+                "+00:00"
+            ),
+        ]
+
+
+        for candidate in candidates:
+
+            try:
+
+                parsed = datetime.fromisoformat(
+                    candidate
+                )
+
+                if parsed.tzinfo is None:
+
+                    parsed = parsed.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                return parsed
+
+            except Exception:
+                pass
+
+
+        # --------------------------------------------------------
+        # Common date formats
+        # --------------------------------------------------------
+
+        formats = [
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d",
+            "%d/%m/%Y %H:%M:%S",
+            "%d/%m/%Y %H:%M",
+            "%d/%m/%Y",
+            "%m/%d/%Y %H:%M:%S",
+            "%m/%d/%Y %H:%M",
+            "%m/%d/%Y",
+        ]
+
+
+        for fmt in formats:
+
+            try:
+
+                parsed = datetime.strptime(
+                    text,
+                    fmt
+                )
+
+                return parsed.replace(
+                    tzinfo=timezone.utc
+                )
+
+            except Exception:
+                pass
+
+
+        return None
+
+
+    # ============================================================
+    # CREATED DATETIME
+    # ============================================================
+
+    def get_created_datetime(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "created_at",
+            "createdAt",
+            "created",
+            "timestamp",
+            "time",
+            "date",
+
+            "created_at_utc",
+            "created_at_eat",
+
+            "updated_at",
+            "updatedAt",
+        )
+
+
+        parsed = parse_datetime(
+            value
+        )
+
+
+        if parsed is not None:
+            return parsed
+
+
+        mongo_id = document.get(
+            "_id"
+        )
+
+
+        parsed = parse_datetime(
+            mongo_id
+        )
+
+
+        return parsed
+
+
+    # ============================================================
+    # UPDATED DATETIME
+    # ============================================================
+
+    def get_updated_datetime(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "updated_at",
+            "updatedAt",
+            "edited_at",
+            "editedAt",
+
+            "created_at",
+            "createdAt",
+        )
+
+
+        return parse_datetime(
+            value
+        )
+
+
+    # ============================================================
+    # ACTIVITY DATETIME
+    # ============================================================
+
+    def get_activity_datetime(
+        document
+    ):
+
+        updated = get_updated_datetime(
+            document
+        )
+
+        created = get_created_datetime(
+            document
+        )
+
+
+        if updated and created:
+
+            return max(
+                updated,
+                created
+            )
+
+
+        return (
+            updated
+            or created
+        )
+
+
+    # ============================================================
+    # MESSAGE USER ID
+    # ============================================================
+
+    def get_message_user_id(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "user_id",
+            "userId",
+            "userid",
+
+            "user_id_str",
+            "userIdStr",
+
+            "owner_id",
+            "ownerId",
+
+            "account_id",
+            "accountId",
+        )
+
+
+        if value is not None:
+            return value
+
+
+        # --------------------------------------------------------
+        # Nested user
+        # --------------------------------------------------------
+
+        nested_user = document.get(
+            "user"
+        )
+
+
+        if isinstance(
+            nested_user,
+            dict
+        ):
+
+            return first_value(
+                nested_user,
+
+                "_id",
+                "id",
+                "user_id",
+                "userId",
+            )
+
+
+        return None
+
+
+    # ============================================================
+    # CONVERSATION ID
+    # ============================================================
+
+    def get_conversation_id(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "conversation_id",
+            "conversationId",
+
+            "chat_id",
+            "chatId",
+
+            "session_id",
+            "sessionId",
+
+            "thread_id",
+            "threadId",
+
+            "conversation",
+            "thread",
+        )
+
+
+        if value is None:
+            return None
+
+
+        if isinstance(
+            value,
+            dict
+        ):
+
+            value = first_value(
+                value,
+
+                "_id",
+                "id",
+                "conversation_id",
+                "conversationId",
+            )
+
+
+        if value is None:
+            return None
+
+
+        value = string_value(
+            value
+        )
+
+
+        return value or None
+
+
+    # ============================================================
+    # USER MESSAGE
+    # ============================================================
+
+    def get_user_message(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "user_message",
+            "userMessage",
+
+            "question",
+            "prompt",
+            "query",
+
+            "user_text",
+            "userText",
+
+            "user_content",
+            "userContent",
+        )
+
+
+        if value is not None:
+            return string_value(
+                value
+            )
+
+
+        # --------------------------------------------------------
+        # Some old records use "message" as user text.
+        #
+        # But ONLY use it if assistant/answer is absent.
+        # --------------------------------------------------------
+
+        assistant_value = first_value(
+            document,
+
+            "assistant_message",
+            "assistantMessage",
+            "answer",
+            "response",
+            "reply",
+            "ai_message",
+            "aiMessage",
+            "assistant_text",
+            "assistantText",
+        )
+
+
+        if not assistant_value:
+
+            value = first_value(
+                document,
+                "message"
+            )
+
+            if value is not None:
+                return string_value(
+                    value
+                )
+
+
+        return ""
+
+
+    # ============================================================
+    # ASSISTANT MESSAGE
+    # ============================================================
+
+    def get_assistant_message(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "assistant_message",
+            "assistantMessage",
+
+            "answer",
+            "response",
+            "reply",
+
+            "ai_message",
+            "aiMessage",
+
+            "assistant_text",
+            "assistantText",
+
+            "ai_response",
+            "aiResponse",
+        )
+
+
+        if value is not None:
+
+            return string_value(
+                value
+            )
+
+
+        return ""
+
+
+    # ============================================================
+    # GENERIC CONTENT
+    # ============================================================
+
+    def get_message_content(
+        document
+    ):
+
+        user_text = get_user_message(
+            document
+        )
+
+        ai_text = get_assistant_message(
+            document
+        )
+
+
+        if ai_text:
+            return ai_text
+
+
+        if user_text:
+            return user_text
+
+
+        value = first_value(
+            document,
+
+            "content",
+            "text",
+            "body",
+            "message",
+        )
+
+
+        return string_value(
+            value
+        )
+
+
+    # ============================================================
+    # MESSAGE ROLE
+    # ============================================================
+
+    def get_message_role(
+        document
+    ):
+
+        role = first_value(
+            document,
+
+            "role",
+            "sender_role",
+            "senderRole",
+            "message_role",
+            "messageRole",
+        )
+
+
+        if role:
+
+            role = string_value(
+                role
+            ).lower()
+
+
+            if role in (
+                "assistant",
+                "ai",
+                "bot",
+                "model",
+            ):
+                return "assistant"
+
+
+            if role in (
+                "user",
+                "human",
+                "customer",
+                "client",
+            ):
+                return "user"
+
+
+        sender = first_value(
+            document,
+            "sender"
+        )
+
+
+        if sender:
+
+            sender = string_value(
+                sender
+            ).lower()
+
+
+            if sender in (
+                "assistant",
+                "ai",
+                "bot",
+                "model",
+            ):
+                return "assistant"
+
+
+            if sender in (
+                "user",
+                "human",
+            ):
+                return "user"
+
+
+        user_text = get_user_message(
+            document
+        )
+
+        ai_text = get_assistant_message(
+            document
+        )
+
+
+        if ai_text and not user_text:
+            return "assistant"
+
+
+        if user_text and not ai_text:
+            return "user"
+
+
+        if ai_text and user_text:
+            return "assistant"
+
+
+        return "assistant"
+
+
+    # ============================================================
+    # USER ID
+    # ============================================================
+
+    def get_user_id(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "_id",
+            "id",
+            "user_id",
+            "userId",
+        )
+
+
+        if value is None:
+            return ""
+
+
+        return string_value(
+            value
+        )
+
+
+    # ============================================================
+    # USER NAME
+    # ============================================================
+
+    def get_user_name(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "name",
+            "fullname",
+            "full_name",
+            "fullName",
+
+            "username",
+            "display_name",
+            "displayName",
+        )
+
+
+        if value:
+            return string_value(
+                value
+            )
+
+
+        first_name = string_value(
+            document.get(
+                "first_name",
+                ""
+            )
+        )
+
+        last_name = string_value(
+            document.get(
+                "last_name",
+                ""
+            )
+        )
+
+
+        full = (
+            first_name
+            + " "
+            + last_name
+        ).strip()
+
+
+        if full:
+            return full
+
+
+        return "Unknown User"
+
+
+    # ============================================================
+    # USER ROLE
+    # ============================================================
+
+    def get_user_role(
+        document
+    ):
+
+        role = first_value(
+            document,
+
+            "role",
+            "user_role",
+            "userRole",
+        )
+
+
+        if role:
+            return string_value(
+                role
+            )
+
+
+        return "user"
+
+
+    # ============================================================
+    # USER PHOTO
+    # ============================================================
+
+    def get_user_photo(
+        document
+    ):
+
+        value = first_value(
+            document,
+
+            "profile_image",
+            "profileImage",
+
+            "photo",
+            "photo_url",
+            "photoUrl",
+
+            "avatar",
+            "avatar_url",
+            "avatarUrl",
+
+            "image",
+            "image_url",
+            "imageUrl",
+        )
+
+
+        return string_value(
+            value
+        )
+
+
+    # ============================================================
+    # FORMAT DATETIME FOR FRONTEND
+    #
+    # Africa/Nairobi / EAT = UTC+3
+    #
+    # Your example records contain *_eat fields.
+    # We generate them dynamically instead of trusting stale data.
+    # ============================================================
+
+    try:
+
+        from zoneinfo import ZoneInfo
+
+        EAT_ZONE = ZoneInfo(
+            "Africa/Nairobi"
         )
 
     except Exception:
 
-        current_app.logger.exception(
-            "AI People History Page Error"
+        EAT_ZONE = timezone(
+            # EAT = UTC + 3
+            # datetime.timezone expects timedelta
+            # so this branch is handled below.
+            __import__("datetime").timedelta(
+                hours=3
+            )
         )
 
-        return abort(500)
+
+    def format_datetime(
+        value
+    ):
+
+        dt = parse_datetime(
+            value
+        )
+
+
+        if dt is None:
+            return ""
+
+
+        if dt.tzinfo is None:
+
+            dt = dt.replace(
+                tzinfo=timezone.utc
+            )
+
+
+        try:
+
+            local_dt = dt.astimezone(
+                EAT_ZONE
+            )
+
+        except Exception:
+
+            local_dt = dt
+
+
+        return local_dt.strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+
+    def format_date(
+        value
+    ):
+
+        dt = parse_datetime(
+            value
+        )
+
+
+        if dt is None:
+            return ""
+
+
+        try:
+
+            local_dt = dt.astimezone(
+                EAT_ZONE
+            )
+
+        except Exception:
+
+            local_dt = dt
+
+
+        return local_dt.strftime(
+            "%Y-%m-%d"
+        )
+
+
+    def format_time(
+        value
+    ):
+
+        dt = parse_datetime(
+            value
+        )
+
+
+        if dt is None:
+            return ""
+
+
+        try:
+
+            local_dt = dt.astimezone(
+                EAT_ZONE
+            )
+
+        except Exception:
+
+            local_dt = dt
+
+
+        return local_dt.strftime(
+            "%H:%M"
+        )
+
+
+    # ============================================================
+    # NORMALIZE USER
+    # ============================================================
+
+    def normalize_user(
+        document
+    ):
+
+        if not document:
+            return None
+
+
+        user_id = get_user_id(
+            document
+        )
+
+
+        if not user_id:
+            return None
+
+
+        name = get_user_name(
+            document
+        )
+
+        role = get_user_role(
+            document
+        )
+
+        photo = get_user_photo(
+            document
+        )
+
+
+        created_dt = get_created_datetime(
+            document
+        )
+
+
+        updated_dt = get_updated_datetime(
+            document
+        )
+
+
+        return {
+
+            "id": user_id,
+
+            "_id": user_id,
+
+            "name": name,
+
+            "fullname":
+                first_value(
+                    document,
+                    "fullname",
+                    "full_name",
+                    "fullName",
+                    "name",
+                )
+                or name,
+
+            "username":
+                string_value(
+                    document.get(
+                        "username",
+                        ""
+                    )
+                ),
+
+            "email":
+                string_value(
+                    document.get(
+                        "email",
+                        ""
+                    )
+                ),
+
+            "phone":
+                string_value(
+                    document.get(
+                        "phone",
+                        document.get(
+                            "phone_number",
+                            ""
+                        )
+                    )
+                ),
+
+            "role": role,
+
+            "profile_image": photo,
+
+            "photo": photo,
+
+            "created_at":
+                format_datetime(
+                    created_dt
+                ),
+
+            "created_at_local":
+                format_datetime(
+                    created_dt
+                ),
+
+            "updated_at":
+                format_datetime(
+                    updated_dt
+                )
+                if updated_dt
+                else "",
+
+            "updated_at_local":
+                format_datetime(
+                    updated_dt
+                )
+                if updated_dt
+                else "",
+
+            "message_count": 0,
+
+            "conversation_count": 0,
+
+            "last_message": "",
+
+            "last_message_preview": "",
+
+            "last_created_at": "",
+
+            "last_created_at_local": "",
+
+            "last_created_at_utc": "",
+
+            "last_activity_at": "",
+
+        }
+
+
+    # ============================================================
+    # FIND USER BY ID
+    # ============================================================
+
+    def find_user_by_id(
+        user_id
+    ):
+
+        if user_id is None:
+            return None
+
+
+        values = id_values(
+            user_id
+        )
+
+
+        if not values:
+            return None
+
+
+        query = {
+            "$or": []
+        }
+
+
+        # ObjectId/string against common fields
+        for field in (
+            "_id",
+            "id",
+            "user_id",
+            "userId",
+            "user_id_str",
+            "userIdStr",
+        ):
+
+            for value in values:
+
+                query["$or"].append(
+                    {
+                        field: value
+                    }
+                )
+
+
+        try:
+
+            return users_collection.find_one(
+                query
+            )
+
+        except Exception:
+
+            return None
+
+
+    # ============================================================
+    # MESSAGE USER QUERY
+    # ============================================================
+
+    def build_message_user_query(
+        user_id
+    ):
+
+        values = id_values(
+            user_id
+        )
+
+
+        conditions = []
+
+
+        fields = [
+            "user_id",
+            "userId",
+            "userid",
+            "user_id_str",
+            "userIdStr",
+            "owner_id",
+            "ownerId",
+            "account_id",
+            "accountId",
+        ]
+
+
+        for field in fields:
+
+            for value in values:
+
+                conditions.append(
+                    {
+                        field: value
+                    }
+                )
+
+
+        # Nested user object
+        for value in values:
+
+            conditions.append(
+                {
+                    "user._id": value
+                }
+            )
+
+            conditions.append(
+                {
+                    "user.id": value
+                }
+            )
+
+            conditions.append(
+                {
+                    "user.user_id": value
+                }
+            )
+
+            conditions.append(
+                {
+                    "user.userId": value
+                }
+            )
+
+
+        if not conditions:
+
+            return {
+                "_id": {
+                    "$exists": False
+                }
+            }
+
+
+        return {
+            "$or": conditions
+        }
+
+
+    # ============================================================
+    # FIND ALL MESSAGE USER IDS
+    #
+    # Used by superadmin to discover users that have AI records.
+    # ============================================================
+
+    discovered_user_ids = []
+
+
+    if current_role == "superadmin":
+
+        try:
+
+            cursor = messages_collection.find(
+                {},
+                {
+                    "user_id": 1,
+                    "userId": 1,
+                    "userid": 1,
+                    "user_id_str": 1,
+                    "userIdStr": 1,
+                    "owner_id": 1,
+                    "ownerId": 1,
+                    "account_id": 1,
+                    "accountId": 1,
+                    "user": 1,
+                }
+            )
+
+
+            for document in cursor:
+
+                message_user_id = get_message_user_id(
+                        document
+                    )
+
+
+                if message_user_id is None:
+                    continue
+
+
+                normalized_id = string_value(
+                        message_user_id
+                    )
+
+
+                if (
+                    normalized_id
+                    and normalized_id
+                    not in discovered_user_ids
+                ):
+
+                    discovered_user_ids.append(
+                        normalized_id
+                    )
+
+
+        except Exception:
+            discovered_user_ids = []
+
+
+    # ============================================================
+    # LOAD USERS
+    # ============================================================
+
+    if current_role == "superadmin":
+
+        # --------------------------------------------------------
+        # Superadmin sees users who have AI messages.
+        # --------------------------------------------------------
+
+        for user_id in discovered_user_ids:
+
+            document = find_user_by_id(
+                    user_id
+                )
+
+
+            if not document:
+                continue
+
+
+            normalized = normalize_user(
+                    document
+                )
+
+
+            if normalized:
+
+                users.append(
+                    normalized
+                )
+
+
+    else:
+
+        # --------------------------------------------------------
+        # Non-superadmin only sees own AI conversations.
+        # --------------------------------------------------------
+
+        current_document = None
+
+
+        if current_user_raw_id is not None:
+
+            current_document = find_user_by_id(
+                    current_user_raw_id
+                )
+
+
+        # --------------------------------------------------------
+        # If user does not exist in Mongo users collection,
+        # create a lightweight fallback from Flask current_user.
+        # --------------------------------------------------------
+
+        if current_document:
+
+            normalized = normalize_user(
+                    current_document
+                )
+
+        else:
+
+            fallback_id =string_value(
+                    current_user_raw_id
+                )
+
+
+            normalized = {
+
+                "id": fallback_id,
+
+                "_id": fallback_id,
+
+                "name":
+                    (
+                        getattr(
+                            current_user,
+                            "name",
+                            None
+                        )
+                        or
+                        getattr(
+                            current_user,
+                            "fullname",
+                            None
+                        )
+                        or
+                        getattr(
+                            current_user,
+                            "username",
+                            None
+                        )
+                        or
+                        "Current User"
+                    ),
+
+                "fullname":
+                    (
+                        getattr(
+                            current_user,
+                            "fullname",
+                            None
+                        )
+                        or
+                        getattr(
+                            current_user,
+                            "name",
+                            None
+                        )
+                        or
+                        ""
+                    ),
+
+                "username":
+                    string_value(
+                        getattr(
+                            current_user,
+                            "username",
+                            ""
+                        )
+                    ),
+
+                "email":
+                    string_value(
+                        getattr(
+                            current_user,
+                            "email",
+                            ""
+                        )
+                    ),
+
+                "phone":
+                    string_value(
+                        getattr(
+                            current_user,
+                            "phone",
+                            ""
+                        )
+                    ),
+
+                "role":
+                    current_role or "user",
+
+                "profile_image":
+                    string_value(
+                        getattr(
+                            current_user,
+                            "profile_image",
+                            getattr(
+                                current_user,
+                                "photo",
+                                ""
+                            )
+                        )
+                    ),
+
+                "photo":
+                    string_value(
+                        getattr(
+                            current_user,
+                            "profile_image",
+                            getattr(
+                                current_user,
+                                "photo",
+                                ""
+                            )
+                        )
+                    ),
+
+                "created_at": "",
+
+                "created_at_local": "",
+
+                "updated_at": "",
+
+                "updated_at_local": "",
+
+                "message_count": 0,
+
+                "conversation_count": 0,
+
+                "last_message": "",
+
+                "last_message_preview": "",
+
+                "last_created_at": "",
+
+                "last_created_at_local": "",
+
+                "last_created_at_utc": "",
+
+                "last_activity_at": "",
+            }
+
+
+        if normalized:
+
+            users.append(
+                normalized
+            )
+
+
+    # ============================================================
+    # REMOVE DUPLICATE USERS
+    # ============================================================
+
+    unique_users = {}
+    
+
+    for user in users:
+
+        uid = string_value(
+            user.get(
+                "id"
+            )
+        )
+
+
+        if not uid:
+            continue
+
+
+        unique_users[
+            uid
+        ] = user
+
+
+    users = list(
+        unique_users.values()
+    )
+
+
+    # ============================================================
+    # TOTAL USERS
+    # ============================================================
+
+    total_users = len(
+        users
+    )
+
+
+    # ============================================================
+    # PROCESS EACH USER
+    #
+    # We load their AI records to calculate:
+    #
+    # message_count
+    # conversation_count
+    # last_message
+    # last_activity
+    # ============================================================
+
+    user_activity_map = {}
+
+
+    for user in users:
+
+        uid = user.get(
+            "id"
+        )
+
+
+        if not uid:
+            continue
+
+
+        query = build_message_user_query(
+                uid
+            )
+
+
+        try:
+
+            raw_messages = list(
+                    messages_collection.find(
+                        query
+                    )
+                )
+
+        except Exception:
+
+            raw_messages = []
+
+
+        user["message_count"] = len(
+                raw_messages
+            )
+
+
+        conversation_keys = set()
+
+
+        latest_document = None
+        latest_activity = None
+
+
+        for document in raw_messages:
+
+            activity = get_activity_datetime(
+                    document
+                )
+
+
+            if activity is not None:
+
+                if (
+                    latest_activity is None
+                    or activity > latest_activity
+                ):
+
+                    latest_activity = activity
+
+                    latest_document = document
+
+
+            conversation_id = get_conversation_id(
+                    document
+                )
+
+
+            if conversation_id:
+
+                conversation_keys.add(
+                    conversation_id
+                )
+
+            else:
+
+                created = get_created_datetime(
+                        document
+                    )
+
+
+                if created:
+
+                    try:
+
+                        local_date = created.astimezone(
+                                EAT_ZONE
+                            ).strftime(
+                                "%Y-%m-%d"
+                            )
+
+                    except Exception:
+
+                        local_date = created.strftime(
+                                "%Y-%m-%d"
+                            )
+
+
+                    conversation_keys.add(
+                        "day_" + local_date
+                    )
+
+                else:
+
+                    conversation_keys.add(
+                        "default"
+                    )
+
+
+        user["conversation_count"] = len(
+                conversation_keys
+            )
+
+
+        if latest_document:
+
+            latest_content = get_message_content(
+                    latest_document
+                )
+
+
+            user["last_message"] = latest_content
+
+
+            user["last_message_preview"] = latest_content
+
+
+            latest_created = get_created_datetime(
+                    latest_document
+                )
+
+
+            if latest_created:
+
+                user[
+                    "last_created_at_utc"
+                ] = latest_created.isoformat()
+
+
+                user[
+                    "last_created_at"
+                ] = latest_created.isoformat()
+
+
+                user[
+                    "last_created_at_local"
+                ] = format_datetime(
+                    latest_created
+                )
+
+
+            if latest_activity:
+
+                user[
+                    "last_activity_at"
+                ] = latest_activity.isoformat()
+
+
+                user_activity_map[
+                    uid
+                ] = latest_activity
+
+
+    # ============================================================
+    # SORT USERS
+    #
+    # Most recently active first.
+    # ============================================================
+
+    def user_sort_key(
+        user
+    ):
+
+        uid = string_value(
+            user.get(
+                "id"
+            )
+        )
+
+
+        activity = user_activity_map.get(
+                uid
+            )
+
+
+        if activity is None:
+
+            activity = datetime.min.replace(
+                    tzinfo=timezone.utc
+                )
+
+
+        return (
+            activity,
+            string_value(
+                user.get(
+                    "name"
+                )
+            ).lower()
+        )
+
+
+    users.sort(
+        key=user_sort_key,
+        reverse=True
+    )
+
+
+    # ============================================================
+    # SELECT USER
+    # ============================================================
+
+    requested_user_id = request.args.get(
+            "user_id",
+            "",
+            type=str
+        )
+
+
+    requested_user_id = requested_user_id.strip()
+
+
+    if current_role != "superadmin":
+
+        # --------------------------------------------------------
+        # Non-superadmin is always locked to own account.
+        # --------------------------------------------------------
+
+        selected_user_id = string_value(
+                current_user_raw_id
+            )
+
+
+        for user in users:
+
+            if (
+                string_value(
+                    user.get(
+                        "id"
+                    )
+                )
+                ==
+                selected_user_id
+            ):
+
+                selected_user = user
+
+                break
+
+
+    else:
+
+        # --------------------------------------------------------
+        # Superadmin can select any discovered user.
+        # --------------------------------------------------------
+
+        if requested_user_id:
+
+            for user in users:
+
+                if (
+                    string_value(
+                        user.get(
+                            "id"
+                        )
+                    )
+                    ==
+                    requested_user_id
+                ):
+
+                    selected_user = user
+
+                    break
+
+
+        # --------------------------------------------------------
+        # If requested user is invalid, choose first user.
+        # --------------------------------------------------------
+
+        if selected_user is None and users:
+
+            selected_user = users[0]
+
+
+        if selected_user:
+
+            selected_user_id = string_value(
+                    selected_user.get(
+                        "id"
+                    )
+                )
+
+
+    # ============================================================
+    # LOAD SELECTED USER MESSAGES
+    # ============================================================
+
+    if selected_user:
+
+        selected_uid = selected_user.get(
+                "id"
+            )
+
+
+        message_query = build_message_user_query(
+                selected_uid
+            )
+
+
+        try:
+
+            raw_messages = list(
+                    messages_collection.find(
+                        message_query
+                    )
+                )
+
+        except Exception:
+
+            raw_messages = []
+
+
+        # --------------------------------------------------------
+        # Sort oldest → newest.
+        #
+        # The template reverses conversation groups, but messages
+        # inside each conversation remain chronological.
+        # --------------------------------------------------------
+
+        raw_messages.sort(
+            key=lambda document: (
+                get_created_datetime(
+                    document
+                )
+                or
+                datetime.min.replace(
+                    tzinfo=timezone.utc
+                )
+            )
+        )
+
+
+        # ========================================================
+        # TOTAL MESSAGE RECORDS
+        # ========================================================
+
+        total_messages = len(
+                raw_messages
+            )
+
+
+        # ========================================================
+        # GROUP CONVERSATIONS
+        # ========================================================
+
+        conversation_map = {}
+
+
+        conversation_order = []
+
+
+        for index, document in enumerate(
+            raw_messages
+        ):
+
+            created_dt = get_created_datetime(
+                    document
+                )
+
+
+            updated_dt = get_updated_datetime(
+                    document
+                )
+
+
+            activity_dt = get_activity_datetime(
+                    document
+                )
+
+
+            conversation_id = get_conversation_id(
+                    document
+                )
+
+
+            # ----------------------------------------------------
+            # If conversation ID is missing:
+            #
+            # Group by EAT date.
+            # ----------------------------------------------------
+
+            if not conversation_id:
+
+                if created_dt:
+
+                    try:
+
+                        local_date = created_dt.astimezone(
+                                EAT_ZONE
+                            ).strftime(
+                                "%Y-%m-%d"
+                            )
+
+                    except Exception:
+
+                        local_date =created_dt.strftime(
+                                "%Y-%m-%d"
+                            )
+
+
+                    conversation_id = "day_" + local_date
+
+                else:
+
+                    conversation_id = "default"
+
+
+            # ----------------------------------------------------
+            # Ensure string ID.
+            # ----------------------------------------------------
+
+            conversation_id = string_value(
+                    conversation_id
+                )
+
+
+            if not conversation_id:
+
+                conversation_id = "default"
+
+
+            # ----------------------------------------------------
+            # Create conversation group.
+            # ----------------------------------------------------
+
+            if (
+                conversation_id
+                not in conversation_map
+            ):
+
+                conversation_map[
+                    conversation_id
+                ] = {
+
+                    "conversation_id":
+                        conversation_id,
+
+                    "messages": [],
+
+                    "message_count": 0,
+
+                    "last_activity_at":
+                        "",
+
+                    "last_activity_dt":
+                        None,
+
+                    "first_created_at":
+                        "",
+
+                    "last_created_at":
+                        "",
+
+                }
+
+                conversation_order.append(
+                    conversation_id
+                )
+
+
+            group = conversation_map[
+                    conversation_id
+                ]
+
+
+            # ====================================================
+            # NORMALIZE CURRENT MESSAGE
+            # ====================================================
+
+            user_message = get_user_message(
+                    document
+                )
+
+
+            assistant_message = get_assistant_message(
+                    document
+                )
+
+
+            content = get_message_content(
+                    document
+                )
+
+
+            role = get_message_role(
+                    document
+                )
+
+
+            # ----------------------------------------------------
+            # Mongo _id
+            # ----------------------------------------------------
+
+            mongo_message_id = document.get(
+                    "_id"
+                )
+
+
+            if mongo_message_id is not None:
+
+                message_id = string_value(
+                        mongo_message_id
+                    )
+
+            else:
+
+                message_id = str(
+                        index
+                    )
+
+
+            # ----------------------------------------------------
+            # UTC strings
+            # ----------------------------------------------------
+
+            created_at_utc = ""
+
+            updated_at_utc = ""
+
+            activity_at_utc = ""
+
+
+            if created_dt:
+
+                created_at_utc = created_dt.isoformat()
+
+
+            if updated_dt:
+
+                updated_at_utc =  updated_dt.isoformat()
+
+
+            if activity_dt:
+
+                activity_at_utc = activity_dt.isoformat()
+
+
+            # ----------------------------------------------------
+            # Local EAT strings
+            # ----------------------------------------------------
+
+            created_at_local = format_datetime(
+                    created_dt
+                )
+
+
+            updated_at_local = format_datetime(
+                    updated_dt
+                )
+
+
+            created_at_eat = created_at_local
+
+
+            updated_at_eat = updated_at_local
+
+
+            date_value = format_date(
+                    created_dt
+                )
+
+
+            time_value = format_time(
+                    created_dt
+                )
+
+
+            # ----------------------------------------------------
+            # Last activity for conversation
+            # ----------------------------------------------------
+
+            if activity_dt:
+
+                if (
+                    group[
+                        "last_activity_dt"
+                    ] is None
+                    or
+                    activity_dt
+                    >
+                    group[
+                        "last_activity_dt"
+                    ]
+                ):
+
+                    group[
+                        "last_activity_dt"
+                    ] = activity_dt
+
+
+                    group[
+                        "last_activity_at"
+                    ] = activity_dt.isoformat()
+
+
+            if created_dt:
+
+                if not group[
+                    "first_created_at"
+                ]:
+
+                    group[
+                        "first_created_at"
+                    ] = created_dt.isoformat()
+
+
+                group[
+                    "last_created_at"
+                ] = created_dt.isoformat()
+
+
+            # ====================================================
+            # NORMALIZED MESSAGE
+            # ====================================================
+
+            normalized_message = {
+
+                "id":
+                    message_id,
+
+                "_id":
+                    message_id,
+
+                "user_message":
+                    user_message,
+
+                "assistant_message":
+                    assistant_message,
+
+                "question":
+                    user_message,
+
+                "answer":
+                    assistant_message,
+
+                "content":
+                    content,
+
+                "message":
+                    content,
+
+                "role":
+                    role,
+
+                "sender":
+                    role,
+
+                "created_at":
+                    created_at_utc,
+
+                "updated_at":
+                    updated_at_utc,
+
+                "created_at_utc":
+                    created_at_utc,
+
+                "updated_at_utc":
+                    updated_at_utc,
+
+                "created_at_eat":
+                    created_at_eat,
+
+                "updated_at_eat":
+                    updated_at_eat,
+
+                "created_at_local":
+                    created_at_local,
+
+                "updated_at_local":
+                    updated_at_local,
+
+                "date":
+                    date_value,
+
+                "time":
+                    time_value,
+
+                "activity_at":
+                    activity_at_utc,
+
+                "conversation_id":
+                    conversation_id,
+
+                "_original_index":
+                    index,
+            }
+
+
+            group[
+                "messages"
+            ].append(
+                normalized_message
+            )
+
+
+            group[
+                "message_count"
+            ] += 1
+
+
+        # ========================================================
+        # FINALIZE CONVERSATIONS
+        # ========================================================
+
+        conversations = []
+
+
+        for conversation_id in conversation_order:
+
+            group = conversation_map[
+                    conversation_id
+                ]
+
+
+            # ----------------------------------------------------
+            # Messages are already oldest → newest.
+            # ----------------------------------------------------
+
+            group[
+                "messages"
+            ].sort(
+                key=lambda item: (
+                    parse_datetime(
+                        item.get(
+                            "created_at_utc"
+                        )
+                    )
+                    or
+                    datetime.min.replace(
+                        tzinfo=timezone.utc
+                    ),
+
+                    item.get(
+                        "_original_index",
+                        0
+                    )
+                )
+            )
+
+
+            group.pop(
+                "last_activity_dt",
+                None
+            )
+
+
+            conversations.append(
+                group
+            )
+
+
+        # ========================================================
+        # NEWEST CONVERSATION FIRST
+        # ========================================================
+
+        conversations.sort(
+            key=lambda group: (
+                parse_datetime(
+                    group.get(
+                        "last_activity_at"
+                    )
+                )
+                or
+                datetime.min.replace(
+                    tzinfo=timezone.utc
+                )
+            ),
+            reverse=True
+        )
+
+
+    else:
+
+        conversations = []
+
+        total_messages = 0
+
+
+    # ============================================================
+    # TOTAL CONVERSATIONS
+    # ============================================================
+
+    total_conversations =sum(
+            1
+            for group in conversations
+        )
+
+
+    # ============================================================
+    # UPDATE SELECTED USER COUNTS
+    # ============================================================
+
+    if selected_user:
+
+        selected_user[
+            "message_count"
+        ] = total_messages
+
+
+        selected_user[
+            "conversation_count"
+        ] = total_conversations
+
+
+        if conversations:
+
+            latest_group = conversations[0]
+
+
+            latest_messages = latest_group.get(
+                    "messages",
+                    []
+                )
+
+
+            if latest_messages:
+
+                latest_message = latest_messages[-1]
+
+
+                latest_content = (
+                        latest_message.get(
+                            "assistant_message"
+                        )
+                        or
+                        latest_message.get(
+                            "user_message"
+                        )
+                        or
+                        latest_message.get(
+                            "content"
+                        )
+                        or
+                        ""
+                    )
+
+
+                selected_user[
+                    "last_message"
+                ] = latest_content
+
+
+                selected_user[
+                    "last_message_preview"
+                ] = latest_content
+
+
+                selected_user[
+                    "last_created_at"
+                ] = (
+                    latest_message.get(
+                        "created_at"
+                    )
+                    or
+                    ""
+                )
+
+
+                selected_user[
+                    "last_created_at_utc"
+                ] = (
+                    latest_message.get(
+                        "created_at_utc"
+                    )
+                    or
+                    ""
+                )
+
+
+                selected_user[
+                    "last_created_at_local"
+                ] = (
+                    latest_message.get(
+                        "created_at_local"
+                    )
+                    or
+                    ""
+                )
+
+
+    # ============================================================
+    # UPDATE USER LIST SELECTED USER DATA
+    # ============================================================
+
+    if selected_user:
+
+        selected_id = string_value(
+                selected_user.get(
+                    "id"
+                )
+            )
+
+
+        for user in users:
+
+            if (
+                string_value(
+                    user.get(
+                        "id"
+                    )
+                )
+                ==
+                selected_id
+            ):
+
+                user[
+                    "message_count"
+                ] = selected_user.get(
+                    "message_count",
+                    0
+                )
+
+
+                user[
+                    "conversation_count"
+                ] = selected_user.get(
+                    "conversation_count",
+                    0
+                )
+
+
+                user[
+                    "last_message"
+                ] = selected_user.get(
+                    "last_message",
+                    ""
+                )
+
+
+                user[
+                    "last_message_preview"
+                ] = selected_user.get(
+                    "last_message_preview",
+                    ""
+                )
+
+
+                user[
+                    "last_created_at"
+                ] = selected_user.get(
+                    "last_created_at",
+                    ""
+                )
+
+
+                user[
+                    "last_created_at_local"
+                ] = selected_user.get(
+                    "last_created_at_local",
+                    ""
+                )
+
+
+                user[
+                    "last_created_at_utc"
+                ] = selected_user.get(
+                    "last_created_at_utc",
+                    ""
+                )
+
+
+                break
+
+
+    # ============================================================
+    # FINAL RESPONSE
+    # ============================================================
+
+    return render_template(
+        "backend/pages/components/users/my_ai_conversations.html",
+
+        users=users,
+
+        selected_user=selected_user,
+
+        selected_user_id=selected_user_id,
+
+        conversations=conversations,
+
+        current_role=current_role,
+
+        total_users=total_users,
+
+        total_conversations=total_conversations,
+
+        total_messages=total_messages,
+    )
+
 
 
 # ============================================================
