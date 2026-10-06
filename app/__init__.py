@@ -13,9 +13,11 @@ from app.extensions import mongo, mail
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
+from flask_apscheduler import APScheduler
 
 
 
+scheduler = APScheduler()
 
 
 
@@ -192,7 +194,23 @@ def create_app():
     
     app.register_blueprint(bp) # ,url_prefix='/main'
     
-   
+
+    # existing setup...
+    from app.routes import update_personal_timeline_durations
+
+
+    scheduler.init_app(app)
+
+    scheduler.add_job(
+        id="personal_timeline_duration_updater",
+        func=update_personal_timeline_durations,
+        trigger="interval",
+        minutes=1,
+        replace_existing=True
+    )
+
+    scheduler.start()
+
 
 
     # Oggolow dhammaan domains ama ku xadid domain gaar ah:
