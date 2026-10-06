@@ -6,6 +6,7 @@ import enum
 import io
 import json
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from dateutil import relativedelta
 from flask_mail import Message   # ✅ CORRECT
 from openpyxl import Workbook, load_workbook
 
@@ -32,7 +33,7 @@ from flask import Response
 import dns.resolver  # Ku dar kor faylkaaga
 from flask import send_file
 
-from app.modal import Account, Category, Saving, SavingTransaction, Transaction, User, UserRole
+from app.modal import Account, Category, PersonalTimeline, Saving, SavingTransaction, Transaction, User, UserRole
 
 
 bp = Blueprint('main', __name__)
@@ -12575,10 +12576,7045 @@ def import_categories():
     return redirect(url_for("main.category_list"))
 
 
+
+# ============================================================
+# PERSONAL TIMELINE
+# ============================================================
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def _timeline_user_id():
+    """
+    Always return the logged-in user's ObjectId when possible.
+    """
+    try:
+        return ObjectId(str(current_user.id))
+    except Exception:
+        return current_user.id
+
+
+def _timeline_is_superadmin():
+    """
+    Check both enum-style and string-style roles.
+    """
+    role = getattr(current_user, "role", None)
+
+    if hasattr(role, "value"):
+        role = role.value
+
+    return str(role).lower() == "superadmin"
+
+
+def _timeline_parse_date(value):
+    """
+    Convert HTML/common date strings to UTC datetime.
+    """
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+
+        return value.astimezone(timezone.utc)
+
+    value = str(value).strip()
+
+    if not value:
+        return None
+
+    formats = [
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+    ]
+
+    for fmt in formats:
+        try:
+            return datetime.strptime(
+                value,
+                fmt
+            ).replace(
+                tzinfo=timezone.utc
+            )
+        except ValueError:
+            continue
+
+    return None
+
+
+def _timeline_format_date_for_form(value):
+    """
+    Convert Mongo datetime into YYYY-MM-DD.
+    """
+    if not value:
+        return ""
+
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+
+    return str(value)
+
+
+def _timeline_get_document(timeline_id):
+    """
+    Get one timeline document while respecting ownership.
+    """
+
+    try:
+        object_id = ObjectId(str(timeline_id))
+    except Exception:
+        return None
+
+    query = {
+        "_id": object_id
+    }
+
+    # Normal users only see their own records.
+    if not _timeline_is_superadmin():
+        query["user_id"] = _timeline_user_id()
+
+    return mongo.db.personal_timeline.find_one(query)
+
+
+def _timeline_build_from_request(existing=None):
+    """
+    Build PersonalTimeline from request.form.
+
+    Duration is calculated and stored in MongoDB.
+    """
+
+    now = datetime.now(timezone.utc)
+
+    title = (
+        request.form.get("title")
+        or request.form.get("name")
+        or ""
+    ).strip()
+
+    category = (
+        request.form.get("category")
+        or "personal"
+    ).strip().lower()
+
+    event_type = (
+        request.form.get("event_type")
+        or "other"
+    ).strip().lower()
+
+    event_type_other = (
+        request.form.get("event_type_other")
+        or ""
+    ).strip()
+
+    reaction = (
+        request.form.get("reaction")
+        or ""
+    ).strip()
+
+    start_date = _timeline_parse_date(
+        request.form.get("start_date")
+    )
+
+    end_date = _timeline_parse_date(
+        request.form.get("end_date")
+    )
+
+    status = (
+        request.form.get("status")
+        or "ongoing"
+    ).strip().lower()
+
+    description = (
+        request.form.get("description")
+        or ""
+    ).strip()
+
+    notes = (
+        request.form.get("notes")
+        or ""
+    ).strip()
+
+    # ========================================================
+    # BUILD TIMELINE
+    # ========================================================
+
+    if existing:
+
+        timeline = PersonalTimeline.from_dict(
+            existing
+        )
+
+        timeline.title = title
+        timeline.category = category
+        timeline.event_type = event_type
+
+        # Custom "Other" value
+        timeline.event_type_other = (
+            event_type_other
+            if event_type == "other"
+            else None
+        )
+
+        timeline.reaction = (
+            reaction
+            or None
+        )
+
+        timeline.start_date = start_date
+        timeline.end_date = end_date
+
+        timeline.status = status
+
+        timeline.description = description
+        timeline.notes = notes
+
+        timeline.touch()
+
+    else:
+
+        timeline = PersonalTimeline(
+            user_id=_timeline_user_id(),
+
+            title=title,
+            category=category,
+            event_type=event_type,
+
+            reaction=(
+                reaction
+                or None
+            ),
+
+            start_date=start_date,
+            end_date=end_date,
+
+            status=status,
+
+            description=description,
+            notes=notes,
+
+            created_at=now,
+            updated_at=now,
+        )
+
+        # Custom Other value
+        timeline.event_type_other = (
+            event_type_other
+            if event_type == "other"
+            else None
+        )
+
+    # ========================================================
+    # CALCULATE DURATION
+    # ========================================================
+
+    duration_years = 0
+    duration_months = 0
+    duration_days = 0
+    duration_total_days = 0
+    duration_text = "0 Days"
+
+    if start_date:
+
+        calculation_end = (
+            end_date
+            or datetime.now(timezone.utc)
+        )
+
+        if calculation_end < start_date:
+            calculation_end = start_date
+
+        start = start_date.date()
+        end = calculation_end.date()
+
+        # ----------------------------------------------------
+        # TOTAL DAYS
+        # ----------------------------------------------------
+
+        duration_total_days = (
+            end - start
+        ).days
+
+        # ----------------------------------------------------
+        # YEARS
+        # ----------------------------------------------------
+
+        duration_years = (
+            end.year - start.year
+        )
+
+        try:
+
+            anniversary = start.replace(
+                year=start.year + duration_years
+            )
+
+        except ValueError:
+
+            # Feb 29 handling
+            import calendar
+
+            target_year = (
+                start.year + duration_years
+            )
+
+            last_day = calendar.monthrange(
+                target_year,
+                start.month
+            )[1]
+
+            anniversary = start.replace(
+                year=target_year,
+                day=min(
+                    start.day,
+                    last_day
+                )
+            )
+
+        if anniversary > end:
+
+            duration_years -= 1
+
+            try:
+
+                anniversary = start.replace(
+                    year=start.year + duration_years
+                )
+
+            except ValueError:
+
+                import calendar
+
+                target_year = (
+                    start.year + duration_years
+                )
+
+                last_day = calendar.monthrange(
+                    target_year,
+                    start.month
+                )[1]
+
+                anniversary = start.replace(
+                    year=target_year,
+                    day=min(
+                        start.day,
+                        last_day
+                    )
+                )
+
+        # ----------------------------------------------------
+        # MONTHS
+        # ----------------------------------------------------
+
+        duration_months = (
+            (end.year - anniversary.year) * 12
+            + (end.month - anniversary.month)
+        )
+
+        target_index = (
+            anniversary.month - 1
+            + duration_months
+        )
+
+        target_year = (
+            anniversary.year
+            + target_index // 12
+        )
+
+        target_month = (
+            target_index % 12
+        ) + 1
+
+        import calendar
+
+        last_day = calendar.monthrange(
+            target_year,
+            target_month
+        )[1]
+
+        month_anniversary = anniversary.replace(
+            year=target_year,
+            month=target_month,
+            day=min(
+                anniversary.day,
+                last_day
+            )
+        )
+
+        if month_anniversary > end:
+
+            duration_months -= 1
+
+            target_index = (
+                anniversary.month - 1
+                + duration_months
+            )
+
+            target_year = (
+                anniversary.year
+                + target_index // 12
+            )
+
+            target_month = (
+                target_index % 12
+            ) + 1
+
+            last_day = calendar.monthrange(
+                target_year,
+                target_month
+            )[1]
+
+            month_anniversary = anniversary.replace(
+                year=target_year,
+                month=target_month,
+                day=min(
+                    anniversary.day,
+                    last_day
+                )
+            )
+
+        # ----------------------------------------------------
+        # DAYS
+        # ----------------------------------------------------
+
+        duration_days = max(
+            0,
+            (
+                end - month_anniversary
+            ).days
+        )
+
+        # ----------------------------------------------------
+        # DISPLAY
+        # ----------------------------------------------------
+
+        duration_parts = []
+
+        if duration_years:
+            duration_parts.append(
+                f"{duration_years} "
+                f"{'Year' if duration_years == 1 else 'Years'}"
+            )
+
+        if duration_months:
+            duration_parts.append(
+                f"{duration_months} "
+                f"{'Month' if duration_months == 1 else 'Months'}"
+            )
+
+        duration_parts.append(
+            f"{duration_days} "
+            f"{'Day' if duration_days == 1 else 'Days'}"
+        )
+
+        duration_text = " ".join(
+            duration_parts
+        )
+
+    # ========================================================
+    # STORE DURATION ON OBJECT
+    # ========================================================
+
+    timeline.duration_years = duration_years
+    timeline.duration_months = duration_months
+    timeline.duration_days = duration_days
+    timeline.duration_total_days = duration_total_days
+    timeline.duration_text = duration_text
+
+    return timeline
+
+
+def _timeline_document_for_template(document):
+    """
+    Add form/display fields without changing Mongo document.
+    """
+
+    if not document:
+        return None
+
+    data = dict(document)
+
+    data["start_date_form"] = _timeline_format_date_for_form(
+        data.get("start_date")
+    )
+
+    data["end_date_form"] = _timeline_format_date_for_form(
+        data.get("end_date")
+    )
+
+    # --------------------------------------------------------
+    # Duration
+    # --------------------------------------------------------
+
+    start_date = data.get("start_date")
+    end_date = data.get("end_date")
+
+    if start_date:
+
+        try:
+            end = (
+                end_date
+                or datetime.now(timezone.utc)
+            )
+
+            data["duration_days"] = max(
+                0,
+                (
+                    end.date()
+                    - start_date.date()
+                ).days
+            )
+
+        except Exception:
+            data["duration_days"] = 0
+
+    else:
+        data["duration_days"] = 0
+
+    return data
+
+
+def _timeline_template_context(
+    timeline=None,
+    modal=None,
+    validation_errors=None
+):
+    """
+    Common context used by index.html.
+
+    modal:
+        None
+        "add"
+        "edit"
+
+    This allows add/edit forms to live inside index.html.
+    """
+
+    return {
+        "timeline": timeline,
+
+        "categories": sorted(
+            PersonalTimeline.CATEGORIES
+        ),
+
+        "event_types": sorted(
+            PersonalTimeline.EVENT_TYPES
+        ),
+
+        "statuses": sorted(
+            PersonalTimeline.STATUSES
+        ),
+
+        "modal": modal,
+
+        "validation_errors": validation_errors or [],
+    }
+
+
+# ============================================================
+# GET /personal-timeline
+# ============================================================
+
+# ============================================================
+# PERSONAL TIMELINE
+# ============================================================
+
+@bp.route(
+    "/personal-timeline",
+    methods=["GET"]
+)
+@login_required
+def personal_timeline():
+
+    from datetime import datetime, date, timezone
+    from bson import ObjectId
+    from dateutil.relativedelta import relativedelta
+    import re
+
+    # ========================================================
+    # HELPERS
+    # ========================================================
+
+    def clean_string(value, default=""):
+        if value is None:
+            return default
+
+        return str(value).strip()
+
+    def parse_date_value(value):
+        """
+        Convert MongoDB datetime/date/string values into date.
+        """
+
+        if not value:
+            return None
+
+        try:
+
+            if isinstance(value, datetime):
+
+                if value.tzinfo is None:
+                    value = value.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                return value.astimezone(
+                    timezone.utc
+                ).date()
+
+            if isinstance(value, date):
+                return value
+
+            if isinstance(value, str):
+
+                value = value.strip()
+
+                if not value:
+                    return None
+
+                # ------------------------------------------------
+                # ISO datetime/date
+                # ------------------------------------------------
+
+                try:
+
+                    parsed = datetime.fromisoformat(
+                        value.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    return parsed.astimezone(
+                        timezone.utc
+                    ).date()
+
+                except Exception:
+                    pass
+
+                # ------------------------------------------------
+                # Common date formats
+                # ------------------------------------------------
+
+                for fmt in (
+                    "%Y-%m-%d",
+                    "%d-%m-%Y",
+                    "%d/%m/%Y",
+                    "%m/%d/%Y",
+                ):
+
+                    try:
+
+                        return datetime.strptime(
+                            value,
+                            fmt
+                        ).date()
+
+                    except Exception:
+                        continue
+
+        except Exception:
+            return None
+
+        return None
+
+    def calculate_duration(document):
+        """
+        Dynamic duration.
+
+        end_date exists:
+            start_date -> end_date
+
+        end_date missing:
+            start_date -> today
+        """
+
+        today = datetime.now(
+            timezone.utc
+        ).date()
+
+        start_day = parse_date_value(
+            document.get(
+                "start_date"
+            )
+        )
+
+        end_day = parse_date_value(
+            document.get(
+                "end_date"
+            )
+        )
+
+        if not start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": "—",
+                "is_ongoing": False,
+            }
+
+        is_ongoing = False
+
+        if not end_day:
+
+            end_day = today
+            is_ongoing = True
+
+        if end_day < start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": "0 Days",
+                "is_ongoing": is_ongoing,
+            }
+
+        total_days = (
+            end_day - start_day
+        ).days
+
+        try:
+
+            delta = relativedelta(
+                end_day,
+                start_day
+            )
+
+            years = int(
+                delta.years or 0
+            )
+
+            months = int(
+                delta.months or 0
+            )
+
+            days = int(
+                delta.days or 0
+            )
+
+        except Exception:
+
+            years = 0
+            months = 0
+            days = total_days
+
+        duration_parts = []
+
+        if years > 0:
+
+            duration_parts.append(
+                f"{years} "
+                f"{'Year' if years == 1 else 'Years'}"
+            )
+
+        if months > 0:
+
+            duration_parts.append(
+                f"{months} "
+                f"{'Month' if months == 1 else 'Months'}"
+            )
+
+        duration_parts.append(
+            f"{days} "
+            f"{'Day' if days == 1 else 'Days'}"
+        )
+
+        duration_text = " ".join(
+            duration_parts
+        )
+
+        return {
+            "years": years,
+            "months": months,
+            "days": days,
+            "total_days": total_days,
+            "text": duration_text,
+            "is_ongoing": is_ongoing,
+        }
+
+    def serialize_id(value):
+
+        if isinstance(
+            value,
+            ObjectId
+        ):
+            return str(value)
+
+        return value
+
+    # ========================================================
+    # QUERY PARAMETERS
+    # ========================================================
+
+    search = clean_string(
+        request.args.get(
+            "search",
+            ""
+        )
+    )
+
+    category = clean_string(
+        request.args.get(
+            "category",
+            ""
+        )
+    )
+
+    event_type = clean_string(
+        request.args.get(
+            "event_type",
+            ""
+        )
+    )
+
+    status = clean_string(
+        request.args.get(
+            "status",
+            ""
+        )
+    )
+
+    edit_id = clean_string(
+        request.args.get(
+            "edit_id",
+            ""
+        )
+    )
+
+    modal = clean_string(
+        request.args.get(
+            "modal",
+            ""
+        )
+    )
+
+    # ========================================================
+    # PAGINATION
+    #
+    # IMPORTANT:
+    # Pagination is now based on UNIQUE PEOPLE.
+    # ========================================================
+
+    try:
+
+        page = int(
+            request.args.get(
+                "page",
+                1
+            )
+        )
+
+    except Exception:
+
+        page = 1
+
+    try:
+
+        per_page = int(
+            request.args.get(
+                "per_page",
+                25
+            )
+        )
+
+    except Exception:
+
+        per_page = 25
+
+    if page < 1:
+        page = 1
+
+    allowed_per_page = (
+        10,
+        25,
+        50,
+        100
+    )
+
+    if per_page not in allowed_per_page:
+        per_page = 25
+
+    # ========================================================
+    # CURRENT USER
+    # ========================================================
+
+    try:
+
+        current_user_id = getattr(
+            current_user,
+            "id",
+            None
+        )
+
+        if current_user_id is None:
+
+            current_user_id = getattr(
+                current_user,
+                "_id",
+                None
+            )
+
+    except Exception:
+
+        current_user_id = None
+
+    if current_user_id is None:
+
+        flash(
+            "Unable to identify the current user.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.index"
+            )
+        )
+
+    # ========================================================
+    # USER ID COMPATIBILITY
+    #
+    # Supports:
+    # ObjectId
+    # String ObjectId
+    # ========================================================
+
+    owner_values = []
+
+    try:
+
+        if isinstance(
+            current_user_id,
+            ObjectId
+        ):
+
+            owner_values.append(
+                current_user_id
+            )
+
+            owner_values.append(
+                str(
+                    current_user_id
+                )
+            )
+
+        else:
+
+            current_user_id_string = str(
+                current_user_id
+            ).strip()
+
+            if current_user_id_string:
+
+                owner_values.append(
+                    current_user_id_string
+                )
+
+                try:
+
+                    owner_values.append(
+                        ObjectId(
+                            current_user_id_string
+                        )
+                    )
+
+                except Exception:
+                    pass
+
+    except Exception:
+
+        owner_values = [
+            current_user_id
+        ]
+
+    # ========================================================
+    # REMOVE DUPLICATES FROM OWNER VALUES
+    # ========================================================
+
+    unique_owner_values = []
+
+    for owner_value in owner_values:
+
+        if owner_value not in unique_owner_values:
+
+            unique_owner_values.append(
+                owner_value
+            )
+
+    if not unique_owner_values:
+
+        flash(
+            "User account could not be identified.",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.index"
+            )
+        )
+
+    # ========================================================
+    # BASE QUERY
+    # ========================================================
+
+    query = {
+        "user_id": {
+            "$in": unique_owner_values
+        }
+    }
+
+    # ========================================================
+    # SEARCH
+    # ========================================================
+
+    if search:
+
+        escaped_search = re.escape(
+            search
+        )
+
+        query["$or"] = [
+
+            {
+                "title": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+
+            {
+                "description": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+
+            {
+                "notes": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+
+            {
+                "event_type": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+
+            {
+                "event_type_other": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+
+            {
+                "category": {
+                    "$regex": escaped_search,
+                    "$options": "i"
+                }
+            },
+        ]
+
+    # ========================================================
+    # CATEGORY
+    # ========================================================
+
+    if category:
+
+        query["category"] = category
+
+    # ========================================================
+    # EVENT TYPE
+    # ========================================================
+
+    if event_type:
+
+        if event_type.lower() == "other":
+
+            query["event_type"] = "other"
+
+        else:
+
+            query["event_type"] = event_type
+
+    # ========================================================
+    # STATUS
+    #
+    # ongoing / ended are calculated dynamically.
+    # ========================================================
+
+    if status:
+
+        status_lower = status.lower()
+
+        if status_lower not in (
+            "ongoing",
+            "ended"
+        ):
+
+            query["status"] = status
+
+    # ========================================================
+    # COLLECTION
+    # ========================================================
+
+    collection = mongo.db.personal_timeline
+
+    # ========================================================
+    # FETCH ALL MATCHING RECORDS
+    # ========================================================
+
+    try:
+
+        all_documents = list(
+            collection.find(
+                query
+            ).sort(
+                [
+                    (
+                        "start_date",
+                        -1
+                    ),
+                    (
+                        "created_at",
+                        -1
+                    ),
+                    (
+                        "_id",
+                        -1
+                    ),
+                ]
+            )
+        )
+
+    except Exception as e:
+
+        flash(
+            f"Unable to load personal timeline: {str(e)}",
+            "danger"
+        )
+
+        all_documents = []
+
+    # ========================================================
+    # PROCESS DOCUMENTS
+    #
+    # IMPORTANT:
+    # Every MongoDB record is processed here.
+    #
+    # We DO NOT remove records.
+    #
+    # Later we group them by person.
+    # ========================================================
+
+    processed_documents = []
+
+    for document in all_documents:
+
+        try:
+
+            item = _timeline_document_for_template(
+                document
+            )
+
+        except Exception:
+
+            item = dict(
+                document
+            )
+
+        # ====================================================
+        # ID
+        # ====================================================
+
+        item["_id"] = serialize_id(
+            document.get(
+                "_id"
+            )
+        )
+
+        # ====================================================
+        # TITLE / PERSON
+        #
+        # IMPORTANT:
+        # Title remains ONLY the person's name.
+        # ====================================================
+
+        title = clean_string(
+            document.get(
+                "title",
+                ""
+            )
+        )
+
+        item["title"] = title
+
+        item["person_name"] = title
+
+        # ====================================================
+        # CATEGORY
+        # ====================================================
+
+        item["category"] = clean_string(
+            document.get(
+                "category",
+                "personal"
+            ),
+            "personal"
+        )
+
+        # ====================================================
+        # EVENT TYPE
+        # ====================================================
+
+        item["event_type"] = clean_string(
+            document.get(
+                "event_type",
+                "other"
+            ),
+            "other"
+        )
+
+        item["event_type_other"] = clean_string(
+            document.get(
+                "event_type_other",
+                ""
+            )
+        )
+
+        # ====================================================
+        # REACTION
+        # ====================================================
+
+        item["reaction"] = clean_string(
+            document.get(
+                "reaction",
+                ""
+            )
+        )
+
+        # ====================================================
+        # DESCRIPTION
+        # ====================================================
+
+        item["description"] = clean_string(
+            document.get(
+                "description",
+                ""
+            )
+        )
+
+        # ====================================================
+        # NOTES
+        # ====================================================
+
+        item["notes"] = clean_string(
+            document.get(
+                "notes",
+                ""
+            )
+        )
+
+        # ====================================================
+        # ORIGINAL STATUS
+        # ====================================================
+
+        original_status = clean_string(
+            document.get(
+                "status",
+                "ongoing"
+            ),
+            "ongoing"
+        )
+
+        item["status"] = original_status
+
+        # ====================================================
+        # DYNAMIC DURATION
+        # ====================================================
+
+        duration = calculate_duration(
+            document
+        )
+
+        item["duration_years"] = (
+            duration["years"]
+        )
+
+        item["duration_months"] = (
+            duration["months"]
+        )
+
+        item["duration_days"] = (
+            duration["days"]
+        )
+
+        item["duration_total_days"] = (
+            duration["total_days"]
+        )
+
+        item["duration_text"] = (
+            duration["text"]
+        )
+
+        item["is_ongoing"] = (
+            duration["is_ongoing"]
+        )
+
+        # ====================================================
+        # DISPLAY STATUS
+        #
+        # Date-based status has priority.
+        # ====================================================
+
+        if duration["is_ongoing"]:
+
+            item["display_status"] = "ongoing"
+
+        else:
+
+            item["display_status"] = "ended"
+
+        # ====================================================
+        # DATES
+        # ====================================================
+
+        start_day = parse_date_value(
+            document.get(
+                "start_date"
+            )
+        )
+
+        end_day = parse_date_value(
+            document.get(
+                "end_date"
+            )
+        )
+
+        item["start_date"] = (
+            start_day.isoformat()
+            if start_day
+            else ""
+        )
+
+        item["end_date"] = (
+            end_day.isoformat()
+            if end_day
+            else ""
+        )
+
+        # ====================================================
+        # CREATED AT
+        # ====================================================
+
+        created_at = document.get(
+            "created_at"
+        )
+
+        if isinstance(
+            created_at,
+            datetime
+        ):
+
+            if created_at.tzinfo is None:
+
+                created_at = created_at.replace(
+                    tzinfo=timezone.utc
+                )
+
+            item["created_at"] = (
+                created_at.astimezone(
+                    timezone.utc
+                ).isoformat()
+            )
+
+        else:
+
+            item["created_at"] = (
+                clean_string(
+                    created_at
+                )
+            )
+
+        # ====================================================
+        # ORIGINAL USER ID
+        # ====================================================
+
+        item["user_id"] = serialize_id(
+            document.get(
+                "user_id"
+            )
+        )
+
+        # ====================================================
+        # KEEP FULL ORIGINAL DOCUMENT DATA
+        # FOR PERSON GROUPING / VIEW MODAL
+        # ====================================================
+
+        item["_original_id"] = item["_id"]
+
+        processed_documents.append(
+            item
+        )
+
+    # ========================================================
+    # DYNAMIC STATUS FILTER
+    #
+    # IMPORTANT:
+    # This happens BEFORE grouping.
+    #
+    # Therefore:
+    #
+    # status=ongoing
+    # -> only ongoing records
+    #
+    # status=ended
+    # -> only ended records
+    # ========================================================
+
+    if status:
+
+        status_lower = status.lower()
+
+        if status_lower in (
+            "ongoing",
+            "ended"
+        ):
+
+            filtered_documents = []
+
+            for item in processed_documents:
+
+                is_ongoing = bool(
+                    item.get(
+                        "is_ongoing",
+                        False
+                    )
+                )
+
+                if (
+                    status_lower == "ongoing"
+                    and is_ongoing
+                ):
+
+                    filtered_documents.append(
+                        item
+                    )
+
+                elif (
+                    status_lower == "ended"
+                    and not is_ongoing
+                ):
+
+                    filtered_documents.append(
+                        item
+                    )
+
+            processed_documents = (
+                filtered_documents
+            )
+
+    # ========================================================
+    # GROUP RECORDS BY PERSON
+    #
+    # THIS IS THE IMPORTANT PART.
+    #
+    # Example:
+    #
+    # Muno record 1
+    # Muno record 2
+    # Muno record 3
+    #
+    # becomes:
+    #
+    # Muno -> ONE ROW
+    #
+    # While all 3 records remain inside:
+    #
+    # _person_records
+    # ========================================================
+
+    grouped_people = {}
+
+    for item in processed_documents:
+
+        person_name = clean_string(
+            item.get(
+                "title",
+                ""
+            )
+        )
+
+        # ----------------------------------------------------
+        # Case-insensitive grouping.
+        #
+        # "Muno"
+        # "muno"
+        # "MUNO"
+        #
+        # are treated as the same person.
+        # ----------------------------------------------------
+
+        person_key = (
+            person_name.lower()
+            if person_name
+            else f"__empty__:{item.get('_id')}"
+        )
+
+        if person_key not in grouped_people:
+
+            grouped_people[person_key] = {
+                "person_name": person_name,
+                "title": person_name,
+                "_person_records": [],
+            }
+
+        grouped_people[
+            person_key
+        ][
+            "_person_records"
+        ].append(
+            item
+        )
+
+    # ========================================================
+    # CREATE ONE TABLE ROW PER PERSON
+    # ========================================================
+
+    person_rows = []
+
+    for person_key, group in grouped_people.items():
+
+        records = group.get(
+            "_person_records",
+            []
+        )
+
+        if not records:
+            continue
+
+        # ----------------------------------------------------
+        # Records are already sorted newest first.
+        #
+        # First record becomes the representative record
+        # for the main table.
+        # ----------------------------------------------------
+
+        representative = records[0]
+
+        row = dict(
+            representative
+        )
+
+        # ----------------------------------------------------
+        # PERSON NAME
+        # ----------------------------------------------------
+
+        person_name = clean_string(
+            group.get(
+                "person_name",
+                ""
+            )
+        )
+
+        row["title"] = person_name
+
+        row["person_name"] = person_name
+
+        # ----------------------------------------------------
+        # ALL RECORDS FOR THIS PERSON
+        # ----------------------------------------------------
+
+        row["_person_records"] = records
+
+        # ----------------------------------------------------
+        # RECORD COUNT
+        # ----------------------------------------------------
+
+        row["_duplicate_count"] = len(
+            records
+        )
+
+        row["record_count"] = len(
+            records
+        )
+
+        # ----------------------------------------------------
+        # PERSON LABEL
+        # ----------------------------------------------------
+
+        row["person_record_label"] = (
+            f"{len(records)} "
+            f"{'record' if len(records) == 1 else 'records'}"
+        )
+
+        # ----------------------------------------------------
+        # PERSON ONGOING / ENDED COUNTS
+        # ----------------------------------------------------
+
+        row["ongoing_record_count"] = sum(
+            1
+            for record in records
+            if record.get(
+                "is_ongoing",
+                False
+            )
+        )
+
+        row["ended_record_count"] = (
+            len(records)
+            - row["ongoing_record_count"]
+        )
+
+        # ----------------------------------------------------
+        # PERSON TOTAL DURATION
+        # ----------------------------------------------------
+
+        row["person_total_duration_days"] = sum(
+            int(
+                record.get(
+                    "duration_total_days",
+                    0
+                )
+                or 0
+            )
+            for record in records
+        )
+
+        # ----------------------------------------------------
+        # PERSON DATE RANGE
+        #
+        # Find earliest start date.
+        # Find latest end date.
+        # ----------------------------------------------------
+
+        start_dates = []
+
+        end_dates = []
+
+        for record in records:
+
+            start_value = parse_date_value(
+                record.get(
+                    "start_date"
+                )
+            )
+
+            end_value = parse_date_value(
+                record.get(
+                    "end_date"
+                )
+            )
+
+            if start_value:
+                start_dates.append(
+                    start_value
+                )
+
+            if end_value:
+                end_dates.append(
+                    end_value
+                )
+
+        earliest_start = (
+            min(start_dates)
+            if start_dates
+            else None
+        )
+
+        latest_end = (
+            max(end_dates)
+            if end_dates
+            else None
+        )
+
+        row["person_start_date"] = (
+            earliest_start.isoformat()
+            if earliest_start
+            else ""
+        )
+
+        row["person_end_date"] = (
+            latest_end.isoformat()
+            if latest_end
+            else ""
+        )
+
+        # ----------------------------------------------------
+        # PERSON STATUS
+        #
+        # If ANY record is ongoing,
+        # person is shown as ongoing.
+        # ----------------------------------------------------
+
+        person_is_ongoing = any(
+            record.get(
+                "is_ongoing",
+                False
+            )
+            for record in records
+        )
+
+        row["is_ongoing"] = (
+            person_is_ongoing
+        )
+
+        row["display_status"] = (
+            "ongoing"
+            if person_is_ongoing
+            else "ended"
+        )
+
+        # ----------------------------------------------------
+        # NUMBER OF UNIQUE EVENT TYPES
+        # ----------------------------------------------------
+
+        person_event_types = set()
+
+        for record in records:
+
+            event_name = clean_string(
+                record.get(
+                    "event_type_other"
+                )
+                if record.get(
+                    "event_type"
+                ) == "other"
+                else record.get(
+                    "event_type"
+                )
+            )
+
+            if event_name:
+                person_event_types.add(
+                    event_name.lower()
+                )
+
+        row["event_type_count"] = len(
+            person_event_types
+        )
+
+        # ----------------------------------------------------
+        # EVENT TYPE LABEL
+        #
+        # If one event type:
+        # show it.
+        #
+        # If multiple:
+        # show "X event types".
+        # ----------------------------------------------------
+
+        if len(person_event_types) == 1:
+
+            first_event = next(
+                iter(
+                    person_event_types
+                )
+            )
+
+            row["person_event_type_label"] = (
+                first_event.replace(
+                    "_",
+                    " "
+                ).title()
+            )
+
+        elif len(person_event_types) > 1:
+
+            row["person_event_type_label"] = (
+                f"{len(person_event_types)} "
+                f"event types"
+            )
+
+        else:
+
+            row["person_event_type_label"] = (
+                "Other"
+            )
+
+        # ----------------------------------------------------
+        # CATEGORY LABEL
+        # ----------------------------------------------------
+
+        person_categories = []
+
+        for record in records:
+
+            category_value = clean_string(
+                record.get(
+                    "category",
+                    ""
+                )
+            )
+
+            if category_value:
+
+                if category_value.lower() not in [
+                    value.lower()
+                    for value in person_categories
+                ]:
+
+                    person_categories.append(
+                        category_value
+                    )
+
+        row["person_categories"] = (
+            person_categories
+        )
+
+        if len(person_categories) == 1:
+
+            row["person_category_label"] = (
+                person_categories[0]
+            )
+
+        elif len(person_categories) > 1:
+
+            row["person_category_label"] = (
+                f"{len(person_categories)} categories"
+            )
+
+        else:
+
+            row["person_category_label"] = (
+                "Personal"
+            )
+
+        # ----------------------------------------------------
+        # REACTION LABEL
+        #
+        # Representative reaction remains primary.
+        # ----------------------------------------------------
+
+        reactions = []
+
+        for record in records:
+
+            reaction_value = clean_string(
+                record.get(
+                    "reaction",
+                    ""
+                )
+            )
+
+            if reaction_value:
+
+                reactions.append(
+                    reaction_value
+                )
+
+        row["person_reactions"] = reactions
+
+        if reactions:
+
+            row["reaction"] = reactions[0]
+
+        else:
+
+            row["reaction"] = ""
+
+        # ----------------------------------------------------
+        # SUMMARY DESCRIPTION
+        # ----------------------------------------------------
+
+        descriptions = []
+
+        for record in records:
+
+            description_value = clean_string(
+                record.get(
+                    "description",
+                    ""
+                )
+            )
+
+            if description_value:
+
+                descriptions.append(
+                    description_value
+                )
+
+        if descriptions:
+
+            row["description"] = descriptions[0]
+
+        else:
+
+            row["description"] = ""
+
+        # ----------------------------------------------------
+        # SUMMARY NOTES
+        # ----------------------------------------------------
+
+        notes = []
+
+        for record in records:
+
+            notes_value = clean_string(
+                record.get(
+                    "notes",
+                    ""
+                )
+            )
+
+            if notes_value:
+
+                notes.append(
+                    notes_value
+                )
+
+        if notes:
+
+            row["notes"] = notes[0]
+
+        else:
+
+            row["notes"] = ""
+
+        # ----------------------------------------------------
+        # REPRESENTATIVE DURATION
+        #
+        # Main row displays latest/representative record's
+        # duration. The full report can show every record.
+        # ----------------------------------------------------
+
+        row["duration_text"] = (
+            representative.get(
+                "duration_text",
+                "—"
+            )
+            or "—"
+        )
+
+        row["duration_total_days"] = (
+            representative.get(
+                "duration_total_days",
+                0
+            )
+            or 0
+        )
+
+        # ----------------------------------------------------
+        # PERSON SUMMARY LABEL
+        # ----------------------------------------------------
+
+        row["person_summary"] = (
+            f"{len(records)} "
+            f"{'record' if len(records) == 1 else 'records'}"
+        )
+
+        # ----------------------------------------------------
+        # KEEP REPRESENTATIVE ID
+        #
+        # View uses this ID to retrieve all records.
+        # ----------------------------------------------------
+
+        row["_id"] = representative.get(
+            "_id"
+        )
+
+        row["view_timeline_id"] = (
+            representative.get(
+                "_id"
+            )
+        )
+
+        row["representative_record"] = (
+            representative
+        )
+
+        person_rows.append(
+            row
+        )
+
+    # ========================================================
+    # SORT UNIQUE PEOPLE
+    #
+    # Keep same newest-first order.
+    # ========================================================
+
+    person_rows.sort(
+        key=lambda item: (
+            parse_date_value(
+                item.get(
+                    "start_date"
+                )
+            )
+            or date.min
+        ),
+        reverse=True
+    )
+
+    # ========================================================
+    # STATISTICS
+    #
+    # total_count = ALL actual records
+    # relationship_count = UNIQUE PEOPLE
+    # ========================================================
+
+    total_count = len(
+        processed_documents
+    )
+
+    relationship_count = len(
+        person_rows
+    )
+
+    ongoing_count = sum(
+        1
+        for item in processed_documents
+        if item.get(
+            "is_ongoing",
+            False
+        )
+    )
+
+    ended_count = (
+        total_count
+        - ongoing_count
+    )
+
+    total_duration_days = sum(
+        int(
+            item.get(
+                "duration_total_days",
+                0
+            )
+            or 0
+        )
+        for item in processed_documents
+    )
+
+    # ========================================================
+    # PAGINATION
+    #
+    # IMPORTANT:
+    # Pagination is now UNIQUE PEOPLE.
+    #
+    # Example:
+    #
+    # 100 Muno records
+    # 20 Samiro records
+    # 10 Maido records
+    #
+    # relationship_count = 3
+    #
+    # Main table = 3 rows.
+    # ========================================================
+
+    total_person_count = len(
+        person_rows
+    )
+
+    total_pages = (
+        (
+            total_person_count
+            + per_page
+            - 1
+        )
+        // per_page
+        if total_person_count
+        else 1
+    )
+
+    if page > total_pages:
+
+        page = total_pages
+
+    start_index = (
+        (page - 1)
+        * per_page
+    )
+
+    end_index = (
+        start_index
+        + per_page
+    )
+
+    # --------------------------------------------------------
+    # MAIN TABLE ROWS
+    # --------------------------------------------------------
+
+    timelines = person_rows[
+        start_index:end_index
+    ]
+
+    # ========================================================
+    # PAGINATION CLASS
+    # ========================================================
+
+    class TimelinePagination:
+
+        def __init__(
+            self,
+            page_number,
+            per_page_number,
+            total_items
+        ):
+
+            self.page = page_number
+
+            self.per_page = (
+                per_page_number
+            )
+
+            self.total = total_items
+
+            self.pages = (
+                (
+                    total_items
+                    + per_page_number
+                    - 1
+                )
+                // per_page_number
+                if total_items
+                else 1
+            )
+
+            self.has_prev = (
+                self.page > 1
+            )
+
+            self.has_next = (
+                self.page < self.pages
+            )
+
+            self.prev_num = (
+                self.page - 1
+                if self.has_prev
+                else None
+            )
+
+            self.next_num = (
+                self.page + 1
+                if self.has_next
+                else None
+            )
+
+            self.items = timelines
+
+        def iter_pages(
+            self,
+            left_edge=2,
+            left_current=2,
+            right_current=3,
+            right_edge=2
+        ):
+
+            last = 0
+
+            for number in range(
+                1,
+                self.pages + 1
+            ):
+
+                if (
+                    number <= left_edge
+                    or
+                    (
+                        number
+                        >= self.page
+                        - left_current
+                        and
+                        number
+                        <= self.page
+                        + right_current
+                    )
+                    or
+                    number
+                    > self.pages
+                    - right_edge
+                ):
+
+                    if (
+                        last + 1
+                        != number
+                    ):
+
+                        yield None
+
+                    yield number
+
+                    last = number
+
+    pagination = TimelinePagination(
+        page,
+        per_page,
+        total_person_count
+    )
+
+    # ========================================================
+    # EDIT TIMELINE
+    # ========================================================
+
+    edit_timeline = None
+
+    if edit_id:
+
+        try:
+
+            edit_timeline = (
+                _timeline_get_document(
+                    edit_id
+                )
+            )
+
+        except Exception:
+
+            edit_timeline = None
+
+        if edit_timeline:
+
+            try:
+
+                edit_timeline = (
+                    _timeline_document_for_template(
+                        edit_timeline
+                    )
+                )
+
+            except Exception:
+
+                edit_timeline = dict(
+                    edit_timeline
+                )
+
+            edit_duration = (
+                calculate_duration(
+                    edit_timeline
+                )
+            )
+
+            edit_timeline[
+                "_id"
+            ] = serialize_id(
+                edit_timeline.get(
+                    "_id"
+                )
+            )
+
+            edit_timeline[
+                "duration_years"
+            ] = edit_duration[
+                "years"
+            ]
+
+            edit_timeline[
+                "duration_months"
+            ] = edit_duration[
+                "months"
+            ]
+
+            edit_timeline[
+                "duration_days"
+            ] = edit_duration[
+                "days"
+            ]
+
+            edit_timeline[
+                "duration_total_days"
+            ] = edit_duration[
+                "total_days"
+            ]
+
+            edit_timeline[
+                "duration_text"
+            ] = edit_duration[
+                "text"
+            ]
+
+            edit_timeline[
+                "is_ongoing"
+            ] = edit_duration[
+                "is_ongoing"
+            ]
+
+            edit_timeline[
+                "event_type_other"
+            ] = clean_string(
+                edit_timeline.get(
+                    "event_type_other",
+                    ""
+                )
+            )
+
+        else:
+
+            flash(
+                "Personal timeline event was not found.",
+                "danger"
+            )
+
+            edit_id = ""
+
+            modal = ""
+
+    # ========================================================
+    # FILTER VALUES
+    # ========================================================
+
+    filter_documents = []
+
+    try:
+
+        filter_documents = list(
+            collection.find(
+                {
+                    "user_id": {
+                        "$in": unique_owner_values
+                    }
+                },
+                {
+                    "category": 1,
+                    "event_type": 1,
+                    "event_type_other": 1,
+                }
+            )
+        )
+
+    except Exception:
+
+        filter_documents = []
+
+    categories = set()
+
+    event_types = set()
+
+    for document in filter_documents:
+
+        document_category = clean_string(
+            document.get(
+                "category",
+                ""
+            )
+        )
+
+        if document_category:
+
+            categories.add(
+                document_category
+            )
+
+        document_event_type = clean_string(
+            document.get(
+                "event_type",
+                ""
+            )
+        )
+
+        if document_event_type:
+
+            event_types.add(
+                document_event_type
+            )
+
+    categories = sorted(
+        categories,
+        key=lambda value: value.lower()
+    )
+
+    event_types = sorted(
+        event_types,
+        key=lambda value: value.lower()
+    )
+
+    # ========================================================
+    # CONTEXT
+    # ========================================================
+
+    context = {
+
+        # ----------------------------------------------------
+        # MAIN TABLE
+        #
+        # ONE ROW PER PERSON
+        # ----------------------------------------------------
+
+        "timelines": timelines,
+
+        # ----------------------------------------------------
+        # PAGINATION
+        # ----------------------------------------------------
+
+        "pagination": pagination,
+
+        # ----------------------------------------------------
+        # FILTERS
+        # ----------------------------------------------------
+
+        "search": search,
+
+        "category": category,
+
+        "event_type": event_type,
+
+        "status": status,
+
+        # ----------------------------------------------------
+        # FILTER OPTIONS
+        # ----------------------------------------------------
+
+        "categories": categories,
+
+        "event_types": event_types,
+
+        # ----------------------------------------------------
+        # STATISTICS
+        # ----------------------------------------------------
+
+        # All actual timeline records.
+        "total_count": total_count,
+
+        # Unique people.
+        "relationship_count": relationship_count,
+
+        "ongoing_count": ongoing_count,
+
+        "ended_count": ended_count,
+
+        "total_duration_days": (
+            total_duration_days
+        ),
+
+        # ----------------------------------------------------
+        # PAGINATION VALUES
+        # ----------------------------------------------------
+
+        "page": page,
+
+        "per_page": per_page,
+
+        "total_pages": total_pages,
+
+        "allowed_per_page": (
+            allowed_per_page
+        ),
+
+        "total_person_count": (
+            total_person_count
+        ),
+
+        # ----------------------------------------------------
+        # EDIT
+        # ----------------------------------------------------
+
+        "edit_id": edit_id,
+
+        "edit_timeline": edit_timeline,
+
+        "modal": modal,
+
+        # ----------------------------------------------------
+        # DATE
+        # ----------------------------------------------------
+
+        "today": datetime.now(
+            timezone.utc
+        ).date().isoformat(),
+
+        # ----------------------------------------------------
+        # FLAGS
+        # ----------------------------------------------------
+
+        "has_timelines": bool(
+            timelines
+        ),
+
+        "has_results": bool(
+            processed_documents
+        ),
+
+        "has_people": bool(
+            person_rows
+        ),
+
+        # ----------------------------------------------------
+        # IMPORTANT:
+        # Full records remain available in memory for
+        # grouping/report logic.
+        # ----------------------------------------------------
+
+        "processed_documents": (
+            processed_documents
+        ),
+    }
+
+    # ========================================================
+    # RENDER
+    # ========================================================
+
+    return render_template(
+        "backend/pages/components/personal_timeline/all_personal_timeline.html",
+        **context
+    )
+
+
+
+
+
+
+
+# ============================================================
+# GET /personal-timeline/add
+#
+# OPTIONAL COMPATIBILITY ROUTE
+#
+# No separate add.html.
+# It simply opens the ADD modal on index.html.
+# ============================================================
+
+@bp.route(
+    "/personal-timeline/add",
+    methods=["GET"]
+)
+@login_required
+def personal_timeline_add():
+
+    return redirect(
+        url_for(
+            "main.personal_timeline",
+            modal="add"
+        )
+    )
+
+
+# ============================================================
+# POST /personal-timeline/add
+# ============================================================
+
+@bp.route(
+    "/personal-timeline/add",
+    methods=["POST"]
+)
+@login_required
+def personal_timeline_add_post():
+
+    try:
+
+        timeline = _timeline_build_from_request()
+
+        # ====================================================
+        # VALIDATE
+        # ====================================================
+
+        errors = timeline.validate()
+
+        # Custom Other validation
+        if timeline.event_type == "other":
+
+            custom_other = getattr(
+                timeline,
+                "event_type_other",
+                None
+            )
+
+            if not custom_other:
+
+                errors.append(
+                    "Please enter the custom event type."
+                )
+
+            elif len(custom_other) < 2:
+
+                errors.append(
+                    "Custom event type must contain at least 2 characters."
+                )
+
+            elif len(custom_other) > 100:
+
+                errors.append(
+                    "Custom event type cannot exceed 100 characters."
+                )
+
+        if errors:
+
+            timeline_data = (
+                _timeline_document_for_template(
+                    timeline.to_dict()
+                )
+            )
+
+            # Ensure custom fields exist even when
+            # PersonalTimeline.to_dict() does not include them.
+            timeline_data["event_type_other"] = getattr(
+                timeline,
+                "event_type_other",
+                None
+            )
+
+            timeline_data["duration_years"] = getattr(
+                timeline,
+                "duration_years",
+                0
+            )
+
+            timeline_data["duration_months"] = getattr(
+                timeline,
+                "duration_months",
+                0
+            )
+
+            timeline_data["duration_days"] = getattr(
+                timeline,
+                "duration_days",
+                0
+            )
+
+            timeline_data["duration_total_days"] = getattr(
+                timeline,
+                "duration_total_days",
+                0
+            )
+
+            timeline_data["duration_text"] = getattr(
+                timeline,
+                "duration_text",
+                "0 Days"
+            )
+
+            for error in errors:
+                flash(error, "danger")
+
+            return redirect(
+                url_for(
+                    "main.personal_timeline",
+                    modal="add"
+                )
+            ), 400
+
+        # ====================================================
+        # INSERT
+        # ====================================================
+
+        document = timeline.to_dict()
+
+        # Make sure these fields are persisted even if
+        # PersonalTimeline.to_dict() does not know about them.
+        document["event_type_other"] = getattr(
+            timeline,
+            "event_type_other",
+            None
+        )
+
+        document["duration_years"] = getattr(
+            timeline,
+            "duration_years",
+            0
+        )
+
+        document["duration_months"] = getattr(
+            timeline,
+            "duration_months",
+            0
+        )
+
+        document["duration_days"] = getattr(
+            timeline,
+            "duration_days",
+            0
+        )
+
+        document["duration_total_days"] = getattr(
+            timeline,
+            "duration_total_days",
+            0
+        )
+
+        document["duration_text"] = getattr(
+            timeline,
+            "duration_text",
+            "0 Days"
+        )
+
+        mongo.db.personal_timeline.insert_one(
+            document
+        )
+
+        flash(
+            "Personal timeline event added successfully.",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    except Exception as e:
+
+        flash(
+            f"Unable to add timeline event: {str(e)}",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.personal_timeline"
+            )
+        )
+
+
+
+# ============================================================
+# GET /personal-timeline/<id>
+# ============================================================
+
+
+# ============================================================
+# GET /personal-timeline/<timeline_id>/edit
+# ============================================================
+
+@bp.route(
+    "/personal-timeline/<timeline_id>/edit",
+    methods=["GET"]
+)
+@login_required
+def personal_timeline_edit(timeline_id):
+
+    # ========================================================
+    # GET EXISTING TIMELINE
+    # ========================================================
+
+    timeline = _timeline_get_document(timeline_id)
+
+    if not timeline:
+
+        flash(
+            "Personal timeline event was not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.personal_timeline")
+        )
+
+    # ========================================================
+    # OPEN EDIT MODAL ON MAIN TIMELINE PAGE
+    # ========================================================
+
+    return redirect(
+        url_for(
+            "main.personal_timeline",
+            edit_id=str(timeline["_id"]),
+            modal="edit"
+        )
+    )
+
+
+# ============================================================
+# POST /personal-timeline/<timeline_id>/edit
+# ============================================================
+
+@bp.route(
+    "/personal-timeline/<timeline_id>/edit",
+    methods=["POST"]
+)
+@login_required
+def personal_timeline_edit_post(timeline_id):
+
+    # ========================================================
+    # GET EXISTING RECORD
+    # ========================================================
+
+    existing = _timeline_get_document(timeline_id)
+
+    if not existing:
+
+        flash(
+            "Personal timeline event was not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.personal_timeline")
+        )
+
+    try:
+
+        # ====================================================
+        # BUILD UPDATED TIMELINE
+        # ====================================================
+
+        timeline = _timeline_build_from_request(
+            existing=existing
+        )
+
+        # ====================================================
+        # VALIDATE
+        # ====================================================
+
+        errors = timeline.validate()
+
+        # ====================================================
+        # CUSTOM EVENT TYPE VALIDATION
+        # ====================================================
+
+        if timeline.event_type == "other":
+
+            event_type_other = getattr(
+                timeline,
+                "event_type_other",
+                None
+            )
+
+            if not event_type_other:
+
+                errors.append(
+                    "Please enter the custom event type."
+                )
+
+            elif len(event_type_other) < 2:
+
+                errors.append(
+                    "Custom event type must contain at least 2 characters."
+                )
+
+            elif len(event_type_other) > 100:
+
+                errors.append(
+                    "Custom event type cannot exceed 100 characters."
+                )
+
+        # ====================================================
+        # VALIDATION FAILED
+        # ====================================================
+
+        if errors:
+
+            timeline_data = (
+                _timeline_document_for_template(
+                    timeline.to_dict()
+                )
+            )
+
+            # ------------------------------------------------
+            # CUSTOM EVENT TYPE
+            # ------------------------------------------------
+
+            timeline_data["event_type_other"] = getattr(
+                timeline,
+                "event_type_other",
+                None
+            )
+
+            # ------------------------------------------------
+            # DURATION
+            # ------------------------------------------------
+
+            timeline_data["duration_years"] = getattr(
+                timeline,
+                "duration_years",
+                0
+            )
+
+            timeline_data["duration_months"] = getattr(
+                timeline,
+                "duration_months",
+                0
+            )
+
+            timeline_data["duration_days"] = getattr(
+                timeline,
+                "duration_days",
+                0
+            )
+
+            timeline_data["duration_total_days"] = getattr(
+                timeline,
+                "duration_total_days",
+                0
+            )
+
+            timeline_data["duration_text"] = getattr(
+                timeline,
+                "duration_text",
+                "0 Days"
+            )
+
+            # ------------------------------------------------
+            # FLASH ERRORS
+            # ------------------------------------------------
+
+            for error in errors:
+
+                flash(
+                    error,
+                    "danger"
+                )
+
+            # ------------------------------------------------
+            # REOPEN EDIT MODAL
+            # ------------------------------------------------
+
+            return redirect(
+                url_for(
+                    "main.personal_timeline",
+                    modal="edit",
+                    edit_id=str(
+                        existing["_id"]
+                    )
+                )
+            )
+
+        # ====================================================
+        # BUILD UPDATE DATA
+        # ====================================================
+
+        update_data = timeline.to_dict()
+
+        # ====================================================
+        # NEVER CHANGE OWNER
+        # ====================================================
+
+        update_data["user_id"] = existing.get(
+            "user_id"
+        )
+
+        # ====================================================
+        # CUSTOM EVENT TYPE
+        # ====================================================
+
+        event_type_other = getattr(
+            timeline,
+            "event_type_other",
+            None
+        )
+
+        if update_data.get("event_type") == "other":
+
+            update_data["event_type_other"] = (
+                event_type_other
+                or None
+            )
+
+        else:
+
+            update_data["event_type_other"] = None
+
+        # ====================================================
+        # DURATION
+        # ====================================================
+
+        update_data["duration_years"] = getattr(
+            timeline,
+            "duration_years",
+            0
+        )
+
+        update_data["duration_months"] = getattr(
+            timeline,
+            "duration_months",
+            0
+        )
+
+        update_data["duration_days"] = getattr(
+            timeline,
+            "duration_days",
+            0
+        )
+
+        update_data["duration_total_days"] = getattr(
+            timeline,
+            "duration_total_days",
+            0
+        )
+
+        update_data["duration_text"] = getattr(
+            timeline,
+            "duration_text",
+            "0 Days"
+        )
+
+        # ====================================================
+        # UPDATE MONGODB
+        # ====================================================
+
+        result = mongo.db.personal_timeline.update_one(
+            {
+                "_id": existing["_id"]
+            },
+            {
+                "$set": {
+
+                    # ----------------------------------------
+                    # BASIC INFORMATION
+                    # ----------------------------------------
+
+                    "title": update_data.get(
+                        "title",
+                        ""
+                    ),
+
+                    "category": update_data.get(
+                        "category",
+                        "personal"
+                    ),
+
+                    "event_type": update_data.get(
+                        "event_type",
+                        "other"
+                    ),
+
+                    "event_type_other": update_data.get(
+                        "event_type_other"
+                    ),
+
+                    "reaction": update_data.get(
+                        "reaction"
+                    ),
+
+                    # ----------------------------------------
+                    # DATES
+                    # ----------------------------------------
+
+                    "start_date": update_data.get(
+                        "start_date"
+                    ),
+
+                    "end_date": update_data.get(
+                        "end_date"
+                    ),
+
+                    # ----------------------------------------
+                    # DURATION
+                    # ----------------------------------------
+
+                    "duration_years": update_data.get(
+                        "duration_years",
+                        0
+                    ),
+
+                    "duration_months": update_data.get(
+                        "duration_months",
+                        0
+                    ),
+
+                    "duration_days": update_data.get(
+                        "duration_days",
+                        0
+                    ),
+
+                    "duration_total_days": update_data.get(
+                        "duration_total_days",
+                        0
+                    ),
+
+                    "duration_text": update_data.get(
+                        "duration_text",
+                        "0 Days"
+                    ),
+
+                    # ----------------------------------------
+                    # STATUS
+                    # ----------------------------------------
+
+                    "status": update_data.get(
+                        "status",
+                        "ongoing"
+                    ),
+
+                    # ----------------------------------------
+                    # CONTENT
+                    # ----------------------------------------
+
+                    "description": update_data.get(
+                        "description",
+                        ""
+                    ),
+
+                    "notes": update_data.get(
+                        "notes",
+                        ""
+                    ),
+
+                    # ----------------------------------------
+                    # UPDATED TIME
+                    # ----------------------------------------
+
+                    "updated_at": update_data.get(
+                        "updated_at"
+                    ),
+                }
+            }
+        )
+
+        # ====================================================
+        # CHECK UPDATE RESULT
+        # ====================================================
+
+        if result.matched_count == 0:
+
+            flash(
+                "Personal timeline event could not be updated.",
+                "danger"
+            )
+
+            return redirect(
+                url_for(
+                    "main.personal_timeline"
+                )
+            )
+
+        # ====================================================
+        # SUCCESS
+        # ====================================================
+
+        flash(
+            "Personal timeline event updated successfully.",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ========================================================
+    # EXCEPTION
+    # ========================================================
+
+    except Exception as e:
+
+        flash(
+            f"Unable to update timeline event: {str(e)}",
+            "danger"
+        )
+
+        return redirect(
+            url_for(
+                "main.personal_timeline"
+            )
+        )
+
+
+# ============================================================
+# POST /personal-timeline/<id>/delete
+# ============================================================
+
+@bp.route(
+    "/personal-timeline/<timeline_id>/delete",
+    methods=["POST"]
+)
+@login_required
+def personal_timeline_delete(timeline_id):
+
+    # ============================================================
+    # GET TIMELINE DOCUMENT
+    # ============================================================
+
+    timeline = _timeline_get_document(timeline_id)
+
+    if not timeline:
+        flash(
+            "Personal timeline event was not found.",
+            "danger"
+        )
+
+        return redirect(
+            url_for("main.personal_timeline")
+        )
+
+    # ============================================================
+    # DELETE TIMELINE
+    # ============================================================
+
+    try:
+
+        result = mongo.db.personal_timeline.delete_one(
+            {
+                "_id": timeline["_id"]
+            }
+        )
+
+        if result.deleted_count == 1:
+
+            flash(
+                "Personal timeline event deleted successfully.",
+                "success"
+            )
+
+        else:
+
+            flash(
+                "Timeline event could not be deleted.",
+                "danger"
+            )
+
+    except Exception as e:
+
+        flash(
+            f"Unable to delete timeline event: {str(e)}",
+            "danger"
+        )
+
+    # ============================================================
+    # RETURN
+    # ============================================================
+
+    return redirect(
+        url_for("main.personal_timeline")
+    )
+
+
+
+# ============================================================
+# GET /api/personal-timeline/<timeline_id>
+# ============================================================
+
+# ============================================================
+# PERSONAL TIMELINE API
+# VIEW ONE PERSON + ALL THEIR RECORDS
+# ============================================================
+
+@bp.route(
+    "/api/personal-timeline/<timeline_id>",
+    methods=["GET"]
+)
+@login_required
+def api_personal_timeline(timeline_id):
+
+    from datetime import datetime, date, timezone
+    from bson import ObjectId
+    from dateutil.relativedelta import relativedelta
+    import re
+
+    # ========================================================
+    # HELPERS
+    # ========================================================
+
+    def clean_string(value, default=""):
+
+        if value is None:
+            return default
+
+        return str(value).strip()
+
+    def parse_date_value(value):
+
+        if not value:
+            return None
+
+        try:
+
+            if isinstance(value, datetime):
+
+                if value.tzinfo is None:
+                    value = value.replace(
+                        tzinfo=timezone.utc
+                    )
+
+                return value.astimezone(
+                    timezone.utc
+                ).date()
+
+            if isinstance(value, date):
+                return value
+
+            if isinstance(value, str):
+
+                value = value.strip()
+
+                if not value:
+                    return None
+
+                try:
+
+                    parsed = datetime.fromisoformat(
+                        value.replace(
+                            "Z",
+                            "+00:00"
+                        )
+                    )
+
+                    if parsed.tzinfo is None:
+                        parsed = parsed.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    return parsed.astimezone(
+                        timezone.utc
+                    ).date()
+
+                except Exception:
+                    pass
+
+                for fmt in (
+                    "%Y-%m-%d",
+                    "%d-%m-%Y",
+                    "%d/%m/%Y",
+                    "%m/%d/%Y",
+                ):
+
+                    try:
+
+                        return datetime.strptime(
+                            value,
+                            fmt
+                        ).date()
+
+                    except Exception:
+                        continue
+
+        except Exception:
+            return None
+
+        return None
+
+    def calculate_duration(document):
+
+        today = datetime.now(
+            timezone.utc
+        ).date()
+
+        start_day = parse_date_value(
+            document.get("start_date")
+        )
+
+        end_day = parse_date_value(
+            document.get("end_date")
+        )
+
+        if not start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": "—",
+                "is_ongoing": False,
+            }
+
+        is_ongoing = False
+
+        if not end_day:
+
+            end_day = today
+            is_ongoing = True
+
+        if end_day < start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": "0 Days",
+                "is_ongoing": is_ongoing,
+            }
+
+        total_days = (
+            end_day - start_day
+        ).days
+
+        try:
+
+            delta = relativedelta(
+                end_day,
+                start_day
+            )
+
+            years = int(
+                delta.years or 0
+            )
+
+            months = int(
+                delta.months or 0
+            )
+
+            days = int(
+                delta.days or 0
+            )
+
+        except Exception:
+
+            years = 0
+            months = 0
+            days = total_days
+
+        parts = []
+
+        if years > 0:
+
+            parts.append(
+                f"{years} "
+                f"{'Year' if years == 1 else 'Years'}"
+            )
+
+        if months > 0:
+
+            parts.append(
+                f"{months} "
+                f"{'Month' if months == 1 else 'Months'}"
+            )
+
+        parts.append(
+            f"{days} "
+            f"{'Day' if days == 1 else 'Days'}"
+        )
+
+        return {
+            "years": years,
+            "months": months,
+            "days": days,
+            "total_days": total_days,
+            "text": " ".join(parts),
+            "is_ongoing": is_ongoing,
+        }
+
+    def serialize(value):
+
+        if isinstance(
+            value,
+            ObjectId
+        ):
+
+            return str(value)
+
+        if isinstance(
+            value,
+            datetime
+        ):
+
+            if value.tzinfo is None:
+
+                value = value.replace(
+                    tzinfo=timezone.utc
+                )
+
+            return value.astimezone(
+                timezone.utc
+            ).isoformat()
+
+        if isinstance(
+            value,
+            date
+        ):
+
+            return value.isoformat()
+
+        if isinstance(
+            value,
+            dict
+        ):
+
+            return {
+                str(key): serialize(val)
+                for key, val in value.items()
+            }
+
+        if isinstance(
+            value,
+            list
+        ):
+
+            return [
+                serialize(item)
+                for item in value
+            ]
+
+        return value
+
+    # ========================================================
+    # GET SELECTED RECORD
+    # ========================================================
+
+    timeline = _timeline_get_document(
+        timeline_id
+    )
+
+    if not timeline:
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Personal timeline event "
+                "was not found."
+            ),
+        }), 404
+
+    # ========================================================
+    # CURRENT USER
+    #
+    # IMPORTANT:
+    # We verify the selected record belongs
+    # to the currently logged-in user.
+    # ========================================================
+
+    current_user_id = getattr(
+        current_user,
+        "id",
+        None
+    )
+
+    if current_user_id is None:
+
+        current_user_id = getattr(
+            current_user,
+            "_id",
+            None
+        )
+
+    if current_user_id is None:
+
+        return jsonify({
+            "success": False,
+            "message": "User could not be identified.",
+        }), 403
+
+    # ========================================================
+    # OWNER VALUES
+    # ========================================================
+
+    owner_values = []
+
+    try:
+
+        if isinstance(
+            current_user_id,
+            ObjectId
+        ):
+
+            owner_values.extend([
+                current_user_id,
+                str(current_user_id),
+            ])
+
+        else:
+
+            current_user_id_string = str(
+                current_user_id
+            ).strip()
+
+            if current_user_id_string:
+
+                owner_values.append(
+                    current_user_id_string
+                )
+
+                try:
+
+                    owner_values.append(
+                        ObjectId(
+                            current_user_id_string
+                        )
+                    )
+
+                except Exception:
+                    pass
+
+    except Exception:
+        pass
+
+    # ========================================================
+    # VERIFY SELECTED RECORD OWNERSHIP
+    # ========================================================
+
+    timeline_owner = timeline.get(
+        "user_id"
+    )
+
+    owner_matches = False
+
+    for owner_value in owner_values:
+
+        if timeline_owner == owner_value:
+
+            owner_matches = True
+            break
+
+        if str(timeline_owner) == str(
+            owner_value
+        ):
+
+            owner_matches = True
+            break
+
+    if not owner_matches:
+
+        return jsonify({
+            "success": False,
+            "message": "You cannot access this timeline.",
+        }), 403
+
+    # ========================================================
+    # PERSON NAME
+    #
+    # title is currently used as the person name.
+    # ========================================================
+
+    person_name = clean_string(
+        timeline.get(
+            "title",
+            ""
+        )
+    )
+
+    # ========================================================
+    # BUILD OWNER QUERY
+    # ========================================================
+
+    compatible_owner_values = []
+
+    for value in owner_values:
+
+        if value not in compatible_owner_values:
+
+            compatible_owner_values.append(
+                value
+            )
+
+    person_query = {
+        "user_id": {
+            "$in": compatible_owner_values
+        }
+    }
+
+    # ========================================================
+    # ALL RECORDS FOR SAME PERSON
+    #
+    # Case-insensitive exact title match.
+    #
+    # Example:
+    # Samiro
+    # samiro
+    # SAMIRO
+    #
+    # All are treated as same person.
+    # ========================================================
+
+    if person_name:
+
+        person_query["title"] = {
+            "$regex": (
+                "^"
+                + re.escape(person_name)
+                + "$"
+            ),
+            "$options": "i"
+        }
+
+    else:
+
+        # If title is empty,
+        # only return selected record.
+        person_query["_id"] = timeline[
+            "_id"
+        ]
+
+    # ========================================================
+    # FETCH ALL PERSON RECORDS
+    # ========================================================
+
+    try:
+
+        person_documents = list(
+            mongo.db.personal_timeline.find(
+                person_query
+            ).sort(
+                [
+                    (
+                        "start_date",
+                        -1
+                    ),
+                    (
+                        "created_at",
+                        -1
+                    ),
+                    (
+                        "_id",
+                        -1
+                    ),
+                ]
+            )
+        )
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Unable to load person records: "
+                + str(e)
+            ),
+        }), 500
+
+    # ========================================================
+    # PROCESS ALL RECORDS
+    # ========================================================
+
+    records = []
+
+    total_days = 0
+    ongoing_count = 0
+    ended_count = 0
+
+    primary_record = None
+
+    for document in person_documents:
+
+        try:
+
+            item = _timeline_document_for_template(
+                document
+            )
+
+        except Exception:
+
+            item = dict(
+                document
+            )
+
+        # ----------------------------------------------------
+        # ID
+        # ----------------------------------------------------
+
+        item["_id"] = str(
+            document.get("_id")
+        )
+
+        # ----------------------------------------------------
+        # BASIC VALUES
+        # ----------------------------------------------------
+
+        item["title"] = clean_string(
+            document.get(
+                "title",
+                ""
+            )
+        )
+
+        item["category"] = clean_string(
+            document.get(
+                "category",
+                "personal"
+            ),
+            "personal"
+        )
+
+        item["event_type"] = clean_string(
+            document.get(
+                "event_type",
+                "other"
+            ),
+            "other"
+        )
+
+        item["event_type_other"] = clean_string(
+            document.get(
+                "event_type_other",
+                ""
+            )
+        )
+
+        item["reaction"] = clean_string(
+            document.get(
+                "reaction",
+                ""
+            )
+        )
+
+        item["description"] = clean_string(
+            document.get(
+                "description",
+                ""
+            )
+        )
+
+        item["notes"] = clean_string(
+            document.get(
+                "notes",
+                ""
+            )
+        )
+
+        original_status = clean_string(
+            document.get(
+                "status",
+                "ongoing"
+            ),
+            "ongoing"
+        )
+
+        item["status"] = original_status
+
+        # ----------------------------------------------------
+        # DATES
+        # ----------------------------------------------------
+
+        start_day = parse_date_value(
+            document.get(
+                "start_date"
+            )
+        )
+
+        end_day = parse_date_value(
+            document.get(
+                "end_date"
+            )
+        )
+
+        item["start_date"] = (
+            start_day.isoformat()
+            if start_day
+            else ""
+        )
+
+        item["end_date"] = (
+            end_day.isoformat()
+            if end_day
+            else ""
+        )
+
+        # ----------------------------------------------------
+        # DURATION
+        # ----------------------------------------------------
+
+        duration = calculate_duration(
+            document
+        )
+
+        item["duration_years"] = (
+            duration["years"]
+        )
+
+        item["duration_months"] = (
+            duration["months"]
+        )
+
+        item["duration_days"] = (
+            duration["days"]
+        )
+
+        item["duration_total_days"] = (
+            duration["total_days"]
+        )
+
+        item["duration_text"] = (
+            duration["text"]
+        )
+
+        item["is_ongoing"] = (
+            duration["is_ongoing"]
+        )
+
+        # ----------------------------------------------------
+        # DISPLAY STATUS
+        # ----------------------------------------------------
+
+        item["display_status"] = (
+            "ongoing"
+            if duration["is_ongoing"]
+            else (
+                original_status
+                if original_status
+                else "ended"
+            )
+        )
+
+        # ----------------------------------------------------
+        # STATISTICS
+        # ----------------------------------------------------
+
+        total_days += int(
+            duration["total_days"] or 0
+        )
+
+        if duration["is_ongoing"]:
+
+            ongoing_count += 1
+
+        else:
+
+            ended_count += 1
+
+        # ----------------------------------------------------
+        # PRIMARY RECORD
+        # ----------------------------------------------------
+
+        if str(
+            document.get("_id")
+        ) == str(
+            timeline.get("_id")
+        ):
+
+            primary_record = item
+
+        records.append(
+            item
+        )
+
+    # ========================================================
+    # SAFETY:
+    # MAKE SURE SELECTED RECORD EXISTS
+    # ========================================================
+
+    if primary_record is None:
+
+        try:
+
+            primary_record = dict(
+                timeline
+            )
+
+            primary_record["_id"] = str(
+                timeline.get("_id")
+            )
+
+        except Exception:
+
+            primary_record = None
+
+    # ========================================================
+    # IF NO RECORDS WERE FOUND
+    # ========================================================
+
+    if not records and primary_record:
+
+        records = [
+            primary_record
+        ]
+
+        duration = calculate_duration(
+            timeline
+        )
+
+        total_days = duration[
+            "total_days"
+        ]
+
+        ongoing_count = (
+            1
+            if duration["is_ongoing"]
+            else 0
+        )
+
+        ended_count = (
+            0
+            if duration["is_ongoing"]
+            else 1
+        )
+
+    # ========================================================
+    # PERSON
+    # ========================================================
+
+    person_data = {
+        "name": (
+            person_name
+            or "Unnamed Person"
+        ),
+        "record_count": len(
+            records
+        ),
+    }
+
+    # ========================================================
+    # STATS
+    # ========================================================
+
+    stats = {
+        "total_records": len(
+            records
+        ),
+        "ongoing": ongoing_count,
+        "ended": ended_count,
+        "total_days": total_days,
+    }
+
+    # ========================================================
+    # SERIALIZE
+    # ========================================================
+
+    serialized_records = serialize(
+        records
+    )
+
+    serialized_primary = serialize(
+        primary_record
+    )
+
+    # ========================================================
+    # PRIMARY DURATION
+    # ========================================================
+
+    if primary_record:
+
+        primary_duration = {
+            "years": primary_record.get(
+                "duration_years",
+                0
+            ),
+            "months": primary_record.get(
+                "duration_months",
+                0
+            ),
+            "days": primary_record.get(
+                "duration_days",
+                0
+            ),
+            "total_days": primary_record.get(
+                "duration_total_days",
+                0
+            ),
+            "text": primary_record.get(
+                "duration_text",
+                "—"
+            ),
+            "is_ongoing": bool(
+                primary_record.get(
+                    "is_ongoing",
+                    False
+                )
+            ),
+        }
+
+    else:
+
+        primary_duration = {
+            "years": 0,
+            "months": 0,
+            "days": 0,
+            "total_days": 0,
+            "text": "—",
+            "is_ongoing": False,
+        }
+
+    # ========================================================
+    # RESPONSE
+    # ========================================================
+
+    return jsonify({
+
+        "success": True,
+
+        "data": {
+
+            "record": serialized_primary,
+
+            "records": serialized_records,
+
+            "timelines": serialized_records,
+
+            "person": person_data,
+
+            "stats": stats,
+        },
+
+        "duration": primary_duration,
+
+        "is_ongoing": primary_duration[
+            "is_ongoing"
+        ],
+
+        "today": datetime.now(
+            timezone.utc
+        ).date().isoformat(),
+    })
+
+
+
+# ============================================================
+# PERSONAL TIMELINE DURATION UPDATER
+# ============================================================
+
+def update_personal_timeline_durations():
+    """
+    Automatically updates Personal Timeline duration fields.
+
+    RULES
+    -----
+
+    1. start_date + end_date
+       -> duration is calculated from start_date to end_date.
+
+    2. start_date + no end_date
+       -> duration is calculated from start_date to TODAY.
+
+    3. end_date < today
+       -> event is ended.
+
+    4. end_date == today
+       -> event is ONGOING.
+       -> end_date becomes NULL.
+       -> status = active.
+       -> duration is calculated from start_date to TODAY.
+
+    5. end_date > today
+       -> event remains active.
+       -> future end date is preserved.
+
+    6. end_date is NULL
+       -> event remains active.
+       -> duration keeps increasing.
+
+    7. MongoDB is updated only when values actually changed.
+    """
+
+    # ============================================================
+    # IMPORTS
+    # ============================================================
+
+    from datetime import datetime, timezone
+    from dateutil.relativedelta import relativedelta
+
+    try:
+
+        # ========================================================
+        # CURRENT TIME
+        # ========================================================
+
+        now = datetime.now(timezone.utc)
+
+        # Current date
+        today = now.date()
+
+        modified_count = 0
+
+        # ========================================================
+        # GET TIMELINES
+        # ========================================================
+
+        timelines = mongo.db.personal_timeline.find({
+            "start_date": {
+                "$exists": True,
+                "$ne": None
+            }
+        })
+
+        # ========================================================
+        # LOOP THROUGH RECORDS
+        # ========================================================
+
+        for timeline in timelines:
+
+            try:
+
+                # ====================================================
+                # START DATE
+                # ====================================================
+
+                start_date = timeline.get("start_date")
+
+                if not start_date:
+                    continue
+
+                # ====================================================
+                # NORMALIZE START DATE
+                # ====================================================
+
+                if isinstance(start_date, datetime):
+
+                    if start_date.tzinfo is None:
+                        start_date = start_date.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    start_day = (
+                        start_date
+                        .astimezone(timezone.utc)
+                        .date()
+                    )
+
+                else:
+
+                    if not hasattr(start_date, "year"):
+                        continue
+
+                    start_day = start_date
+
+                # ====================================================
+                # END DATE
+                # ====================================================
+
+                raw_end_date = timeline.get("end_date")
+
+                end_date = raw_end_date
+
+                is_ongoing = False
+
+                # ====================================================
+                # END DATE EXISTS
+                # ====================================================
+
+                if end_date:
+
+                    if isinstance(end_date, datetime):
+
+                        if end_date.tzinfo is None:
+                            end_date = end_date.replace(
+                                tzinfo=timezone.utc
+                            )
+
+                        end_day = (
+                            end_date
+                            .astimezone(timezone.utc)
+                            .date()
+                        )
+
+                    else:
+
+                        if not hasattr(end_date, "year"):
+                            continue
+
+                        end_day = end_date
+
+                    # =================================================
+                    # END DATE == TODAY
+                    # =================================================
+                    #
+                    # TODAY = ONGOING
+                    #
+                    # Example:
+                    #
+                    # start_date = 2026-10-01
+                    # end_date   = 2026-10-06
+                    # today      = 2026-10-06
+                    #
+                    # Result:
+                    #
+                    # end_date   = None
+                    # status     = active
+                    # is_ongoing = True
+                    #
+                    # =================================================
+
+                    if end_day == today:
+
+                        end_date = None
+                        end_day = today
+                        is_ongoing = True
+
+                    # =================================================
+                    # FUTURE END DATE
+                    # =================================================
+
+                    elif end_day > today:
+
+                        is_ongoing = False
+
+                    # =================================================
+                    # PAST END DATE
+                    # =================================================
+
+                    else:
+
+                        is_ongoing = False
+
+                # ====================================================
+                # NO END DATE
+                # ====================================================
+
+                else:
+
+                    end_day = today
+                    is_ongoing = True
+
+                # ====================================================
+                # INVALID DATE RANGE
+                # ====================================================
+
+                if end_day < start_day:
+
+                    print(
+                        "[PersonalTimeline] "
+                        f"Invalid date range: "
+                        f"{timeline.get('_id')}"
+                    )
+
+                    continue
+
+                # ====================================================
+                # TOTAL DAYS
+                # ====================================================
+
+                total_days = (
+                    end_day - start_day
+                ).days
+
+                # ====================================================
+                # RELATIVE DATE
+                # ====================================================
+
+                delta = relativedelta(
+                    end_day,
+                    start_day
+                )
+
+                years = int(
+                    delta.years or 0
+                )
+
+                months = int(
+                    delta.months or 0
+                )
+
+                days = int(
+                    delta.days or 0
+                )
+
+                # ====================================================
+                # DURATION TEXT
+                # ====================================================
+
+                parts = []
+
+                if years > 0:
+
+                    parts.append(
+                        f"{years} "
+                        f"{'Year' if years == 1 else 'Years'}"
+                    )
+
+                if months > 0:
+
+                    parts.append(
+                        f"{months} "
+                        f"{'Month' if months == 1 else 'Months'}"
+                    )
+
+                # Always show days
+                parts.append(
+                    f"{days} "
+                    f"{'Day' if days == 1 else 'Days'}"
+                )
+
+                duration_text = " ".join(parts)
+
+                # ====================================================
+                # UPDATE DATA
+                # ====================================================
+
+                update_data = {}
+
+                # ====================================================
+                # END DATE NORMALIZATION
+                # ====================================================
+
+                current_end_date = timeline.get("end_date")
+
+                if is_ongoing:
+
+                    # Today's end date must become NULL
+                    if current_end_date is not None:
+
+                        update_data[
+                            "end_date"
+                        ] = None
+
+                else:
+
+                    # Future or past real end date
+                    if end_date != current_end_date:
+
+                        update_data[
+                            "end_date"
+                        ] = end_date
+
+                # ====================================================
+                # DURATION YEARS
+                # ====================================================
+
+                if timeline.get(
+                    "duration_years",
+                    0
+                ) != years:
+
+                    update_data[
+                        "duration_years"
+                    ] = years
+
+                # ====================================================
+                # DURATION MONTHS
+                # ====================================================
+
+                if timeline.get(
+                    "duration_months",
+                    0
+                ) != months:
+
+                    update_data[
+                        "duration_months"
+                    ] = months
+
+                # ====================================================
+                # DURATION DAYS
+                # ====================================================
+
+                if timeline.get(
+                    "duration_days",
+                    0
+                ) != days:
+
+                    update_data[
+                        "duration_days"
+                    ] = days
+
+                # ====================================================
+                # TOTAL DAYS
+                # ====================================================
+
+                if timeline.get(
+                    "duration_total_days",
+                    0
+                ) != total_days:
+
+                    update_data[
+                        "duration_total_days"
+                    ] = total_days
+
+                # ====================================================
+                # DURATION TEXT
+                # ====================================================
+
+                if timeline.get(
+                    "duration_text",
+                    ""
+                ) != duration_text:
+
+                    update_data[
+                        "duration_text"
+                    ] = duration_text
+
+                # ====================================================
+                # STATUS
+                # ====================================================
+
+                current_status = (
+                    timeline.get("status")
+                    or ""
+                ).lower().strip()
+
+                # ----------------------------------------------------
+                # ONGOING
+                # ----------------------------------------------------
+
+                if is_ongoing:
+
+                    if current_status != "active":
+
+                        update_data[
+                            "status"
+                        ] = "active"
+
+                # ----------------------------------------------------
+                # ENDED / FUTURE
+                # ----------------------------------------------------
+
+                else:
+
+                    if end_day < today:
+
+                        if current_status != "ended":
+
+                            update_data[
+                                "status"
+                            ] = "ended"
+
+                    else:
+
+                        # Future end date
+                        if current_status != "active":
+
+                            update_data[
+                                "status"
+                            ] = "active"
+
+                # ====================================================
+                # IS ONGOING
+                # ====================================================
+
+                current_is_ongoing = bool(
+                    timeline.get(
+                        "is_ongoing",
+                        False
+                    )
+                )
+
+                if current_is_ongoing != is_ongoing:
+
+                    update_data[
+                        "is_ongoing"
+                    ] = is_ongoing
+
+                # ====================================================
+                # UPDATE MONGO
+                # ====================================================
+
+                if update_data:
+
+                    update_data[
+                        "updated_at"
+                    ] = now
+
+                    result = (
+                        mongo.db.personal_timeline.update_one(
+                            {
+                                "_id": timeline["_id"]
+                            },
+                            {
+                                "$set": update_data
+                            }
+                        )
+                    )
+
+                    if result.modified_count:
+
+                        modified_count += 1
+
+                        # =================================================
+                        # SAFE STATUS TEXT
+                        # =================================================
+
+                        display_status = (
+                            "active"
+                            if is_ongoing
+                            else "ended"
+                        )
+
+                        print(
+                            "[PersonalTimeline] "
+                            f"Updated {timeline.get('_id')} "
+                            f"-> {duration_text} "
+                            f"| status={display_status} "
+                            f"| end_date={end_date}"
+                        )
+
+            except Exception as item_error:
+
+                print(
+                    "[PersonalTimeline] "
+                    f"Record error "
+                    f"{timeline.get('_id')}: "
+                    f"{item_error}"
+                )
+
+                continue
+
+        # ============================================================
+        # FINISHED
+        # ============================================================
+
+        print(
+            "[PersonalTimeline Scheduler] "
+            f"Completed | Modified: {modified_count} | "
+            f"Date: {today}"
+        )
+
+        return modified_count
+
+    except Exception as e:
+
+        print(
+            "[PersonalTimeline Scheduler] "
+            f"FATAL ERROR: {e}"
+        )
+
+        return 0
+
+
+
+@bp.route("/personal-timeline/export-sample", methods=["GET"])
+@login_required
+def export_personal_timeline_sample():
+    """
+    Export Personal Timeline data in the same structure as the
+    provided sample:
+
+    No | Name | React | Date B | Date E | Gaps | Days
+
+    Notes:
+    - Uses current logged-in user's ObjectId.
+    - Ongoing records (end_date=None) use today's date dynamically.
+    - Duration is recalculated during export.
+    - Does not depend on stored duration fields.
+    """
+
+    from io import BytesIO
+    from datetime import datetime, timezone
+    from dateutil.relativedelta import relativedelta
+    from openpyxl import Workbook
+    from openpyxl.styles import (
+        Font,
+        Alignment,
+        PatternFill,
+        Border,
+        Side
+    )
+    from flask import send_file
+    from bson import ObjectId
+
+    # ============================================================
+    # CURRENT DATE
+    # ============================================================
+
+    today = datetime.now(timezone.utc).date()
+
+    # ============================================================
+    # CURRENT USER OBJECT ID
+    # ============================================================
+
+    try:
+        user_id = ObjectId(str(current_user.id))
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE EXPORT USER ID ERROR:",
+            e
+        )
+
+        flash(
+            "Unable to identify the current user.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for("main.personal_timeline")
+        )
+
+    # ============================================================
+    # USER SCOPE
+    # ============================================================
+
+    query = {
+        "user_id": user_id
+    }
+
+    # ============================================================
+    # GET TIMELINE DATA
+    # ============================================================
+
+    try:
+
+        timelines = list(
+            mongo.db.personal_timeline.find(
+                query
+            ).sort(
+                [
+                    ("start_date", 1),
+                    ("created_at", 1)
+                ]
+            )
+        )
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE EXPORT DATABASE ERROR:",
+            e
+        )
+
+        flash(
+            "Unable to load Personal Timeline data.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for("main.personal_timeline")
+        )
+
+    # ============================================================
+    # HELPERS
+    # ============================================================
+
+    def get_date(value):
+
+        if not value:
+            return None
+
+        # datetime
+        if isinstance(value, datetime):
+
+            if value.tzinfo is not None:
+
+                value = value.astimezone(
+                    timezone.utc
+                )
+
+            return value.date()
+
+        # date
+        if hasattr(value, "year") and hasattr(
+            value,
+            "month"
+        ) and hasattr(
+            value,
+            "day"
+        ):
+
+            try:
+
+                return value
+
+            except Exception:
+
+                return None
+
+        return None
+
+    # ============================================================
+    # FORMAT DATE
+    # ============================================================
+
+    def format_date(value):
+
+        if not value:
+            return ""
+
+        try:
+
+            return value.strftime(
+                "%d/%m/%Y"
+            )
+
+        except Exception:
+
+            return ""
+
+    # ============================================================
+    # CALCULATE DURATION
+    # ============================================================
+
+    def calculate_duration(
+        start_date,
+        end_date=None
+    ):
+
+        if not start_date:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        start_day = get_date(
+            start_date
+        )
+
+        # --------------------------------------------------------
+        # END DATE
+        # --------------------------------------------------------
+
+        if end_date:
+
+            end_day = get_date(
+                end_date
+            )
+
+        else:
+
+            # Ongoing event
+            end_day = today
+
+        # --------------------------------------------------------
+        # INVALID DATE
+        # --------------------------------------------------------
+
+        if not start_day or not end_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        # --------------------------------------------------------
+        # INVALID RANGE
+        # --------------------------------------------------------
+
+        if end_day < start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        # --------------------------------------------------------
+        # TOTAL DAYS
+        # --------------------------------------------------------
+
+        total_days = (
+            end_day - start_day
+        ).days
+
+        # --------------------------------------------------------
+        # RELATIVE DURATION
+        # --------------------------------------------------------
+
+        delta = relativedelta(
+            end_day,
+            start_day
+        )
+
+        years = int(
+            delta.years or 0
+        )
+
+        months = int(
+            delta.months or 0
+        )
+
+        days = int(
+            delta.days or 0
+        )
+
+        # --------------------------------------------------------
+        # DURATION TEXT
+        # --------------------------------------------------------
+
+        parts = []
+
+        if years:
+
+            parts.append(
+                f"{years} "
+                f"{'Yr' if years == 1 else 'Yrs'}"
+            )
+
+        if months:
+
+            parts.append(
+                f"{months} "
+                f"{'Mnth' if months == 1 else 'Mnths'}"
+            )
+
+        parts.append(
+            f"{days} "
+            f"{'Day' if days == 1 else 'Days'}"
+        )
+
+        duration_text = " ".join(
+            parts
+        )
+
+        return {
+            "years": years,
+            "months": months,
+            "days": days,
+            "total_days": total_days,
+            "text": duration_text
+        }
+
+    # ============================================================
+    # CREATE WORKBOOK
+    # ============================================================
+
+    workbook = Workbook()
+
+    worksheet = workbook.active
+
+    worksheet.title = (
+        "Personal Timeline"
+    )
+
+    # ============================================================
+    # HEADERS
+    # ============================================================
+
+    headers = [
+        "No",
+        "Name",
+        "React",
+        "Date B",
+        "Date E",
+        "Gaps",
+        "Days"
+    ]
+
+    worksheet.append(
+        headers
+    )
+
+    # ============================================================
+    # HEADER STYLE
+    # ============================================================
+
+    header_fill = PatternFill(
+        fill_type="solid",
+        fgColor="06245F"
+    )
+
+    header_font = Font(
+        bold=True,
+        color="FFFFFF"
+    )
+
+    thin_border = Border(
+        left=Side(
+            style="thin",
+            color="D9D9D9"
+        ),
+        right=Side(
+            style="thin",
+            color="D9D9D9"
+        ),
+        top=Side(
+            style="thin",
+            color="D9D9D9"
+        ),
+        bottom=Side(
+            style="thin",
+            color="D9D9D9"
+        )
+    )
+
+    for cell in worksheet[1]:
+
+        cell.fill = header_fill
+
+        cell.font = header_font
+
+        cell.alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        cell.border = thin_border
+
+    # ============================================================
+    # NUMBERING
+    # ============================================================
+
+    number = 0
+
+    # ============================================================
+    # DATA
+    # ============================================================
+
+    for timeline in timelines:
+
+        # --------------------------------------------------------
+        # START DATE
+        # --------------------------------------------------------
+
+        start_date = get_date(
+            timeline.get(
+                "start_date"
+            )
+        )
+
+        if not start_date:
+            continue
+
+        # --------------------------------------------------------
+        # END DATE
+        # --------------------------------------------------------
+
+        end_date = get_date(
+            timeline.get(
+                "end_date"
+            )
+        )
+
+        # --------------------------------------------------------
+        # NAME
+        # --------------------------------------------------------
+
+        name = (
+            timeline.get("title")
+            or timeline.get("name")
+            or ""
+        )
+
+        name = str(
+            name
+        ).strip()
+
+        # --------------------------------------------------------
+        # NUMBER
+        # --------------------------------------------------------
+
+        if name:
+
+            number += 1
+
+            display_number = number
+
+        else:
+
+            display_number = ""
+
+        # --------------------------------------------------------
+        # REACTION
+        # --------------------------------------------------------
+
+        reaction = (
+            timeline.get(
+                "reaction"
+            )
+            or ""
+        )
+
+        reaction = str(
+            reaction
+        ).strip()
+
+        # --------------------------------------------------------
+        # DURATION
+        # --------------------------------------------------------
+
+        duration = calculate_duration(
+            start_date,
+            end_date
+        )
+
+        # --------------------------------------------------------
+        # DESCRIPTION
+        # --------------------------------------------------------
+
+        description = (
+            timeline.get(
+                "description"
+            )
+            or ""
+        )
+
+        description = str(
+            description
+        ).strip()
+
+        # --------------------------------------------------------
+        # NOTES
+        # --------------------------------------------------------
+
+        notes = (
+            timeline.get(
+                "notes"
+            )
+            or ""
+        )
+
+        notes = str(
+            notes
+        ).strip()
+
+        # --------------------------------------------------------
+        # STATUS
+        # --------------------------------------------------------
+
+        status = (
+            timeline.get(
+                "status"
+            )
+            or ""
+        )
+
+        status = str(
+            status
+        ).strip().lower()
+
+        # ========================================================
+        # GAPS
+        # ========================================================
+
+        if description:
+
+            gaps = description
+
+        elif notes:
+
+            gaps = notes
+
+        elif (
+            not end_date
+            and name
+        ):
+
+            gaps = (
+                f"{name} "
+                f"Life Stopped!..😒"
+            )
+
+        else:
+
+            gaps = (
+                duration["text"]
+            )
+
+        # ========================================================
+        # DAYS
+        # ========================================================
+
+        if end_date:
+
+            # ----------------------------------------------------
+            # CLOSED / ENDED RECORD
+            # ----------------------------------------------------
+
+            days_text = (
+                f"{duration['total_days']} Days"
+            )
+
+        else:
+
+            # ----------------------------------------------------
+            # ONGOING RECORD
+            # ----------------------------------------------------
+
+            if status == "ended":
+
+                days_text = (
+                    f"{name} Heartbroken😒"
+                    if name
+                    else "Heartbroken😒"
+                )
+
+            else:
+
+                if name:
+
+                    days_text = (
+                        f"{name} "
+                        f"{duration['total_days']} Days"
+                    )
+
+                else:
+
+                    days_text = (
+                        f"{duration['total_days']} Days"
+                    )
+
+        # ========================================================
+        # APPEND ROW
+        # ========================================================
+
+        row = [
+            display_number,
+            name,
+            reaction,
+            format_date(
+                start_date
+            ),
+            format_date(
+                end_date
+            ),
+            gaps,
+            days_text
+        ]
+
+        worksheet.append(
+            row
+        )
+
+    # ============================================================
+    # CELL STYLING
+    # ============================================================
+
+    for row in worksheet.iter_rows(
+        min_row=2
+    ):
+
+        for cell in row:
+
+            cell.border = thin_border
+
+            cell.alignment = Alignment(
+                vertical="center",
+                wrap_text=True
+            )
+
+    # ============================================================
+    # COLUMN ALIGNMENT
+    # ============================================================
+
+    for row in range(
+        2,
+        worksheet.max_row + 1
+    ):
+
+        # No
+        worksheet.cell(
+            row=row,
+            column=1
+        ).alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        # React
+        worksheet.cell(
+            row=row,
+            column=3
+        ).alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        # Date B
+        worksheet.cell(
+            row=row,
+            column=4
+        ).alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        # Date E
+        worksheet.cell(
+            row=row,
+            column=5
+        ).alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+        # Days
+        worksheet.cell(
+            row=row,
+            column=7
+        ).alignment = Alignment(
+            horizontal="center",
+            vertical="center"
+        )
+
+    # ============================================================
+    # COLUMN WIDTHS
+    # ============================================================
+
+    widths = {
+        "A": 8,
+        "B": 24,
+        "C": 12,
+        "D": 15,
+        "E": 15,
+        "F": 38,
+        "G": 32
+    }
+
+    for column, width in widths.items():
+
+        worksheet.column_dimensions[
+            column
+        ].width = width
+
+    # ============================================================
+    # HEADER HEIGHT
+    # ============================================================
+
+    worksheet.row_dimensions[
+        1
+    ].height = 28
+
+    # ============================================================
+    # FREEZE HEADER
+    # ============================================================
+
+    worksheet.freeze_panes = "A2"
+
+    # ============================================================
+    # AUTO FILTER
+    # ============================================================
+
+    if worksheet.max_row >= 2:
+
+        worksheet.auto_filter.ref = (
+            f"A1:G{worksheet.max_row}"
+        )
+
+    # ============================================================
+    # ROW HEIGHT
+    # ============================================================
+
+    for row in range(
+        2,
+        worksheet.max_row + 1
+    ):
+
+        worksheet.row_dimensions[
+            row
+        ].height = 30
+
+    # ============================================================
+    # SAVE TO MEMORY
+    # ============================================================
+
+    output = BytesIO()
+
+    workbook.save(
+        output
+    )
+
+    output.seek(0)
+
+    # ============================================================
+    # DOWNLOAD FILENAME
+    # ============================================================
+
+    filename = (
+        "personal_timeline_sample_"
+        f"{today.strftime('%Y-%m-%d')}.xlsx"
+    )
+
+    # ============================================================
+    # SEND FILE
+    # ============================================================
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=(
+            "application/vnd.openxmlformats-"
+            "officedocument.spreadsheetml.sheet"
+        )
+    )
+
+
+@bp.route(
+    "/personal-timeline/import",
+    methods=["POST"]
+)
+@login_required
+def import_personal_timeline():
+
+    from datetime import datetime, timezone
+    from dateutil.relativedelta import relativedelta
+    from openpyxl import load_workbook
+    from bson import ObjectId
+    from uuid import uuid4
+    import re
+
+    # ============================================================
+    # USER
+    # ============================================================
+
+    try:
+        user_id = ObjectId(
+            str(current_user.id)
+        )
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE IMPORT USER ID ERROR:",
+            e
+        )
+
+        flash(
+            "Unable to identify current user.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ============================================================
+    # FILE
+    # ============================================================
+
+    file = request.files.get("file")
+
+    if not file or not file.filename:
+
+        flash(
+            "Please select an Excel file.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ============================================================
+    # FILE EXTENSION
+    # ============================================================
+
+    filename = (
+        file.filename
+        or ""
+    ).strip().lower()
+
+    if not filename.endswith(
+        (
+            ".xlsx",
+            ".xlsm"
+        )
+    ):
+
+        flash(
+            "Please upload a valid Excel file (.xlsx or .xlsm).",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ============================================================
+    # LOAD EXCEL
+    # ============================================================
+
+    try:
+
+        wb = load_workbook(
+            file,
+            data_only=True
+        )
+
+        ws = wb.active
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE IMPORT FILE ERROR:",
+            e
+        )
+
+        flash(
+            "Invalid Excel file.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ============================================================
+    # COUNTERS
+    # ============================================================
+
+    imported_count = 0
+    skipped_count = 0
+    duplicate_count = 0
+    error_count = 0
+
+    main_count = 0
+    continuation_count = 0
+
+    # ============================================================
+    # IMPORT TIME
+    # ============================================================
+
+    import_time = now_eat().replace(
+        tzinfo=None
+    )
+
+    # ============================================================
+    # IMPORTANT:
+    # TODAY IS CALCULATED ONCE FOR THE WHOLE IMPORT
+    #
+    # Example:
+    # If today = 2026-10-06
+    #
+    # Excel Date E = 06/10/2026
+    # => ongoing
+    # => end_date = None
+    # => status = active
+    #
+    # Excel Date E = 05/10/2026
+    # => ended
+    #
+    # Excel Date E = 07/10/2026
+    # => active/future
+    # ============================================================
+
+    today = now_eat().date()
+
+    # ============================================================
+    # IMPORT BATCH
+    # ============================================================
+
+    import_batch_id = str(
+        uuid4()
+    )
+
+    # ============================================================
+    # CLEAN TEXT
+    # ============================================================
+
+    def clean_text(value):
+
+        if value is None:
+            return ""
+
+        text = str(value).strip()
+
+        text = text.replace(
+            "\r",
+            " "
+        )
+
+        text = text.replace(
+            "\n",
+            " "
+        )
+
+        text = re.sub(
+            r"\s+",
+            " ",
+            text
+        )
+
+        return text.strip()
+
+    # ============================================================
+    # NORMALIZE NUMBER
+    # ============================================================
+
+    def clean_number(value):
+
+        if value is None:
+            return ""
+
+        try:
+
+            if (
+                isinstance(
+                    value,
+                    float
+                )
+                and value.is_integer()
+            ):
+
+                return str(
+                    int(value)
+                )
+
+        except Exception:
+            pass
+
+        return clean_text(
+            value
+        )
+
+    # ============================================================
+    # PARSE DATE
+    # ============================================================
+
+    def parse_date(value):
+
+        if value is None:
+            return None
+
+        # --------------------------------------------------------
+        # DATETIME
+        # --------------------------------------------------------
+
+        if isinstance(
+            value,
+            datetime
+        ):
+
+            if value.tzinfo:
+
+                try:
+
+                    return (
+                        value
+                        .astimezone(
+                            timezone.utc
+                        )
+                        .replace(
+                            tzinfo=None
+                        )
+                    )
+
+                except Exception:
+
+                    return value.replace(
+                        tzinfo=None
+                    )
+
+            return value.replace(
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+        # --------------------------------------------------------
+        # DATE-LIKE OBJECT
+        # --------------------------------------------------------
+
+        if (
+            hasattr(value, "year")
+            and hasattr(value, "month")
+            and hasattr(value, "day")
+        ):
+
+            try:
+
+                return datetime(
+                    int(value.year),
+                    int(value.month),
+                    int(value.day)
+                )
+
+            except Exception:
+                pass
+
+        # --------------------------------------------------------
+        # STRING
+        # --------------------------------------------------------
+
+        value = clean_text(
+            value
+        )
+
+        if not value:
+            return None
+
+        # IMPORTANT:
+        # DD/MM/YYYY IS CHECKED BEFORE MM/DD/YYYY
+        #
+        # Therefore:
+        # 6/10/2026 = 06 October 2026
+        # 5/10/2026 = 05 October 2026
+        # 7/10/2026 = 07 October 2026
+        # --------------------------------------------------------
+
+        formats = [
+
+            "%Y-%m-%dT%H:%M:%S",
+            "%Y-%m-%dT%H:%M",
+
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+
+            "%Y-%m-%d",
+
+            "%d/%m/%Y",
+            "%d-%m-%Y",
+
+            "%d/%m/%y",
+            "%d-%m-%y",
+
+            "%m/%d/%Y",
+            "%m-%d-%Y",
+
+            "%m/%d/%y",
+            "%m-%d-%y",
+
+        ]
+
+        for fmt in formats:
+
+            try:
+
+                return datetime.strptime(
+                    value,
+                    fmt
+                )
+
+            except ValueError:
+                continue
+
+        return None
+
+    # ============================================================
+    # DATE ONLY
+    # ============================================================
+
+    def date_only(value):
+
+        if not value:
+            return None
+
+        if isinstance(
+            value,
+            datetime
+        ):
+
+            return value.date()
+
+        return value
+
+    # ============================================================
+    # CALCULATE DURATION
+    # ============================================================
+
+    def calculate_duration(
+        start_date,
+        end_date=None
+    ):
+
+        if not start_date:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        start_day = date_only(
+            start_date
+        )
+
+        # --------------------------------------------------------
+        # IMPORTANT:
+        #
+        # If end_date is None:
+        # event is ongoing.
+        #
+        # Duration is calculated until TODAY.
+        # --------------------------------------------------------
+
+        if end_date:
+
+            end_day = date_only(
+                end_date
+            )
+
+        else:
+
+            end_day = today
+
+        # --------------------------------------------------------
+        # INVALID RANGE
+        # --------------------------------------------------------
+
+        if not start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        if end_day < start_day:
+
+            return {
+                "years": 0,
+                "months": 0,
+                "days": 0,
+                "total_days": 0,
+                "text": ""
+            }
+
+        # --------------------------------------------------------
+        # TOTAL DAYS
+        # --------------------------------------------------------
+
+        total_days = (
+            end_day - start_day
+        ).days
+
+        # --------------------------------------------------------
+        # RELATIVE DELTA
+        # --------------------------------------------------------
+
+        delta = relativedelta(
+            end_day,
+            start_day
+        )
+
+        years = int(
+            delta.years or 0
+        )
+
+        months = int(
+            delta.months or 0
+        )
+
+        days = int(
+            delta.days or 0
+        )
+
+        # --------------------------------------------------------
+        # TEXT
+        # --------------------------------------------------------
+
+        parts = []
+
+        if years:
+
+            parts.append(
+                f"{years} "
+                f"{'Year' if years == 1 else 'Years'}"
+            )
+
+        if months:
+
+            parts.append(
+                f"{months} "
+                f"{'Month' if months == 1 else 'Months'}"
+            )
+
+        # Always show days
+
+        parts.append(
+            f"{days} "
+            f"{'Day' if days == 1 else 'Days'}"
+        )
+
+        return {
+
+            "years": years,
+
+            "months": months,
+
+            "days": days,
+
+            "total_days": total_days,
+
+            "text": " ".join(
+                parts
+            )
+
+        }
+
+    # ============================================================
+    # EXTRACT PERSON NAME
+    # ============================================================
+
+    def extract_person_name(
+        text
+    ):
+
+        text = clean_text(
+            text
+        )
+
+        if not text:
+            return ""
+
+        text = re.sub(
+            r"^[\s\-\–\—:;,]+",
+            "",
+            text
+        ).strip()
+
+        patterns = [
+
+            r"^(.*?)\s+Heartbroken",
+
+            r"^(.*?)\s+Life\s+Stopped",
+
+            r"^(.*?)\s+Life\s+Stoped",
+
+            r"^(.*?)\s+Relationships?\s+Stopped",
+
+            r"^(.*?)\s+Relationshps?\s+Stoped",
+
+            r"^(.*?)\s+Relationship\s+Stopped",
+
+            r"^(.*?)\s+Relationshps?\s+Seens?\s+Stop",
+
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(
+                pattern,
+                text,
+                flags=re.IGNORECASE
+            )
+
+            if match:
+
+                name = clean_text(
+                    match.group(1)
+                )
+
+                if name:
+                    return name
+
+        return ""
+
+    # ============================================================
+    # EVENT TYPE
+    # ============================================================
+
+    def detect_event_type(
+        description="",
+        title="",
+        reaction=""
+    ):
+
+        combined = " ".join(
+            [
+                clean_text(description),
+                clean_text(title),
+                clean_text(reaction)
+            ]
+        ).lower()
+
+        if (
+            "recontact" in combined
+            or "re-contact" in combined
+        ):
+
+            return "recontact"
+
+        if (
+            "heartbroken" in combined
+            or "stopped" in combined
+            or "stoped" in combined
+            or "relationship" in combined
+            or "relationshps" in combined
+        ):
+
+            return "other"
+
+        return "other"
+
+    # ============================================================
+    # CATEGORY
+    # ============================================================
+
+    def detect_category(
+        title="",
+        description="",
+        reaction=""
+    ):
+
+        return "personal"
+
+    # ============================================================
+    # HEADERS
+    # ============================================================
+
+    headers = []
+
+    for cell in ws[1]:
+
+        headers.append(
+            clean_text(
+                cell.value
+            ).lower()
+        )
+
+    # ============================================================
+    # FIND COLUMN
+    # ============================================================
+
+    def find_column(
+        *names
+    ):
+
+        normalized_names = [
+
+            clean_text(
+                name
+            ).lower()
+
+            for name in names
+
+        ]
+
+        for name in normalized_names:
+
+            if name in headers:
+
+                return headers.index(
+                    name
+                )
+
+        return None
+
+    # ============================================================
+    # COLUMN INDEXES
+    # ============================================================
+
+    no_index = find_column(
+        "no",
+        "#",
+        "number",
+        "event no",
+        "event number"
+    )
+
+    name_index = find_column(
+        "name",
+        "person",
+        "title"
+    )
+
+    reaction_index = find_column(
+        "react",
+        "reaction"
+    )
+
+    date_b_index = find_column(
+        "date b",
+        "date begin",
+        "start date",
+        "start_date",
+        "date start"
+    )
+
+    date_e_index = find_column(
+        "date e",
+        "date end",
+        "end date",
+        "end_date"
+    )
+
+    gaps_index = find_column(
+        "gaps",
+        "gap",
+        "description",
+        "notes",
+        "note"
+    )
+
+    days_index = find_column(
+        "days",
+        "duration"
+    )
+
+    # ============================================================
+    # REQUIRED COLUMNS
+    # ============================================================
+
+    if (
+        name_index is None
+        or reaction_index is None
+        or date_b_index is None
+    ):
+
+        flash(
+            (
+                "Invalid Personal Timeline Excel format. "
+                "Required columns: Name, React, Date B."
+            ),
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for(
+                "main.personal_timeline"
+            )
+        )
+
+    # ============================================================
+    # CURRENT GROUP STATE
+    # ============================================================
+
+    current_group_id = None
+
+    current_parent_title = ""
+
+    current_main_number = 0
+
+    current_excel_no = ""
+
+    current_group_order = 0
+
+    current_main_reaction = ""
+
+    current_main_category = "personal"
+
+    current_main_event_type = "other"
+
+    # ============================================================
+    # SAFE CELL
+    # ============================================================
+
+    def get_value(
+        row,
+        index
+    ):
+
+        if index is None:
+            return None
+
+        if index >= len(row):
+            return None
+
+        return row[index]
+
+    # ============================================================
+    # PROCESS ROWS
+    # ============================================================
+
+    for row_number, row in enumerate(
+        ws.iter_rows(
+            min_row=2,
+            values_only=True
+        ),
+        start=2
+    ):
+
+        try:
+
+            # ====================================================
+            # RAW VALUES
+            # ====================================================
+
+            raw_no = get_value(
+                row,
+                no_index
+            )
+
+            raw_name = get_value(
+                row,
+                name_index
+            )
+
+            raw_reaction = get_value(
+                row,
+                reaction_index
+            )
+
+            raw_date_b = get_value(
+                row,
+                date_b_index
+            )
+
+            raw_date_e = get_value(
+                row,
+                date_e_index
+            )
+
+            raw_gaps = get_value(
+                row,
+                gaps_index
+            )
+
+            raw_days = get_value(
+                row,
+                days_index
+            )
+
+            # ====================================================
+            # NORMALIZE
+            # ====================================================
+
+            excel_no = clean_number(
+                raw_no
+            )
+
+            title = clean_text(
+                raw_name
+            )
+
+            reaction = clean_text(
+                raw_reaction
+            )
+
+            description = clean_text(
+                raw_gaps
+            )
+
+            days_value = clean_text(
+                raw_days
+            )
+
+            # ====================================================
+            # COMPLETELY EMPTY ROW
+            # ====================================================
+
+            if not any(
+                [
+                    excel_no,
+                    title,
+                    reaction,
+                    raw_date_b,
+                    raw_date_e,
+                    description,
+                    days_value
+                ]
+            ):
+
+                skipped_count += 1
+
+                continue
+
+            # ====================================================
+            # START DATE
+            # ====================================================
+
+            start_date = parse_date(
+                raw_date_b
+            )
+
+            if not start_date:
+
+                print(
+                    (
+                        "[PersonalTimeline] "
+                        f"Row {row_number}: "
+                        f"Invalid Date B = "
+                        f"{raw_date_b!r}"
+                    )
+                )
+
+                skipped_count += 1
+
+                continue
+
+            # ====================================================
+            # RAW END DATE
+            # ====================================================
+
+            raw_end_date = parse_date(
+                raw_date_e
+            )
+
+            # ====================================================
+            # VERY IMPORTANT END-DATE RULE
+            #
+            # If Excel Date E is TODAY:
+            #
+            #     end_date = None
+            #     status = active
+            #
+            # This means the event is still ongoing.
+            #
+            # Example:
+            #
+            # Excel:
+            # 20/12/2024 -> 06/10/2026
+            #
+            # Today:
+            # 06/10/2026
+            #
+            # Stored:
+            # start_date = 2024-12-20
+            # end_date   = None
+            # status      = active
+            #
+            # Duration = calculated until today.
+            # ====================================================
+
+            end_date = raw_end_date
+
+            if end_date:
+
+                end_day = end_date.date()
+
+                # ------------------------------------------------
+                # TODAY = ONGOING
+                # ------------------------------------------------
+
+                if end_day == today:
+
+                    end_date = None
+
+                # ------------------------------------------------
+                # FUTURE END DATE
+                #
+                # Keep it because it really ends in future.
+                # ------------------------------------------------
+
+                elif end_day > today:
+
+                    end_date = end_date
+
+                # ------------------------------------------------
+                # PAST END DATE
+                #
+                # Keep original end date.
+                # ------------------------------------------------
+
+                else:
+
+                    end_date = end_date
+
+            # ====================================================
+            # IMPORTANT CLASSIFICATION
+            #
+            # MAIN EVENT:
+            # Name OR Excel No
+            #
+            # CONTINUATION:
+            # Name empty + No empty
+            # ====================================================
+
+            is_main_event = bool(
+                title
+                or excel_no
+            )
+
+            is_continuation = not is_main_event
+
+            # ====================================================
+            # CONTINUATION WITHOUT PARENT
+            # ====================================================
+
+            if (
+                is_continuation
+                and not current_group_id
+            ):
+
+                print(
+                    (
+                        "[PersonalTimeline] "
+                        f"Row {row_number}: "
+                        "Continuation before main event; skipped."
+                    )
+                )
+
+                skipped_count += 1
+
+                continue
+
+            # ====================================================
+            # MAIN EVENT
+            # ====================================================
+
+            if is_main_event:
+
+                # ------------------------------------------------
+                # MAIN COUNT
+                # ------------------------------------------------
+
+                main_count += 1
+
+                current_main_number = (
+                    main_count
+                )
+
+                # ------------------------------------------------
+                # NEW GROUP
+                # ------------------------------------------------
+
+                current_group_id = str(
+                    uuid4()
+                )
+
+                current_group_order = 0
+
+                # ------------------------------------------------
+                # PARENT
+                # ------------------------------------------------
+
+                current_parent_title = (
+                    title
+                    or f"Timeline Event {main_count}"
+                )
+
+                # ------------------------------------------------
+                # EXCEL NUMBER
+                # ------------------------------------------------
+
+                current_excel_no = (
+                    excel_no
+                )
+
+                # ------------------------------------------------
+                # MAIN META
+                # ------------------------------------------------
+
+                current_main_reaction = (
+                    reaction
+                )
+
+                current_main_category = (
+                    detect_category(
+                        title=title,
+                        description=description,
+                        reaction=reaction
+                    )
+                )
+
+                current_main_event_type = (
+                    detect_event_type(
+                        description=description,
+                        title=title,
+                        reaction=reaction
+                    )
+                )
+
+                # ------------------------------------------------
+                # MAIN DISPLAY
+                # ------------------------------------------------
+
+                display_name = (
+                    title
+                    or current_parent_title
+                )
+
+                parent_title = (
+                    current_parent_title
+                )
+
+                group_order = 0
+
+            # ====================================================
+            # CONTINUATION
+            # ====================================================
+
+            else:
+
+                continuation_count += 1
+
+                # ------------------------------------------------
+                # EXTRACT PERSON NAME
+                # ------------------------------------------------
+
+                extracted_name = (
+                    extract_person_name(
+                        description
+                    )
+                )
+
+                # ------------------------------------------------
+                # PARENT MUST REMAIN MAIN EVENT
+                # ------------------------------------------------
+
+                parent_title = (
+                    current_parent_title
+                )
+
+                # ------------------------------------------------
+                # GROUP ORDER
+                # ------------------------------------------------
+
+                current_group_order += 1
+
+                group_order = (
+                    current_group_order
+                )
+
+                # ------------------------------------------------
+                # CONTINUATION TITLE EMPTY
+                # ------------------------------------------------
+
+                display_name = ""
+
+            # ====================================================
+            # EVENT TYPE
+            # ====================================================
+
+            if is_continuation:
+
+                event_type = (
+                    detect_event_type(
+                        description=description,
+                        title="",
+                        reaction=reaction
+                    )
+                )
+
+            else:
+
+                event_type = (
+                    current_main_event_type
+                )
+
+            # ====================================================
+            # CATEGORY
+            # ====================================================
+
+            category = (
+                current_main_category
+                or "personal"
+            )
+
+            # ====================================================
+            # STATUS
+            #
+            # IMPORTANT:
+            #
+            # end_date == None
+            # => ACTIVE
+            #
+            # end_date < today
+            # => ENDED
+            #
+            # end_date > today
+            # => ACTIVE
+            # ====================================================
+
+            if end_date is None:
+
+                status = "active"
+
+            else:
+
+                end_day = end_date.date()
+
+                if end_day < today:
+
+                    status = "ended"
+
+                else:
+
+                    status = "active"
+
+            # ====================================================
+            # DURATION
+            #
+            # If ongoing:
+            # calculate_duration(..., None)
+            # => TODAY
+            #
+            # If ended:
+            # calculate_duration(..., actual end)
+            # ====================================================
+
+            duration = calculate_duration(
+                start_date,
+                end_date
+            )
+
+            # ====================================================
+            # EVENT TYPE OTHER
+            # ====================================================
+
+            event_type_other = None
+
+            if event_type == "other":
+
+                event_type_other = (
+                    description
+                    or None
+                )
+
+            # ====================================================
+            # DUPLICATE CHECK
+            # ====================================================
+
+            duplicate_query = {
+
+                "user_id": user_id,
+
+                "title": (
+                    title
+                    if is_main_event
+                    else ""
+                ),
+
+                "parent_title": (
+                    parent_title
+                ),
+
+                "reaction": (
+                    reaction
+                ),
+
+                "start_date": (
+                    start_date
+                ),
+
+                "end_date": (
+                    end_date
+                ),
+
+                "description": (
+                    description
+                ),
+
+                "is_continuation": (
+                    is_continuation
+                )
+
+            }
+
+            exists = (
+                mongo.db.personal_timeline.find_one(
+                    duplicate_query
+                )
+            )
+
+            if exists:
+
+                duplicate_count += 1
+
+                continue
+
+            # ====================================================
+            # DOCUMENT
+            # ====================================================
+
+            document = {
+
+                # =================================================
+                # USER
+                # =================================================
+
+                "user_id": user_id,
+
+                # =================================================
+                # MAIN TITLE
+                # =================================================
+
+                "title": (
+                    title
+                    if is_main_event
+                    else ""
+                ),
+
+                # =================================================
+                # DISPLAY NAME
+                # =================================================
+
+                "display_name": (
+                    display_name
+                ),
+
+                # =================================================
+                # PARENT TITLE
+                # =================================================
+
+                "parent_title": (
+                    parent_title
+                ),
+
+                # =================================================
+                # GROUP
+                # =================================================
+
+                "timeline_group_id": (
+                    current_group_id
+                ),
+
+                # =================================================
+                # CONTINUATION
+                # =================================================
+
+                "is_continuation": (
+                    is_continuation
+                ),
+
+                # =================================================
+                # GROUP ORDER
+                # =================================================
+
+                "group_order": (
+                    group_order
+                ),
+
+                # =================================================
+                # MAIN NUMBER
+                # =================================================
+
+                "main_number": (
+                    current_main_number
+                ),
+
+                # =================================================
+                # EXCEL NUMBER
+                # =================================================
+
+                "excel_no": (
+                    excel_no
+                ),
+
+                # =================================================
+                # CATEGORY
+                # =================================================
+
+                "category": (
+                    category
+                ),
+
+                # =================================================
+                # EVENT TYPE
+                # =================================================
+
+                "event_type": (
+                    event_type
+                ),
+
+                # =================================================
+                # EVENT TYPE OTHER
+                # =================================================
+
+                "event_type_other": (
+                    event_type_other
+                ),
+
+                # =================================================
+                # REACTION
+                # =================================================
+
+                "reaction": (
+                    reaction
+                ),
+
+                # =================================================
+                # START DATE
+                # =================================================
+
+                "start_date": (
+                    start_date
+                ),
+
+                # =================================================
+                # END DATE
+                #
+                # TODAY => None
+                # =================================================
+
+                "end_date": (
+                    end_date
+                ),
+
+                # =================================================
+                # STATUS
+                # =================================================
+
+                "status": (
+                    status
+                ),
+
+                # =================================================
+                # DESCRIPTION
+                # =================================================
+
+                "description": (
+                    description
+                ),
+
+                # =================================================
+                # NOTES
+                # =================================================
+
+                "notes": "",
+
+                # =================================================
+                # DURATION
+                # =================================================
+
+                "duration_years": (
+                    duration["years"]
+                ),
+
+                "duration_months": (
+                    duration["months"]
+                ),
+
+                "duration_days": (
+                    duration["days"]
+                ),
+
+                "duration_total_days": (
+                    duration["total_days"]
+                ),
+
+                "duration_text": (
+                    duration["text"]
+                ),
+
+                # =================================================
+                # IMPORT INFORMATION
+                # =================================================
+
+                "source": "import",
+
+                "import_batch": (
+                    import_batch_id
+                ),
+
+                "imported_at": (
+                    import_time
+                ),
+
+                "created_at": (
+                    import_time
+                ),
+
+                "updated_at": (
+                    import_time
+                ),
+
+                # =================================================
+                # EXCEL ROW
+                # =================================================
+
+                "import_row_number": (
+                    row_number
+                )
+
+            }
+
+            # ====================================================
+            # ORIGINAL EXCEL DAYS
+            # ====================================================
+
+            if days_value:
+
+                document[
+                    "import_days_text"
+                ] = days_value
+
+            # ====================================================
+            # ORIGINAL EXCEL NUMBER
+            # ====================================================
+
+            if excel_no:
+
+                document[
+                    "import_excel_no"
+                ] = excel_no
+
+            # ====================================================
+            # EXTRACTED PERSON NAME
+            # ====================================================
+
+            if is_continuation:
+
+                extracted_name = (
+                    extract_person_name(
+                        description
+                    )
+                )
+
+                if extracted_name:
+
+                    document[
+                        "extracted_person_name"
+                    ] = extracted_name
+
+            # ====================================================
+            # ADD ONGOING FLAG
+            #
+            # This makes it easy for the template/API to know
+            # that the Excel end date was converted to ongoing.
+            # ====================================================
+
+            document[
+                "is_ongoing"
+            ] = (
+                end_date is None
+            )
+
+            # ====================================================
+            # INSERT
+            # ====================================================
+
+            mongo.db.personal_timeline.insert_one(
+                document
+            )
+
+            imported_count += 1
+
+        except Exception as e:
+
+            print(
+                (
+                    "[PersonalTimeline] "
+                    f"IMPORT ERROR ROW {row_number}:"
+                ),
+                e
+            )
+
+            error_count += 1
+
+            continue
+
+    # ============================================================
+    # CREATE INDEXES
+    # ============================================================
+
+    try:
+
+        mongo.db.personal_timeline.create_index(
+            [
+                ("user_id", 1),
+                ("start_date", -1)
+            ]
+        )
+
+        mongo.db.personal_timeline.create_index(
+            [
+                ("user_id", 1),
+                ("timeline_group_id", 1),
+                ("group_order", 1)
+            ]
+        )
+
+        mongo.db.personal_timeline.create_index(
+            [
+                ("user_id", 1),
+                ("main_number", 1)
+            ]
+        )
+
+        mongo.db.personal_timeline.create_index(
+            [
+                ("user_id", 1),
+                ("status", 1),
+                ("end_date", 1)
+            ]
+        )
+
+        mongo.db.personal_timeline.create_index(
+            [
+                ("user_id", 1),
+                ("is_ongoing", 1)
+            ]
+        )
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE INDEX ERROR:",
+            e
+        )
+
+    # ============================================================
+    # FLASH
+    # ============================================================
+
+    flash(
+        (
+            "Personal Timeline Import Completed ✅ | "
+            f"Imported: {imported_count} | "
+            f"Main Events: {main_count} | "
+            f"Continuations: {continuation_count} | "
+            f"Skipped: {skipped_count} | "
+            f"Duplicates: {duplicate_count} | "
+            f"Errors: {error_count}"
+        ),
+        "success"
+    )
+
+    # ============================================================
+    # REDIRECT
+    # ============================================================
+
+    return redirect(
+        url_for(
+            "main.personal_timeline"
+        )
+    )
+
+
+
+
+
+
+
+@bp.route(
+    "/personal-timeline/delete-all",
+    methods=["POST"]
+)
+@login_required
+def delete_all_personal_timeline():
+
+    from bson import ObjectId
+
+    # ============================================================
+    # CURRENT USER
+    # ============================================================
+
+    try:
+        user_id = ObjectId(
+            str(current_user.id)
+        )
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE DELETE ALL USER ID ERROR:",
+            e
+        )
+
+        flash(
+            "Unable to identify current user.",
+            "danger"
+        )
+
+        return redirect(
+            request.referrer
+            or url_for("main.personal_timeline")
+        )
+
+    # ============================================================
+    # DELETE ONLY CURRENT USER'S RECORDS
+    # ============================================================
+
+    try:
+
+        result = mongo.db.personal_timeline.delete_many(
+            {
+                "user_id": user_id
+            }
+        )
+
+        deleted_count = result.deleted_count
+
+        # ========================================================
+        # RESULT
+        # ========================================================
+
+        if deleted_count > 0:
+
+            flash(
+                (
+                    "All Personal Timeline records deleted "
+                    f"successfully. "
+                    f"Deleted: {deleted_count}"
+                ),
+                "success"
+            )
+
+        else:
+
+            flash(
+                "No Personal Timeline records found to delete.",
+                "info"
+            )
+
+    except Exception as e:
+
+        print(
+            "PERSONAL TIMELINE DELETE ALL ERROR:",
+            e
+        )
+
+        flash(
+            (
+                "Failed to delete Personal Timeline records. "
+                "Please try again."
+            ),
+            "danger"
+        )
+
+    # ============================================================
+    # REDIRECT
+    # ============================================================
+
+    return redirect(
+        url_for(
+            "main.personal_timeline"
+        )
+    )
+
+
 # ==============================
 # ACCOUNT LIST
 # ==============================
-from bson import ObjectId
 
 
 
@@ -20964,6 +28000,7 @@ item_recommendations=item_recommendations,
         )
 
     )
+
 
 
 
