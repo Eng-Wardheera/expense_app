@@ -1,7 +1,8 @@
 from decimal import Decimal
 import enum
+from bson import ObjectId
 from flask_login import UserMixin
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app import now_eat
 
 
@@ -106,6 +107,337 @@ class User(UserMixin):
 
     def __repr__(self):
         return f"<User {self.username}>"
+
+
+
+class PersonalTimeline:
+
+    collection_name = "personal_timeline"
+
+    # =========================================================
+    # ENUM-LIKE VALUES
+    # =========================================================
+
+    CATEGORIES = {
+        "relationship",
+        "life_event",
+        "family",
+        "personal",
+        "important_date",
+        "other",
+    }
+
+    EVENT_TYPES = {
+        "relationship_period",
+        "relationship_started",
+        "relationship_ended",
+        "relationship_gap",
+        "heartbroken",
+        "recontact",
+        "relationship_stopped",
+
+        "birth",
+        "visit",
+        "travel",
+        "loss",
+        "achievement",
+        "important_date",
+
+        "personal",
+        "family",
+        "other",
+    }
+
+    STATUSES = {
+        "active",
+        "ongoing",
+        "ended",
+        "cancelled",
+    }
+
+    # =========================================================
+    # INIT
+    # =========================================================
+
+    def __init__(
+        self,
+        _id=None,
+        user_id=None,
+
+        title=None,
+        category="personal",
+        event_type="other",
+        reaction=None,
+
+        start_date=None,
+        end_date=None,
+
+        status="ongoing",
+
+        description="",
+        notes="",
+
+        created_at=None,
+        updated_at=None,
+    ):
+
+        self._id = _id or ObjectId()
+
+        # Owner
+        self.user_id = self._normalize_object_id(user_id)
+
+        # Main information
+        self.title = title
+        self.category = category
+        self.event_type = event_type
+        self.reaction = reaction
+
+        # Dates
+        self.start_date = self._normalize_date(start_date)
+        self.end_date = self._normalize_date(end_date)
+
+        # State
+        self.status = status
+
+        # Extra information
+        self.description = description or ""
+        self.notes = notes or ""
+
+        # Audit
+        self.created_at = (
+            created_at
+            or datetime.now(timezone.utc)
+        )
+
+        self.updated_at = (
+            updated_at
+            or datetime.now(timezone.utc)
+        )
+
+    # =========================================================
+    # OBJECT ID
+    # =========================================================
+
+    @staticmethod
+    def _normalize_object_id(value):
+
+        if value is None:
+            return None
+
+        if isinstance(value, ObjectId):
+            return value
+
+        try:
+            return ObjectId(str(value))
+        except Exception:
+            return value
+
+    # =========================================================
+    # DATE
+    # =========================================================
+
+    @staticmethod
+    def _normalize_date(value):
+
+        if value is None:
+            return None
+
+        if isinstance(value, datetime):
+            return value
+
+        if isinstance(value, str):
+
+            formats = [
+                "%Y-%m-%d",
+                "%d/%m/%Y",
+                "%m/%d/%Y",
+            ]
+
+            for fmt in formats:
+                try:
+                    return datetime.strptime(
+                        value,
+                        fmt
+                    ).replace(
+                        tzinfo=timezone.utc
+                    )
+                except ValueError:
+                    continue
+
+        return value
+
+    # =========================================================
+    # VALIDATION
+    # =========================================================
+
+    def validate(self):
+
+        errors = []
+
+        if not self.user_id:
+            errors.append(
+                "user_id is required."
+            )
+
+        if not self.title:
+            errors.append(
+                "title is required."
+            )
+
+        if self.category not in self.CATEGORIES:
+            errors.append(
+                f"Invalid category: {self.category}"
+            )
+
+        if self.event_type not in self.EVENT_TYPES:
+            errors.append(
+                f"Invalid event_type: {self.event_type}"
+            )
+
+        if self.status not in self.STATUSES:
+            errors.append(
+                f"Invalid status: {self.status}"
+            )
+
+        if (
+            self.start_date
+            and self.end_date
+            and self.end_date < self.start_date
+        ):
+            errors.append(
+                "end_date cannot be before start_date."
+            )
+
+        return errors
+
+    # =========================================================
+    # MONGO DOCUMENT
+    # =========================================================
+
+    def to_dict(self):
+
+        return {
+            "_id": self._id,
+
+            "user_id": self.user_id,
+
+            "title": self.title,
+
+            "category": self.category,
+
+            "event_type": self.event_type,
+
+            "reaction": self.reaction,
+
+            "start_date": self.start_date,
+
+            "end_date": self.end_date,
+
+            "status": self.status,
+
+            "description": self.description,
+
+            "notes": self.notes,
+
+            "created_at": self.created_at,
+
+            "updated_at": self.updated_at,
+        }
+
+    # =========================================================
+    # CREATE FROM MONGO
+    # =========================================================
+
+    @classmethod
+    def from_dict(cls, data):
+
+        if not data:
+            return None
+
+        return cls(
+            _id=data.get("_id"),
+
+            user_id=data.get("user_id"),
+
+            title=data.get("title"),
+
+            category=data.get(
+                "category",
+                "personal"
+            ),
+
+            event_type=data.get(
+                "event_type",
+                "other"
+            ),
+
+            reaction=data.get(
+                "reaction"
+            ),
+
+            start_date=data.get(
+                "start_date"
+            ),
+
+            end_date=data.get(
+                "end_date"
+            ),
+
+            status=data.get(
+                "status",
+                "ongoing"
+            ),
+
+            description=data.get(
+                "description",
+                ""
+            ),
+
+            notes=data.get(
+                "notes",
+                ""
+            ),
+
+            created_at=data.get(
+                "created_at"
+            ),
+
+            updated_at=data.get(
+                "updated_at"
+            ),
+        )
+
+    # =========================================================
+    # UPDATE
+    # =========================================================
+
+    def touch(self):
+
+        self.updated_at = datetime.now(
+            timezone.utc
+        )
+
+    # =========================================================
+    # DURATION
+    # =========================================================
+
+    def duration_days(self, today=None):
+
+        if not self.start_date:
+            return 0
+
+        end = (
+            self.end_date
+            or today
+            or datetime.now(timezone.utc)
+        )
+
+        start = self.start_date
+
+        return max(
+            0,
+            (end.date() - start.date()).days
+        )
 
 
 
