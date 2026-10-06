@@ -133555,6 +133555,395 @@ def ai_assistant():
 
             }
 
+
+        # ============================================================
+        # PERSONAL TIMELINE — LIVE MONGODB SOURCE OF TRUTH
+        # ============================================================
+        # The personal_timeline collection is always read dynamically
+        # for the authenticated user. No other user's timeline data is
+        # allowed into the AI context.
+        #
+        # Supported example fields:
+        #   title, category, event_type, reaction,
+        #   start_date, end_date, status, description, notes,
+        #   event_type_other, duration_years, duration_months,
+        #   duration_days, duration_total_days, duration_text,
+        #   source, import_batch, created_at, updated_at
+        # ============================================================
+
+        personal_timeline_context = []
+        personal_timeline_summary = {
+            "count": 0,
+            "active_count": 0,
+            "ended_count": 0,
+            "cancelled_count": 0,
+            "upcoming_count": 0,
+            "source": "LIVE MongoDB personal_timeline",
+            "authenticated_user_only": True,
+            "refreshed_for_every_request": False,
+        }
+
+        if is_logged_in and current_user_id:
+
+            try:
+
+                # --------------------------------------------------------
+                # USER-SCOPED QUERY
+                # --------------------------------------------------------
+                personal_timeline_query = {
+                    "user_id": {
+                        "$in": user_ids
+                    }
+                }
+
+                # --------------------------------------------------------
+                # PROJECTION
+                # --------------------------------------------------------
+                personal_timeline_projection = {
+                    "_id": 1,
+                    "user_id": 1,
+                    "title": 1,
+                    "category": 1,
+                    "event_type": 1,
+                    "reaction": 1,
+                    "start_date": 1,
+                    "end_date": 1,
+                    "status": 1,
+                    "description": 1,
+                    "notes": 1,
+                    "event_type_other": 1,
+                    "duration_years": 1,
+                    "duration_months": 1,
+                    "duration_days": 1,
+                    "duration_total_days": 1,
+                    "duration_text": 1,
+                    "source": 1,
+                    "import_batch": 1,
+                    "created_at": 1,
+                    "updated_at": 1,
+                }
+
+                # --------------------------------------------------------
+                # LIVE READ
+                # --------------------------------------------------------
+                timeline_documents = list(
+                    mongo.db.personal_timeline
+                    .find(
+                        personal_timeline_query,
+                        personal_timeline_projection
+                    )
+                    .sort(
+                        [
+                            ("start_date", -1),
+                            ("created_at", -1),
+                            ("_id", -1)
+                        ]
+                    )
+                    .limit(1000)
+                )
+
+                # --------------------------------------------------------
+                # SAFE JSON CONVERSION
+                # --------------------------------------------------------
+                for timeline_item in timeline_documents:
+
+                    raw_user_id = timeline_item.get("user_id")
+
+                    safe_timeline_item = {
+                        "_id": (
+                            str(timeline_item.get("_id"))
+                            if timeline_item.get("_id") is not None
+                            else None
+                        ),
+
+                        "user_id": (
+                            str(raw_user_id)
+                            if raw_user_id is not None
+                            else None
+                        ),
+
+                        "title": str(
+                            timeline_item.get("title")
+                            or ""
+                        ).strip(),
+
+                        "category": str(
+                            timeline_item.get("category")
+                            or ""
+                        ).strip(),
+
+                        "event_type": str(
+                            timeline_item.get("event_type")
+                            or ""
+                        ).strip(),
+
+                        "reaction": str(
+                            timeline_item.get("reaction")
+                            or ""
+                        ).strip(),
+
+                        "start_date": (
+                            ai_saving_datetime(
+                                timeline_item.get("start_date")
+                            )
+                            if timeline_item.get("start_date") is not None
+                            else None
+                        ),
+
+                        "end_date": (
+                            ai_saving_datetime(
+                                timeline_item.get("end_date")
+                            )
+                            if timeline_item.get("end_date") is not None
+                            else None
+                        ),
+
+                        "status": str(
+                            timeline_item.get("status")
+                            or ""
+                        ).strip(),
+
+                        "description": str(
+                            timeline_item.get("description")
+                            or ""
+                        ).strip(),
+
+                        "notes": str(
+                            timeline_item.get("notes")
+                            or ""
+                        ).strip(),
+
+                        "event_type_other": str(
+                            timeline_item.get("event_type_other")
+                            or ""
+                        ).strip(),
+
+                        "duration_years": ai_safe_int(
+                            timeline_item.get("duration_years")
+                        ),
+
+                        "duration_months": ai_safe_int(
+                            timeline_item.get("duration_months")
+                        ),
+
+                        "duration_days": ai_safe_int(
+                            timeline_item.get("duration_days")
+                        ),
+
+                        "duration_total_days": ai_safe_int(
+                            timeline_item.get("duration_total_days")
+                        ),
+
+                        "duration_text": str(
+                            timeline_item.get("duration_text")
+                            or ""
+                        ).strip(),
+
+                        "source": str(
+                            timeline_item.get("source")
+                            or ""
+                        ).strip(),
+
+                        "import_batch": (
+                            ai_saving_datetime(
+                                timeline_item.get("import_batch")
+                            )
+                            if timeline_item.get("import_batch") is not None
+                            else None
+                        ),
+
+                        "created_at": (
+                            ai_saving_datetime(
+                                timeline_item.get("created_at")
+                            )
+                            if timeline_item.get("created_at") is not None
+                            else None
+                        ),
+
+                        "updated_at": (
+                            ai_saving_datetime(
+                                timeline_item.get("updated_at")
+                            )
+                            if timeline_item.get("updated_at") is not None
+                            else None
+                        ),
+                    }
+
+                    personal_timeline_context.append(
+                        safe_timeline_item
+                    )
+
+                # --------------------------------------------------------
+                # DYNAMIC SUMMARY
+                # --------------------------------------------------------
+                active_count = 0
+                ended_count = 0
+                cancelled_count = 0
+                upcoming_count = 0
+
+                today_eat = ai_current_eat_date()
+
+                for item in personal_timeline_context:
+
+                    status = str(
+                        item.get("status")
+                        or ""
+                    ).strip().lower()
+
+                    if status in {
+                        "active",
+                        "ongoing",
+                        "in_progress",
+                        "in-progress",
+                        "current"
+                    }:
+                        active_count += 1
+
+                    elif status in {
+                        "ended",
+                        "completed",
+                        "complete",
+                        "finished"
+                    }:
+                        ended_count += 1
+
+                    elif status in {
+                        "cancelled",
+                        "canceled"
+                    }:
+                        cancelled_count += 1
+
+                    start_value = item.get("start_date")
+
+                    if start_value:
+                        try:
+                            start_date_only = (
+                                start_value.date()
+                                if hasattr(start_value, "date")
+                                else start_value
+                            )
+
+                            if start_date_only > today_eat:
+                                upcoming_count += 1
+
+                        except Exception:
+                            pass
+
+                personal_timeline_summary = {
+                    "count": len(
+                        personal_timeline_context
+                    ),
+
+                    "active_count": active_count,
+
+                    "ended_count": ended_count,
+
+                    "cancelled_count": cancelled_count,
+
+                    "upcoming_count": upcoming_count,
+
+                    "source": (
+                        "LIVE MongoDB personal_timeline"
+                    ),
+
+                    "authenticated_user_only": True,
+
+                    "refreshed_for_every_request": True,
+
+                    "loaded_at": (
+                        ai_saving_datetime(
+                            datetime.now(timezone.utc)
+                        )
+                    )
+                }
+
+                print(
+                    "MAAREYE AI PERSONAL TIMELINE:",
+                    "records=",
+                    len(personal_timeline_context),
+                    "active=",
+                    active_count,
+                    "ended=",
+                    ended_count,
+                    "cancelled=",
+                    cancelled_count,
+                    "upcoming=",
+                    upcoming_count
+                )
+
+            except Exception as timeline_error:
+
+                print(
+                    "=" * 80
+                )
+
+                print(
+                    "MAAREYE AI PERSONAL TIMELINE ERROR"
+                )
+
+                print(
+                    repr(
+                        timeline_error
+                    )
+                )
+
+                print(
+                    "=" * 80
+                )
+
+                # Timeline is an optional context source. Do not break
+                # the entire AI request when the collection has a problem.
+                personal_timeline_context = []
+
+                personal_timeline_summary = {
+                    "count": 0,
+                    "active_count": 0,
+                    "ended_count": 0,
+                    "cancelled_count": 0,
+                    "upcoming_count": 0,
+                    "source": "LIVE MongoDB personal_timeline",
+                    "authenticated_user_only": True,
+                    "refreshed_for_every_request": False,
+                    "error": "timeline_context_unavailable"
+                }
+
+        # ============================================================
+        # GUEST — NO PERSONAL TIMELINE ACCESS
+        # ============================================================
+
+        else:
+
+            personal_timeline_context = []
+
+            personal_timeline_summary = {
+                "count": 0,
+                "active_count": 0,
+                "ended_count": 0,
+                "cancelled_count": 0,
+                "upcoming_count": 0,
+                "source": "SUPPRESSED_FOR_GUEST",
+                "authenticated_user_only": True,
+                "refreshed_for_every_request": False
+            }
+
+        # ============================================================
+        # INJECT LIVE PERSONAL TIMELINE INTO AI CONTEXT
+        # ============================================================
+
+        financial_context = dict(
+            financial_context
+            or
+            {}
+        )
+
+        financial_context["personal_timeline"] = (
+            personal_timeline_context
+        )
+
+        financial_context["personal_timeline_summary"] = (
+            personal_timeline_summary
+        )
+
         # ============================================================
         # OWNER
         # ============================================================
@@ -134285,6 +134674,170 @@ Never claim a calculated amount was actually deposited.
 ============================================================
 """
 
+
+        # ============================================================
+        # PERSONAL TIMELINE RULES
+        # ============================================================
+
+        personal_timeline_instruction = """
+
+# ============================================================
+PERSONAL TIMELINE — LIVE USER-SCOPED SOURCE
+# ============================================================
+
+When the user asks about personal events, life events, dates, periods,
+things that happened, ongoing events, ended events, upcoming events,
+event duration, reactions, notes, or personal history:
+
+PRIMARY SOURCE:
+
+financial_context is NOT the source for Personal Timeline.
+
+Use:
+
+personal_timeline_context
+
+and:
+
+personal_timeline_summary
+
+as the primary Personal Timeline source.
+
+The Personal Timeline is read dynamically from:
+
+MongoDB collection:
+personal_timeline
+
+Only records belonging to the currently authenticated user may be used.
+
+# ============================================================
+PERSONAL TIMELINE FIELDS
+# ============================================================
+
+Possible recorded fields include:
+
+- title
+- category
+- event_type
+- reaction
+- start_date
+- end_date
+- status
+- description
+- notes
+- event_type_other
+- duration_years
+- duration_months
+- duration_days
+- duration_total_days
+- duration_text
+- source
+- import_batch
+- created_at
+- updated_at
+
+# ============================================================
+STRICT SOURCE RULE
+# ============================================================
+
+Do not invent Personal Timeline events.
+
+Do not invent dates.
+
+Do not invent durations.
+
+Do not invent reactions.
+
+Do not invent notes.
+
+Do not claim an event exists unless it is supplied in the live
+Personal Timeline context.
+
+You may calculate derived information from supplied dates.
+
+For example:
+
+- duration between start_date and end_date;
+- whether an event is upcoming, current, or ended;
+- differences between dates;
+- chronological ordering.
+
+Clearly distinguish recorded data from calculated analysis.
+
+# ============================================================
+PERSON MATCHING / EVENT MATCHING
+# ============================================================
+
+When the user mentions an event by title, description, category,
+event type, or another supplied field, match it against the supplied
+Personal Timeline records.
+
+Do not merge two different timeline events merely because their
+titles are similar.
+
+If multiple records could match, explain the ambiguity and use the
+available fields to distinguish them.
+
+# ============================================================
+STATUS
+# ============================================================
+
+If status is:
+
+active / ongoing / current:
+describe it as currently active only when the supplied record supports it.
+
+ended / completed / finished:
+describe it as ended/completed.
+
+cancelled / canceled:
+describe it as cancelled.
+
+If the status is unknown or empty, do not invent a status.
+
+# ============================================================
+DATES
+# ============================================================
+
+Use the supplied start_date and end_date.
+
+The current analysis date is:
+
+Africa/Nairobi / EAT / UTC+03:00
+
+Do not replace recorded dates with guessed dates.
+
+If a date is missing, say that the date is not recorded.
+
+# ============================================================
+DURATION
+# ============================================================
+
+Prefer the recorded duration fields when the user asks what was
+recorded.
+
+If mathematical date analysis is required, calculate it from the
+supplied start_date and end_date and clearly label it as calculated.
+
+Never claim a calculated duration was stored in MongoDB unless the
+duration field itself is present.
+
+# ============================================================
+PRIVACY
+# ============================================================
+
+Never reveal another user's Personal Timeline.
+
+Never use timeline records outside the authenticated user's user_id.
+
+If Logged in = False:
+
+- do not claim access to Personal Timeline;
+- do not fabricate timeline events;
+- explain that personal timeline data requires authentication.
+
+"""
+
         # ============================================================
         # REQUEST SCOPE ENFORCEMENT
         # ============================================================
@@ -134410,6 +134963,10 @@ exists.
 
             + "\n\n"
 
+            + personal_timeline_instruction
+
+            + "\n\n"
+
             + analysis_instruction
 
             + "\n\n"
@@ -134487,7 +135044,13 @@ exists.
                 password_security_context,
 
             "user_sessions":
-                user_sessions_context
+                user_sessions_context,
+
+            "personal_timeline_summary":
+                personal_timeline_summary,
+
+            "personal_timeline":
+                personal_timeline_context
 
         }
 
@@ -134579,6 +135142,18 @@ CURRENT ANALYSIS DATE
 
 Timezone:
 Africa/Nairobi / EAT / UTC+03:00
+
+# ============================================================
+PERSONAL TIMELINE — LIVE DATA
+# ============================================================
+
+{ai_json(personal_timeline_context)}
+
+# ============================================================
+PERSONAL TIMELINE SUMMARY
+# ============================================================
+
+{ai_json(personal_timeline_summary)}
 
 # ============================================================
 OWNER CONTACT
@@ -134751,7 +135326,7 @@ Do not fabricate database records.
 
                     retry_match = re.search(
 
-                        r"retryDelay['\"]?\s*:\s*['\"]?([0-9.]+)s",
+                        r'''retryDelay['"]?\s*:\s*['"]?([0-9.]+)s''',
 
                         gemini_error_text,
 
@@ -135358,7 +135933,7 @@ Do not fabricate database records.
 
                 retry_match = re.search(
 
-                    r"retryDelay['\"]?\s*:\s*['\"]?([0-9.]+)s",
+                    r'''retryDelay['"]?\s*:\s*['"]?([0-9.]+)s''',
 
                     error_text,
 
@@ -135610,7 +136185,6 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
