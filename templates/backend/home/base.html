@@ -2874,6 +2874,8 @@
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/common.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/face-api.min.js"></script>
 
 <!-- ============================================================
      AI ASSISTANT JAVASCRIPT
@@ -6157,6 +6159,8 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
 
             const requestText = addImageLayoutGuidance(text);
+            const pendingImageForThisRequest = window.__aiPendingImageDataUrl || null;
+            window.__aiPendingImageDataUrl = null;
 
             const response =
                 await fetch(
@@ -6199,7 +6203,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                  */
 
                                 timezone:
-                                    USER_TIMEZONE
+                                    USER_TIMEZONE,
+
+                                // Captured image is sent with the caption to the authenticated AI endpoint.
+                                image_data_url:
+                                    pendingImageForThisRequest
 
                             })
 
@@ -8385,6 +8393,22 @@ document.addEventListener("DOMContentLoaded", function () {
     [data-bs-theme="dark"] .ai-copy-button {
         color: #94a3b8;
     }
+    .ai-face-match-status {
+        width: 100%;
+        padding: 9px 11px;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #1d4ed8;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .ai-face-match-status[data-state="success"] { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }
+    .ai-face-match-status[data-state="error"] { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+    .ai-face-match-status[data-state="busy"] { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+    [data-bs-theme="dark"] .ai-face-match-status { background:#172554; color:#bfdbfe; border-color:#1e40af; }
+    [data-bs-theme="dark"] .ai-face-match-status[data-state="success"] { background:#052e16; color:#bbf7d0; border-color:#166534; }
+    [data-bs-theme="dark"] .ai-face-match-status[data-state="error"] { background:#450a0a; color:#fecaca; border-color:#991b1b; }
 
     @media (max-width: 576px) {
         .ai-media-tools {
@@ -8429,6 +8453,11 @@ document.addEventListener("DOMContentLoaded", function () {
     function bootAIMediaAddOn() {
         const input = document.getElementById("aiAssistantInput");
         const sendButton = document.getElementById("aiAssistantSend");
+        // Cloudinary profile photo belonging to the authenticated Flask user.
+        const currentUserPhotoUrl = {{ (current_user.photo if current_user is defined and current_user.photo else '')|tojson }};
+        const FACE_MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
+        let faceModelsReady = false;
+        let faceModelsPromise = null;
         const messages = document.getElementById("aiAssistantMessages");
         const inputWrapper = document.querySelector(".ai-input-wrapper");
 
@@ -8531,6 +8560,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
 
                     <div class="ai-camera-controls">
+                        <div id="aiFaceMatchStatus" class="ai-face-match-status" role="status" aria-live="polite">
+                            Sawirka profile-ka Cloudinary ayaa lala barbar dhigi doonaa ka hor dirista.
+                        </div>
                         <textarea
                             id="aiCameraCaption"
                             class="ai-camera-caption"
@@ -8590,6 +8622,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const selfieCountdown = document.getElementById("aiSelfieCountdown");
         const selfieCountdownNumber = document.getElementById("aiSelfieCountdownNumber");
         const cameraCaption = document.getElementById("aiCameraCaption");
+        const faceMatchStatus = document.getElementById("aiFaceMatchStatus");
         const takePhotoButton = document.getElementById("aiTakePhoto");
         const sendPhotoButton = document.getElementById("aiSendPhoto");
         const retakePhotoButton = document.getElementById("aiRetakePhoto");
@@ -8916,6 +8949,7 @@ if (cameraStream) {
             cameraStage.classList.remove("has-photo");
             cameraPreview.removeAttribute("src");
             cameraCaption.value = "";
+            setFaceMatchStatus("Sawirka profile-ka Cloudinary ayaa lala barbar dhigi doonaa ka hor dirista.");
 
             takePhotoButton.style.display = "inline-flex";
             sendPhotoButton.style.display = "none";
@@ -9014,8 +9048,12 @@ if (cameraStream) {
             }
 
             const canvas = document.createElement("canvas");
-            canvas.width = cameraVideo.videoWidth;
-            canvas.height = cameraVideo.videoHeight;
+            // Resize the captured frame to a practical AI upload size (max 1024 px).
+            const sourceWidth = cameraVideo.videoWidth;
+            const sourceHeight = cameraVideo.videoHeight;
+            const scale = Math.min(1, 1024 / Math.max(sourceWidth, sourceHeight));
+            canvas.width = Math.max(1, Math.round(sourceWidth * scale));
+            canvas.height = Math.max(1, Math.round(sourceHeight * scale));
 
             const ctx = canvas.getContext("2d");
 
@@ -9032,7 +9070,7 @@ if (cameraStream) {
             );
 
             showCapturedPhoto(
-                canvas.toDataURL("image/jpeg", 0.88)
+                canvas.toDataURL("image/jpeg", 0.80)
             );
         }
 
@@ -9189,22 +9227,76 @@ if (cameraStream) {
             setTimeout(attachPhoto, 350);
         };
 
-        async function sendCapturedPhoto() {
-            if (!capturedPhoto) {
-                return;
+        function setFaceMatchStatus(message, state) {
+            if (!faceMatchStatus) return;
+            faceMatchStatus.textContent = message;
+            if (state) faceMatchStatus.dataset.state = state;
+            else delete faceMatchStatus.dataset.state;
+        }
+
+        async function loadFaceModels() {
+            if (!window.faceapi) throw new Error("Face matching library lama soo dejin.");
+            if (faceModelsReady) return;
+            if (!faceModelsPromise) {
+                faceModelsPromise = Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri(FACE_MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(FACE_MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_MODEL_URL)
+                ]).then(function () { faceModelsReady = true; });
             }
+            await faceModelsPromise;
+        }
 
-            const caption =
-                String(cameraCaption.value || "").trim();
+        function loadImageForFaceCheck(src) {
+            return new Promise(function (resolve, reject) {
+                const image = new Image();
+                image.crossOrigin = "anonymous";
+                image.onload = function () { resolve(image); };
+                image.onerror = function () { reject(new Error("Profile photo-ga Cloudinary lama akhrin karin. Hubi inuu public yahay oo CORS oggol yahay.")); };
+                image.src = src;
+            });
+        }
 
-            const photo = capturedPhoto;
+        async function verifyCapturedFace(photoDataUrl) {
+            if (!currentUserPhotoUrl || typeof currentUserPhotoUrl !== "string") {
+                throw new Error("current_user.photo lama helin. Profile photo-ga Cloudinary waa inuu template-ka ku jiro.");
+            }
+            setFaceMatchStatus("Wajiyada ayaa la barbar dhigayaa…", "busy");
+            await loadFaceModels();
+            const profileImage = await loadImageForFaceCheck(currentUserPhotoUrl);
+            const selfieImage = await loadImageForFaceCheck(photoDataUrl);
+            const options = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.45 });
+            const profileResult = await faceapi.detectSingleFace(profileImage, options).withFaceLandmarks().withFaceDescriptor();
+            const selfieResult = await faceapi.detectSingleFace(selfieImage, options).withFaceLandmarks().withFaceDescriptor();
+            if (!profileResult || !selfieResult) {
+                throw new Error("Waji si cad looma helin labada sawir. Iftiinka hagaaji oo mar kale sawir qaad.");
+            }
+            const distance = faceapi.euclideanDistance(profileResult.descriptor, selfieResult.descriptor);
+            // Conservative browser-side similarity threshold; this is a convenience check, not formal identity proof.
+            if (distance > 0.52) {
+                throw new Error("Wajiga camera-ga lama waafajin profile photo-ga. Sawirka lama dirin.");
+            }
+            setFaceMatchStatus("Wajigu wuu la mid yahay profile photo-ga. Sawirka waa la diyaariyey.", "success");
+            return true;
+        }
 
-            closeCamera();
-
-            window.__aiAssistantAddMessage(
-                caption || "Sawir ayaan kuu soo diray.",
-                photo
-            );
+        async function sendCapturedPhoto() {
+            if (!capturedPhoto) return;
+            sendPhotoButton.disabled = true;
+            setFaceMatchStatus("Hubinta wajiga ka hor dirista…", "busy");
+            try {
+                await verifyCapturedFace(capturedPhoto);
+                const caption = String(cameraCaption.value || "Sawirka camera-ga eeg oo sharax waxa ku jira.").trim();
+                const photo = capturedPhoto;
+                closeCamera();
+                // The photo and its caption travel together to the existing AI request.
+                window.__aiPendingImageDataUrl = photo;
+                window.__aiAssistantAddMessage(caption, photo);
+            } catch (error) {
+                setFaceMatchStatus(error && error.message ? error.message : "Hubinta wajiga way fashilantay.", "error");
+            } finally {
+                sendPhotoButton.disabled = false;
+            }
         }
 
         cameraButton.addEventListener("click", function () {
