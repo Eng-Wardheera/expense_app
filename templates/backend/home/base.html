@@ -2285,6 +2285,118 @@
     margin-top: 3px;
 }
 
+
+
+        /* ========================================================
+           GENERATED VISUALS — RESPONSIVE FRAME + SAVE / EDIT
+           ======================================================== */
+        .ai-visual-card {
+            width: 100%;
+            max-width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            overflow: hidden;
+            border: 1px solid #dbe4f0;
+            border-radius: 14px;
+            background: #ffffff;
+            box-shadow: 0 5px 18px rgba(15, 23, 42, .06);
+        }
+        .ai-visual-frame {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 120px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            background:
+                linear-gradient(45deg, #f8fafc 25%, transparent 25%),
+                linear-gradient(-45deg, #f8fafc 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #f8fafc 75%),
+                linear-gradient(-45deg, transparent 75%, #f8fafc 75%);
+            background-size: 18px 18px;
+            background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+        }
+        .ai-generated-visual {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-height: min(62vh, 620px);
+            object-fit: contain;
+            border-radius: 8px;
+        }
+        .ai-visual-meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+            color: #64748b;
+            font-size: 11px;
+        }
+        .ai-visual-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+            margin-top: 10px;
+        }
+        .ai-visual-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 7px 10px;
+            border: 1px solid #dbeafe;
+            border-radius: 9px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .ai-visual-action:hover { background: #dbeafe; }
+        .ai-visual-action.save {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+        }
+        .ai-visual-action.save:hover { background: #1d4ed8; }
+        .ai-visual-action i, .ai-visual-action svg {
+            width: 14px;
+            height: 14px;
+        }
+        [data-bs-theme="dark"] .ai-visual-card {
+            background: #111827;
+            border-color: #374151;
+            box-shadow: none;
+        }
+        [data-bs-theme="dark"] .ai-visual-frame {
+            background-color: #0f172a;
+            border-color: #334155;
+        }
+        [data-bs-theme="dark"] .ai-visual-meta { color: #94a3b8; }
+        [data-bs-theme="dark"] .ai-visual-action {
+            background: #1e293b;
+            border-color: #334155;
+            color: #bfdbfe;
+        }
+        [data-bs-theme="dark"] .ai-visual-action.save {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+        }
+        @media (max-width: 576px) {
+            .ai-visual-card { padding: 7px; border-radius: 11px; }
+            .ai-generated-visual { max-height: 48vh; }
+            .ai-visual-actions { display: grid; grid-template-columns: 1fr 1fr; }
+            .ai-visual-action { width: 100%; padding: 8px 6px; }
+        }
+
 </style>
 
 </head>
@@ -2961,6 +3073,128 @@ document.addEventListener("DOMContentLoaded", function () {
             return escapeHTML(source);
         }
 
+    }
+
+    /* =========================================================
+       IMAGE REQUEST PRESETS + GENERATED VISUAL DISPLAY
+       ========================================================= */
+
+    function addImageLayoutGuidance(prompt) {
+        const original = String(prompt || "").trim();
+        const lower = original.toLowerCase();
+        const imageRequest = /\b(image|picture|poster|illustration|logo|banner|thumbnail|draw|design|sawir|boor|boorar|naqshad|jaantus|shax|chart|graph|diagram)\b/i.test(original);
+        if (!imageRequest) return original;
+
+        let ratio = "4:5 portrait";
+        let pixels = "1024 × 1280";
+        let frame = "clean, balanced margins, centered composition, no cropping of important content";
+        if (/\b(logo|icon|avatar|profile)\b/i.test(lower)) {
+            ratio = "1:1 square"; pixels = "1024 × 1024";
+            frame = "square safe-area frame, centered subject, generous padding around edges";
+        } else if (/\b(banner|cover|thumbnail|youtube|wide|landscape)\b/i.test(lower)) {
+            ratio = "16:9 landscape"; pixels = "1536 × 864";
+            frame = "wide landscape frame, safe margins, clear focal point";
+        } else if (/\b(chart|graph|jaantus|shax|diagram|report|infographic)\b/i.test(lower)) {
+            ratio = "4:3 landscape"; pixels = "1200 × 900";
+            frame = "professional chart frame, readable labels, unclipped legend and title";
+        } else if (/\b(poster|boor|boorar|certificate|shahaado|story|reel)\b/i.test(lower)) {
+            ratio = "2:3 portrait"; pixels = "1024 × 1536";
+            frame = "print-ready portrait frame, safe margins, all text and logo inside the frame";
+        }
+
+        if (/\[AI_VISUAL_LAYOUT:/i.test(original)) return original;
+        return original + "\n\n[AI_VISUAL_LAYOUT: " + ratio + "; suggested canvas " + pixels +
+            "; framing: " + frame +
+            ". Keep all important text and subjects inside safe margins. Create a polished, complete visual suitable for the requested use.]";
+    }
+
+    function getVisualPayload(data) {
+        if (!data || typeof data !== "object") return null;
+        const candidate = data.visual || data.image_result || data.generated_image ||
+            data.image || data.chart_result || null;
+        if (typeof candidate === "string") {
+            return /^data:image\//i.test(candidate) ? { data: candidate, mime_type: "image/png" } : null;
+        }
+        if (!candidate || typeof candidate !== "object") return null;
+        const src = candidate.data || candidate.data_uri || candidate.url || candidate.src;
+        if (typeof src !== "string" || !(/^(data:image\/|https?:\/\/)/i.test(src))) return null;
+        return {
+            data: src,
+            mime_type: candidate.mime_type || candidate.mimeType || "image/png",
+            title: candidate.title || candidate.chart?.title || data.visual_title || "AI generated visual",
+            chart: candidate.chart || data.chart || null
+        };
+    }
+
+    function addVisualToMessage(message, payload, promptText) {
+        if (!message || !payload) return;
+        const content = message.querySelector(".ai-message-content");
+        if (!content || content.querySelector(".ai-visual-card")) return;
+
+        const card = document.createElement("div");
+        card.className = "ai-visual-card";
+        const frame = document.createElement("div");
+        frame.className = "ai-visual-frame";
+        const img = document.createElement("img");
+        img.className = "ai-generated-visual";
+        img.src = payload.data;
+        img.alt = payload.title || "AI generated image";
+        img.loading = "lazy";
+        img.decoding = "async";
+        frame.appendChild(img);
+
+        const meta = document.createElement("div");
+        meta.className = "ai-visual-meta";
+        const label = document.createElement("span");
+        label.textContent = payload.title || "AI generated visual";
+        const dimensions = document.createElement("span");
+        dimensions.textContent = payload.chart ? "Chart / diagram" : "Generated image";
+        meta.append(label, dimensions);
+
+        const actions = document.createElement("div");
+        actions.className = "ai-visual-actions";
+
+        const save = document.createElement("button");
+        save.type = "button";
+        save.className = "ai-visual-action save";
+        save.innerHTML = '<i data-feather="download"></i><span>Save image</span>';
+        save.addEventListener("click", function () {
+            try {
+                const link = document.createElement("a");
+                link.href = payload.data;
+                const ext = /image\/jpe?g/i.test(payload.mime_type) ? "jpg" :
+                    (/image\/webp/i.test(payload.mime_type) ? "webp" : "png");
+                link.download = "maareye-ai-visual-" + new Date().toISOString().slice(0, 10) + "." + ext;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            } catch (error) {
+                console.error("Unable to save AI visual:", error);
+                window.open(payload.data, "_blank", "noopener");
+            }
+        });
+
+        const edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "ai-visual-action";
+        edit.innerHTML = '<i data-feather="edit-3"></i><span>Edit prompt</span>';
+        edit.addEventListener("click", function () {
+            const oldPrompt = String(promptText || "").trim();
+            const editPrompt = oldPrompt
+                ? "Edit and regenerate this visual using these changes: " + oldPrompt
+                : "Create an improved edited version of the previous visual. Keep its purpose and style, and ask me what changes are needed.";
+            input.value = editPrompt;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.focus();
+            input.style.height = "auto";
+            input.style.height = Math.min(input.scrollHeight, 110) + "px";
+        });
+
+        actions.append(save, edit);
+        card.append(frame, meta, actions);
+        content.appendChild(card);
+        refreshIcons();
+        scrollBottom();
     }
 
     /* =========================================================
@@ -5922,6 +6156,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         try {
 
+            const requestText = addImageLayoutGuidance(text);
+
             const response =
                 await fetch(
                     "{{ url_for('main.ai_assistant') }}",
@@ -5950,7 +6186,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             JSON.stringify({
 
                                 message:
-                                    text,
+                                    requestText,
 
                                 history:
                                     conversationHistory,
@@ -6140,6 +6376,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     new Date().toISOString()
                 );
 
+            const visualPayload = getVisualPayload(data);
+            if (visualPayload) {
+                addVisualToMessage(assistantMessage, visualPayload, text);
+            }
 
             /*
              * Same DB ID on both messages.
