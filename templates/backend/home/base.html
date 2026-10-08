@@ -7657,6 +7657,1170 @@ document.addEventListener("DOMContentLoaded", function () {
 
     </script>
 
+
+<!-- ============================================================
+     AI ASSISTANT — CAMERA / VOICE / COPY ADD-ON
+     ------------------------------------------------------------
+     IMPORTANT:
+     Existing AI Assistant code above is intentionally untouched.
+     This block only adds the requested UI/behavior.
+     ============================================================ -->
+
+<style id="aiAssistantMediaAddonStyles">
+    .ai-media-tools {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex: 0 0 auto;
+    }
+
+    .ai-media-tool {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+        padding: 0;
+        border: 1px solid #dbe2ea;
+        border-radius: 11px;
+        background: #f8fafc;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: .18s ease;
+    }
+
+    .ai-media-tool:hover {
+        background: #eff6ff;
+        color: #2563eb;
+        border-color: #93c5fd;
+    }
+
+    .ai-media-tool:active {
+        transform: scale(.95);
+    }
+
+    .ai-media-tool.is-recording {
+        background: #fef2f2;
+        color: #dc2626;
+        border-color: #fca5a5;
+        animation: aiVoicePulse 1.15s infinite;
+    }
+
+    @keyframes aiVoicePulse {
+        50% {
+            box-shadow: 0 0 0 7px rgba(220, 38, 38, .10);
+        }
+    }
+
+    .ai-media-tool i,
+    .ai-media-tool svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .ai-camera-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 100005;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(2, 6, 23, .78);
+        backdrop-filter: blur(7px);
+    }
+
+    .ai-camera-modal.active {
+        display: flex;
+    }
+
+    .ai-camera-card {
+        width: min(520px, 100%);
+        max-height: min(760px, calc(100dvh - 36px));
+        overflow: hidden;
+        border-radius: 20px;
+        background: #ffffff;
+        box-shadow: 0 25px 80px rgba(0, 0, 0, .35);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ai-camera-header {
+        min-height: 56px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .ai-camera-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #1e293b;
+    }
+
+    .ai-camera-close {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 9px;
+        background: #f1f5f9;
+        color: #475569;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+
+    .ai-camera-stage {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        background: #020617;
+        overflow: hidden;
+    }
+
+    .ai-camera-video,
+    .ai-camera-preview {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: cover;
+        background: #020617;
+    }
+
+    .ai-camera-preview {
+        display: none;
+    }
+
+    .ai-camera-stage.has-photo .ai-camera-video {
+        display: none;
+    }
+
+    .ai-camera-stage.has-photo .ai-camera-preview {
+        display: block;
+    }
+
+    .ai-camera-grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: .48;
+        background:
+            linear-gradient(
+                to right,
+                transparent 33.1%,
+                rgba(255,255,255,.55) 33.2%,
+                transparent 33.4%,
+                transparent 66.5%,
+                rgba(255,255,255,.55) 66.6%,
+                transparent 66.8%
+            ),
+            linear-gradient(
+                to bottom,
+                transparent 33.1%,
+                rgba(255,255,255,.55) 33.2%,
+                transparent 33.4%,
+                transparent 66.5%,
+                rgba(255,255,255,.55) 66.6%,
+                transparent 66.8%
+            );
+    }
+
+    .ai-camera-stage.has-photo .ai-camera-grid {
+        display: none;
+    }
+
+    .ai-camera-controls {
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .ai-camera-caption {
+        width: 100%;
+        min-height: 42px;
+        max-height: 96px;
+        resize: vertical;
+        border: 1px solid #dbe2ea;
+        border-radius: 11px;
+        outline: none;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 13px;
+        color: #334155;
+        background: #f8fafc;
+    }
+
+    .ai-camera-caption:focus {
+        border-color: #2563eb;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+    }
+
+    .ai-camera-action {
+        min-height: 40px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        touch-action: manipulation;
+    }
+
+    .ai-camera-action.primary {
+        background: #2563eb;
+        color: #ffffff;
+    }
+
+    .ai-camera-action.secondary {
+        background: #f1f5f9;
+        color: #475569;
+    }
+
+    .ai-camera-action.danger {
+        background: #fef2f2;
+        color: #dc2626;
+    }
+
+    .ai-camera-action i,
+    .ai-camera-action svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .ai-photo-message {
+        display: block;
+        width: min(100%, 300px);
+        max-width: 100%;
+        margin-bottom: 7px;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,.18);
+    }
+
+    .ai-photo-message img {
+        width: 100%;
+        max-height: 330px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .ai-copy-row {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 4px;
+        margin-top: 5px;
+        padding: 0 3px;
+    }
+
+    .ai-copy-button {
+        min-height: 24px;
+        padding: 2px 7px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+        font-size: 9px;
+        line-height: 1;
+    }
+
+    .ai-copy-button:hover {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .ai-copy-button.copied {
+        color: #16a34a;
+    }
+
+    .ai-copy-button i,
+    .ai-copy-button svg {
+        width: 12px;
+        height: 12px;
+    }
+
+    [data-bs-theme="dark"] .ai-media-tool {
+        background: #1e293b;
+        border-color: #334155;
+        color: #cbd5e1;
+    }
+
+    [data-bs-theme="dark"] .ai-media-tool:hover {
+        background: #334155;
+        color: #60a5fa;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-card {
+        background: #111827;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-header {
+        border-color: #374151;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-title {
+        color: #f8fafc;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-close,
+    [data-bs-theme="dark"] .ai-camera-action.secondary {
+        background: #1e293b;
+        color: #cbd5e1;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-controls {
+        border-color: #374151;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-caption {
+        background: #1e293b;
+        border-color: #334155;
+        color: #e2e8f0;
+    }
+
+    [data-bs-theme="dark"] .ai-copy-button {
+        color: #94a3b8;
+    }
+
+    @media (max-width: 576px) {
+        .ai-media-tools {
+            gap: 4px;
+        }
+
+        .ai-media-tool {
+            width: 42px;
+            height: 42px;
+            flex-basis: 42px;
+        }
+
+        .ai-camera-modal {
+            padding: 8px;
+        }
+
+        .ai-camera-card {
+            width: 100%;
+            border-radius: 16px;
+        }
+
+        .ai-camera-controls {
+            padding: 9px;
+        }
+
+        .ai-copy-button {
+            font-size: 8.5px;
+        }
+    }
+</style>
+
+<script>
+(function () {
+    "use strict";
+
+    /*
+     * This add-on intentionally does NOT replace the existing
+     * AI Assistant functions. It attaches extra UI/behavior
+     * after the original assistant has been initialized.
+     */
+
+    function bootAIMediaAddOn() {
+        const input = document.getElementById("aiAssistantInput");
+        const sendButton = document.getElementById("aiAssistantSend");
+        const messages = document.getElementById("aiAssistantMessages");
+        const inputWrapper = document.querySelector(".ai-input-wrapper");
+
+        if (!input || !sendButton || !messages || !inputWrapper) {
+            console.warn("AI Media Add-on: required elements are missing.");
+            return;
+        }
+
+        /* =====================================================
+           MEDIA BUTTONS
+           ===================================================== */
+
+        let mediaTools = inputWrapper.querySelector(".ai-media-tools");
+
+        if (!mediaTools) {
+            mediaTools = document.createElement("div");
+            mediaTools.className = "ai-media-tools";
+            mediaTools.innerHTML = `
+                <button type="button"
+                        class="ai-media-tool"
+                        id="aiCameraButton"
+                        title="Open live camera"
+                        aria-label="Open live camera">
+                    <i data-feather="camera"></i>
+                </button>
+
+                <button type="button"
+                        class="ai-media-tool"
+                        id="aiVoiceButton"
+                        title="Speak to AI"
+                        aria-label="Speak to AI">
+                    <i data-feather="mic"></i>
+                </button>
+            `;
+
+            inputWrapper.insertBefore(mediaTools, input);
+        }
+
+        const cameraButton = document.getElementById("aiCameraButton");
+        const voiceButton = document.getElementById("aiVoiceButton");
+
+        /* =====================================================
+           CAMERA MODAL
+           ===================================================== */
+
+        let cameraModal = document.getElementById("aiCameraModal");
+
+        if (!cameraModal) {
+            cameraModal = document.createElement("div");
+            cameraModal.id = "aiCameraModal";
+            cameraModal.className = "ai-camera-modal";
+            cameraModal.setAttribute("aria-hidden", "true");
+
+            cameraModal.innerHTML = `
+                <div class="ai-camera-card" role="dialog" aria-modal="true" aria-label="AI live camera">
+                    <div class="ai-camera-header">
+                        <div class="ai-camera-title">
+                            <i data-feather="camera" style="width:15px;height:15px;vertical-align:-3px;"></i>
+                            Live Camera
+                        </div>
+
+                        <button type="button"
+                                class="ai-camera-close"
+                                id="aiCameraClose"
+                                aria-label="Close camera">
+                            <i data-feather="x"></i>
+                        </button>
+                    </div>
+
+                    <div class="ai-camera-stage" id="aiCameraStage">
+                        <video
+                            id="aiCameraVideo"
+                            class="ai-camera-video"
+                            autoplay
+                            muted
+                            playsinline></video>
+
+                        <img
+                            id="aiCameraPreview"
+                            class="ai-camera-preview"
+                            alt="Captured photo preview">
+
+                        <div class="ai-camera-grid"></div>
+                    </div>
+
+                    <div class="ai-camera-controls">
+                        <textarea
+                            id="aiCameraCaption"
+                            class="ai-camera-caption"
+                            rows="2"
+                            maxlength="10000"
+                            placeholder="Sawirka fariin la socota ku qor..."></textarea>
+
+                        <button type="button"
+                                class="ai-camera-action primary"
+                                id="aiTakePhoto">
+                            <i data-feather="camera"></i>
+                            Sawir qaad
+                        </button>
+
+                        <button type="button"
+                                class="ai-camera-action primary"
+                                id="aiSendPhoto"
+                                style="display:none;">
+                            <i data-feather="send"></i>
+                            Sawirka dir
+                        </button>
+
+                        <button type="button"
+                                class="ai-camera-action secondary"
+                                id="aiRetakePhoto"
+                                style="display:none;">
+                            <i data-feather="refresh-cw"></i>
+                            Mar kale
+                        </button>
+
+                        <button type="button"
+                                class="ai-camera-action danger"
+                                id="aiStopCamera">
+                            <i data-feather="video-off"></i>
+                            Xir camera
+                        </button>
+
+                        <input
+                            type="file"
+                            id="aiCameraFileFallback"
+                            accept="image/*"
+                            capture="environment"
+                            style="display:none;">
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(cameraModal);
+        }
+
+        const cameraClose = document.getElementById("aiCameraClose");
+        const cameraVideo = document.getElementById("aiCameraVideo");
+        const cameraPreview = document.getElementById("aiCameraPreview");
+        const cameraStage = document.getElementById("aiCameraStage");
+        const cameraCaption = document.getElementById("aiCameraCaption");
+        const takePhotoButton = document.getElementById("aiTakePhoto");
+        const sendPhotoButton = document.getElementById("aiSendPhoto");
+        const retakePhotoButton = document.getElementById("aiRetakePhoto");
+        const stopCameraButton = document.getElementById("aiStopCamera");
+        const fallbackFile = document.getElementById("aiCameraFileFallback");
+
+        let cameraStream = null;
+        let capturedPhoto = null;
+
+        function refreshAIFeatherIcons() {
+            if (
+                typeof feather !== "undefined" &&
+                typeof feather.replace === "function"
+            ) {
+                feather.replace();
+            }
+        }
+
+        function stopCameraStream() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(function (track) {
+                    try {
+                        track.stop();
+                    } catch (e) {}
+                });
+                cameraStream = null;
+            }
+
+            if (cameraVideo) {
+                cameraVideo.srcObject = null;
+            }
+        }
+
+        function resetCameraUI() {
+            capturedPhoto = null;
+
+            cameraStage.classList.remove("has-photo");
+            cameraPreview.removeAttribute("src");
+            cameraCaption.value = "";
+
+            takePhotoButton.style.display = "inline-flex";
+            sendPhotoButton.style.display = "none";
+            retakePhotoButton.style.display = "none";
+            stopCameraButton.style.display = "inline-flex";
+        }
+
+        async function openCamera() {
+            resetCameraUI();
+
+            cameraModal.classList.add("active");
+            cameraModal.setAttribute("aria-hidden", "false");
+
+            refreshAIFeatherIcons();
+
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia
+            ) {
+                fallbackFile.click();
+                return;
+            }
+
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: "environment" },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+
+                cameraVideo.srcObject = cameraStream;
+                await cameraVideo.play().catch(function () {});
+            } catch (error) {
+                console.error("AI Camera Error:", error);
+
+                /*
+                 * On phones/browsers where getUserMedia is unavailable
+                 * or permission is denied, use the native camera picker.
+                 */
+                fallbackFile.click();
+            }
+        }
+
+        function closeCamera() {
+            stopCameraStream();
+
+            cameraModal.classList.remove("active");
+            cameraModal.setAttribute("aria-hidden", "true");
+
+            resetCameraUI();
+        }
+
+        function showCapturedPhoto(dataUrl) {
+            capturedPhoto = dataUrl;
+
+            cameraPreview.src = dataUrl;
+            cameraStage.classList.add("has-photo");
+
+            takePhotoButton.style.display = "none";
+            sendPhotoButton.style.display = "inline-flex";
+            retakePhotoButton.style.display = "inline-flex";
+            stopCameraButton.style.display = "inline-flex";
+
+            refreshAIFeatherIcons();
+        }
+
+        function takePhoto() {
+            if (!cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+                return;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = cameraVideo.videoWidth;
+            canvas.height = cameraVideo.videoHeight;
+
+            const ctx = canvas.getContext("2d");
+
+            if (!ctx) {
+                return;
+            }
+
+            ctx.drawImage(
+                cameraVideo,
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            showCapturedPhoto(
+                canvas.toDataURL("image/jpeg", 0.88)
+            );
+        }
+
+        function addPhotoMessage(dataUrl, caption) {
+            /*
+             * The existing Flask endpoint currently accepts the normal
+             * text "message" JSON payload. Therefore the image is shown
+             * in the chat immediately, while the optional caption is
+             * sent through the existing AI flow as the text prompt.
+             *
+             * No existing backend route is changed by this add-on.
+             */
+
+            const text =
+                String(caption || "").trim() ||
+                "Sawir ayaan kuu soo diray.";
+
+            /*
+             * Build a local user bubble with the captured image.
+             * We intentionally use the existing addMessage() function
+             * so its normal dates/actions/history behavior remains intact.
+             */
+            if (typeof window.__aiAssistantAddMessage === "function") {
+                window.__aiAssistantAddMessage(
+                    text,
+                    dataUrl
+                );
+                return;
+            }
+
+            /*
+             * The original addMessage() is inside its DOMContentLoaded
+             * closure, so the fallback creates the visual bubble safely.
+             */
+            const message = document.createElement("div");
+            message.className = "ai-message user";
+            message.dataset.messageType = "user";
+            message.dataset.messageId =
+                "camera-" + Date.now() + "-" + Math.random().toString(36).slice(2);
+
+            const inner = document.createElement("div");
+            inner.className = "ai-message-inner";
+
+            const content = document.createElement("div");
+            content.className = "ai-message-content";
+
+            const photo = document.createElement("div");
+            photo.className = "ai-photo-message";
+
+            const image = document.createElement("img");
+            image.src = dataUrl;
+            image.alt = "Captured photo";
+            photo.appendChild(image);
+
+            content.appendChild(photo);
+
+            if (text) {
+                const captionElement = document.createElement("div");
+                captionElement.textContent = text;
+                content.appendChild(captionElement);
+            }
+
+            const time = document.createElement("div");
+            time.className = "ai-message-time";
+            time.textContent = new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+
+            inner.appendChild(content);
+            inner.appendChild(time);
+            message.appendChild(inner);
+            messages.appendChild(message);
+        }
+
+        /*
+         * Expose a small bridge used by the add-on without modifying
+         * the original source function.
+         */
+        window.__aiAssistantAddMessage = function (text, dataUrl) {
+            /*
+             * Send the caption through the EXISTING send flow first.
+             * This prevents a duplicate user bubble and keeps the
+             * existing Flask/MongoDB behavior unchanged.
+             */
+            if (!input) {
+                return;
+            }
+
+            const caption =
+                String(text || "").trim() ||
+                "Sawir ayaan kuu soo diray.";
+
+            input.value = caption;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+
+            /*
+             * Trigger the existing send button. The original assistant
+             * will create the normal user/AI messages and preserve its
+             * current history/database behavior.
+             */
+            if (!sendButton.disabled) {
+                sendButton.click();
+            } else {
+                /*
+                 * If AI is busy, keep the caption in the input rather
+                 * than creating a second local message.
+                 */
+                input.focus();
+                return;
+            }
+
+            /*
+             * Attach the captured image to the newly-created user bubble
+             * after the original addMessage() has rendered it.
+             */
+            const attachPhoto = function () {
+                const userMessages = Array.from(
+                    messages.querySelectorAll(".ai-message.user")
+                );
+
+                const message =
+                    userMessages[userMessages.length - 1];
+
+                if (!message || message.dataset.aiCameraPhotoAttached === "1") {
+                    return;
+                }
+
+                const content =
+                    message.querySelector(".ai-message-content");
+
+                if (!content) {
+                    return;
+                }
+
+                const photo = document.createElement("div");
+                photo.className = "ai-photo-message";
+
+                const image = document.createElement("img");
+                image.src = dataUrl;
+                image.alt = "Captured photo";
+
+                photo.appendChild(image);
+                content.insertBefore(photo, content.firstChild);
+
+                message.dataset.aiCameraPhotoAttached = "1";
+
+                addCopyButtonToMessage(message);
+                messages.scrollTop = messages.scrollHeight;
+            };
+
+            setTimeout(attachPhoto, 0);
+            setTimeout(attachPhoto, 120);
+            setTimeout(attachPhoto, 350);
+        };
+
+        async function sendCapturedPhoto() {
+            if (!capturedPhoto) {
+                return;
+            }
+
+            const caption =
+                String(cameraCaption.value || "").trim();
+
+            const photo = capturedPhoto;
+
+            closeCamera();
+
+            window.__aiAssistantAddMessage(
+                caption || "Sawir ayaan kuu soo diray.",
+                photo
+            );
+        }
+
+        cameraButton.addEventListener("click", function () {
+            openCamera();
+        });
+
+        cameraClose.addEventListener("click", closeCamera);
+        stopCameraButton.addEventListener("click", closeCamera);
+        takePhotoButton.addEventListener("click", takePhoto);
+        sendPhotoButton.addEventListener("click", sendCapturedPhoto);
+
+        retakePhotoButton.addEventListener("click", function () {
+            capturedPhoto = null;
+            cameraStage.classList.remove("has-photo");
+            cameraPreview.removeAttribute("src");
+
+            takePhotoButton.style.display = "inline-flex";
+            sendPhotoButton.style.display = "none";
+            retakePhotoButton.style.display = "none";
+            stopCameraButton.style.display = "inline-flex";
+
+            if (!cameraStream) {
+                openCamera();
+            }
+        });
+
+        cameraModal.addEventListener("click", function (event) {
+            if (event.target === cameraModal) {
+                closeCamera();
+            }
+        });
+
+        document.addEventListener("keydown", function (event) {
+            if (
+                event.key === "Escape" &&
+                cameraModal.classList.contains("active")
+            ) {
+                closeCamera();
+            }
+        });
+
+        fallbackFile.addEventListener("change", function () {
+            const file = this.files && this.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                showCapturedPhoto(event.target.result);
+                cameraModal.classList.add("active");
+                cameraModal.setAttribute("aria-hidden", "false");
+                refreshAIFeatherIcons();
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        /* =====================================================
+           VOICE / SPEECH TO TEXT
+           ===================================================== */
+
+        const SpeechRecognition =
+            window.SpeechRecognition ||
+            window.webkitSpeechRecognition ||
+            null;
+
+        let recognition = null;
+        let isListening = false;
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.lang = "so-SO";
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function () {
+                isListening = true;
+                voiceButton.classList.add("is-recording");
+                voiceButton.innerHTML =
+                    '<i data-feather="mic-off"></i>';
+                voiceButton.title = "Stop listening";
+                refreshAIFeatherIcons();
+            };
+
+            recognition.onresult = function (event) {
+                let finalText = "";
+                let interimText = "";
+
+                for (
+                    let i = event.resultIndex;
+                    i < event.results.length;
+                    i++
+                ) {
+                    const result = event.results[i];
+
+                    if (result.isFinal) {
+                        finalText += result[0].transcript;
+                    } else {
+                        interimText += result[0].transcript;
+                    }
+                }
+
+                if (finalText.trim()) {
+                    const current = input.value.trim();
+                    input.value =
+                        current
+                            ? current + " " + finalText.trim()
+                            : finalText.trim();
+                } else if (interimText.trim()) {
+                    input.dataset.aiInterimSpeech =
+                        interimText.trim();
+                }
+
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+            };
+
+            recognition.onerror = function (event) {
+                console.warn(
+                    "AI Voice Recognition Error:",
+                    event.error
+                );
+            };
+
+            recognition.onend = function () {
+                isListening = false;
+                voiceButton.classList.remove("is-recording");
+                voiceButton.innerHTML =
+                    '<i data-feather="mic"></i>';
+                voiceButton.title = "Speak to AI";
+                delete input.dataset.aiInterimSpeech;
+                refreshAIFeatherIcons();
+            };
+
+            voiceButton.addEventListener("click", function () {
+                try {
+                    if (isListening) {
+                        recognition.stop();
+                    } else {
+                        recognition.start();
+                    }
+                } catch (error) {
+                    console.warn("AI Voice Start Error:", error);
+                }
+            });
+        } else {
+            voiceButton.addEventListener("click", function () {
+                alert(
+                    "Browser-kan ma taageerayo voice input. Fadlan isticmaal Chrome ama Edge."
+                );
+            });
+        }
+
+        /* =====================================================
+           COPY UNDER EVERY MESSAGE
+           ===================================================== */
+
+        function getMessageCopyText(message) {
+            if (!message) {
+                return "";
+            }
+
+            const content =
+                message.querySelector(".ai-message-content");
+
+            if (!content) {
+                return "";
+            }
+
+            /*
+             * For image messages, copy the caption/text only.
+             * Binary image data is intentionally never copied.
+             */
+            return String(content.innerText || content.textContent || "")
+                .replace(/\n{3,}/g, "\n\n")
+                .trim();
+        }
+
+        function addCopyButtonToMessage(message) {
+            if (!message || message.querySelector(".ai-copy-row")) {
+                return;
+            }
+
+            const inner =
+                message.querySelector(".ai-message-inner");
+
+            if (!inner) {
+                return;
+            }
+
+            const row = document.createElement("div");
+            row.className = "ai-copy-row";
+
+            const copyButton = document.createElement("button");
+            copyButton.type = "button";
+            copyButton.className = "ai-copy-button";
+            copyButton.title = "Copy message";
+            copyButton.setAttribute("aria-label", "Copy message");
+            copyButton.innerHTML = `
+                <i data-feather="copy"></i>
+                <span>Copy</span>
+            `;
+
+            copyButton.addEventListener("click", async function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const text = getMessageCopyText(message);
+
+                if (!text) {
+                    return;
+                }
+
+                try {
+                    if (
+                        navigator.clipboard &&
+                        navigator.clipboard.writeText
+                    ) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        const area = document.createElement("textarea");
+                        area.value = text;
+                        area.style.position = "fixed";
+                        area.style.opacity = "0";
+                        document.body.appendChild(area);
+                        area.focus();
+                        area.select();
+                        document.execCommand("copy");
+                        area.remove();
+                    }
+
+                    copyButton.classList.add("copied");
+                    copyButton.innerHTML = `
+                        <i data-feather="check"></i>
+                        <span>Copied</span>
+                    `;
+                    refreshAIFeatherIcons();
+
+                    setTimeout(function () {
+                        if (!copyButton.isConnected) {
+                            return;
+                        }
+
+                        copyButton.classList.remove("copied");
+                        copyButton.innerHTML = `
+                            <i data-feather="copy"></i>
+                            <span>Copy</span>
+                        `;
+                        refreshAIFeatherIcons();
+                    }, 1500);
+                } catch (error) {
+                    console.error("AI Copy Error:", error);
+                }
+            });
+
+            row.appendChild(copyButton);
+            inner.appendChild(row);
+
+            refreshAIFeatherIcons();
+        }
+
+        function scanMessagesForCopyButtons() {
+            messages
+                .querySelectorAll(".ai-message")
+                .forEach(addCopyButtonToMessage);
+        }
+
+        /*
+         * Existing addMessage() is already responsible for all
+         * normal messages. MutationObserver adds Copy automatically
+         * to old history and every newly generated user/AI message.
+         */
+        const copyObserver = new MutationObserver(function (mutations) {
+            let shouldScan = false;
+
+            mutations.forEach(function (mutation) {
+                if (mutation.addedNodes && mutation.addedNodes.length) {
+                    shouldScan = true;
+                }
+            });
+
+            if (shouldScan) {
+                scanMessagesForCopyButtons();
+            }
+        });
+
+        copyObserver.observe(messages, {
+            childList: true,
+            subtree: true
+        });
+
+        scanMessagesForCopyButtons();
+        refreshAIFeatherIcons();
+
+        /*
+         * If the existing assistant loads database history after
+         * this add-on starts, scan again once the history settles.
+         */
+        setTimeout(scanMessagesForCopyButtons, 300);
+        setTimeout(scanMessagesForCopyButtons, 1000);
+        setTimeout(scanMessagesForCopyButtons, 2500);
+
+        /* =====================================================
+           INPUT UX
+           ===================================================== */
+
+        /*
+         * Camera + microphone + textarea + send remain in one row.
+         * On narrow screens they remain compact and responsive.
+         */
+        sendButton.title = "Send message";
+        sendButton.setAttribute("aria-label", "Send message");
+
+        refreshAIFeatherIcons();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            bootAIMediaAddOn,
+            { once: true }
+        );
+    } else {
+        bootAIMediaAddOn();
+    }
+})();
+</script>
+
 </body>
 
 </html>
