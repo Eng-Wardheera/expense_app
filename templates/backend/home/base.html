@@ -7777,6 +7777,151 @@ document.addEventListener("DOMContentLoaded", function () {
         cursor: pointer;
     }
 
+
+    /* =========================================================
+       SELFIE FACE GUIDE / AUTO CAPTURE
+       ========================================================= */
+
+    .ai-selfie-guide {
+        position: absolute;
+        inset: 0;
+        z-index: 8;
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-selfie-oval {
+        width: min(68%, 290px);
+        aspect-ratio: .76 / 1;
+        border: 3px solid rgba(255,255,255,.92);
+        border-radius: 50%;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.16),
+            0 0 0 6px rgba(37,99,235,.18);
+        transition:
+            border-color .2s ease,
+            box-shadow .2s ease,
+            transform .2s ease;
+    }
+
+    .ai-camera-stage.face-near .ai-selfie-oval {
+        border-color: #facc15;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.12),
+            0 0 0 6px rgba(250,204,21,.18);
+    }
+
+    .ai-camera-stage.face-ready .ai-selfie-oval {
+        border-color: #22c55e;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.10),
+            0 0 0 6px rgba(34,197,94,.22),
+            0 0 30px rgba(34,197,94,.35);
+        transform: scale(1.015);
+    }
+
+    .ai-selfie-instruction {
+        position: absolute;
+        left: 50%;
+        top: 18px;
+        transform: translateX(-50%);
+        z-index: 10;
+        max-width: calc(100% - 28px);
+        padding: 8px 13px;
+        border-radius: 999px;
+        background: rgba(2,6,23,.70);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.25;
+        text-align: center;
+        white-space: nowrap;
+        backdrop-filter: blur(5px);
+    }
+
+    .ai-selfie-status {
+        position: absolute;
+        left: 50%;
+        bottom: 16px;
+        transform: translateX(-50%);
+        z-index: 10;
+        max-width: calc(100% - 28px);
+        padding: 7px 12px;
+        border-radius: 999px;
+        background: rgba(2,6,23,.68);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+        white-space: nowrap;
+        backdrop-filter: blur(5px);
+    }
+
+    .ai-selfie-countdown {
+        position: absolute;
+        inset: 0;
+        z-index: 12;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .ai-selfie-countdown span {
+        width: 78px;
+        height: 78px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(2,6,23,.72);
+        border: 3px solid rgba(255,255,255,.9);
+        color: #fff;
+        font-size: 34px;
+        font-weight: 800;
+        box-shadow: 0 12px 40px rgba(0,0,0,.28);
+    }
+
+    .ai-camera-stage.has-photo .ai-selfie-guide,
+    .ai-camera-stage.has-photo .ai-selfie-instruction,
+    .ai-camera-stage.has-photo .ai-selfie-status,
+    .ai-camera-stage.has-photo .ai-selfie-countdown {
+        display: none;
+    }
+
+    .ai-camera-stage.auto-capturing .ai-selfie-oval {
+        animation: aiSelfieCapturePulse .55s ease infinite alternate;
+    }
+
+    @keyframes aiSelfieCapturePulse {
+        to {
+            transform: scale(1.025);
+        }
+    }
+
+    [data-bs-theme="dark"] .ai-camera-card {
+        background: #111827;
+        color: #e2e8f0;
+    }
+
+    @media (max-width: 576px) {
+        .ai-selfie-oval {
+            width: min(70%, 245px);
+        }
+
+        .ai-selfie-instruction {
+            top: 12px;
+            font-size: 10px;
+        }
+
+        .ai-selfie-status {
+            bottom: 12px;
+            font-size: 9px;
+        }
+    }
+
     .ai-camera-stage {
         position: relative;
         width: 100%;
@@ -8127,6 +8272,22 @@ document.addEventListener("DOMContentLoaded", function () {
                             alt="Captured photo preview">
 
                         <div class="ai-camera-grid"></div>
+
+                        <div class="ai-selfie-guide" aria-hidden="true">
+                            <div class="ai-selfie-oval"></div>
+                        </div>
+
+                        <div class="ai-selfie-instruction" id="aiSelfieInstruction">
+                            Wajigaaga goobada isku beeg
+                        </div>
+
+                        <div class="ai-selfie-status" id="aiSelfieStatus">
+                            Camera ayaa ku eegaya...
+                        </div>
+
+                        <div class="ai-selfie-countdown" id="aiSelfieCountdown" aria-hidden="true">
+                            <span id="aiSelfieCountdownNumber">3</span>
+                        </div>
                     </div>
 
                     <div class="ai-camera-controls">
@@ -8171,7 +8332,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             type="file"
                             id="aiCameraFileFallback"
                             accept="image/*"
-                            capture="environment"
+                            capture="user"
                             style="display:none;">
                     </div>
                 </div>
@@ -8184,6 +8345,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const cameraVideo = document.getElementById("aiCameraVideo");
         const cameraPreview = document.getElementById("aiCameraPreview");
         const cameraStage = document.getElementById("aiCameraStage");
+        const selfieInstruction = document.getElementById("aiSelfieInstruction");
+        const selfieStatus = document.getElementById("aiSelfieStatus");
+        const selfieCountdown = document.getElementById("aiSelfieCountdown");
+        const selfieCountdownNumber = document.getElementById("aiSelfieCountdownNumber");
         const cameraCaption = document.getElementById("aiCameraCaption");
         const takePhotoButton = document.getElementById("aiTakePhoto");
         const sendPhotoButton = document.getElementById("aiSendPhoto");
@@ -8194,6 +8359,20 @@ document.addEventListener("DOMContentLoaded", function () {
         let cameraStream = null;
         let capturedPhoto = null;
 
+        /*
+         * SELFIE AUTO-CAPTURE STATE
+         * Browser speaks the instructions and automatically captures
+         * when a face is detected inside the oval.
+         */
+        let selfieFaceTimer = null;
+        let selfieCountdownTimer = null;
+        let selfieScanTimer = null;
+        let selfieCaptureBusy = false;
+        let selfieVoiceReady = false;
+        let selfieLastSpoken = "";
+        let selfieLastFaceAt = 0;
+        let selfieDetector = null;
+
         function refreshAIFeatherIcons() {
             if (
                 typeof feather !== "undefined" &&
@@ -8203,7 +8382,307 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+
+        /* =====================================================
+           SELFIE VOICE GUIDANCE
+           ===================================================== */
+
+        function speakSelfie(text, force) {
+            if (!("speechSynthesis" in window)) {
+                return;
+            }
+
+            const message = String(text || "").trim();
+
+            if (!message) {
+                return;
+            }
+
+            if (!force && selfieLastSpoken === message) {
+                return;
+            }
+
+            try {
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(message);
+                utterance.lang = "so-SO";
+                utterance.rate = 0.92;
+                utterance.pitch = 1;
+                utterance.volume = 1;
+
+                window.speechSynthesis.speak(utterance);
+                selfieLastSpoken = message;
+                selfieVoiceReady = true;
+            } catch (error) {
+                console.warn("Selfie speech error:", error);
+            }
+        }
+
+        function setSelfieStatus(text, state) {
+            if (selfieStatus) {
+                selfieStatus.textContent = text;
+            }
+
+            cameraStage.classList.remove("face-near", "face-ready");
+
+            if (state === "near") {
+                cameraStage.classList.add("face-near");
+            }
+
+            if (state === "ready") {
+                cameraStage.classList.add("face-ready");
+            }
+        }
+
+        function stopSelfieDetection() {
+            if (selfieFaceTimer) {
+                clearTimeout(selfieFaceTimer);
+                selfieFaceTimer = null;
+            }
+
+            if (selfieCountdownTimer) {
+                clearInterval(selfieCountdownTimer);
+                selfieCountdownTimer = null;
+            }
+
+            if (selfieScanTimer) {
+                clearTimeout(selfieScanTimer);
+                selfieScanTimer = null;
+            }
+
+            cameraStage.classList.remove(
+                "face-near",
+                "face-ready",
+                "auto-capturing"
+            );
+
+            if (selfieCountdown) {
+                selfieCountdown.style.display = "none";
+            }
+
+            selfieCaptureBusy = false;
+        }
+
+        function faceInsideSelfieOval(face) {
+            if (!face || !cameraVideo.videoWidth || !cameraVideo.videoHeight) {
+                return false;
+            }
+
+            const box = face.boundingBox || face;
+            const faceWidth = Number(box.width || 0);
+            const faceHeight = Number(box.height || 0);
+            const faceX = Number(box.x || box.left || 0);
+            const faceY = Number(box.y || box.top || 0);
+
+            if (!faceWidth || !faceHeight) {
+                return false;
+            }
+
+            const centerX = faceX + (faceWidth / 2);
+            const centerY = faceY + (faceHeight / 2);
+
+            const vw = cameraVideo.videoWidth;
+            const vh = cameraVideo.videoHeight;
+
+            /*
+             * Oval is intentionally generous:
+             * face center must be near the video center and the
+             * face must be large enough to be a useful selfie.
+             */
+            const normalizedX = centerX / vw;
+            const normalizedY = centerY / vh;
+            const normalizedW = faceWidth / vw;
+            const normalizedH = faceHeight / vh;
+
+            const centered =
+                Math.abs(normalizedX - 0.50) <= 0.12 &&
+                Math.abs(normalizedY - 0.50) <= 0.16;
+
+            const goodSize =
+                normalizedW >= 0.16 &&
+                normalizedW <= 0.72 &&
+                normalizedH >= 0.20 &&
+                normalizedH <= 0.82;
+
+            return centered && goodSize;
+        }
+
+        async function createFaceDetector() {
+            /*
+             * Use the browser-native FaceDetector when available.
+             * It keeps the feature fully client-side and requires no
+             * server changes.
+             */
+            if (!("FaceDetector" in window)) {
+                return null;
+            }
+
+            try {
+                return new window.FaceDetector({
+                    fastMode: true,
+                    maxDetectedFaces: 3
+                });
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function scanSelfieFace() {
+            if (
+                selfieCaptureBusy ||
+                !cameraModal.classList.contains("active") ||
+                cameraStage.classList.contains("has-photo") ||
+                !cameraStream ||
+                cameraVideo.readyState < 2
+            ) {
+                return;
+            }
+
+            if (!selfieDetector) {
+                selfieDetector = await createFaceDetector();
+            }
+
+            /*
+             * Modern browsers that expose FaceDetector get true
+             * face alignment. Older browsers use the safe countdown
+             * fallback below rather than pretending face detection exists.
+             */
+            if (selfieDetector) {
+                try {
+                    const faces = await selfieDetector.detect(cameraVideo);
+
+                    if (!faces || !faces.length) {
+                        setSelfieStatus(
+                            "Wajigaaga geli goobada",
+                            null
+                        );
+
+                        if (Date.now() - selfieLastFaceAt > 1500) {
+                            speakSelfie(
+                                "Fadlan wajigaaga goobada isku beeg."
+                            );
+                        }
+
+                        selfieScanTimer = setTimeout(scanSelfieFace, 220);
+                        return;
+                    }
+
+                    const aligned = faces.some(faceInsideSelfieOval);
+
+                    if (!aligned) {
+                        selfieLastFaceAt = Date.now();
+                        setSelfieStatus(
+                            "Wajiga wax yar dhexda u soo geli",
+                            "near"
+                        );
+                        speakSelfie(
+                            "Wajiga wax yar dhexda u soo geli."
+                        );
+                        selfieScanTimer = setTimeout(scanSelfieFace, 220);
+                        return;
+                    }
+
+                    selfieLastFaceAt = Date.now();
+                    setSelfieStatus(
+                        "Waa hagaag — ha dhaqaaqin",
+                        "ready"
+                    );
+
+                    speakSelfie(
+                        "Waa hagaag. Ha dhaqaaqin. Sawirka waan qaadayaa."
+                    );
+
+                    startSelfieCountdown();
+
+                    return;
+                } catch (error) {
+                    console.warn("Face detection error:", error);
+                }
+            }
+
+            /*
+             * Compatibility fallback:
+             * show the same selfie guide and automatically capture after
+             * a short countdown. The user is still instructed to align
+             * the face with the visible oval.
+             */
+            setSelfieStatus(
+                "Wajigaaga goobada isku beeg — sawirku si toos ah ayuu u dhacayaa",
+                "near"
+            );
+
+            speakSelfie(
+                "Wajigaaga goobada isku beeg. Saddex ilbiriqsi kadib sawirka si toos ah ayaan u qaadayaa."
+            );
+
+            startSelfieCountdown();
+        }
+
+        function startSelfieCountdown() {
+            if (
+                selfieCaptureBusy ||
+                cameraStage.classList.contains("has-photo")
+            ) {
+                return;
+            }
+
+            selfieCaptureBusy = true;
+
+            if (selfieScanTimer) {
+                clearTimeout(selfieScanTimer);
+                selfieScanTimer = null;
+            }
+
+            if (selfieFaceTimer) {
+                clearTimeout(selfieFaceTimer);
+                selfieFaceTimer = null;
+            }
+
+            let count = 3;
+
+            selfieCountdownNumber.textContent = String(count);
+            selfieCountdown.style.display = "flex";
+            cameraStage.classList.add("auto-capturing");
+
+            speakSelfie("Saddex");
+
+            selfieCountdownTimer = setInterval(function () {
+                count -= 1;
+
+                if (count > 0) {
+                    selfieCountdownNumber.textContent = String(count);
+
+                    if (count === 2) {
+                        speakSelfie("Laba", true);
+                    } else if (count === 1) {
+                        speakSelfie("Hal", true);
+                    }
+
+                    return;
+                }
+
+                clearInterval(selfieCountdownTimer);
+                selfieCountdownTimer = null;
+
+                selfieCountdown.style.display = "none";
+                cameraStage.classList.remove("auto-capturing");
+
+                if (!cameraStage.classList.contains("has-photo")) {
+                    takePhoto();
+                }
+            }, 900);
+        }
+
         function stopCameraStream() {
+            stopSelfieDetection();
+
+            if ("speechSynthesis" in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                } catch (e) {}
+            }
+
             if (cameraStream) {
                 cameraStream.getTracks().forEach(function (track) {
                     try {
@@ -8219,7 +8698,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function resetCameraUI() {
+            stopSelfieDetection();
             capturedPhoto = null;
+            selfieDetector = null;
+            selfieLastSpoken = "";
 
             cameraStage.classList.remove("has-photo");
             cameraPreview.removeAttribute("src");
@@ -8229,6 +8711,16 @@ document.addEventListener("DOMContentLoaded", function () {
             sendPhotoButton.style.display = "none";
             retakePhotoButton.style.display = "none";
             stopCameraButton.style.display = "inline-flex";
+
+            if (selfieInstruction) {
+                selfieInstruction.textContent =
+                    "Wajigaaga goobada isku beeg";
+            }
+
+            if (selfieStatus) {
+                selfieStatus.textContent =
+                    "Camera ayaa ku eegaya...";
+            }
         }
 
         async function openCamera() {
@@ -8250,7 +8742,7 @@ document.addEventListener("DOMContentLoaded", function () {
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: { ideal: "environment" },
+                        facingMode: { ideal: "user" },
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     },
@@ -8258,7 +8750,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 cameraVideo.srcObject = cameraStream;
+                cameraVideo.style.transform = "scaleX(-1)";
+
                 await cameraVideo.play().catch(function () {});
+
+                /*
+                 * Voice guidance starts after the browser has opened
+                 * the selfie camera.
+                 */
+                speakSelfie(
+                    "Fadlan wajigaaga goobada isku beeg."
+                );
+
+                setSelfieStatus(
+                    "Wajigaaga goobada isku beeg",
+                    null
+                );
+
+                selfieScanTimer = setTimeout(
+                    scanSelfieFace,
+                    500
+                );
             } catch (error) {
                 console.error("AI Camera Error:", error);
 
@@ -8280,6 +8792,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function showCapturedPhoto(dataUrl) {
+            stopSelfieDetection();
             capturedPhoto = dataUrl;
 
             cameraPreview.src = dataUrl;
