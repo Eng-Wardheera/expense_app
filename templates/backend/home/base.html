@@ -2874,8 +2874,8 @@
 <script src="https://unpkg.com/feather-icons"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/common.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/build/face-api.min.js"></script>
+<!-- Local face-api.js: place face-api.min.js in static/vendor/ -->
+<script src="{{ url_for('static', filename='vendor/face-api.min.js') }}"></script>
 
 <!-- ============================================================
      AI ASSISTANT JAVASCRIPT
@@ -8455,7 +8455,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sendButton = document.getElementById("aiAssistantSend");
         // Cloudinary profile photo belonging to the authenticated Flask user.
         const currentUserPhotoUrl = {{ (current_user.photo if current_user is defined and current_user.photo else '')|tojson }};
-        const FACE_MODEL_URL = "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights";
+        const FACE_MODEL_URL = {{ url_for('static', filename='models/')|tojson }};
         let faceModelsReady = false;
         let faceModelsPromise = null;
         const messages = document.getElementById("aiAssistantMessages");
