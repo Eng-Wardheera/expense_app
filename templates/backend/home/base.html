@@ -8174,7 +8174,100 @@ document.addEventListener("DOMContentLoaded", function () {
             font-size: 8.5px;
         }
     }
+
+    /* ============================================================
+       PROFILE / SELFIE VERIFICATION ADD-ON
+       ============================================================ */
+
+    .ai-camera-profile-verification {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin: 0 0 9px;
+        padding: 9px 10px;
+        border: 1px solid #dbeafe;
+        border-radius: 11px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        font-size: 11px;
+        line-height: 1.35;
+    }
+
+    .ai-camera-profile-verification .verify-icon {
+        width: 31px;
+        height: 31px;
+        flex: 0 0 31px;
+        border-radius: 50%;
+        overflow: hidden;
+        background: #dbeafe;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ai-camera-profile-verification .verify-icon img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .ai-camera-profile-verification .verify-copy {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .ai-camera-profile-verification .verify-title {
+        font-weight: 700;
+        margin-bottom: 2px;
+    }
+
+    .ai-camera-profile-verification .verify-status {
+        opacity: .85;
+    }
+
+    .ai-camera-stage.verification-waiting .ai-selfie-oval {
+        border-color: #f59e0b;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.18),
+            0 0 0 6px rgba(245,158,11,.14);
+    }
+
+    .ai-camera-stage.verification-matched .ai-selfie-oval {
+        border-color: #22c55e;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.12),
+            0 0 0 6px rgba(34,197,94,.18);
+    }
+
+    .ai-camera-stage.verification-failed .ai-selfie-oval {
+        border-color: #ef4444;
+        box-shadow:
+            0 0 0 9999px rgba(2,6,23,.18),
+            0 0 0 6px rgba(239,68,68,.16);
+    }
+
+    .ai-camera-action:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    [data-bs-theme="dark"] .ai-camera-profile-verification {
+        background: #172554;
+        border-color: #1e40af;
+        color: #dbeafe;
+    }
 </style>
+
+<!-- ============================================================
+     AI FACE VERIFICATION DEPENDENCY
+     Used only for local client-side profile/selfie comparison.
+     ============================================================ -->
+<script
+    src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"
+    crossorigin="anonymous">
+</script>
 
 <script>
 (function () {
@@ -9331,6 +9424,1134 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
         bootAIMediaAddOn();
     }
+})();
+</script>
+
+
+<!-- ============================================================
+     AI ASSISTANT SELFIE -> PROFILE FACE VERIFICATION
+     CAMERA ONLY
+     
+     Verification starts ONLY when the AI selfie camera is opened.
+     Profile photo comes from current_user.photo.
+============================================================ -->
+
+<script>
+(function () {
+    "use strict";
+
+    /* =========================================================
+       CONFIG
+    ========================================================= */
+
+    const MODEL_URL =
+        "https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights";
+
+    /*
+     * User model-kaaga:
+     *
+     * self.photo = self.data.get("photo")
+     *
+     * Sidaas darteed photo keliya ayaan isticmaaleynaa.
+     */
+    const PROFILE_PHOTO =
+        {{ current_user.photo|default('', true)|tojson }};
+
+    /*
+     * 0.52 = strict.
+     * Haddii sawirka profile-ka iyo selfie-ga ay isku qof yihiin
+     * laakiin lighting/angle awgeed uu reject sameeyo,
+     * waxaad u qaadi kartaa 0.55 ama 0.58.
+     */
+    const MATCH_THRESHOLD = 0.52;
+
+
+    /* =========================================================
+       STATE
+    ========================================================= */
+
+    let verificationPassed = false;
+    let verificationBusy = false;
+    let modelsReady = false;
+    let modelsPromise = null;
+    let profileDescriptor = null;
+
+    /*
+     * If the selfie is NOT recognized, keep the camera modal/live
+     * session open for 15 seconds, then close it automatically.
+     * A successful match always cancels this timer.
+     */
+    const FAILED_CLOSE_DELAY = 15000;
+    let failedCloseTimer = null;
+
+    let cameraWasOpened = false;
+
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    function getElements() {
+
+        return {
+            modal: document.getElementById("aiCameraModal"),
+
+            stage: document.getElementById("aiCameraStage"),
+
+            preview: document.getElementById("aiCameraPreview"),
+
+            status: document.getElementById("aiSelfieStatus"),
+
+            instruction: document.getElementById(
+                "aiSelfieInstruction"
+            ),
+
+            send: document.getElementById("aiSendPhoto"),
+
+            camera: document.getElementById(
+                "aiCameraButton"
+            ),
+
+            voice: document.getElementById(
+                "aiVoiceButton"
+            ),
+
+            retake: document.getElementById(
+                "aiRetakePhoto"
+            )
+        };
+    }
+
+
+    /* =========================================================
+       NORMALIZE PROFILE URL
+    ========================================================= */
+
+    function normalizeUrl(value) {
+
+        value = String(value || "").trim();
+
+        if (!value) {
+            return "";
+        }
+
+        try {
+
+            return new URL(
+                value,
+                window.location.origin
+            ).href;
+
+        } catch (error) {
+
+            return value;
+        }
+    }
+
+
+    /* =========================================================
+       PROFILE PHOTO
+    ========================================================= */
+
+    function getProfilePhotoUrl() {
+
+        return normalizeUrl(PROFILE_PHOTO);
+    }
+
+
+    /* =========================================================
+       STATUS
+    ========================================================= */
+
+    function setStatus(message, state) {
+
+        const e = getElements();
+
+        if (e.status) {
+            e.status.textContent = message;
+        }
+
+        if (e.stage) {
+
+            e.stage.classList.remove(
+                "verification-waiting",
+                "verification-matched",
+                "verification-failed"
+            );
+
+            if (state) {
+
+                e.stage.classList.add(
+                    "verification-" + state
+                );
+            }
+        }
+    }
+
+
+    /* =========================================================
+       SEND BUTTON
+    ========================================================= */
+
+    function setSendEnabled(enabled) {
+
+        const e = getElements();
+
+        if (!e.send) {
+            return;
+        }
+
+        e.send.disabled = !enabled;
+
+        e.send.setAttribute(
+            "aria-disabled",
+            enabled ? "false" : "true"
+        );
+    }
+
+
+    /* =========================================================
+       RESET
+    ========================================================= */
+
+    function clearFailedCloseTimer() {
+
+        if (failedCloseTimer) {
+            clearTimeout(failedCloseTimer);
+            failedCloseTimer = null;
+        }
+    }
+
+
+    /* =========================================================
+       CLOSE CAMERA AFTER FAILED VERIFICATION
+       ========================================================= */
+
+    function scheduleFailedCameraClose() {
+
+        clearFailedCloseTimer();
+
+        failedCloseTimer = setTimeout(function () {
+
+            failedCloseTimer = null;
+
+            /*
+             * The original camera code owns the real closeCamera()
+             * function inside its own closure. We intentionally do
+             * not duplicate it here. Clicking the existing Stop/
+             * Close button invokes the original close logic, which
+             * stops every MediaStream track and closes the modal.
+             */
+            const stopButton = document.getElementById(
+                "aiStopCamera"
+            );
+
+            const closeButton = document.getElementById(
+                "aiCameraClose"
+            );
+
+            if (stopButton) {
+                stopButton.click();
+                return;
+            }
+
+            if (closeButton) {
+                closeButton.click();
+            }
+
+        }, FAILED_CLOSE_DELAY);
+    }
+
+
+    function resetVerification() {
+
+        clearFailedCloseTimer();
+
+        verificationPassed = false;
+
+        verificationBusy = false;
+
+        profileDescriptor = null;
+
+        setSendEnabled(false);
+
+        const e = getElements();
+
+        if (e.stage) {
+
+            e.stage.classList.remove(
+                "verification-waiting",
+                "verification-matched",
+                "verification-failed"
+            );
+        }
+    }
+
+
+    /* =========================================================
+       LOAD IMAGE
+    ========================================================= */
+
+    function loadImage(url) {
+
+        return new Promise(function (resolve, reject) {
+
+            const img = new Image();
+
+            /*
+             * Cloudinary / external image support.
+             */
+            try {
+
+                const imageUrl = new URL(
+                    url,
+                    window.location.origin
+                );
+
+                if (
+                    imageUrl.origin !==
+                    window.location.origin
+                ) {
+
+                    img.crossOrigin = "anonymous";
+                }
+
+            } catch (error) {
+                // continue
+            }
+
+
+            img.onload = function () {
+
+                resolve(img);
+            };
+
+
+            img.onerror = function () {
+
+                reject(
+                    new Error(
+                        "Sawirka profile-ka lama furi karin."
+                    )
+                );
+            };
+
+
+            img.src = url;
+        });
+    }
+
+
+    /* =========================================================
+       LOAD FACE API MODELS
+       
+       IMPORTANT:
+       This function is NOT called on page load.
+       It is called ONLY after selfie camera is opened
+       and a selfie is captured.
+    ========================================================= */
+
+    async function loadFaceModels() {
+
+        if (modelsReady) {
+            return true;
+        }
+
+        if (modelsPromise) {
+            return modelsPromise;
+        }
+
+
+        if (!window.faceapi) {
+
+            throw new Error(
+                "Face recognition library lama soo dejin."
+            );
+        }
+
+
+        modelsPromise = Promise.all([
+
+            faceapi.nets.tinyFaceDetector
+                .loadFromUri(MODEL_URL),
+
+            faceapi.nets.faceLandmark68Net
+                .loadFromUri(MODEL_URL),
+
+            faceapi.nets.faceRecognitionNet
+                .loadFromUri(MODEL_URL)
+
+        ]).then(function () {
+
+            modelsReady = true;
+
+            return true;
+
+        }).catch(function (error) {
+
+            modelsReady = false;
+
+            console.error(
+                "Face API model error:",
+                error
+            );
+
+            throw new Error(
+                "Face recognition models lama soo dejin karin."
+            );
+
+        }).finally(function () {
+
+            modelsPromise = null;
+        });
+
+
+        return modelsPromise;
+    }
+
+
+    /* =========================================================
+       DETECTOR OPTIONS
+    ========================================================= */
+
+    function detectorOptions() {
+
+        return new faceapi.TinyFaceDetectorOptions({
+
+            inputSize: 320,
+
+            scoreThreshold: 0.5
+        });
+    }
+
+
+    /* =========================================================
+       CREATE FACE DESCRIPTOR
+    ========================================================= */
+
+    async function getFaceDescriptor(
+        source,
+        errorMessage
+    ) {
+
+        const result = await faceapi
+            .detectSingleFace(
+                source,
+                detectorOptions()
+            )
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+
+
+        if (
+            !result ||
+            !result.descriptor
+        ) {
+
+            throw new Error(
+                errorMessage
+            );
+        }
+
+
+        return result.descriptor;
+    }
+
+
+    /* =========================================================
+       VERIFY PROFILE -> SELFIE
+       
+       THIS IS ONLY CALLED AFTER CAMERA CAPTURE.
+    ========================================================= */
+
+    async function verifySelfie() {
+
+        if (verificationBusy) {
+            return false;
+        }
+
+
+        const e = getElements();
+
+
+        if (!e.preview) {
+
+            return false;
+        }
+
+
+        if (!e.preview.src) {
+
+            return false;
+        }
+
+
+        verificationBusy = true;
+
+        verificationPassed = false;
+
+        setSendEnabled(false);
+
+
+        setStatus(
+            "Selfie-ga ayaa lala barbar dhigayaa sawirka profile-ka...",
+            "waiting"
+        );
+
+
+        if (e.instruction) {
+
+            e.instruction.textContent =
+                "Fadlan sug, wajiga ayaa la hubinayaa...";
+        }
+
+
+        try {
+
+            /* =================================================
+               1. PROFILE PHOTO CHECK
+            ================================================= */
+
+            const profileUrl =
+                getProfilePhotoUrl();
+
+
+            if (!profileUrl) {
+
+                throw new Error(
+                    "User-kan sawir profile ah ma laha."
+                );
+            }
+
+
+            /* =================================================
+               2. LOAD MODELS
+            ================================================= */
+
+            await loadFaceModels();
+
+
+            /* =================================================
+               3. PROFILE DESCRIPTOR
+            ================================================= */
+
+            if (!profileDescriptor) {
+
+                const profileImage =
+                    await loadImage(
+                        profileUrl
+                    );
+
+
+                profileDescriptor =
+                    await getFaceDescriptor(
+
+                        profileImage,
+
+                        "Wajiga sawirka profile-ka lagama helin."
+                    );
+            }
+
+
+            /* =================================================
+               4. SELFIE DESCRIPTOR
+            ================================================= */
+
+            const selfieDescriptor =
+                await getFaceDescriptor(
+
+                    e.preview,
+
+                    "Wajiga selfie-ga lagama helin. Fadlan selfie kale qaado."
+                );
+
+
+            /* =================================================
+               5. COMPARE
+            ================================================= */
+
+            const distance =
+                faceapi.euclideanDistance(
+
+                    profileDescriptor,
+
+                    selfieDescriptor
+                );
+
+
+            console.log(
+                "AI FACE DISTANCE:",
+                distance
+            );
+
+
+            /* =================================================
+               6. MATCH
+            ================================================= */
+
+            if (
+                !Number.isFinite(distance) ||
+                distance > MATCH_THRESHOLD
+            ) {
+
+                verificationPassed = false;
+
+                setSendEnabled(false);
+
+
+                setStatus(
+                    "❌ Selfie-ga iyo profile-ka isma laha.",
+                    "failed"
+                );
+
+
+                if (e.instruction) {
+
+                    e.instruction.textContent =
+                        "Qofka profile-ka ku jira lama aqoonsan. Camera-ga wuxuu 15 ilbiriqsi kadib iskiis u xirmayaa.";
+                }
+
+
+                /*
+                 * NO SPEECH HERE.
+                 *
+                 * Keep the live camera/session available briefly so
+                 * the user can see the failed state, then close it
+                 * automatically after 15 seconds.
+                 */
+                scheduleFailedCameraClose();
+
+                return false;
+            }
+
+
+            /* =================================================
+               7. SUCCESS
+            ================================================= */
+
+            verificationPassed = true;
+
+            /*
+             * Successful identity check must never be closed by the
+             * previous failed-verification timer.
+             */
+            clearFailedCloseTimer();
+
+            setSendEnabled(true);
+
+
+            setStatus(
+                "✅ Waa lagu aqoonsaday. Selfie-ga iyo profile-ku waa isku qof.",
+                "matched"
+            );
+
+
+            if (e.instruction) {
+
+                e.instruction.textContent =
+                    "✅ Waa lagu aqoonsaday. Hadda waad hadli kartaa.";
+            }
+
+
+            /*
+             * Speech ONLY after successful match.
+             */
+
+            speakAfterVerification(
+                "Waa lagu aqoonsaday. Hadda waad hadli kartaa."
+            );
+
+
+            return true;
+
+
+        } catch (error) {
+
+            console.error(
+                "SELFIE VERIFICATION ERROR:",
+                error
+            );
+
+
+            verificationPassed = false;
+
+            setSendEnabled(false);
+
+
+            setStatus(
+                error && error.message
+                    ? "❌ " + error.message
+                    : "Face verification ayaa fashilantay.",
+                "failed"
+            );
+
+
+            if (e.instruction) {
+
+                e.instruction.textContent =
+                    "Aqoonsiga lama dhammeystirin. Camera-ga wuxuu 15 ilbiriqsi kadib iskiis u xirmayaa.";
+            }
+
+
+            /*
+             * Any verification failure (missing profile photo, model
+             * error, image error, no face, etc.) follows the same
+             * 15-second automatic camera-close rule.
+             */
+            scheduleFailedCameraClose();
+
+            return false;
+
+
+        } finally {
+
+            verificationBusy = false;
+        }
+    }
+
+
+    /* =========================================================
+       SPEECH
+       
+       IMPORTANT:
+       We DO NOT globally replace speechSynthesis.speak.
+       This prevents the old global spinner/blocking behavior.
+    ========================================================= */
+
+    function speakAfterVerification(text) {
+
+        if (!verificationPassed) {
+            return;
+        }
+
+
+        if (
+            !window.speechSynthesis ||
+            !window.SpeechSynthesisUtterance
+        ) {
+
+            return;
+        }
+
+
+        try {
+
+            window.speechSynthesis.cancel();
+
+
+            const utterance =
+                new SpeechSynthesisUtterance(
+                    text
+                );
+
+
+            utterance.lang = "so-SO";
+
+            utterance.rate = 0.95;
+
+            utterance.pitch = 1;
+
+
+            window.speechSynthesis.speak(
+                utterance
+            );
+
+        } catch (error) {
+
+            console.warn(
+                "Verification speech error:",
+                error
+            );
+        }
+    }
+
+
+    /* =========================================================
+       CAMERA OPENED
+       
+       IMPORTANT:
+       Nothing is verified here.
+       We ONLY reset the verification state.
+    ========================================================= */
+
+    function onSelfieCameraOpened() {
+
+        cameraWasOpened = true;
+
+        resetVerification();
+
+        setStatus(
+            "Selfie-ga qaado si aqoonsiga loo bilaabo.",
+            "waiting"
+        );
+
+
+        const e = getElements();
+
+        if (e.instruction) {
+
+            e.instruction.textContent =
+                "Marka selfie-ga la qaado ayaa profile-ka lala barbar dhigayaa.";
+        }
+    }
+
+
+    /* =========================================================
+       WATCH FOR PHOTO CAPTURE
+       
+       Existing camera code already adds:
+       
+           has-photo
+       
+       to aiCameraStage.
+       
+       ONLY HERE do we start verification.
+    ========================================================= */
+
+    function watchSelfieCapture() {
+
+        const e = getElements();
+
+        if (!e.stage) {
+            return;
+        }
+
+
+        const observer =
+            new MutationObserver(
+                function (mutations) {
+
+                    mutations.forEach(
+                        function (mutation) {
+
+                            if (
+                                mutation.type !==
+                                "attributes"
+                            ) {
+                                return;
+                            }
+
+
+                            if (
+                                mutation.attributeName !==
+                                "class"
+                            ) {
+                                return;
+                            }
+
+
+                            const hasPhoto =
+                                e.stage.classList.contains(
+                                    "has-photo"
+                                );
+
+
+                            if (hasPhoto) {
+
+                                /*
+                                 * ONLY AFTER PHOTO EXISTS
+                                 */
+                                verifySelfie();
+
+                            } else {
+
+                                resetVerification();
+                            }
+                        }
+                    );
+                }
+            );
+
+
+        observer.observe(
+            e.stage,
+            {
+                attributes: true,
+
+                attributeFilter: ["class"]
+            }
+        );
+    }
+
+
+    /* =========================================================
+       CAMERA BUTTON
+       
+       Verification is activated only when this button
+       is clicked.
+    ========================================================= */
+
+    function installCameraListener() {
+
+        const e = getElements();
+
+        if (!e.camera) {
+            return;
+        }
+
+
+        e.camera.addEventListener(
+            "click",
+            function () {
+
+                onSelfieCameraOpened();
+
+            },
+            true
+        );
+    }
+
+
+    /* =========================================================
+       VOICE BUTTON
+       
+       If user clicks voice before verification:
+       open selfie camera.
+       
+       DO NOT run face verification here.
+       Verification begins after the camera captures selfie.
+    ========================================================= */
+
+    function installVoiceGate() {
+
+        const e = getElements();
+
+        if (!e.voice) {
+            return;
+        }
+
+
+        e.voice.addEventListener(
+            "click",
+            function (event) {
+
+                if (verificationPassed) {
+                    return;
+                }
+
+
+                /*
+                 * Stop existing voice recognition.
+                 */
+                event.preventDefault();
+
+                event.stopImmediatePropagation();
+
+
+                const camera =
+                    document.getElementById(
+                        "aiCameraButton"
+                    );
+
+
+                if (camera) {
+
+                    camera.click();
+                }
+
+            },
+            true
+        );
+    }
+
+
+    /* =========================================================
+       SEND BUTTON
+       
+       Cannot send photo until identity is verified.
+    ========================================================= */
+
+    function installSendGate() {
+
+        const e = getElements();
+
+        if (!e.send) {
+            return;
+        }
+
+
+        e.send.addEventListener(
+            "click",
+            function (event) {
+
+                if (verificationPassed) {
+                    return;
+                }
+
+
+                event.preventDefault();
+
+                event.stopImmediatePropagation();
+
+
+                setStatus(
+                    "❌ Marka hore selfie-ga waa inuu la mid noqdaa sawirka profile-ka.",
+                    "failed"
+                );
+
+            },
+            true
+        );
+    }
+
+
+    /* =========================================================
+       RETAKE
+    ========================================================= */
+
+    function installRetakeListener() {
+
+        const e = getElements();
+
+        if (!e.retake) {
+            return;
+        }
+
+
+        e.retake.addEventListener(
+            "click",
+            function () {
+
+                resetVerification();
+
+
+                setTimeout(
+                    function () {
+
+                        const now =
+                            getElements();
+
+
+                        if (
+                            now.camera &&
+                            now.modal &&
+                            now.modal.classList.contains(
+                                "active"
+                            )
+                        ) {
+
+                            setStatus(
+                                "Selfie-ga cusub qaado...",
+                                "waiting"
+                            );
+                        }
+
+                    },
+                    100
+                );
+            },
+            true
+        );
+    }
+
+
+    /* =========================================================
+       BOOT
+       
+       IMPORTANT:
+       This does NOT load face models.
+       This does NOT inspect profile image.
+       This does NOT start camera.
+       
+       It only installs click/capture listeners.
+    ========================================================= */
+
+    function boot() {
+
+        installCameraListener();
+
+        installVoiceGate();
+
+        installSendGate();
+
+        installRetakeListener();
+
+        watchSelfieCapture();
+
+
+        console.log(
+            "AI selfie verification loaded - CAMERA ONLY."
+        );
+    }
+
+
+    /* =========================================================
+       WAIT FOR EXISTING AI CAMERA UI
+    ========================================================= */
+
+    function waitForCameraUI(attempt) {
+
+        const camera =
+            document.getElementById(
+                "aiCameraButton"
+            );
+
+        const stage =
+            document.getElementById(
+                "aiCameraStage"
+            );
+
+
+        if (
+            camera &&
+            stage
+        ) {
+
+            boot();
+
+            return;
+        }
+
+
+        if (attempt >= 100) {
+
+            console.warn(
+                "AI selfie camera UI not found."
+            );
+
+            return;
+        }
+
+
+        setTimeout(
+            function () {
+
+                waitForCameraUI(
+                    attempt + 1
+                );
+
+            },
+            100
+        );
+    }
+
+
+    /* =========================================================
+       START
+    ========================================================= */
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function () {
+
+                waitForCameraUI(0);
+
+            },
+            {
+                once: true
+            }
+        );
+
+    } else {
+
+        waitForCameraUI(0);
+    }
+
 })();
 </script>
 
