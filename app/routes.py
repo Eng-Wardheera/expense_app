@@ -1,3 +1,4 @@
+import base64
 import calendar
 from collections import defaultdict
 import datetime
@@ -131153,6 +131154,459 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
+
+def _maareye_ai_data_uri(raw_bytes, mime_type="image/png"):
+    return "data:%s;base64,%s" % (
+        mime_type,
+        base64.b64encode(raw_bytes).decode("ascii")
+    )
+
+
+def _maareye_ai_image_requested(message):
+    text = str(message or "").lower()
+    image_words = (
+        "sawir", "image", "picture", "poster", "illustration",
+        "logo", "banner", "thumbnail", "draw", "design", "generate image",
+        "visual", "regenerate", "edit image", "modify image", "improve image"
+    )
+    chart_words = (
+        "chart", "graph", "jaantus", "shax", "statistics chart",
+        "bar chart", "line chart", "pie chart", "diagram", "visualize"
+    )
+    return any(w in text for w in image_words), any(w in text for w in chart_words)
+
+
+def _maareye_ai_generate_image(prompt):
+    """Generate an image through Gemini's native image model."""
+    image_model = os.getenv(
+        "GEMINI_IMAGE_MODEL",
+        "gemini-3.1-flash-image"
+    )
+
+    response = gemini_client.models.generate_content(
+        model=image_model,
+        contents=str(prompt or ""),
+        config=types.GenerateContentConfig(
+            response_modalities=["IMAGE"],
+            max_output_tokens=1024
+        )
+    )
+
+    # The current Gemini SDK exposes generated image parts through
+    # response.parts and supports part.as_image().
+    for part in getattr(response, "parts", []) or []:
+        if getattr(part, "inline_data", None) is not None:
+            image_obj = part.as_image()
+            buffer = io.BytesIO()
+            image_obj.save(buffer, format="PNG")
+            return {
+                "mime_type": "image/png",
+                "data": _maareye_ai_data_uri(
+                    buffer.getvalue(),
+                    "image/png"
+                )
+            }
+
+    raise RuntimeError("Gemini image model returned no image.")
+
+
+def _maareye_ai_extract_json(text):
+    """Safely extract one JSON object from a model response."""
+    raw = str(text or "").strip()
+    if not raw:
+        return {}
+
+    try:
+        value = json.loads(raw)
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        pass
+
+    match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if not match:
+        return {}
+
+    try:
+        value = json.loads(match.group(0))
+        return value if isinstance(value, dict) else {}
+    except Exception:
+        return {}
+
+
+def _maareye_ai_generate_chart(message, financial_context):
+    """
+    Ask the text model for a chart specification, then render it server-side.
+    The numbers come from user-provided/context data; the model does not invent
+    a database transaction.
+    """
+    chart_prompt = """
+Create a chart specification for the user's request.
+
+Return JSON ONLY:
+{
+  "chart_type": "bar|line|pie",
+  "title": "short title",
+  "labels": ["..."],
+  "values": [0, 0],
+  "unit": "USD"
+}
+
+Rules:
+- Use ONLY numbers explicitly present in the supplied context or user message.
+- Never invent financial values.
+- If there is not enough numeric data, return:
+  {"error":"insufficient_data"}
+- labels and values must have equal length.
+- Keep at most 12 points.
+- For financial charts, prefer bar/line unless pie is clearly requested.
+
+USER REQUEST:
+""" + str(message or "") + """
+
+SUPPLIED FINANCIAL CONTEXT:
+""" + json.dumps(
+        financial_context or {},
+        default=str,
+        ensure_ascii=False
+    )
+
+    spec_response = gemini_client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=chart_prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.05,
+            max_output_tokens=1024
+        )
+    )
+
+    spec = _maareye_ai_extract_json(
+        getattr(spec_response, "text", "") or ""
+    )
+
+    if spec.get("error"):
+        raise ValueError("Chart data is insufficient.")
+
+    chart_type = str(
+        spec.get("chart_type", "bar")
+    ).lower().strip()
+
+    labels = spec.get("labels") or []
+    values = spec.get("values") or []
+
+    if not isinstance(labels, list) or not isinstance(values, list):
+        raise ValueError("Invalid chart specification.")
+
+    if len(labels) == 0 or len(labels) != len(values):
+        raise ValueError("Chart labels and values do not match.")
+
+    if len(labels) > 12:
+        labels = labels[:12]
+        values = values[:12]
+
+    clean_values = []
+    for value in values:
+        try:
+            clean_values.append(float(value))
+        except Exception:
+            raise ValueError("Chart contains a non-numeric value.")
+
+    # Import only when a chart is requested.
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    title = str(spec.get("title") or "Maareye AI Chart")
+    unit = str(spec.get("unit") or "")
+
+    if chart_type == "line":
+        ax.plot(labels, clean_values, marker="o")
+    elif chart_type == "pie":
+        ax.pie(
+            clean_values,
+            labels=labels,
+            autopct="%1.1f%%"
+        )
+    else:
+        ax.bar(labels, clean_values)
+
+    ax.set_title(title)
+    if chart_type != "pie":
+        ax.set_ylabel(unit)
+        ax.tick_params(axis="x", rotation=35)
+
+    fig.tight_layout()
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png", dpi=160, bbox_inches="tight")
+    plt.close(fig)
+
+    return {
+        "mime_type": "image/png",
+        "data": _maareye_ai_data_uri(
+            buffer.getvalue(),
+            "image/png"
+        ),
+        "chart": {
+            "type": chart_type,
+            "title": title,
+            "labels": labels,
+            "values": clean_values,
+            "unit": unit
+        }
+    }
+
+
+def _maareye_ai_is_transfer_request(message):
+    text = str(message or "").lower()
+    words = (
+        "lacag sii", "lacag bixi", "lacag u dir", "u dir lacag",
+        "send money", "pay", "payment", "transfer", "bixi lacag",
+        "ii dir", "u wareeji", "wareeji lacag"
+    )
+    return any(w in text for w in words)
+
+
+def _maareye_ai_parse_money_and_person(message):
+    """
+    Conservative parser. It never invents an amount/person.
+    Frontend can also send explicit action fields in JSON.
+    """
+    text = str(message or "").strip()
+    amount = None
+    person = None
+
+    money_match = re.search(
+        r"(?:\$|usd\s*)\s*([0-9]+(?:[.,][0-9]{1,2})?)"
+        r"|([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:\$|usd|dollar)",
+        text,
+        flags=re.IGNORECASE
+    )
+    if money_match:
+        raw = money_match.group(1) or money_match.group(2)
+        try:
+            amount = round(float(raw.replace(",", "")), 2)
+        except Exception:
+            amount = None
+
+    # The model should not be trusted to execute a payment directly.
+    # Person resolution is therefore done from the user's supplied ledger.
+    person_match = re.search(
+        r"(?:to|u dir|sii|siin|qofka|qof)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9 _'-]{1,60})",
+        text,
+        flags=re.IGNORECASE
+    )
+    if person_match:
+        person = person_match.group(1).strip(" .,!?:;")
+
+    return amount, person
+
+
+def _maareye_ai_create_pending_action(user_id, amount, person, message):
+    """
+    Creates a one-time payment proposal. It does NOT move money.
+    Actual movement must be performed by the application's trusted
+    payment/transfer service after explicit confirmation.
+    """
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+
+    document = {
+        "token": token,
+        "user_id": user_id,
+        "action": "TRANSFER",
+        "amount": round(float(amount), 2),
+        "person": str(person).strip(),
+        "source": "ai_assistant",
+        "original_message": str(message or ""),
+        "status": "PENDING_CONFIRMATION",
+        "created_at": now,
+        "expires_at": now,
+    }
+
+    # Expiration is deliberately short and checked again by confirmation.
+    from datetime import timedelta
+    document["expires_at"] = now + timedelta(minutes=5)
+
+    mongo.db.ai_pending_financial_actions.insert_one(document)
+    return token
+
+
+def _maareye_ai_find_pending_action(token, user_id):
+    if not token:
+        return None
+
+    return mongo.db.ai_pending_financial_actions.find_one({
+        "token": str(token),
+        "user_id": user_id,
+        "action": "TRANSFER",
+        "status": "PENDING_CONFIRMATION"
+    })
+
+
+
+
+@bp.route(
+    "/ai-assistant/financial-action/confirm",
+    methods=["POST"]
+)
+def ai_confirm_financial_action():
+    """
+    Confirm a previously prepared AI transfer.
+
+    IMPORTANT:
+    This route intentionally does not guess how Maareye's payment engine
+    stores/executes transactions. It calls a project-provided trusted
+    executor named `ai_execute_transfer` if one exists.
+
+    Expected executor signature:
+        ai_execute_transfer(
+            user_id=<authenticated user>,
+            recipient=<verified recipient>,
+            amount=<float>,
+            action_document=<pending action>
+        )
+
+    The executor MUST perform the real atomic balance/transaction update.
+    """
+    try:
+        if (
+            current_user is None
+            or not getattr(
+                current_user,
+                "is_authenticated",
+                False
+            )
+        ):
+            return jsonify({
+                "success": False,
+                "error": "authentication_required",
+                "answer": "Fadlan login samee marka hore."
+            }), 401
+
+        data = request.get_json(silent=True) or {}
+        token = str(
+            data.get("confirmation_token") or ""
+        ).strip()
+
+        if not token:
+            return jsonify({
+                "success": False,
+                "error": "confirmation_token_required",
+                "answer": "Confirmation token ayaa loo baahan yahay."
+            }), 400
+
+        user_id = ai_get_current_user_id()
+        pending = _maareye_ai_find_pending_action(
+            token,
+            user_id
+        )
+
+        if not pending:
+            return jsonify({
+                "success": False,
+                "error": "invalid_or_expired_action",
+                "answer":
+                    "Codsiga lacag-bixinta waa dhacay ama lama helin."
+            }), 400
+
+        # Never trust client-supplied amount/recipient during confirmation.
+        amount = float(pending.get("amount") or 0)
+        recipient = str(
+            pending.get("person") or ""
+        ).strip()
+
+        # Explicit confirmation is mandatory.
+        confirmed = bool(
+            data.get("confirmed") is True
+            or
+            str(data.get("confirm") or "").strip().lower()
+            in {"yes", "haa", "confirm", "xaqiiji"}
+        )
+
+        if not confirmed:
+            return jsonify({
+                "success": True,
+                "action_required": True,
+                "status": "CONFIRMATION_REQUIRED",
+                "transfer": {
+                    "recipient": recipient,
+                    "amount": round(amount, 2),
+                    "currency": "USD"
+                },
+                "answer":
+                    f"Xaqiiji: ma rabtaa in ${amount:,.2f} "
+                    f"loo diro {recipient}?"
+            }), 200
+
+        executor = globals().get("ai_execute_transfer")
+
+        if not callable(executor):
+            return jsonify({
+                "success": False,
+                "error": "transfer_executor_not_configured",
+                "answer":
+                    "AI-ga wuxuu diyaarin karaa lacag-bixinta, "
+                    "laakiin trusted transfer service-ka weli "
+                    "laguma xirin. Lacag lama bixin."
+            }), 501
+
+        result = executor(
+            user_id=user_id,
+            recipient=recipient,
+            amount=amount,
+            action_document=pending
+        )
+
+        if not result or not bool(
+            result.get("success", False)
+        ):
+            return jsonify({
+                "success": False,
+                "error": "transfer_failed",
+                "answer":
+                    (result or {}).get(
+                        "message",
+                        "Lacag-bixintu ma aysan dhicin."
+                    )
+            }), 400
+
+        mongo.db.ai_pending_financial_actions.update_one(
+            {"_id": pending["_id"]},
+            {
+                "$set": {
+                    "status": "COMPLETED",
+                    "completed_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+
+        return jsonify({
+            "success": True,
+            "status": "COMPLETED",
+            "answer":
+                "Lacag-bixinta si guul leh ayaa loo fuliyay.",
+            "transfer": {
+                "recipient": recipient,
+                "amount": round(amount, 2),
+                "currency": "USD"
+            },
+            "result": result
+        }), 200
+
+    except Exception as e:
+        print(
+            "MAAREYE AI FINANCIAL ACTION ERROR:",
+            repr(e)
+        )
+        return jsonify({
+            "success": False,
+            "error": "financial_action_error",
+            "answer":
+                "Lacag-bixinta lama fulin sababo amni awgood."
+        }), 500
+
+
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -131214,6 +131668,163 @@ def ai_assistant():
                     "Fadlan su'aashaada qor."
 
             }), 400
+
+        # ============================================================
+        # FINANCIAL ACTION / TRANSFER PRE-CHECK
+        # ============================================================
+        #
+        # A natural-language payment request creates a confirmation
+        # proposal only. No money is moved in this route.
+        #
+        # Frontend may send:
+        #   action="transfer"
+        #   amount=...
+        #   recipient=...
+        #
+        # This makes the action deterministic instead of trusting the
+        # model to infer critical payment fields.
+        #
+        requested_action = str(
+            data.get("action") or ""
+        ).strip().lower()
+
+        if (
+            requested_action == "transfer"
+            or
+            _maareye_ai_is_transfer_request(message)
+        ):
+            if not is_logged_in:
+                return jsonify({
+                    "success": False,
+                    "error": "authentication_required",
+                    "answer":
+                        "Lacag diris/bixin waxaa loo baahan yahay "
+                        "inaad marka hore login samayso."
+                }), 401
+
+            explicit_amount = data.get("amount")
+            explicit_recipient = data.get("recipient")
+
+            amount = None
+            if explicit_amount not in (None, ""):
+                try:
+                    amount = round(float(explicit_amount), 2)
+                except Exception:
+                    amount = None
+
+            parsed_amount, parsed_person = (
+                _maareye_ai_parse_money_and_person(message)
+            )
+
+            amount = amount if amount is not None else parsed_amount
+            recipient = (
+                str(explicit_recipient).strip()
+                if explicit_recipient
+                else parsed_person
+            )
+
+            missing = []
+            if not amount or amount <= 0:
+                missing.append("qadarka lacagta")
+            if not recipient:
+                missing.append("qofka lacagta loo dirayo")
+
+            if missing:
+                return jsonify({
+                    "success": True,
+                    "action_required": True,
+                    "action": "TRANSFER",
+                    "status": "NEEDS_DETAILS",
+                    "missing": missing,
+                    "answer":
+                        "Si aan lacag-bixinta u diyaariyo, "
+                        "fadlan sheeg " + " iyo ".join(missing) + "."
+                }), 200
+
+            # Use the live authenticated ledger to find the recipient.
+            recipient_key = str(recipient).strip().casefold()
+            person_match = None
+            for person in (
+                financial_context.get("person_summary", {}).get("people", [])
+                or []
+            ):
+                if str(
+                    person.get("normalized_name") or ""
+                ).casefold() == recipient_key:
+                    person_match = person
+                    break
+
+            # We do not silently create a recipient that does not exist
+            # in the user's trusted financial context.
+            if person_match is None:
+                return jsonify({
+                    "success": True,
+                    "action_required": True,
+                    "action": "TRANSFER",
+                    "status": "RECIPIENT_NOT_VERIFIED",
+                    "answer":
+                        "Qofka '" + recipient + "' kama helin "
+                        "Person Ledger-kaaga. Fadlan xaqiiji magaca "
+                        "saxda ah ka hor inta aan lacag-bixin la diyaarin."
+                }), 200
+
+            # Affordability check from trusted financial context.
+            available = None
+            for key in (
+                "available_balance",
+                "balance",
+                "current_balance",
+                "account_balance",
+                "total_balance"
+            ):
+                if financial_context.get(key) is not None:
+                    try:
+                        available = float(financial_context.get(key))
+                        break
+                    except Exception:
+                        pass
+
+            if available is not None and amount > available:
+                return jsonify({
+                    "success": True,
+                    "action_required": False,
+                    "action": "TRANSFER",
+                    "status": "INSUFFICIENT_FUNDS",
+                    "answer":
+                        f"Ma diyaarin karo lacag-bixinta ${amount:,.2f}; "
+                        f"available balance-ka la helay waa ${available:,.2f}."
+                }), 200
+
+            action_token = _maareye_ai_create_pending_action(
+                current_user_id,
+                amount,
+                person_match.get("person_name") or recipient,
+                message
+            )
+
+            return jsonify({
+                "success": True,
+                "action_required": True,
+                "action": "TRANSFER",
+                "status": "PENDING_CONFIRMATION",
+                "confirmation_token": action_token,
+                "transfer": {
+                    "recipient": person_match.get("person_name") or recipient,
+                    "amount": round(amount, 2),
+                    "currency": "USD",
+                    "historical_person_expense":
+                        round(
+                            float(person_match.get("expense") or 0),
+                            2
+                        ),
+                    "historical_transaction_count":
+                        int(person_match.get("transaction_count") or 0)
+                },
+                "answer":
+                    "Lacag-bixinta waa la diyaariyey, lacagtu weli ma bixin. "
+                    "Fadlan si cad u xaqiiji bixinta ka hor inta aan "
+                    "server-ka trusted-ka ahi fulin."
+            }), 200
 
         # ============================================================
         # GEMINI CONFIGURATION
@@ -134934,6 +135545,72 @@ exists.
 """
 
         # ============================================================
+        # VISUAL GENERATION + FINANCIAL DECISION RULES
+        # ============================================================
+
+        visual_instruction = """
+# ============================================================
+MAAREYE AI — VISUAL ASSISTANT
+# ============================================================
+
+If the user asks for an image, poster, logo, illustration, banner,
+diagram, or other generated visual, the backend may generate it
+through the configured Gemini image model.
+
+If the user asks for a chart/graph:
+- use only supplied numeric data;
+- never invent financial numbers;
+- if the data is insufficient, ask the user for the missing values;
+- prefer clear, professional charts.
+
+The assistant should say what it generated and return the visual
+to the frontend as a displayable image.
+
+# ============================================================
+MAAREYE AI — FINANCIAL COACH
+# ============================================================
+
+For financial advice, do not give confident recommendations from
+missing information.
+
+When important facts are missing, ask concise questions such as:
+- What is your current available balance?
+- What amount do you want to spend/send?
+- What are your essential expenses until your next income?
+- Do you have debts due soon?
+- What is your savings target and deadline?
+- Is this payment necessary or optional?
+
+Use supplied Maareye financial data first. Clearly distinguish:
+FACT, CALCULATION, and RECOMMENDATION.
+
+Do not shame the user. Give practical alternatives and explain
+the trade-off.
+
+# ============================================================
+MAAREYE AI — MONEY ACTION SAFETY
+# ============================================================
+
+The AI may PREPARE a payment/transfer request, but it must never
+move money merely because the user typed a natural-language request.
+
+Before money is moved:
+1. Identify the recipient/person.
+2. Identify the exact amount.
+3. Check available funds using trusted server data.
+4. Show a confirmation summary.
+5. Require an explicit confirmation action.
+6. The trusted backend transfer service must execute the transaction.
+7. If any required field is missing, ask for it.
+8. Never expose credentials, passwords, tokens, or secrets.
+
+A proposal is NOT a completed transaction.
+
+Never claim "lacagtii waa baxday" until the trusted payment service
+actually reports success.
+"""
+
+        # ============================================================
         # COMBINE SYSTEM INSTRUCTIONS
         # ============================================================
 
@@ -134972,6 +135649,10 @@ exists.
             + "\n\n"
 
             + scope_instruction
+
+            + "\n\n"
+
+            + visual_instruction
 
         )
 
@@ -135193,6 +135874,75 @@ Do not fabricate database records.
             + context_text
 
         )
+
+        # ============================================================
+        # NATIVE VISUAL REQUEST
+        # ============================================================
+        #
+        # Return the actual image/chart payload separately from the text.
+        # The template renders it in a responsive frame with Save / Edit prompt.
+        # The text answer remains small so MongoDB chat history stays compact.
+        #
+        is_image_request, is_chart_request = _maareye_ai_image_requested(message)
+
+        if is_image_request and not is_chart_request:
+            try:
+                visual = _maareye_ai_generate_image(message)
+                return jsonify({
+                    "success": True,
+                    "answer": "Waa kan sawirka aad codsatay. Waxaad ka dooran kartaa Save image si aad u kaydsato ama Edit prompt si aad wax uga beddesho codsiga.",
+                    "visual": {
+                        "data": visual.get("data"),
+                        "mime_type": visual.get("mime_type", "image/png"),
+                        "title": "Maareye AI — Generated Image"
+                    },
+                    "visual_title": "Maareye AI — Generated Image",
+                    "logged_in": bool(is_logged_in),
+                    "request_scope": request_scope,
+                    "person_ledger_intent": bool(person_ledger_intent),
+                    "explicit_savings_intent": bool(explicit_savings_intent),
+                    "message_id": None
+                }), 200
+            except Exception as visual_error:
+                print("MAAREYE AI IMAGE GENERATION ERROR:", repr(visual_error))
+                return jsonify({
+                    "success": False,
+                    "error": "image_generation_failed",
+                    "answer": "Sawirka hadda lama samayn karin. Hubi in GEMINI_IMAGE_MODEL-ka iyo rukhsadda API-ga ay sax yihiin, kadibna mar kale isku day."
+                }), 502
+
+        if is_chart_request:
+            try:
+                visual = _maareye_ai_generate_chart(message, financial_context)
+                return jsonify({
+                    "success": True,
+                    "answer": "Waa kan jaantuska ku salaysan xogta la heli karo.",
+                    "visual": {
+                        "data": visual.get("data"),
+                        "mime_type": visual.get("mime_type", "image/png"),
+                        "title": (visual.get("chart") or {}).get("title", "Maareye AI Chart"),
+                        "chart": visual.get("chart")
+                    },
+                    "chart": visual.get("chart"),
+                    "logged_in": bool(is_logged_in),
+                    "request_scope": request_scope,
+                    "person_ledger_intent": bool(person_ledger_intent),
+                    "explicit_savings_intent": bool(explicit_savings_intent),
+                    "message_id": None
+                }), 200
+            except ValueError as chart_error:
+                return jsonify({
+                    "success": False,
+                    "error": "insufficient_chart_data",
+                    "answer": "Xog tirooyin ku filan uma hayo jaantuska. Fadlan ii soo dir tirooyinka ama report-ka aad rabto inaan jaantus ka sameeyo."
+                }), 400
+            except Exception as chart_error:
+                print("MAAREYE AI CHART GENERATION ERROR:", repr(chart_error))
+                return jsonify({
+                    "success": False,
+                    "error": "chart_generation_failed",
+                    "answer": "Jaantuska hadda lama samayn karin. Fadlan mar kale isku day."
+                }), 502
 
         # ============================================================
         # GEMINI REQUEST
@@ -136185,6 +136935,7 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
