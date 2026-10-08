@@ -131154,7 +131154,6 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
-
 def _maareye_ai_data_uri(raw_bytes, mime_type="image/png"):
     return "data:%s;base64,%s" % (
         mime_type,
@@ -131631,6 +131630,26 @@ def ai_assistant():
                 "message"
             )
         )
+
+        # Optional captured photo attached to the authenticated user's AI message.
+        image_data_url = data.get("image_data_url")
+        image_part = None
+        if isinstance(image_data_url, str) and image_data_url.startswith("data:image/"):
+            try:
+                header, encoded_image = image_data_url.split(",", 1)
+                image_mime_type = header[5:].split(";", 1)[0].strip().lower()
+                if image_mime_type not in ("image/jpeg", "image/png", "image/webp"):
+                    raise ValueError("Unsupported image type")
+                image_bytes = base64.b64decode(encoded_image, validate=True)
+                if not image_bytes or len(image_bytes) > 5 * 1024 * 1024:
+                    raise ValueError("Image exceeds the 5 MB limit")
+                image_part = types.Part.from_bytes(data=image_bytes, mime_type=image_mime_type)
+            except Exception:
+                return jsonify({
+                    "success": False,
+                    "error": "invalid_attached_image",
+                    "answer": "Sawirka lama akhrin karin ama wuu ka weyn yahay 5 MB. Fadlan mar kale sawir qaad."
+                }), 400
 
         history = (
             data.get(
@@ -135885,7 +135904,7 @@ Do not fabricate database records.
         #
         is_image_request, is_chart_request = _maareye_ai_image_requested(message)
 
-        if is_image_request and not is_chart_request:
+        if image_part is None and is_image_request and not is_chart_request:
             try:
                 visual = _maareye_ai_generate_image(message)
                 return jsonify({
@@ -135911,7 +135930,7 @@ Do not fabricate database records.
                     "answer": "Sawirka hadda lama samayn karin. Hubi in GEMINI_IMAGE_MODEL-ka iyo rukhsadda API-ga ay sax yihiin, kadibna mar kale isku day."
                 }), 502
 
-        if is_chart_request:
+        if image_part is None and is_chart_request:
             try:
                 visual = _maareye_ai_generate_chart(message, financial_context)
                 return jsonify({
@@ -135971,7 +135990,14 @@ Do not fabricate database records.
 
                     model=GEMINI_MODEL,
 
-                    contents=final_prompt,
+                    contents=(
+                        [
+                            final_prompt + "\n\nUser has attached a photo. Analyze the attached image only as relevant to their request. Do not claim to identify a person or verify identity from the image.",
+                            image_part
+                        ]
+                        if image_part is not None
+                        else final_prompt
+                    ),
 
                     config=types.GenerateContentConfig(
 
@@ -136935,6 +136961,9 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
+
 
 
 
