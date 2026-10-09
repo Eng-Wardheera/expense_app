@@ -131770,6 +131770,13 @@ def ai_assistant_share_media(media_id):
         return jsonify({"success": False, "error": "share_failed"}), 500
 
 
+def _maareye_ai_existing_message_attachments(message_doc):
+    """Return saved attachment metadata without dropping camera uploads during edits."""
+    if not isinstance(message_doc, dict):
+        return []
+    return [dict(item) for item in (message_doc.get("attachments") or []) if isinstance(item, dict)]
+
+
 @bp.route("/ai-assistant/message/<message_id>/attachments", methods=["GET"])
 def ai_assistant_message_attachments(message_id):
     """Return saved attachments for one of the authenticated user's own chat messages."""
@@ -131806,6 +131813,7 @@ def ai_assistant_message_attachments(message_id):
                 "media_id": str(attachment.get("media_id") or ""),
                 "media_kind": str(attachment.get("media_kind") or "user_upload"),
                 "source": str(attachment.get("source") or "upload"),
+                "is_camera": str(attachment.get("source") or "upload").lower() == "camera",
                 "filename": str(attachment.get("filename") or "attached-image"),
                 "url": url,
                 "cloudinary_url": url,
@@ -137299,6 +137307,7 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
