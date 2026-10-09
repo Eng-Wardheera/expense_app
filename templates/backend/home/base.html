@@ -5422,6 +5422,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
+       EDIT MESSAGE TEXT WITHOUT REMOVING ITS ATTACHED PHOTO
+       ========================================================= */
+
+    function updateUserMessageTextPreservingPhoto(content, newText) {
+        if (!content) return;
+
+        const photo = content.querySelector(".ai-photo-message");
+        if (!photo) {
+            content.textContent = newText;
+            return;
+        }
+
+        // Keep the exact same photo node and replace only the caption.
+        Array.from(content.childNodes).forEach(function (node) {
+            if (node !== photo) node.remove();
+        });
+
+        content.appendChild(document.createTextNode(String(newText || "")));
+    }
+
+
+    /* =========================================================
        EDIT MESSAGE
        ========================================================= */
 
@@ -5542,8 +5564,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (content) {
 
-                    content.textContent =
-                        newText;
+                    updateUserMessageTextPreservingPhoto(
+                        content,
+                        newText
+                    );
 
                 }
 
@@ -5783,8 +5807,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (content) {
 
-            content.textContent =
-                newText;
+            updateUserMessageTextPreservingPhoto(
+                content,
+                newText
+            );
 
         }
 
