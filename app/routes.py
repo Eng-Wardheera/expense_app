@@ -131770,6 +131770,57 @@ def ai_assistant_share_media(media_id):
         return jsonify({"success": False, "error": "share_failed"}), 500
 
 
+@bp.route("/ai-assistant/message/<message_id>/attachments", methods=["GET"])
+def ai_assistant_message_attachments(message_id):
+    """Return saved attachments for one of the authenticated user's own chat messages."""
+    try:
+        if current_user is None or not getattr(current_user, "is_authenticated", False):
+            return jsonify({"success": False, "error": "authentication_required", "attachments": []}), 401
+
+        from bson import ObjectId
+        try:
+            message_object_id = ObjectId(str(message_id))
+        except Exception:
+            return jsonify({"success": False, "error": "invalid_message_id", "attachments": []}), 400
+
+        owner_id = ai_get_current_user_id()
+        message_doc = mongo.db.ai_chat_messages.find_one({
+            "_id": message_object_id,
+            "$or": [
+                {"user_id_str": str(owner_id)},
+                {"user_id": owner_id},
+                {"user_id": str(owner_id)}
+            ]
+        }, {"attachments": 1})
+        if not message_doc:
+            return jsonify({"success": False, "error": "message_not_found", "attachments": []}), 404
+
+        safe_attachments = []
+        for attachment in (message_doc.get("attachments") or []):
+            if not isinstance(attachment, dict):
+                continue
+            url = attachment.get("cloudinary_url") or attachment.get("url")
+            if not isinstance(url, str) or not url.startswith("https://"):
+                continue
+            safe_attachments.append({
+                "media_id": str(attachment.get("media_id") or ""),
+                "media_kind": str(attachment.get("media_kind") or "user_upload"),
+                "source": str(attachment.get("source") or "upload"),
+                "filename": str(attachment.get("filename") or "attached-image"),
+                "url": url,
+                "cloudinary_url": url,
+                "mime_type": str(attachment.get("mime_type") or "image/png"),
+                "bytes": attachment.get("bytes"),
+                "width": attachment.get("width"),
+                "height": attachment.get("height"),
+                "title": str(attachment.get("title") or attachment.get("filename") or "Attached image")
+            })
+        return jsonify({"success": True, "attachments": safe_attachments}), 200
+    except Exception as exc:
+        print("AI CHAT ATTACHMENT FETCH ERROR:", repr(exc))
+        return jsonify({"success": False, "error": "attachments_load_failed", "attachments": []}), 500
+
+
 @bp.route("/ai-assistant/shared-media", methods=["GET"])
 def ai_assistant_shared_media():
     """Return explicitly shared visual assets to authenticated users."""
@@ -137248,7 +137299,6 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
