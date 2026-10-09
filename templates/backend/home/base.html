@@ -4914,6 +4914,64 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
     /* =========================================================
+       INLINE CHAT ATTACHMENTS
+       Render persisted images inside their original user message.
+       Do not add a separate/latest media panel.
+       ========================================================= */
+    function renderInlineChatAttachments(messageElement, attachments) {
+        if (!messageElement || !Array.isArray(attachments) || !attachments.length) return;
+        const content = messageElement.querySelector(".ai-message-content");
+        if (!content) return;
+
+        attachments.forEach(function (attachment) {
+            if (!attachment || typeof attachment !== "object") return;
+            const src = attachment.cloudinary_url || attachment.url || attachment.secure_url || attachment.src;
+            if (typeof src !== "string" || !/^https:\/\//i.test(src)) return;
+
+            // Deduplicate if the live preview already exists for this attachment.
+            const mediaId = String(attachment.media_id || attachment._id || "");
+            const duplicate = Array.from(content.querySelectorAll("img.ai-user-attachment-preview"))
+                .some(function (img) {
+                    return (mediaId && img.dataset.mediaId === mediaId) || img.dataset.attachmentUrl === src;
+                });
+            if (duplicate) return;
+
+            const image = document.createElement("img");
+            image.className = "ai-user-attachment-preview";
+            image.src = src;
+            image.alt = attachment.title || attachment.filename || "Attached image";
+            image.loading = "lazy";
+            image.decoding = "async";
+            image.dataset.attachmentUrl = src;
+            if (mediaId) image.dataset.mediaId = mediaId;
+            image.style.cssText = "display:block;max-width:min(100%,360px);max-height:320px;object-fit:contain;border-radius:12px;margin-top:8px;";
+            image.onerror = function () {
+                image.style.display = "none";
+                console.warn("Unable to display saved chat attachment image.");
+            };
+            content.appendChild(image);
+        });
+    }
+
+    async function loadSavedAttachmentsIntoMessage(messageId, messageElement) {
+        if (!messageId || !messageElement) return;
+        try {
+            const endpointTemplate = "{{ url_for('main.ai_assistant_message_attachments', message_id='__MESSAGE_ID__') }}";
+            const endpoint = endpointTemplate.replace("__MESSAGE_ID__", encodeURIComponent(String(messageId)));
+            const response = await fetch(endpoint, {
+                method: "GET",
+                credentials: "same-origin",
+                headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" }
+            });
+            if (!response.ok) return;
+            const payload = await response.json();
+            renderInlineChatAttachments(messageElement, payload.attachments || []);
+        } catch (error) {
+            console.warn("Could not load saved message attachments:", error);
+        }
+    }
+
+    /* =========================================================
        LOAD CHAT HISTORY FROM DATABASE
        ========================================================= */
 
@@ -5101,6 +5159,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         pair.id,
                         pair.created_at
                     );
+                    // Show saved upload/camera images inside the original user message only.
+                    const historyUserBubble = Array.from(messages.querySelectorAll(".ai-message.user")).find(function (node) {
+                        return node.dataset.dbId === String(pair.id) || node.dataset.pairId === String(pairId);
+                    });
+                    const historyAttachments = pair.attachments || pair.user_attachments || [];
+                    renderInlineChatAttachments(historyUserBubble, historyAttachments);
+                    // Some existing history APIs omit the attachments field; fetch it securely
+                    // from the owner-checked endpoint so the image still appears in its message.
+                    if (!historyAttachments.length && pair.id && historyUserBubble) {
+                        loadSavedAttachmentsIntoMessage(pair.id, historyUserBubble);
+                    }
 
 
                     /*
@@ -6234,6 +6303,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 preview.className = "ai-user-attachment-preview";
                 preview.src = pendingImageAtSend;
                 preview.alt = "Attached image";
+                preview.dataset.attachmentUrl = pendingImageAtSend;
                 preview.style.cssText = "display:block;max-width:min(100%,360px);max-height:320px;object-fit:contain;border-radius:12px;margin-top:8px;";
                 messageContent.appendChild(preview);
             }
@@ -6431,6 +6501,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
             }
 
+            // Keep the image in this same message and switch from the temporary local
+            // preview to the persisted Cloudinary URL returned by the backend.
+            if (Array.isArray(data.attachments) && data.attachments.length) {
+                const content = userMessage.querySelector(".ai-message-content");
+                const firstAttachment = data.attachments[0] || {};
+                const savedUrl = firstAttachment.cloudinary_url || firstAttachment.url || firstAttachment.secure_url;
+                const existingPreview = content && content.querySelector("img.ai-user-attachment-preview");
+                if (existingPreview && typeof savedUrl === "string" && /^https:\/\//i.test(savedUrl)) {
+                    existingPreview.src = savedUrl;
+                    existingPreview.dataset.attachmentUrl = savedUrl;
+                    if (firstAttachment.media_id) existingPreview.dataset.mediaId = String(firstAttachment.media_id);
+                    existingPreview.alt = firstAttachment.title || firstAttachment.filename || "Attached image";
+                } else {
+                    renderInlineChatAttachments(userMessage, data.attachments);
+                }
+            }
 
             /*
              * IMPORTANT:
