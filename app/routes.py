@@ -131154,6 +131154,82 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
+
+def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
+                                  prompt="", extra=None):
+    """
+    Upload an image to Cloudinary and persist its permanent metadata in MongoDB.
+    Requires CLOUDINARY_URL or CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET.
+    """
+    import os
+    import io
+    import cloudinary
+    import cloudinary.uploader
+
+    cloudinary_url = os.getenv("CLOUDINARY_URL")
+    if cloudinary_url:
+        cloudinary.config(cloudinary_url=cloudinary_url)
+    else:
+        cloudinary.config(
+            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+            api_key=os.getenv("CLOUDINARY_API_KEY"),
+            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+            secure=True
+        )
+
+    if not (os.getenv("CLOUDINARY_URL") or (
+        os.getenv("CLOUDINARY_CLOUD_NAME")
+        and os.getenv("CLOUDINARY_API_KEY")
+        and os.getenv("CLOUDINARY_API_SECRET")
+    )):
+        raise RuntimeError("Cloudinary credentials are not configured.")
+
+    upload_result = cloudinary.uploader.upload(
+        io.BytesIO(raw_bytes),
+        resource_type="image",
+        folder=os.getenv("CLOUDINARY_AI_FOLDER", "maareye/ai-assistant"),
+        format=None,
+        context={"user_id": str(user_id or "anonymous"),
+                 "media_kind": str(media_kind or "image")}
+    )
+
+    now = datetime.now(timezone.utc)
+    record = {
+        "user_id": user_id,
+        "media_kind": str(media_kind or "image"),
+        "prompt": str(prompt or "")[:4000],
+        "cloudinary_public_id": upload_result.get("public_id"),
+        "cloudinary_url": upload_result.get("secure_url") or upload_result.get("url"),
+        "resource_type": upload_result.get("resource_type", "image"),
+        "format": upload_result.get("format"),
+        "mime_type": mime_type or "image/png",
+        "bytes": upload_result.get("bytes"),
+        "width": upload_result.get("width"),
+        "height": upload_result.get("height"),
+        "created_at": now,
+        "metadata": extra or {}
+    }
+    saved = mongo.db.ai_media_assets.insert_one(record)
+    record["_id"] = str(saved.inserted_id)
+    record["created_at"] = now.isoformat()
+    return record
+
+
+def _maareye_ai_data_uri_bytes(data_uri):
+    """Decode a supported image data URI into (bytes, MIME type)."""
+    import base64
+    if not isinstance(data_uri, str) or not data_uri.startswith("data:image/"):
+        raise ValueError("Expected an image data URI.")
+    header, encoded = data_uri.split(",", 1)
+    mime_type = header[5:].split(";", 1)[0].strip().lower()
+    if mime_type not in {"image/png", "image/jpeg", "image/webp", "image/gif"}:
+        raise ValueError("Unsupported image MIME type.")
+    raw = base64.b64decode(encoded, validate=True)
+    if not raw or len(raw) > 15 * 1024 * 1024:
+        raise ValueError("Image exceeds the 15 MB limit.")
+    return raw, mime_type
+
+
 def _maareye_ai_data_uri(raw_bytes, mime_type="image/png"):
     return "data:%s;base64,%s" % (
         mime_type,
@@ -131634,6 +131710,9 @@ def ai_assistant():
         # Optional captured photo attached to the authenticated user's AI message.
         image_data_url = data.get("image_data_url")
         image_part = None
+        image_bytes = None
+        image_mime_type = None
+        uploaded_image_media = None
         if isinstance(image_data_url, str) and image_data_url.startswith("data:image/"):
             try:
                 header, encoded_image = image_data_url.split(",", 1)
@@ -132006,6 +132085,21 @@ def ai_assistant():
                         "Fadlan logout kadib mar kale login samee."
 
                 }), 401
+
+            # Persist any image attached by the user to Cloudinary + MongoDB.
+            if image_bytes:
+                try:
+                    uploaded_image_media = _maareye_ai_cloudinary_store(
+                        image_bytes, image_mime_type, current_user_id,
+                        "user_upload", prompt=message
+                    )
+                except Exception as media_error:
+                    print("MAAREYE AI IMAGE UPLOAD ERROR:", repr(media_error))
+                    return jsonify({
+                        "success": False,
+                        "error": "image_storage_failed",
+                        "answer": "Sawirka lama kaydin karin. Hubi Cloudinary settings-ka kadibna mar kale isku day."
+                    }), 502
 
             # ========================================================
             # OBJECT ID
@@ -135907,12 +136001,19 @@ Do not fabricate database records.
         if image_part is None and is_image_request and not is_chart_request:
             try:
                 visual = _maareye_ai_generate_image(message)
+                visual_bytes, visual_mime = _maareye_ai_data_uri_bytes(visual.get("data"))
+                media_record = _maareye_ai_cloudinary_store(
+                    visual_bytes, visual_mime, current_user_id,
+                    "generated_image", prompt=message
+                )
                 return jsonify({
                     "success": True,
                     "answer": "Waa kan sawirka aad codsatay. Waxaad ka dooran kartaa Save image si aad u kaydsato ama Edit prompt si aad wax uga beddesho codsiga.",
                     "visual": {
                         "data": visual.get("data"),
                         "mime_type": visual.get("mime_type", "image/png"),
+                        "url": media_record.get("cloudinary_url"),
+                        "media_id": media_record.get("_id"),
                         "title": "Maareye AI — Generated Image"
                     },
                     "visual_title": "Maareye AI — Generated Image",
@@ -135933,12 +136034,20 @@ Do not fabricate database records.
         if image_part is None and is_chart_request:
             try:
                 visual = _maareye_ai_generate_chart(message, financial_context)
+                visual_bytes, visual_mime = _maareye_ai_data_uri_bytes(visual.get("data"))
+                media_record = _maareye_ai_cloudinary_store(
+                    visual_bytes, visual_mime, current_user_id,
+                    "generated_chart", prompt=message,
+                    extra={"chart": visual.get("chart") or {}}
+                )
                 return jsonify({
                     "success": True,
                     "answer": "Waa kan jaantuska ku salaysan xogta la heli karo.",
                     "visual": {
                         "data": visual.get("data"),
                         "mime_type": visual.get("mime_type", "image/png"),
+                        "url": media_record.get("cloudinary_url"),
+                        "media_id": media_record.get("_id"),
                         "title": (visual.get("chart") or {}).get("title", "Maareye AI Chart"),
                         "chart": visual.get("chart")
                     },
@@ -136961,6 +137070,9 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
+
 
 
 
