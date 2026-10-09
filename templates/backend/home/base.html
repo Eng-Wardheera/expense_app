@@ -6098,11 +6098,12 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
+        const pendingImageAtSend = window.__aiPendingImageDataUrl || null;
         const text =
-            input.value.trim();
+            input.value.trim() || (pendingImageAtSend ? "Fadlan eeg sawirka aan ku lifaaqay oo ii sharax." : "");
 
 
-        if (!text) {
+        if (!text && !pendingImageAtSend) {
 
             return;
 
@@ -6225,6 +6226,18 @@ document.addEventListener("DOMContentLoaded", function () {
                 pairId
             );
 
+        // Show the selected/captured attachment in the same user message bubble.
+        if (pendingImageAtSend) {
+            const messageContent = userMessage.querySelector(".ai-message-content");
+            if (messageContent && !messageContent.querySelector("img.ai-user-attachment-preview")) {
+                const preview = document.createElement("img");
+                preview.className = "ai-user-attachment-preview";
+                preview.src = pendingImageAtSend;
+                preview.alt = "Attached image";
+                preview.style.cssText = "display:block;max-width:min(100%,360px);max-height:320px;object-fit:contain;border-radius:12px;margin-top:8px;";
+                messageContent.appendChild(preview);
+            }
+        }
 
         input.value =
             "";
@@ -8610,6 +8623,16 @@ document.addEventListener("DOMContentLoaded", function () {
             mediaTools.innerHTML = `
                 <button type="button"
                         class="ai-media-tool"
+                        id="aiAttachButton"
+                        title="Attach an image"
+                        aria-label="Attach an image">
+                    <i data-feather="paperclip"></i>
+                </button>
+
+                <input type="file" id="aiAttachmentInput" accept="image/png,image/jpeg,image/webp" hidden>
+
+                <button type="button"
+                        class="ai-media-tool"
                         id="aiCameraButton"
                         title="Open live camera"
                         aria-label="Open live camera">
@@ -8630,6 +8653,43 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const cameraButton = document.getElementById("aiCameraButton");
         const voiceButton = document.getElementById("aiVoiceButton");
+        const attachButton = document.getElementById("aiAttachButton");
+        const attachmentInput = document.getElementById("aiAttachmentInput");
+
+        if (attachButton && attachmentInput) {
+            attachButton.addEventListener("click", function () {
+                attachmentInput.click();
+            });
+            attachmentInput.addEventListener("change", function () {
+                const file = attachmentInput.files && attachmentInput.files[0];
+                if (!file) return;
+                if (!/^image\/(png|jpeg|webp)$/i.test(file.type)) {
+                    alert("Fadlan dooro sawir PNG, JPG/JPEG ama WEBP ah.");
+                    attachmentInput.value = "";
+                    return;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    alert("Sawirku waa inuu ka yaraadaa 5 MB.");
+                    attachmentInput.value = "";
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function () {
+                    if (typeof reader.result !== "string") return;
+                    window.__aiPendingImageDataUrl = reader.result;
+                    if (input && !input.value.trim()) {
+                        input.value = "Fadlan eeg sawirka aan ku lifaaqay oo ii sharax.";
+                        input.dispatchEvent(new Event("input", { bubbles: true }));
+                    }
+                    if (attachButton) attachButton.title = "Sawir waa la lifaaqay — dir si aad u gudbiso";
+                    if (typeof refreshIcons === "function") refreshIcons();
+                };
+                reader.onerror = function () {
+                    alert("Sawirka lama akhrin karin. Fadlan mar kale dooro.");
+                };
+                reader.readAsDataURL(file);
+            });
+        }
 
         /* =====================================================
            CAMERA MODAL
