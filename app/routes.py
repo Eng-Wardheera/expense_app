@@ -131166,23 +131166,28 @@ def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
     import cloudinary
     import cloudinary.uploader
 
-    cloudinary_url = os.getenv("CLOUDINARY_URL")
+    # Configure Cloudinary from server-side environment variables only.
+    # Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET
+    # in your hosting provider/.env file (never expose the API secret in HTML/JS).
+    cloudinary_url = (os.getenv("CLOUDINARY_URL") or "").strip()
+    cloud_name = (os.getenv("CLOUDINARY_CLOUD_NAME") or "").strip()
+    api_key = (os.getenv("CLOUDINARY_API_KEY") or "").strip()
+    api_secret = (os.getenv("CLOUDINARY_API_SECRET") or "").strip()
+
     if cloudinary_url:
-        cloudinary.config(cloudinary_url=cloudinary_url)
-    else:
+        cloudinary.config(cloudinary_url=cloudinary_url, secure=True)
+    elif cloud_name and api_key and api_secret:
         cloudinary.config(
-            cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-            api_key=os.getenv("CLOUDINARY_API_KEY"),
-            api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+            cloud_name=cloud_name,
+            api_key=api_key,
+            api_secret=api_secret,
             secure=True
         )
-
-    if not (os.getenv("CLOUDINARY_URL") or (
-        os.getenv("CLOUDINARY_CLOUD_NAME")
-        and os.getenv("CLOUDINARY_API_KEY")
-        and os.getenv("CLOUDINARY_API_SECRET")
-    )):
-        raise RuntimeError("Cloudinary credentials are not configured.")
+    else:
+        raise RuntimeError(
+            "Cloudinary credentials missing. Set CLOUDINARY_CLOUD_NAME, "
+            "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the Flask server."
+        )
 
     upload_result = cloudinary.uploader.upload(
         io.BytesIO(raw_bytes),
@@ -137211,6 +137216,7 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
