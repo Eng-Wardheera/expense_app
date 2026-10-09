@@ -6303,7 +6303,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const requestText = addImageLayoutGuidance(text);
             const pendingImageForThisRequest = window.__aiPendingImageDataUrl || null;
+            const pendingImageSource = window.__aiPendingImageSource || "upload";
+            const pendingImageFilename = window.__aiPendingImageFilename || (pendingImageSource === "camera" ? "camera-photo.jpg" : "attached-image");
             window.__aiPendingImageDataUrl = null;
+            window.__aiPendingImageSource = null;
+            window.__aiPendingImageFilename = null;
 
             const response =
                 await fetch(
@@ -6350,7 +6354,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 // Captured image is sent with the caption to the authenticated AI endpoint.
                                 image_data_url:
-                                    pendingImageForThisRequest
+                                    pendingImageForThisRequest,
+
+                                image_filename:
+                                    pendingImageFilename,
+
+                                image_source:
+                                    pendingImageSource
 
                             })
 
@@ -8677,6 +8687,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 reader.onload = function () {
                     if (typeof reader.result !== "string") return;
                     window.__aiPendingImageDataUrl = reader.result;
+                    window.__aiPendingImageSource = "upload";
+                    window.__aiPendingImageFilename = file.name || "attached-image";
                     if (input && !input.value.trim()) {
                         input.value = "Fadlan eeg sawirka aan ku lifaaqay oo ii sharax.";
                         input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -9406,6 +9418,13 @@ if (cameraStream) {
                     return;
                 }
 
+                // sendMessage() already renders the pending image preview.
+                // Avoid adding the same camera photo twice to the bubble.
+                if (content.querySelector("img")) {
+                    message.dataset.aiCameraPhotoAttached = "1";
+                    return;
+                }
+
                 const photo = document.createElement("div");
                 photo.className = "ai-photo-message";
 
@@ -9505,6 +9524,8 @@ if (cameraStream) {
                 closeCamera();
                 // The photo and its caption travel together to the existing AI request.
                 window.__aiPendingImageDataUrl = photo;
+                window.__aiPendingImageSource = "camera";
+                window.__aiPendingImageFilename = "camera-photo.jpg";
                 window.__aiAssistantAddMessage(caption, photo);
             } catch (error) {
                 setFaceMatchStatus(error && error.message ? error.message : "Hubinta wajiga way fashilantay.", "error");
