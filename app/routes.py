@@ -131250,11 +131250,18 @@ def _maareye_ai_save_visual_chat(user_id, prompt, answer, media_record,
         "attachments": [{
             "media_id": str(media_record.get("_id") or ""),
             "media_kind": str(media_kind),
+            "source": "generated",
+            "filename": ((visual or {}).get("title") or str(media_kind).replace("_", " ").title()) + ".png",
             "url": media_record.get("cloudinary_url"),
+            "cloudinary_url": media_record.get("cloudinary_url"),
             "cloudinary_public_id": media_record.get("cloudinary_public_id"),
             "mime_type": media_record.get("mime_type", "image/png"),
+            "bytes": media_record.get("bytes"),
+            "width": media_record.get("width"),
+            "height": media_record.get("height"),
             "title": (visual or {}).get("title") or str(media_kind).replace("_", " ").title(),
-            "metadata": media_record.get("metadata") or {}
+            "metadata": media_record.get("metadata") or {},
+            "chart": (visual or {}).get("chart")
         }],
         "visual": {
             "media_id": str(media_record.get("_id") or ""),
@@ -131888,6 +131895,13 @@ def ai_assistant():
                 "message"
             )
         )
+        # The frontend may add layout hints to `message` for image generation.
+        # Persist the original user wording unchanged in chat history.
+        original_message_value = data.get("original_message")
+        if isinstance(original_message_value, str) and original_message_value.strip():
+            original_message = ai_clean_text(original_message_value)
+        else:
+            original_message = message
 
         # Optional captured photo attached to the authenticated user's AI message.
         image_data_url = data.get("image_data_url")
@@ -136195,11 +136209,11 @@ Do not fabricate database records.
                 visual_bytes, visual_mime = _maareye_ai_data_uri_bytes(visual.get("data"))
                 media_record = _maareye_ai_cloudinary_store(
                     visual_bytes, visual_mime, current_user_id,
-                    "generated_image", prompt=message
+                    "generated_image", prompt=original_message
                 )
                 visual_answer = "Waa kan sawirka aad codsatay. Waxaad ka dooran kartaa Save image si aad u kaydsato ama Edit prompt si aad wax uga beddesho codsiga."
                 visual_message_id = _maareye_ai_save_visual_chat(
-                    current_user_id, message, visual_answer, media_record,
+                    current_user_id, original_message, visual_answer, media_record,
                     "generated_image",
                     visual={"title": "Maareye AI — Generated Image"}
                 )
@@ -136234,7 +136248,7 @@ Do not fabricate database records.
                 visual_bytes, visual_mime = _maareye_ai_data_uri_bytes(visual.get("data"))
                 media_record = _maareye_ai_cloudinary_store(
                     visual_bytes, visual_mime, current_user_id,
-                    "generated_chart", prompt=message,
+                    "generated_chart", prompt=original_message,
                     extra={"chart": visual.get("chart") or {}}
                 )
                 chart_answer = "Waa kan jaantuska ku salaysan xogta la heli karo."
@@ -136243,7 +136257,7 @@ Do not fabricate database records.
                     "chart": visual.get("chart")
                 }
                 visual_message_id = _maareye_ai_save_visual_chat(
-                    current_user_id, message, chart_answer, media_record,
+                    current_user_id, original_message, chart_answer, media_record,
                     "generated_chart", visual=chart_visual
                 )
                 return jsonify({
@@ -136836,10 +136850,10 @@ Do not fabricate database records.
                         ),
 
                     "message":
-                        message,
+                        original_message,
 
                     "user_message":
-                        message,
+                        original_message,
 
                     "answer":
                         answer,
@@ -137307,7 +137321,6 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
