@@ -5164,9 +5164,14 @@ document.addEventListener("DOMContentLoaded", function () {
                         return node.dataset.dbId === String(pair.id) || node.dataset.pairId === String(pairId);
                     });
                     const historyAttachments = pair.attachments || pair.user_attachments || [];
-                    renderInlineChatAttachments(historyUserBubble, historyAttachments);
-                    // Some existing history APIs omit the attachments field; fetch it securely
-                    // from the owner-checked endpoint so the image still appears in its message.
+                    const generatedHistoryAttachments = historyAttachments.filter(function (attachment) {
+                        return attachment && /^generated_(image|chart)$/.test(String(attachment.media_kind || ""));
+                    });
+                    const userUploadAttachments = historyAttachments.filter(function (attachment) {
+                        return !attachment || !/^generated_(image|chart)$/.test(String(attachment.media_kind || ""));
+                    });
+                    renderInlineChatAttachments(historyUserBubble, userUploadAttachments);
+                    // Some existing history APIs omit user attachments; fetch them securely.
                     if (!historyAttachments.length && pair.id && historyUserBubble) {
                         loadSavedAttachmentsIntoMessage(pair.id, historyUserBubble);
                     }
@@ -5193,7 +5198,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
 
 
-                        addMessage(
+                        const historyAssistantBubble = addMessage(
                             assistantText,
                             "assistant",
                             assistantHistoryIndex,
@@ -5202,6 +5207,24 @@ document.addEventListener("DOMContentLoaded", function () {
                             pair.updated_at ||
                             pair.created_at
                         );
+
+                        // Re-render generated images/charts from their saved Cloudinary URL
+                        // inside the assistant reply after history reload.
+                        if (generatedHistoryAttachments.length) {
+                            const generatedAttachment = generatedHistoryAttachments[0];
+                            const generatedUrl = generatedAttachment.cloudinary_url || generatedAttachment.url || generatedAttachment.secure_url;
+                            if (generatedUrl) {
+                                addVisualToMessage(historyAssistantBubble, {
+                                    data: generatedUrl,
+                                    url: generatedUrl,
+                                    media_id: generatedAttachment.media_id || null,
+                                    is_shared: Boolean(generatedAttachment.is_shared),
+                                    mime_type: generatedAttachment.mime_type || "image/png",
+                                    title: generatedAttachment.title || (generatedAttachment.media_kind === "generated_chart" ? "Maareye AI Chart" : "Maareye AI — Generated Image"),
+                                    chart: generatedAttachment.chart || (generatedAttachment.metadata && generatedAttachment.metadata.chart) || (pair.visual && pair.visual.chart) || null
+                                }, userText);
+                            }
+                        }
 
                     }
 
@@ -6428,8 +6451,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         body:
                             JSON.stringify({
 
+                                // Keep the user's original wording separate from
+                                // the extra layout hints used only for visual generation.
                                 message:
                                     requestText,
+
+                                original_message:
+                                    text,
 
                                 history:
                                     conversationHistory,
