@@ -131184,10 +131184,21 @@ def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
             secure=True
         )
     else:
-        raise RuntimeError(
-            "Cloudinary credentials missing. Set CLOUDINARY_CLOUD_NAME, "
-            "CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET on the Flask server."
-        )
+        # Reuse an existing server-side cloudinary.config(...) from the main app.
+        # This keeps credentials out of HTML and avoids overwriting app configuration.
+        existing_config = cloudinary.config()
+        existing_cloud_name = getattr(existing_config, "cloud_name", None)
+        existing_api_key = getattr(existing_config, "api_key", None)
+        existing_api_secret = getattr(existing_config, "api_secret", None)
+        if not (existing_cloud_name and existing_api_key and existing_api_secret):
+            raise RuntimeError(
+                "Cloudinary credentials missing. Set CLOUDINARY_URL or "
+                "CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and "
+                "CLOUDINARY_API_SECRET on the Flask server, or configure "
+                "cloudinary.config(...) once in the server app."
+            )
+        # Preserve the already configured credentials and force HTTPS URLs.
+        cloudinary.config(secure=True)
 
     upload_result = cloudinary.uploader.upload(
         io.BytesIO(raw_bytes),
@@ -131821,6 +131832,10 @@ def ai_assistant():
 
         # Optional captured photo attached to the authenticated user's AI message.
         image_data_url = data.get("image_data_url")
+        image_filename = str(data.get("image_filename") or "attached-image").strip()[:255]
+        image_source = str(data.get("image_source") or "upload").strip().lower()
+        if image_source not in ("upload", "camera"):
+            image_source = "upload"
         image_part = None
         image_bytes = None
         image_mime_type = None
@@ -131835,6 +131850,10 @@ def ai_assistant():
                 if not image_bytes or len(image_bytes) > 5 * 1024 * 1024:
                     raise ValueError("Image exceeds the 5 MB limit")
                 image_part = types.Part.from_bytes(data=image_bytes, mime_type=image_mime_type)
+                if not message:
+                    message = "Sawir ayaan kuu soo diray."
+                if not image_filename or image_filename == "attached-image":
+                    image_filename = "camera-photo.jpg" if image_source == "camera" else "attached-image"
             except Exception:
                 return jsonify({
                     "success": False,
@@ -132203,7 +132222,8 @@ def ai_assistant():
                 try:
                     uploaded_image_media = _maareye_ai_cloudinary_store(
                         image_bytes, image_mime_type, current_user_id,
-                        "user_upload", prompt=message
+                        "user_upload", prompt=message,
+                        extra={"source": image_source, "filename": image_filename}
                     )
                 except Exception as media_error:
                     print("MAAREYE AI IMAGE UPLOAD ERROR:", repr(media_error))
@@ -136772,10 +136792,17 @@ Do not fabricate database records.
                         ([{
                             "media_id": str(uploaded_image_media.get("_id") or ""),
                             "media_kind": uploaded_image_media.get("media_kind", "user_upload"),
+                            "source": image_source,
+                            "filename": image_filename,
                             "url": uploaded_image_media.get("cloudinary_url"),
+                            "cloudinary_url": uploaded_image_media.get("cloudinary_url"),
                             "cloudinary_public_id": uploaded_image_media.get("cloudinary_public_id"),
                             "mime_type": uploaded_image_media.get("mime_type", image_mime_type or "image/png"),
-                            "title": "Uploaded image"
+                            "bytes": uploaded_image_media.get("bytes"),
+                            "width": uploaded_image_media.get("width"),
+                            "height": uploaded_image_media.get("height"),
+                            "created_at": uploaded_image_media.get("created_at"),
+                            "title": "Camera photo" if image_source == "camera" else "Uploaded image"
                         }] if uploaded_image_media else []),
 
                     "model":
@@ -136885,9 +136912,14 @@ Do not fabricate database records.
                 ([{
                     "media_id": str(uploaded_image_media.get("_id") or ""),
                     "media_kind": uploaded_image_media.get("media_kind", "user_upload"),
+                    "source": image_source,
+                    "filename": image_filename,
                     "url": uploaded_image_media.get("cloudinary_url"),
+                    "cloudinary_url": uploaded_image_media.get("cloudinary_url"),
+                    "cloudinary_public_id": uploaded_image_media.get("cloudinary_public_id"),
                     "mime_type": uploaded_image_media.get("mime_type", image_mime_type or "image/png"),
-                    "title": "Uploaded image"
+                    "bytes": uploaded_image_media.get("bytes"),
+                    "title": "Camera photo" if image_source == "camera" else "Uploaded image"
                 }] if uploaded_image_media else [])
 
         }), 200
@@ -137216,6 +137248,7 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
