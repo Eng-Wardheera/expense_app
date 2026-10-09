@@ -5526,8 +5526,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
 
-        input.value =
-            content.textContent;
+        // Keep image alt labels out of the edit field; edit only the caption.
+        input.value = getEditableUserMessageText(content);
 
 
         editingMessageId =
@@ -5598,22 +5598,31 @@ document.addEventListener("DOMContentLoaded", function () {
        EDIT MESSAGE TEXT WITHOUT REMOVING ITS ATTACHED PHOTO
        ========================================================= */
 
+    function getEditableUserMessageText(content) {
+        if (!content) return "";
+        const clone = content.cloneNode(true);
+        clone.querySelectorAll("img, video, audio, canvas, .ai-photo-message, .ai-attachment-preview, .ai-inline-attachment, button, .ai-message-actions, .ai-copy-row")
+            .forEach(function (node) { node.remove(); });
+        return String(clone.textContent || "").trim();
+    }
+
     function updateUserMessageTextPreservingPhoto(content, newText) {
         if (!content) return;
-
-        const photo = content.querySelector(".ai-photo-message");
-        if (!photo) {
-            content.textContent = newText;
-            return;
-        }
-
-        // Keep the exact same photo node and replace only the caption.
-        Array.from(content.childNodes).forEach(function (node) {
-            if (node !== photo) node.remove();
+        // Preserve the exact image/video node, including direct image previews
+        // produced by both file Attach and the camera capture flow.
+        const mediaNodes = Array.from(content.querySelectorAll("img, video, audio, canvas, .ai-photo-message, .ai-attachment-preview, .ai-inline-attachment"));
+        const topMedia = mediaNodes.filter(function (node) {
+            return !mediaNodes.some(function (other) { return other !== node && other.contains(node); });
         });
-
-        content.appendChild(document.createTextNode(String(newText || "")));
+        const keep = new Set(topMedia);
+        Array.from(content.childNodes).forEach(function (node) {
+            if (node.nodeType === Node.ELEMENT_NODE && keep.has(node)) return;
+            if (node.nodeType === Node.ELEMENT_NODE && topMedia.some(function (media) { return node.contains(media); })) return;
+            node.remove();
+        });
+        content.appendChild(document.createTextNode(String(newText || "").trim()));
     }
+
 
 
     /* =========================================================
@@ -5673,13 +5682,26 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             body:
                                 JSON.stringify({
-
-                                    message:
-                                        newText,
-
-                                    timezone:
-                                        USER_TIMEZONE
-
+                                    message: newText,
+                                    timezone: USER_TIMEZONE,
+                                    preserve_attachments: true,
+                                    attachments: (function () {
+                                        const content = message.querySelector(".ai-message-content");
+                                        if (!content) return [];
+                                        return Array.from(content.querySelectorAll("img.ai-user-attachment-preview, .ai-photo-message img, img[data-media-id]"))
+                                            .map(function (img) {
+                                                const url = img.dataset.attachmentUrl || img.currentSrc || img.src || "";
+                                                return {
+                                                    media_id: img.dataset.mediaId || "",
+                                                    url: url,
+                                                    cloudinary_url: url,
+                                                    source: img.dataset.source || (String(img.alt || "").toLowerCase().includes("camera") ? "camera" : "upload"),
+                                                    filename: img.dataset.filename || img.alt || "attached-image",
+                                                    mime_type: img.dataset.mimeType || "image/jpeg"
+                                                };
+                                            })
+                                            .filter(function (item) { return /^https:\/\//i.test(item.url) || /^data:image\//i.test(item.url); });
+                                    })()
                                 })
 
                         }
@@ -9889,119 +9911,90 @@ if (cameraStream) {
         }
 
         function addCopyButtonToMessage(message) {
-            if (!message || message.querySelector(".ai-copy-row")) {
-                return;
+            if (!message) return;
+            const inner = message.querySelector(".ai-message-inner");
+            if (!inner) return;
+
+            let row = inner.querySelector(".ai-copy-row");
+            if (!row) {
+                row = document.createElement("div");
+                row.className = "ai-copy-row";
+                inner.appendChild(row);
             }
 
-            const inner =
-                message.querySelector(".ai-message-inner");
-
-            if (!inner) {
-                return;
-            }
-
-            const row = document.createElement("div");
-            row.className = "ai-copy-row";
-
-            const copyButton = document.createElement("button");
-            copyButton.type = "button";
-            copyButton.className = "ai-copy-button";
-            copyButton.title = "Copy message";
-            copyButton.setAttribute("aria-label", "Copy message");
-            copyButton.innerHTML = `
-                <i data-feather="copy"></i>
-                <span>Copy</span>
-            `;
-
-            copyButton.addEventListener("click", async function (event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                const text = getMessageCopyText(message);
-
-                if (!text) {
-                    return;
-                }
-
-                try {
-                    if (
-                        navigator.clipboard &&
-                        navigator.clipboard.writeText
-                    ) {
-                        await navigator.clipboard.writeText(text);
-                    } else {
-                        const area = document.createElement("textarea");
-                        area.value = text;
-                        area.style.position = "fixed";
-                        area.style.opacity = "0";
-                        document.body.appendChild(area);
-                        area.focus();
-                        area.select();
-                        document.execCommand("copy");
-                        area.remove();
-                    }
-
-                    copyButton.classList.add("copied");
-                    copyButton.innerHTML = `
-                        <i data-feather="check"></i>
-                        <span>Copied</span>
-                    `;
-                    refreshAIFeatherIcons();
-
-                    setTimeout(function () {
-                        if (!copyButton.isConnected) {
-                            return;
-                        }
-
-                        copyButton.classList.remove("copied");
-                        copyButton.innerHTML = `
-                            <i data-feather="copy"></i>
-                            <span>Copy</span>
-                        `;
-                        refreshAIFeatherIcons();
-                    }, 1500);
-                } catch (error) {
-                    console.error("AI Copy Error:", error);
-                }
-            });
-
-            row.appendChild(copyButton);
-
-            const media = getSavableMedia(message);
-            if (media) {
-                const saveButton = document.createElement("button");
-                saveButton.type = "button";
-                saveButton.className = "ai-copy-button ai-save-media-button";
-                saveButton.title = media.isVideo ? "Save media" : "Save image / GIF / sticker";
-                saveButton.setAttribute("aria-label", saveButton.title);
-                saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
-                saveButton.addEventListener("click", async function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    saveButton.disabled = true;
+            let copyButton = row.querySelector(".ai-copy-button:not(.ai-save-media-button)");
+            if (!copyButton) {
+                copyButton = document.createElement("button");
+                copyButton.type = "button";
+                copyButton.className = "ai-copy-button";
+                copyButton.title = "Copy message";
+                copyButton.setAttribute("aria-label", "Copy message");
+                copyButton.innerHTML = '<i data-feather="copy"></i><span>Copy</span>';
+                copyButton.addEventListener("click", async function (event) {
+                    event.preventDefault(); event.stopPropagation();
+                    const text = getMessageCopyText(message);
+                    if (!text) return;
                     try {
-                        await downloadMessageMedia(media);
-                        saveButton.classList.add("copied");
-                        saveButton.innerHTML = '<i data-feather="check"></i><span>Saved</span>';
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            const area = document.createElement("textarea");
+                            area.value = text; area.style.position = "fixed"; area.style.opacity = "0";
+                            document.body.appendChild(area); area.focus(); area.select(); document.execCommand("copy"); area.remove();
+                        }
+                        copyButton.classList.add("copied");
+                        copyButton.innerHTML = '<i data-feather="check"></i><span>Copied</span>';
                         refreshAIFeatherIcons();
                         setTimeout(function () {
-                            if (!saveButton.isConnected) return;
-                            saveButton.classList.remove("copied");
-                            saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
-                            saveButton.disabled = false;
+                            if (!copyButton.isConnected) return;
+                            copyButton.classList.remove("copied");
+                            copyButton.innerHTML = '<i data-feather="copy"></i><span>Copy</span>';
                             refreshAIFeatherIcons();
-                        }, 1800);
-                    } catch (error) {
-                        console.error("Unable to save message media:", error);
-                        saveButton.disabled = false;
-                    }
+                        }, 1500);
+                    } catch (error) { console.error("AI Copy Error:", error); }
                 });
-                row.appendChild(saveButton);
+                row.appendChild(copyButton);
             }
 
-            inner.appendChild(row);
+            // Always re-check media because the message bubble can be created
+            // before the camera/file preview or permanent Cloudinary URL arrives.
+            const media = getSavableMedia(message);
+            let saveButton = row.querySelector(".ai-save-media-button");
+            if (media && !saveButton) {
+                saveButton = document.createElement("button");
+                saveButton.type = "button";
+                saveButton.className = "ai-copy-button ai-save-media-button";
+                row.appendChild(saveButton);
+            }
+            if (!media && saveButton) { saveButton.remove(); saveButton = null; }
+            if (media && saveButton) {
+                saveButton.title = media.isVideo ? "Save media" : "Save image / GIF / sticker";
+                saveButton.setAttribute("aria-label", saveButton.title);
+                if (!saveButton.dataset.aiSaveBound) {
+                    saveButton.dataset.aiSaveBound = "1";
+                    saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
+                    saveButton.addEventListener("click", async function (event) {
+                        event.preventDefault(); event.stopPropagation(); saveButton.disabled = true;
+                        try {
+                            await downloadMessageMedia(getSavableMedia(message) || media);
+                            saveButton.classList.add("copied");
+                            saveButton.innerHTML = '<i data-feather="check"></i><span>Saved</span>';
+                            refreshAIFeatherIcons();
+                            setTimeout(function () {
+                                if (!saveButton.isConnected) return;
+                                saveButton.classList.remove("copied");
+                                saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
+                                saveButton.disabled = false; refreshAIFeatherIcons();
+                            }, 1800);
+                        } catch (error) {
+                            console.error("Unable to save message media:", error); saveButton.disabled = false;
+                        }
+                    });
+                }
+            }
             refreshAIFeatherIcons();
         }
+
 
         function scanMessagesForCopyButtons() {
             messages
