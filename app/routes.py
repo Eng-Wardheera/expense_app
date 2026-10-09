@@ -131154,7 +131154,6 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
-
 def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
                                   prompt="", extra=None):
     """
@@ -136192,6 +136191,22 @@ Do not fabricate database records.
             + context_text
 
         )
+
+        # CAMERA WELLNESS GUIDANCE — dynamic to the authenticated user's own data.
+        # A selfie cannot diagnose a vitamin/mineral deficiency or reliably determine
+        # medical conditions; use cautious, non-diagnostic guidance only.
+        if image_part is not None and image_source == "camera":
+            final_prompt += """
+
+CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
+- First decide whether the attached camera image actually appears to be a person's selfie. If it is not a selfie/person, answer the user's stated request normally and do not infer health details.
+- If it appears to be a selfie and the user has not asked a different clear task, provide general, respectful, non-diagnostic wellness guidance in Somali. Describe only obvious visible image conditions (for example lighting or image quality), not hidden medical facts. Never judge attractiveness, body shape, skin tone, age, or identity.
+- NEVER claim that a vitamin or mineral is missing based on the face/photo. Do not diagnose anemia, disease, deficiency, or any medical condition from an image. Explain briefly that deficiencies need symptoms/history and often blood tests. If relevant, suggest discussing concerns with a qualified clinician and a parent/guardian; do not prescribe supplements, doses, or high-dose vitamins.
+- Give practical low-cost basics first (regular meals, varied foods, hydration, sleep, sun-safety as appropriate) and explain that food sources are preferable unless a clinician advises supplements. Avoid restrictive diets and body-image criticism.
+- COST / AFFORDABILITY MUST BE PERSONALIZED ONLY FROM CURRENT USER DATA ABOVE: use only a clearly available balance/budget value in CURRENT USER FINANCIAL CONTEXT. State its currency only if the context explicitly provides it. Do not assume USD, do not treat savings or historical expense as spendable cash, and do not invent a budget, local prices, or product costs. If there is no reliable current available balance/budget or currency, say the app cannot currently verify what the user can afford and ask for country/currency and a budget before estimating prices.
+- If budget data is available, clearly separate: (1) free/no-cost steps, (2) optional estimated costs only when country/currency and credible price data are provided, and (3) amount remaining after any proposed cost only if the available balance and currency are known. Never pressure the user to buy vitamins or products.
+- Keep the answer supportive and useful. Explain that this is general information, not a diagnosis, and include a next step if the user reports concerning symptoms. If the image is unclear, ask for more context rather than guessing.
+"""
 
         # ============================================================
         # NATIVE VISUAL REQUEST
