@@ -2399,6 +2399,13 @@
 
 </style>
 
+
+<style id="ai-wellness-advice-modal-style">
+.ai-wellness-overlay{position:fixed;inset:0;z-index:100000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(8,15,30,.66);backdrop-filter:blur(5px)}
+.ai-wellness-overlay.active{display:flex}.ai-wellness-card{width:min(680px,100%);max-height:86vh;overflow:auto;background:var(--ai-card-bg,#fff);color:var(--ai-text,#182230);border-radius:18px;padding:20px;box-shadow:0 20px 70px rgba(0,0,0,.28)}
+.ai-wellness-head{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:12px}.ai-wellness-head h3{margin:0;font-size:1.12rem}.ai-wellness-close{border:0;border-radius:10px;padding:8px 12px;cursor:pointer;font-size:1.1rem}.ai-wellness-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;font-size:.96rem}.ai-wellness-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.ai-wellness-links a{display:inline-block;border:1px solid currentColor;border-radius:10px;padding:8px 11px;text-decoration:none;font-size:.9rem}.ai-wellness-disclaimer{margin-top:14px;font-size:.82rem;opacity:.8}
+</style>
+
 </head>
 
 
@@ -6199,6 +6206,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
 
+    // Wellness modal is only a presentation layer; the answer is still saved
+    // in the normal chat thread and is not replaced or hidden.
+    (function initAiWellnessAdviceModal(){
+        const overlay = document.getElementById("aiWellnessAdviceModal");
+        const body = document.getElementById("aiWellnessAdviceBody");
+        const close = document.getElementById("aiWellnessAdviceClose");
+        window.__aiShowWellnessAdviceModal = function(answer){
+            if (!overlay || !body) return;
+            body.textContent = String(answer || "");
+            overlay.classList.add("active");
+            overlay.setAttribute("aria-hidden", "false");
+        };
+        function closeModal(){ if(overlay){ overlay.classList.remove("active"); overlay.setAttribute("aria-hidden", "true"); } }
+        if(close) close.addEventListener("click", closeModal);
+        if(overlay) overlay.addEventListener("click", function(e){ if(e.target === overlay) closeModal(); });
+        document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeModal(); });
+    })();
+
     /* =========================================================
        SEND MESSAGE
        ========================================================= */
@@ -6420,6 +6445,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const pendingImageForThisRequest = window.__aiPendingImageDataUrl || null;
             const pendingImageSource = window.__aiPendingImageSource || "upload";
             const pendingImageFilename = window.__aiPendingImageFilename || (pendingImageSource === "camera" ? "camera-photo.jpg" : "attached-image");
+            const showWellnessAdviceForThisRequest = Boolean(pendingImageForThisRequest && pendingImageSource === "camera");
             window.__aiPendingImageDataUrl = null;
             window.__aiPendingImageSource = null;
             window.__aiPendingImageFilename = null;
@@ -6676,6 +6702,9 @@ document.addEventListener("DOMContentLoaded", function () {
             const visualPayload = getVisualPayload(data);
             if (visualPayload) {
                 addVisualToMessage(assistantMessage, visualPayload, text);
+            }
+            if (showWellnessAdviceForThisRequest && typeof window.__aiShowWellnessAdviceModal === "function") {
+                window.__aiShowWellnessAdviceModal(String(answer));
             }
 
             /*
@@ -10234,6 +10263,20 @@ if (cameraStream) {
 
 </style>
 
+
+
+<div id="aiWellnessAdviceModal" class="ai-wellness-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="aiWellnessAdviceTitle">
+  <div class="ai-wellness-card">
+    <div class="ai-wellness-head"><h3 id="aiWellnessAdviceTitle">Talooyin caafimaad oo guud</h3><button type="button" class="ai-wellness-close" id="aiWellnessAdviceClose" aria-label="Xir">✕</button></div>
+    <div id="aiWellnessAdviceBody" class="ai-wellness-body"></div>
+    <div class="ai-wellness-links">
+      <a href="https://www.nhs.uk/conditions/vitamins-and-minerals/" target="_blank" rel="noopener noreferrer">Fiitamiinnada iyo macdanta (NHS)</a>
+      <a href="https://www.nhs.uk/conditions/vitamin-b12-or-folate-deficiency-anaemia/diagnosis/" target="_blank" rel="noopener noreferrer">Baaritaanka dhiigga (NHS)</a>
+      <a href="https://www.aad.org/public/everyday-care/skin-care-secrets/routine/supplements-for-your-skin" target="_blank" rel="noopener noreferrer">Talo ku saabsan supplements</a>
+    </div>
+    <div class="ai-wellness-disclaimer">Sawir keliya ma xaqiijin karo fiitamiin kaa maqan ama cudur. Ha bilaabin supplements/qiyaaso sare adigoon la tashan waalid/mas'uul iyo xirfadle caafimaad; haddii aad ka welwelsan tahay, dhakhtar ayaa qiimeyn iyo baaritaan kuu samayn kara.</div>
+  </div>
+</div>
 
 </body>
 
