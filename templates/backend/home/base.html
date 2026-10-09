@@ -9562,6 +9562,59 @@ if (cameraStream) {
                 .trim();
         }
 
+        function getSavableMedia(message) {
+            if (!message) return null;
+            const content = message.querySelector(".ai-message-content");
+            if (!content) return null;
+
+            // Save images, GIFs/stickers, and video media embedded in a message.
+            const media = content.querySelector("img[src], video[src], video source[src]");
+            if (!media) return null;
+            const url = media.currentSrc || media.src || media.getAttribute("src");
+            if (!url || url.startsWith("about:")) return null;
+            const isVideo = media.tagName === "VIDEO" || media.tagName === "SOURCE";
+            let ext = "png";
+            const path = (url.split("?")[0].split("#")[0] || "").toLowerCase();
+            if (/\.jpe?g$/.test(path)) ext = "jpg";
+            else if (/\.webp$/.test(path)) ext = "webp";
+            else if (/\.gif$/.test(path)) ext = "gif";
+            else if (/\.svg$/.test(path)) ext = "svg";
+            else if (/\.mp4$/.test(path)) ext = "mp4";
+            else if (/\.webm$/.test(path)) ext = "webm";
+            else if (isVideo) ext = "mp4";
+            else if (/^data:image\/jpeg/i.test(url)) ext = "jpg";
+            else if (/^data:image\/webp/i.test(url)) ext = "webp";
+            else if (/^data:image\/gif/i.test(url)) ext = "gif";
+            return { url, ext, isVideo };
+        }
+
+        async function downloadMessageMedia(media) {
+            const link = document.createElement("a");
+            const filename = "maareye-media-" + new Date().toISOString().replace(/[:.]/g, "-");
+            try {
+                // Blob download works for same-origin and CORS-enabled media.
+                const response = await fetch(media.url, { mode: "cors" });
+                if (!response.ok) throw new Error("Media download failed");
+                const blob = await response.blob();
+                const objectUrl = URL.createObjectURL(blob);
+                link.href = objectUrl;
+                link.download = filename + "." + media.ext;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+            } catch (error) {
+                // Fallback: ask the browser to download the original media URL.
+                link.href = media.url;
+                link.download = filename + "." + media.ext;
+                link.target = "_blank";
+                link.rel = "noopener";
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+            }
+        }
+
         function addCopyButtonToMessage(message) {
             if (!message || message.querySelector(".ai-copy-row")) {
                 return;
@@ -9640,8 +9693,40 @@ if (cameraStream) {
             });
 
             row.appendChild(copyButton);
-            inner.appendChild(row);
 
+            const media = getSavableMedia(message);
+            if (media) {
+                const saveButton = document.createElement("button");
+                saveButton.type = "button";
+                saveButton.className = "ai-copy-button ai-save-media-button";
+                saveButton.title = media.isVideo ? "Save media" : "Save image / GIF / sticker";
+                saveButton.setAttribute("aria-label", saveButton.title);
+                saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
+                saveButton.addEventListener("click", async function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    saveButton.disabled = true;
+                    try {
+                        await downloadMessageMedia(media);
+                        saveButton.classList.add("copied");
+                        saveButton.innerHTML = '<i data-feather="check"></i><span>Saved</span>';
+                        refreshAIFeatherIcons();
+                        setTimeout(function () {
+                            if (!saveButton.isConnected) return;
+                            saveButton.classList.remove("copied");
+                            saveButton.innerHTML = '<i data-feather="download"></i><span>Save</span>';
+                            saveButton.disabled = false;
+                            refreshAIFeatherIcons();
+                        }, 1800);
+                    } catch (error) {
+                        console.error("Unable to save message media:", error);
+                        saveButton.disabled = false;
+                    }
+                });
+                row.appendChild(saveButton);
+            }
+
+            inner.appendChild(row);
             refreshAIFeatherIcons();
         }
 
@@ -9761,6 +9846,9 @@ if (cameraStream) {
 .ai-copy-row {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
     margin-top: 5px;
     padding: 0 2px;
 }
