@@ -9271,12 +9271,26 @@ if (cameraStream) {
             if (!profileResult || !selfieResult) {
                 throw new Error("Waji si cad looma helin labada sawir. Iftiinka hagaaji oo mar kale sawir qaad.");
             }
-            const distance = faceapi.euclideanDistance(profileResult.descriptor, selfieResult.descriptor);
-            // Conservative browser-side similarity threshold; this is a convenience check, not formal identity proof.
-            if (distance > 0.52) {
-                throw new Error("Wajiga camera-ga lama waafajin profile photo-ga. Sawirka lama dirin.");
+            const distance = faceapi.euclideanDistance(
+                profileResult.descriptor,
+                selfieResult.descriptor
+            );
+
+            // Face descriptors vary with lighting, camera quality, pose and profile-photo age.
+            // 0.60 is a commonly used practical threshold, not formal identity verification.
+            const FACE_MATCH_THRESHOLD = 0.60;
+            if (distance > FACE_MATCH_THRESHOLD) {
+                const score = distance.toFixed(3);
+                throw new Error(
+                    "Wajiga si ku filan uma eka profile photo-ga (farqiga: " + score + "). " +
+                    "Iftiinka hagaaji, wajiga si toos ah u eeg camera-ga, kana fogow filter/koofiyad; " +
+                    "haddii profile photo-gu duug yahay, cusboonaysii sawirka profile-ka kadibna mar kale isku day. Sawirka lama dirin."
+                );
             }
-            setFaceMatchStatus("Wajigu wuu la mid yahay profile photo-ga. Sawirka waa la diyaariyey.", "success");
+            setFaceMatchStatus(
+                "Wajiga waa la waafajiyey (farqiga: " + distance.toFixed(3) + "). Sawirka waa la diyaariyey.",
+                "success"
+            );
             return true;
         }
 
