@@ -131207,12 +131207,53 @@ def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
         "width": upload_result.get("width"),
         "height": upload_result.get("height"),
         "created_at": now,
-        "metadata": extra or {}
+        "metadata": extra or {},
+        "is_shared": False
     }
     saved = mongo.db.ai_media_assets.insert_one(record)
     record["_id"] = str(saved.inserted_id)
     record["created_at"] = now.isoformat()
     return record
+
+
+def _maareye_ai_save_visual_chat(user_id, prompt, answer, media_record,
+                                 media_kind, visual=None):
+    """Persist a generated image/chart as a normal AI chat message."""
+    now = datetime.now(timezone.utc)
+    user_id_str = str(user_id) if user_id is not None else None
+    document = {
+        "user_id": user_id,
+        "user_id_str": user_id_str,
+        "message": str(prompt or ""),
+        "user_message": str(prompt or ""),
+        "answer": str(answer or ""),
+        "assistant_message": str(answer or ""),
+        "model": GEMINI_MODEL,
+        "logged_in": bool(user_id),
+        "media_kind": str(media_kind),
+        "attachments": [{
+            "media_id": str(media_record.get("_id") or ""),
+            "media_kind": str(media_kind),
+            "url": media_record.get("cloudinary_url"),
+            "cloudinary_public_id": media_record.get("cloudinary_public_id"),
+            "mime_type": media_record.get("mime_type", "image/png"),
+            "title": (visual or {}).get("title") or str(media_kind).replace("_", " ").title(),
+            "metadata": media_record.get("metadata") or {}
+        }],
+        "visual": {
+            "media_id": str(media_record.get("_id") or ""),
+            "url": media_record.get("cloudinary_url"),
+            "mime_type": media_record.get("mime_type", "image/png"),
+            "media_kind": str(media_kind),
+            "chart": (visual or {}).get("chart")
+        },
+        "created_at": now,
+        "updated_at": now,
+        "created_at_eat": now.isoformat(),
+        "updated_at_eat": now.isoformat()
+    }
+    result = mongo.db.ai_chat_messages.insert_one(document)
+    return str(result.inserted_id)
 
 
 def _maareye_ai_data_uri_bytes(data_uri):
@@ -131680,6 +131721,72 @@ def ai_confirm_financial_action():
             "answer":
                 "Lacag-bixinta lama fulin sababo amni awgood."
         }), 500
+
+
+
+@bp.route("/ai-assistant/media/<media_id>/share", methods=["POST"])
+def ai_assistant_share_media(media_id):
+    """Explicitly share an image with all authenticated AI-chat users."""
+    try:
+        if current_user is None or not getattr(current_user, "is_authenticated", False):
+            return jsonify({"success": False, "error": "authentication_required"}), 401
+
+        from bson import ObjectId
+        try:
+            object_id = ObjectId(str(media_id))
+        except Exception:
+            return jsonify({"success": False, "error": "invalid_media_id"}), 400
+
+        owner_id = ai_get_current_user_id()
+        asset = mongo.db.ai_media_assets.find_one({"_id": object_id})
+        if not asset:
+            return jsonify({"success": False, "error": "media_not_found"}), 404
+        if str(asset.get("user_id")) != str(owner_id):
+            return jsonify({"success": False, "error": "not_media_owner"}), 403
+
+        mongo.db.ai_media_assets.update_one(
+            {"_id": object_id},
+            {"$set": {"is_shared": True, "shared_at": datetime.now(timezone.utc)}}
+        )
+        return jsonify({"success": True, "media_id": str(object_id), "is_shared": True})
+    except Exception as exc:
+        print("AI MEDIA SHARE ERROR:", repr(exc))
+        return jsonify({"success": False, "error": "share_failed"}), 500
+
+
+@bp.route("/ai-assistant/shared-media", methods=["GET"])
+def ai_assistant_shared_media():
+    """Return explicitly shared visual assets to authenticated users."""
+    try:
+        if current_user is None or not getattr(current_user, "is_authenticated", False):
+            return jsonify({"success": False, "error": "authentication_required"}), 401
+
+        limit = min(max(int(request.args.get("limit", 100)), 1), 300)
+        cursor = (
+            mongo.db.ai_media_assets
+            .find({"is_shared": True, "cloudinary_url": {"$type": "string"}})
+            .sort("shared_at", -1)
+            .limit(limit)
+        )
+        items = []
+        for asset in cursor:
+            created_at = asset.get("created_at")
+            shared_at = asset.get("shared_at")
+            items.append({
+                "media_id": str(asset.get("_id")),
+                "url": asset.get("cloudinary_url"),
+                "mime_type": asset.get("mime_type", "image/png"),
+                "media_kind": asset.get("media_kind", "image"),
+                "title": (asset.get("metadata") or {}).get("title")
+                         or str(asset.get("media_kind", "image")).replace("_", " ").title(),
+                "prompt": asset.get("prompt", ""),
+                "created_at": (created_at.isoformat() if hasattr(created_at, "isoformat") else str(created_at or "")),
+                "shared_at": (shared_at.isoformat() if hasattr(shared_at, "isoformat") else str(shared_at or ""))
+            })
+        return jsonify({"success": True, "items": items})
+    except Exception as exc:
+        print("AI SHARED MEDIA LIST ERROR:", repr(exc))
+        return jsonify({"success": False, "error": "shared_media_load_failed"}), 500
 
 
 @bp.route(
@@ -136006,9 +136113,15 @@ Do not fabricate database records.
                     visual_bytes, visual_mime, current_user_id,
                     "generated_image", prompt=message
                 )
+                visual_answer = "Waa kan sawirka aad codsatay. Waxaad ka dooran kartaa Save image si aad u kaydsato ama Edit prompt si aad wax uga beddesho codsiga."
+                visual_message_id = _maareye_ai_save_visual_chat(
+                    current_user_id, message, visual_answer, media_record,
+                    "generated_image",
+                    visual={"title": "Maareye AI — Generated Image"}
+                )
                 return jsonify({
                     "success": True,
-                    "answer": "Waa kan sawirka aad codsatay. Waxaad ka dooran kartaa Save image si aad u kaydsato ama Edit prompt si aad wax uga beddesho codsiga.",
+                    "answer": visual_answer,
                     "visual": {
                         "data": visual.get("data"),
                         "mime_type": visual.get("mime_type", "image/png"),
@@ -136021,7 +136134,7 @@ Do not fabricate database records.
                     "request_scope": request_scope,
                     "person_ledger_intent": bool(person_ledger_intent),
                     "explicit_savings_intent": bool(explicit_savings_intent),
-                    "message_id": None
+                    "message_id": visual_message_id
                 }), 200
             except Exception as visual_error:
                 print("MAAREYE AI IMAGE GENERATION ERROR:", repr(visual_error))
@@ -136040,9 +136153,18 @@ Do not fabricate database records.
                     "generated_chart", prompt=message,
                     extra={"chart": visual.get("chart") or {}}
                 )
+                chart_answer = "Waa kan jaantuska ku salaysan xogta la heli karo."
+                chart_visual = {
+                    "title": (visual.get("chart") or {}).get("title", "Maareye AI Chart"),
+                    "chart": visual.get("chart")
+                }
+                visual_message_id = _maareye_ai_save_visual_chat(
+                    current_user_id, message, chart_answer, media_record,
+                    "generated_chart", visual=chart_visual
+                )
                 return jsonify({
                     "success": True,
-                    "answer": "Waa kan jaantuska ku salaysan xogta la heli karo.",
+                    "answer": chart_answer,
                     "visual": {
                         "data": visual.get("data"),
                         "mime_type": visual.get("mime_type", "image/png"),
@@ -136056,7 +136178,7 @@ Do not fabricate database records.
                     "request_scope": request_scope,
                     "person_ledger_intent": bool(person_ledger_intent),
                     "explicit_savings_intent": bool(explicit_savings_intent),
-                    "message_id": None
+                    "message_id": visual_message_id
                 }), 200
             except ValueError as chart_error:
                 return jsonify({
@@ -136641,6 +136763,16 @@ Do not fabricate database records.
                     "assistant_message":
                         answer,
 
+                    "attachments":
+                        ([{
+                            "media_id": str(uploaded_image_media.get("_id") or ""),
+                            "media_kind": uploaded_image_media.get("media_kind", "user_upload"),
+                            "url": uploaded_image_media.get("cloudinary_url"),
+                            "cloudinary_public_id": uploaded_image_media.get("cloudinary_public_id"),
+                            "mime_type": uploaded_image_media.get("mime_type", image_mime_type or "image/png"),
+                            "title": "Uploaded image"
+                        }] if uploaded_image_media else []),
+
                     "model":
                         GEMINI_MODEL,
 
@@ -136742,7 +136874,16 @@ Do not fabricate database records.
                 ),
 
             "message_id":
-                saved_message_id
+                saved_message_id,
+
+            "attachments":
+                ([{
+                    "media_id": str(uploaded_image_media.get("_id") or ""),
+                    "media_kind": uploaded_image_media.get("media_kind", "user_upload"),
+                    "url": uploaded_image_media.get("cloudinary_url"),
+                    "mime_type": uploaded_image_media.get("mime_type", image_mime_type or "image/png"),
+                    "title": "Uploaded image"
+                }] if uploaded_image_media else [])
 
         }), 200
 
@@ -137070,8 +137211,6 @@ Do not fabricate database records.
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
-
 
 
 
