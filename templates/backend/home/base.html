@@ -3122,6 +3122,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (typeof src !== "string" || !(/^(data:image\/|https?:\/\/)/i.test(src))) return null;
         return {
             data: src,
+            media_id: candidate.media_id || candidate.mediaId ||
+                (Array.isArray(data.attachments) && data.attachments[0]
+                    ? data.attachments[0].media_id : null),
+            is_shared: Boolean(candidate.is_shared || candidate.shared),
             mime_type: candidate.mime_type || candidate.mimeType || "image/png",
             title: candidate.title || candidate.chart?.title || data.visual_title || "AI generated visual",
             chart: candidate.chart || data.chart || null
@@ -3176,6 +3180,55 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
+        const share = document.createElement("button");
+        share.type = "button";
+        share.className = "ai-visual-action";
+        share.innerHTML = payload.is_shared
+            ? '<i data-feather="users"></i><span>Shared with users</span>'
+            : '<i data-feather="users"></i><span>Share with users</span>';
+        if (payload.is_shared) {
+            share.disabled = true;
+            share.setAttribute("aria-label", "Already shared with all users");
+        } else {
+            share.addEventListener("click", async function () {
+                if (!payload.media_id) {
+                    alert("Sawirkan weli server-ka kuma xirna. Fadlan dib u samee ama mar kale kaydi.");
+                    return;
+                }
+                share.disabled = true;
+                share.innerHTML = '<i data-feather="loader"></i><span>Sharing…</span>';
+                refreshIcons();
+                try {
+                    const shareUrl = "{{ url_for('main.ai_assistant_share_media', media_id='__MEDIA_ID__') }}"
+                        .replace("__MEDIA_ID__", encodeURIComponent(String(payload.media_id)));
+                    const response = await fetch(shareUrl, {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "Accept": "application/json",
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({})
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || "Share failed");
+                    }
+                    payload.is_shared = true;
+                    share.innerHTML = '<i data-feather="users"></i><span>Shared with users</span>';
+                    share.disabled = true;
+                    await loadSharedVisuals();
+                } catch (error) {
+                    console.error("Unable to share AI visual:", error);
+                    share.disabled = false;
+                    share.innerHTML = '<i data-feather="users"></i><span>Share with users</span>';
+                    alert("Sawirka lama wadaagin. Hubi inaad gashay account-ka, kadib mar kale isku day.");
+                }
+                refreshIcons();
+            });
+        }
+
         const edit = document.createElement("button");
         edit.type = "button";
         edit.className = "ai-visual-action";
@@ -3192,11 +3245,62 @@ document.addEventListener("DOMContentLoaded", function () {
             input.style.height = Math.min(input.scrollHeight, 110) + "px";
         });
 
-        actions.append(save, edit);
+        actions.append(save, share, edit);
+        if (payload.media_id) card.dataset.mediaId = String(payload.media_id);
+        if (payload.is_shared) card.dataset.isShared = "true";
         card.append(frame, meta, actions);
         content.appendChild(card);
         refreshIcons();
         scrollBottom();
+    }
+
+    async function loadSharedVisuals() {
+        try {
+            const response = await fetch(
+                "{{ url_for('main.ai_assistant_shared_media') }}?limit=100",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "Accept": "application/json",
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                }
+            );
+            if (!response.ok) return;
+            const data = await response.json();
+            if (!data.success || !Array.isArray(data.items)) return;
+
+            data.items.slice().reverse().forEach(function (item) {
+                const mediaId = String(item.media_id || "");
+                if (!mediaId || messages.querySelector('[data-shared-media-id="' + CSS.escape(mediaId) + '"]')) {
+                    return;
+                }
+                const row = addMessage(
+                    "📌 Shared image: " + String(item.title || "Saved visual"),
+                    "assistant",
+                    conversationHistory.length,
+                    "shared-media-" + mediaId,
+                    null,
+                    item.shared_at || item.created_at || new Date().toISOString()
+                );
+                row.dataset.sharedMediaId = mediaId;
+                const payload = {
+                    data: item.url,
+                    media_id: mediaId,
+                    is_shared: true,
+                    mime_type: item.mime_type || "image/png",
+                    title: item.title || "Shared image",
+                    chart: /chart|diagram|graph|jaantus/i.test(String(item.media_kind || ""))
+                        ? { title: item.title || "Chart" } : null
+                };
+                addVisualToMessage(row, payload, item.prompt || "");
+            });
+            refreshDateSeparators();
+            refreshIcons();
+        } catch (error) {
+            console.warn("Unable to load shared visuals:", error);
+        }
     }
 
     /* =========================================================
@@ -6868,7 +6972,9 @@ document.addEventListener("DOMContentLoaded", function () {
      * etc.
      */
 
-    loadChatHistory();
+    loadChatHistory().then(function () {
+        loadSharedVisuals();
+    });
 
 });
 
