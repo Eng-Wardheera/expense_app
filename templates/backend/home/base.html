@@ -9782,7 +9782,15 @@ if (cameraStream) {
         takePhotoButton.addEventListener("click", takePhoto);
         sendPhotoButton.addEventListener("click", sendCapturedPhoto);
 
-        retakePhotoButton.addEventListener("click", function () {
+        retakePhotoButton.addEventListener("click", async function () {
+            /*
+             * RETAKE = restore the same live-camera state used before
+             * the first capture, including face alignment guidance and
+             * the automatic countdown. Keep the active camera stream
+             * when it is still available; reopen it only when necessary.
+             */
+            stopSelfieDetection();
+
             capturedPhoto = null;
             cameraStage.classList.remove("has-photo");
             cameraPreview.removeAttribute("src");
@@ -9791,8 +9799,50 @@ if (cameraStream) {
             sendPhotoButton.style.display = "none";
             retakePhotoButton.style.display = "none";
             stopCameraButton.style.display = "inline-flex";
+            sendPhotoButton.disabled = false;
 
-            if (!cameraStream) {
+            cameraCaption.value = "";
+            setFaceMatchStatus(
+                "Sawirka profile-ka Cloudinary ayaa lala barbar dhigi doonaa ka hor dirista."
+            );
+
+            if (selfieInstruction) {
+                selfieInstruction.textContent = "kaubada isku beg";
+            }
+
+            if (selfieStatus) {
+                selfieStatus.textContent = "Camera live ah — diyaar u ah sawir";
+            }
+
+            selfieLastFaceAt = 0;
+            selfieLastSpoken = "";
+            setSelfieStatus("", null);
+
+            if (!cameraStream || !cameraStream.getVideoTracks().some(function (track) {
+                return track.readyState === "live";
+            })) {
+                openCamera();
+                return;
+            }
+
+            try {
+                if (cameraVideo.srcObject !== cameraStream) {
+                    cameraVideo.srcObject = cameraStream;
+                }
+
+                cameraVideo.style.transform = "scaleX(-1)";
+                await cameraVideo.play().catch(function () {});
+
+                // Resume real-time face detection and voice instructions.
+                if (selfieScanTimer) {
+                    clearTimeout(selfieScanTimer);
+                    selfieScanTimer = null;
+                }
+
+                selfieScanTimer = setTimeout(scanSelfieFace, 250);
+                refreshAIFeatherIcons();
+            } catch (error) {
+                console.warn("Could not resume camera after retake:", error);
                 openCamera();
             }
         });
