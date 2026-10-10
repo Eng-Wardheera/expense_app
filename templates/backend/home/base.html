@@ -8961,7 +8961,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
 
                         <div class="ai-selfie-instruction" id="aiSelfieInstruction">
-                           Gaubada isku beg.
+                            Gaubada isku beg.
                         </div>
 
                         <div class="ai-selfie-status" id="aiSelfieStatus">
@@ -9687,9 +9687,19 @@ if (cameraStream) {
 
         function setFaceMatchStatus(message, state) {
             if (!faceMatchStatus) return;
-            faceMatchStatus.textContent = message;
+            faceMatchStatus.textContent = String(message || "");
+            faceMatchStatus.style.setProperty("display", "block", "important");
+            faceMatchStatus.style.setProperty("visibility", "visible", "important");
+            faceMatchStatus.style.setProperty("opacity", "1", "important");
             if (state) faceMatchStatus.dataset.state = state;
             else delete faceMatchStatus.dataset.state;
+            faceMatchStatus.setAttribute("aria-live", state === "error" ? "assertive" : "polite");
+            if (state === "error") {
+                faceMatchStatus.setAttribute("role", "alert");
+                faceMatchStatus.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            } else {
+                faceMatchStatus.setAttribute("role", "status");
+            }
         }
 
         async function loadFaceModels() {
@@ -9771,7 +9781,21 @@ if (cameraStream) {
                 window.__aiPendingImageFilename = "camera-photo.jpg";
                 window.__aiAssistantAddMessage(caption, photo);
             } catch (error) {
-                setFaceMatchStatus(error && error.message ? error.message : "Hubinta wajiga way fashilantay.", "error");
+                const rejectionMessage = error && error.message
+                    ? error.message
+                    : "Wajiga lama aqoonsan. QOFKII SAXDA AH MA TIDHI — AQOONSIGA WAA LA DIIDAY. Sawirka lama dirin. Mar kale isku day.";
+                setFaceMatchStatus(rejectionMessage, "error");
+                // Explicit visible notification, even if the status area is off-screen.
+                if (typeof window.Swal !== "undefined" && typeof window.Swal.fire === "function") {
+                    window.Swal.fire({
+                        icon: "error",
+                        title: "Aqoonsiga waa la diiday",
+                        text: rejectionMessage,
+                        confirmButtonText: "Mar kale isku day"
+                    });
+                } else {
+                    window.alert(rejectionMessage);
+                }
             } finally {
                 sendPhotoButton.disabled = false;
             }
@@ -10390,11 +10414,21 @@ if (cameraStream) {
 }
 
 
-/* Camera UI: show only the alignment oval, never instruction/status copy. */
+/* Keep the camera guide minimal, but ALWAYS show face-match results. */
 .ai-selfie-instruction,
-.ai-selfie-status,
-#aiFaceMatchStatus {
+.ai-selfie-status {
     display: none !important;
+}
+#aiFaceMatchStatus {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 20 !important;
+    margin-top: 10px !important;
+    min-height: 38px;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
 }
 </style>
 
