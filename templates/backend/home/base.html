@@ -8961,7 +8961,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
 
                         <div class="ai-selfie-instruction" id="aiSelfieInstruction">
-                            Gobada isku beg
+                           Gaubada isku beg.
                         </div>
 
                         <div class="ai-selfie-status" id="aiSelfieStatus">
@@ -8975,7 +8975,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     <div class="ai-camera-controls">
                         <div id="aiFaceMatchStatus" class="ai-face-match-status" role="status" aria-live="polite">
-                            Sawirka profile-ka Cloudinary ayaa lala barbar dhigi doonaa ka hor dirista.
+                            Wajigaaga waxaa lala barbar dhigi doonaa sawirka profile-ka ka hor dirista. Haddii uusan waafaqin, aqoonsiga waa la diidayaa.
                         </div>
                         <textarea
                             id="aiCameraCaption"
@@ -9416,7 +9416,7 @@ if (cameraStream) {
 
             if (selfieInstruction) {
                 selfieInstruction.textContent =
-                    "Gobada isku beg";
+                    "Gaubada isku beg.";
             }
 
             if (selfieStatus) {
@@ -9727,7 +9727,10 @@ if (cameraStream) {
             const profileResult = await faceapi.detectSingleFace(profileImage, options).withFaceLandmarks().withFaceDescriptor();
             const selfieResult = await faceapi.detectSingleFace(selfieImage, options).withFaceLandmarks().withFaceDescriptor();
             if (!profileResult || !selfieResult) {
-                throw new Error("Waji si cad looma helin labada sawir. Iftiinka hagaaji oo mar kale sawir qaad.");
+                throw new Error(
+                    "Wajiga lama aqoonsan. Qofkii saxda ahaa ma tihid ama wajiga si cad looma arkin. " +
+                    "Aqoonsiga waa la diiday, sawirka lama dirin. Iftiinka hagaaji oo mar kale isku day."
+                );
             }
             const distance = faceapi.euclideanDistance(
                 profileResult.descriptor,
@@ -9740,9 +9743,10 @@ if (cameraStream) {
             if (distance > FACE_MATCH_THRESHOLD) {
                 const score = distance.toFixed(3);
                 throw new Error(
-                    "Wajiga si ku filan uma eka profile photo-ga (farqiga: " + score + "). " +
-                    "Iftiinka hagaaji, wajiga si toos ah u eeg camera-ga, kana fogow filter/koofiyad; " +
-                    "haddii profile photo-gu duug yahay, cusboonaysii sawirka profile-ka kadibna mar kale isku day. Sawirka lama dirin."
+                    "QOFKII SAXDA AH MA TIDHI — AQOONSIGA WAA LA DIIDAY. " +
+                    "Wajiga aad soo qaaday kuma eka sawirka profile-ka (farqiga: " + score + "). " +
+                    "Sawirka lama dirin. Haddii aad tahay qofka saxda ah, iftiinka hagaaji, camera-ga si toos ah u eeg, " +
+                    "kana fogow filter ama koofiyad. Haddii sawirka profile-ku duug yahay, cusboonaysii kadibna mar kale isku day."
                 );
             }
             setFaceMatchStatus(
@@ -9807,7 +9811,7 @@ if (cameraStream) {
             );
 
             if (selfieInstruction) {
-                selfieInstruction.textContent = "Gaubada isku beg";
+                selfieInstruction.textContent = "Goobada isku beeg";
             }
 
             if (selfieStatus) {
