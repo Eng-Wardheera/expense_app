@@ -8236,10 +8236,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <style id="aiAssistantMediaAddonStyles">
     .ai-media-tools {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 5px;
         flex: 0 0 auto;
+    }
+
+    .ai-media-menu {
+        position: absolute;
+        z-index: 100010;
+        left: 0;
+        bottom: calc(100% + 9px);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px;
+        border: 1px solid #dbe2ea;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, .18);
+    }
+
+    .ai-media-menu[hidden] { display: none !important; }
+
+    .ai-media-plus {
+        font-size: 22px;
+        font-weight: 600;
     }
 
     .ai-media-tool {
@@ -8671,6 +8694,12 @@ document.addEventListener("DOMContentLoaded", function () {
         height: 12px;
     }
 
+    [data-bs-theme="dark"] .ai-media-menu {
+        background: #111827;
+        border-color: #374151;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .42);
+    }
+
     [data-bs-theme="dark"] .ai-media-tool {
         background: #1e293b;
         border-color: #334155;
@@ -8793,37 +8822,53 @@ document.addEventListener("DOMContentLoaded", function () {
         let mediaTools = inputWrapper.querySelector(".ai-media-tools");
 
         if (!mediaTools) {
-            mediaTools = document.createElement("div");
+                mediaTools = document.createElement("div");
             mediaTools.className = "ai-media-tools";
             mediaTools.innerHTML = `
-                <button type="button"
-                        class="ai-media-tool"
-                        id="aiAttachButton"
-                        title="Attach an image"
-                        aria-label="Attach an image">
-                    <i data-feather="paperclip"></i>
+                <button type="button" class="ai-media-tool ai-media-plus" id="aiMediaPlusButton"
+                        title="Fur qalabka" aria-label="Fur qalabka" aria-expanded="false">
+                    <i data-feather="plus"></i>
                 </button>
-
-                <input type="file" id="aiAttachmentInput" accept="image/png,image/jpeg,image/webp" hidden>
-
-                <button type="button"
-                        class="ai-media-tool"
-                        id="aiCameraButton"
-                        title="Open live camera"
-                        aria-label="Open live camera">
-                    <i data-feather="camera"></i>
-                </button>
-
-                <button type="button"
-                        class="ai-media-tool"
-                        id="aiVoiceButton"
-                        title="Speak to AI"
-                        aria-label="Speak to AI">
-                    <i data-feather="mic"></i>
-                </button>
+                <div class="ai-media-menu" id="aiMediaMenu" hidden>
+                    <button type="button" class="ai-media-tool" id="aiAttachButton"
+                            title="Ku lifaaq sawir" aria-label="Ku lifaaq sawir">
+                        <i data-feather="paperclip"></i>
+                    </button>
+                    <input type="file" id="aiAttachmentInput" accept="image/png,image/jpeg,image/webp" hidden>
+                    <button type="button" class="ai-media-tool" id="aiCameraButton"
+                            title="Fur camera live ah" aria-label="Fur camera live ah">
+                        <i data-feather="camera"></i>
+                    </button>
+                    <button type="button" class="ai-media-tool" id="aiVoiceButton"
+                            title="Cod ku hadal" aria-label="Cod ku hadal">
+                        <i data-feather="mic"></i>
+                    </button>
+                </div>
             `;
 
             inputWrapper.insertBefore(mediaTools, input);
+        }
+
+        const plusButton = document.getElementById("aiMediaPlusButton");
+        const mediaMenu = document.getElementById("aiMediaMenu");
+        if (plusButton && mediaMenu && !plusButton.dataset.bound) {
+            plusButton.dataset.bound = "1";
+            plusButton.addEventListener("click", function (event) {
+                event.stopPropagation();
+                const opening = mediaMenu.hidden;
+                mediaMenu.hidden = !opening;
+                plusButton.setAttribute("aria-expanded", String(opening));
+                plusButton.innerHTML = opening ? '<i data-feather="x"></i>' : '<i data-feather="plus"></i>';
+                refreshAIFeatherIcons();
+            });
+            document.addEventListener("click", function (event) {
+                if (!mediaTools.contains(event.target)) {
+                    mediaMenu.hidden = true;
+                    plusButton.setAttribute("aria-expanded", "false");
+                    plusButton.innerHTML = '<i data-feather="plus"></i>';
+                    refreshAIFeatherIcons();
+                }
+            });
         }
 
         const cameraButton = document.getElementById("aiCameraButton");
@@ -9197,7 +9242,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         if (Date.now() - selfieLastFaceAt > 1500) {
                             speakSelfie(
-                                "Fadlan wajigaaga goobada isku beeg."
+                                "Goobada isku beeg."
                             );
                         }
 
@@ -9214,7 +9259,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             "near"
                         );
                         speakSelfie(
-                            "Wajiga wax yar dhexda u soo geli."
+                            "Goobada isku beeg."
                         );
                         selfieScanTimer = setTimeout(scanSelfieFace, 220);
                         return;
@@ -9248,7 +9293,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 "Browser-kan ma taageero ogaanshaha wajiga. Goobada isku beeg kadib taabo Sawir qaad.",
                 "near"
             );
-            speakSelfie("Browser-kan ma taageero ogaanshaha wajiga. Wajiga goobada geli kadib taabo sawir qaad.", true);
+            speakSelfie("Browser-kan ma taageero ogaanshaha wajiga. Goobada isku beeg kadib taabo Sawir qaad.", true);
         }
 
         function startSelfieCountdown() {
