@@ -8961,7 +8961,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>
 
                         <div class="ai-selfie-instruction" id="aiSelfieInstruction">
-                            Wajigaaga camera-ga geli oo Sawir qaad
+                            Goobada isku beeg
                         </div>
 
                         <div class="ai-selfie-status" id="aiSelfieStatus">
@@ -9059,6 +9059,8 @@ document.addEventListener("DOMContentLoaded", function () {
         let selfieLastSpoken = "";
         let selfieLastFaceAt = 0;
         let selfieDetector = null;
+        let selfieFaceApiReady = false;
+        let selfieFaceApiLoading = null;
 
         function refreshAIFeatherIcons() {
             if (
@@ -9225,75 +9227,69 @@ document.addEventListener("DOMContentLoaded", function () {
                 selfieDetector = await createFaceDetector();
             }
 
-            /*
-             * Modern browsers that expose FaceDetector get true
-             * face alignment. Older browsers use the safe countdown
-             * fallback below rather than pretending face detection exists.
-             */
-            if (selfieDetector) {
-                try {
-                    const faces = await selfieDetector.detect(cameraVideo);
+            try {
+                let faces = [];
 
-                    if (!faces || !faces.length) {
-                        setSelfieStatus(
-                            "Wajigaaga geli goobada",
-                            null
-                        );
-
-                        if (Date.now() - selfieLastFaceAt > 1500) {
-                            speakSelfie(
-                                "Goobada isku beeg."
-                            );
+                if (selfieDetector) {
+                    faces = await selfieDetector.detect(cameraVideo);
+                } else if (window.faceapi) {
+                    // face-api.js fallback supports browsers without native FaceDetector.
+                    if (!selfieFaceApiReady) {
+                        if (!selfieFaceApiLoading) {
+                            selfieFaceApiLoading = faceapi.nets.ssdMobilenetv1
+                                .loadFromUri(FACE_MODEL_URL)
+                                .then(function () { selfieFaceApiReady = true; })
+                                .catch(function (err) {
+                                    selfieFaceApiLoading = null;
+                                    throw err;
+                                });
                         }
-
-                        selfieScanTimer = setTimeout(scanSelfieFace, 220);
-                        return;
+                        await selfieFaceApiLoading;
                     }
-
-                    const aligned = faces.some(faceInsideSelfieOval);
-
-                    if (!aligned) {
-                        selfieLastFaceAt = Date.now();
-                        setSelfieStatus(
-                            "Wajiga wax yar dhexda u soo geli",
-                            "near"
-                        );
-                        speakSelfie(
-                            "Goobada isku beeg."
-                        );
-                        selfieScanTimer = setTimeout(scanSelfieFace, 220);
-                        return;
-                    }
-
-                    selfieLastFaceAt = Date.now();
-                    setSelfieStatus(
-                        "Waa hagaag — ha dhaqaaqin",
-                        "ready"
+                    const detections = await faceapi.detectAllFaces(
+                        cameraVideo,
+                        new faceapi.SsdMobilenetv1Options({ minConfidence: 0.40 })
                     );
-
-                    speakSelfie(
-                        "Waa hagaag. Ha dhaqaaqin. Sawirka waan qaadayaa."
-                    );
-
-                    startSelfieCountdown();
-
+                    faces = (detections || []).map(function (d) {
+                        return { boundingBox: d.box };
+                    });
+                } else {
+                    // No detector library available: keep the camera usable, and
+                    // ask for alignment by voice without displaying UI text.
+                    setSelfieStatus("", "near");
+                    speakSelfie("Goobada isku beeg.");
+                    selfieScanTimer = setTimeout(scanSelfieFace, 900);
                     return;
-                } catch (error) {
-                    console.warn("Face detection error:", error);
                 }
-            }
 
-            /*
-             * Compatibility fallback:
-             * show the same selfie guide and automatically capture after
-             * a short countdown. The user is still instructed to align
-             * the face with the visible oval.
-             */
-            setSelfieStatus(
-                "Browser-kan ma taageero ogaanshaha wajiga. Goobada isku beeg kadib taabo Sawir qaad.",
-                "near"
-            );
-            speakSelfie("Browser-kan ma taageero ogaanshaha wajiga. Goobada isku beeg kadib taabo Sawir qaad.", true);
+                if (!faces || !faces.length) {
+                    setSelfieStatus("", null);
+                    if (Date.now() - selfieLastFaceAt > 1500) {
+                        speakSelfie("Goobada isku beeg.");
+                    }
+                    selfieScanTimer = setTimeout(scanSelfieFace, 300);
+                    return;
+                }
+
+                const aligned = faces.some(faceInsideSelfieOval);
+                if (!aligned) {
+                    selfieLastFaceAt = Date.now();
+                    setSelfieStatus("", "near");
+                    speakSelfie("Goobada isku beeg.");
+                    selfieScanTimer = setTimeout(scanSelfieFace, 300);
+                    return;
+                }
+
+                selfieLastFaceAt = Date.now();
+                setSelfieStatus("", "ready");
+                startSelfieCountdown();
+                return;
+            } catch (error) {
+                console.warn("Face detection error:", error);
+                setSelfieStatus("", "near");
+                speakSelfie("Goobada isku beeg.");
+                selfieScanTimer = setTimeout(scanSelfieFace, 900);
+            }
         }
 
         function startSelfieCountdown() {
@@ -9386,7 +9382,7 @@ if (cameraStream) {
 
             if (selfieInstruction) {
                 selfieInstruction.textContent =
-                    "Wajigaaga camera-ga geli oo Sawir qaad";
+                    "Goobada isku beeg";
             }
 
             if (selfieStatus) {
@@ -9425,8 +9421,7 @@ if (cameraStream) {
                 cameraVideo.style.transform = "scaleX(-1)";
 
                 await cameraVideo.play().catch(function () {});
-                setSelfieStatus("Wajigaaga goobada geli; waan kuu sheegi doonaa marka uu sax noqdo.", null);
-                speakSelfie("Wajigaaga goobada si fiican ugu beeg. Markuu sax noqdo sawirku si toos ah ayuu u dhacayaa.", true);
+                setSelfieStatus("", null);
                 selfieLastFaceAt = 0;
                 selfieScanTimer = setTimeout(scanSelfieFace, 250);
             } catch (error) {
@@ -10306,6 +10301,13 @@ if (cameraStream) {
     }
 }
 
+
+/* Camera UI: show only the alignment oval, never instruction/status copy. */
+.ai-selfie-instruction,
+.ai-selfie-status,
+#aiFaceMatchStatus {
+    display: none !important;
+}
 </style>
 
 
