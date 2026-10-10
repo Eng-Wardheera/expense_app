@@ -9084,23 +9084,45 @@ document.addEventListener("DOMContentLoaded", function () {
         let selfieSpeechTimer = null;
         let selfieLastSpeechText = "";
         let selfieLastSpeechAt = 0;
+
+        /*
+         * Voice guidance is repeated while the detected face is missing
+         * or any part of its bounding box is outside the guide oval.
+         * The visual instruction/status remains hidden by CSS.
+         */
         function speakSelfie(text, force) {
-            if (!text || !("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) return;
+            if (!text || !("speechSynthesis" in window) ||
+                !("SpeechSynthesisUtterance" in window)) return;
+
             const now = Date.now();
-            if (!force && (text === selfieLastSpeechText && now - selfieLastSpeechAt < 4500)) return;
+            const repeatEveryMs = 2200;
+            if (!force && text === selfieLastSpeechText &&
+                now - selfieLastSpeechAt < repeatEveryMs) return;
+
             selfieLastSpeechText = text;
             selfieLastSpeechAt = now;
+
             try {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = "so-SO";
-                utterance.rate = 0.92;
+                utterance.rate = 0.95;
                 utterance.pitch = 1;
                 const voices = window.speechSynthesis.getVoices();
                 const somaliVoice = voices.find(v => /^so/i.test(v.lang));
                 if (somaliVoice) utterance.voice = somaliVoice;
                 window.speechSynthesis.speak(utterance);
-            } catch (e) { console.warn("Selfie voice guidance unavailable", e); }
+            } catch (e) {
+                console.warn("Selfie voice guidance unavailable", e);
+            }
+        }
+
+        function stopSelfieGuidanceSpeech() {
+            if ("speechSynthesis" in window) {
+                try { window.speechSynthesis.cancel(); } catch (e) {}
+            }
+            selfieLastSpeechText = "";
+            selfieLastSpeechAt = 0;
         }
 
         function setSelfieStatus(text, state) {
@@ -9120,6 +9142,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function stopSelfieDetection() {
+            stopSelfieGuidanceSpeech();
             if (selfieFaceTimer) {
                 clearTimeout(selfieFaceTimer);
                 selfieFaceTimer = null;
@@ -9156,40 +9179,50 @@ document.addEventListener("DOMContentLoaded", function () {
             const box = face.boundingBox || face;
             const faceWidth = Number(box.width || 0);
             const faceHeight = Number(box.height || 0);
-            const faceX = Number(box.x || box.left || 0);
-            const faceY = Number(box.y || box.top || 0);
+            const faceX = Number(box.x ?? box.left ?? 0);
+            const faceY = Number(box.y ?? box.top ?? 0);
 
-            if (!faceWidth || !faceHeight) {
-                return false;
-            }
+            if (faceWidth <= 0 || faceHeight <= 0) return false;
 
-            const centerX = faceX + (faceWidth / 2);
-            const centerY = faceY + (faceHeight / 2);
-
-            const vw = cameraVideo.videoWidth;
-            const vh = cameraVideo.videoHeight;
+            const videoW = cameraVideo.videoWidth;
+            const videoH = cameraVideo.videoHeight;
 
             /*
-             * Oval is intentionally generous:
-             * face center must be near the video center and the
-             * face must be large enough to be a useful selfie.
+             * The oval is centered. Require the COMPLETE detected face box
+             * to fit inside its ellipse, rather than checking only its center.
+             * Slight inset gives a safety margin so even a small part outside
+             * the oval triggers the Somali voice instruction.
              */
-            const normalizedX = centerX / vw;
-            const normalizedY = centerY / vh;
-            const normalizedW = faceWidth / vw;
-            const normalizedH = faceHeight / vh;
+            const cx = (faceX + faceWidth / 2) / videoW;
+            const cy = (faceY + faceHeight / 2) / videoH;
+            const rx = (faceWidth / 2) / videoW;
+            const ry = (faceHeight / 2) / videoH;
 
-            const centered =
-                Math.abs(normalizedX - 0.50) <= 0.12 &&
-                Math.abs(normalizedY - 0.50) <= 0.16;
+            const ovalRadiusX = 0.32;
+            const ovalRadiusY = 0.46;
+            const points = [
+                [cx - rx, cy - ry],
+                [cx + rx, cy - ry],
+                [cx - rx, cy + ry],
+                [cx + rx, cy + ry]
+            ];
 
-            const goodSize =
-                normalizedW >= 0.16 &&
-                normalizedW <= 0.72 &&
-                normalizedH >= 0.20 &&
-                normalizedH <= 0.82;
+            const allCornersInside = points.every(function (point) {
+                const dx = (point[0] - 0.5) / ovalRadiusX;
+                const dy = (point[1] - 0.5) / ovalRadiusY;
+                return (dx * dx + dy * dy) <= 0.90;
+            });
 
-            return centered && goodSize;
+            // Reject very small/huge detections that are not a usable selfie.
+            const normalizedW = faceWidth / videoW;
+            const normalizedH = faceHeight / videoH;
+            const usefulSize =
+                normalizedW >= 0.10 &&
+                normalizedW <= 0.64 &&
+                normalizedH >= 0.12 &&
+                normalizedH <= 0.88;
+
+            return allCornersInside && usefulSize;
         }
 
         async function createFaceDetector() {
@@ -9281,6 +9314,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
 
                 selfieLastFaceAt = Date.now();
+                stopSelfieGuidanceSpeech();
                 setSelfieStatus("", "ready");
                 startSelfieCountdown();
                 return;
