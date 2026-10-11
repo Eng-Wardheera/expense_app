@@ -1,0 +1,210 @@
+{% extends 'backend/home/base.html' %}
+
+{% block title %}
+    Yearly Rate 
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="rate-of-years-card shadow-lg rounded overflow-hidden bg-white">
+        
+        <!-- Top Green Header -->
+        <div class="header-main text-center text-white py-3">
+            <h2 class="mb-0 fw-bold">Rate Of Years</h2>
+        </div>
+
+        <!-- Sub-Header Info Bar -->
+        <div class="sub-header d-flex flex-wrap justify-content-between align-items-center text-white px-4 py-2">
+            <div class="badge-start text-dark fw-bold px-3 py-2 rounded">
+                Day: {{ rate.start_day }}, Date: /{{ rate.start_date.strftime('%d/%b/%Y') if rate.start_date else '10/Oct/2021' }}
+            </div>
+            <div class="title-center fw-bold fs-5">
+                {{ rate.title|default("Xisab Wadaredka Guud Sanadka 2021 ~ 2022") }}
+            </div>
+            <div class="badge-end text-white fw-bold px-3 py-2 rounded">
+                Day: {{ rate.end_day }}, Date: {{ rate.end_date.strftime('%d/%b/%Y') if rate.end_date else '10/Oct/2022' }}
+            </div>
+        </div>
+
+        <!-- Table Summary Bar -->
+        <div class="table-responsive">
+            <table class="table table-bordered text-center mb-0 align-middle summary-table">
+                <thead class="table-warning fw-bold">
+                    <tr>
+                        <th>Total Gained</th>
+                        <th>Total Send</th>
+                        <th>Personal Exp</th>
+                        <th>Total Free</th>
+                        <th>Total Transport</th>
+                        <th>Personal Use</th>
+                        <th>Total MB</th>
+                        <th>Total Currence</th>
+                        <th>Total Rest</th>
+                        <th>Date Started</th>
+                        <th>Date Ended</th>
+                        <th>Space B/w</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="fw-bold">
+                        <td class="bg-success text-white">${{ "%.2f"|format(rate.total_gained|default(2577.10)) }}</td>
+                        <td class="bg-danger text-white">${{ "%.2f"|format(rate.total_send|default(2553.75)) }}</td>
+                        <td class="bg-pink text-white">${{ "%.2f"|format(rate.personal_exp|default(1603.50)) }}</td>
+                        <td class="bg-danger text-white">${{ "%.2f"|format(rate.total_free|default(399.25)) }}</td>
+                        <td class="bg-primary text-white">${{ "%.2f"|format(rate.total_transport|default(248.25)) }}</td>
+                        <td class="bg-warning text-dark">${{ "%.2f"|format(rate.personal_use|default(96.75)) }}</td>
+                        <td class="bg-purple text-white">${{ "%.2f"|format(rate.total_mb|default(174.00)) }}</td>
+                        <td class="bg-indigo text-white">${{ "%.2f"|format(rate.total_currence|default(32.00)) }}</td>
+                        <td class="bg-success-subtle text-success">${{ "%.2f"|format(rate.total_rest|default(23.35)) }}</td>
+                        <td class="bg-dark text-white">{{ rate.start_date_str|default("October 10, 2021") }}</td>
+                        <td class="bg-dark text-white">{{ rate.end_date_str|default("October 10, 2022") }}</td>
+                        <td class="bg-danger text-white">{{ rate.space_between|default("1 Year, 0 Months and 0 Days") }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Visual Bar Charts Section -->
+        <div class="charts-visual-container p-4 bg-light d-flex justify-content-around align-items-end flex-wrap gap-3">
+            
+            <!-- Received / Gained -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2"><i class="fas fa-laptop-code text-success fs-4">🌐</i></div>
+                <div class="column-label bg-success text-white py-1 rounded-top fw-bold small">Received</div>
+                <div class="bar-track bg-white border border-success position-relative" style="height: 200px; width: 70px;">
+                    <div class="bar-fill bg-success position-bottom w-100" style="height: 100%;"></div>
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-50 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_gained|default(2577.10)) }}</span>
+                </div>
+            </div>
+
+            <!-- Send -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">💵</div>
+                <div class="column-label bg-danger text-white py-1 rounded-top fw-bold small">Send</div>
+                <div class="bar-track bg-white border border-danger position-relative" style="height: 200px; width: 70px;">
+                    <div class="bar-fill bg-danger position-bottom w-100" style="height: 98%;"></div>
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 top-50 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_send|default(2553.75)) }}</span>
+                </div>
+            </div>
+
+            <!-- Expense / Personal Exp -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">⏱️</div>
+                <div class="column-label bg-pink text-white py-1 rounded-top fw-bold small">Expense</div>
+                <div class="bar-track bg-white border border-pink position-relative" style="height: 200px; width: 70px;">
+                    <div class="bar-fill bg-pink position-bottom w-100" style="height: 65%;"></div>
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-25 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.personal_exp|default(1603.50)) }}</span>
+                </div>
+            </div>
+
+            <!-- Free -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">💰</div>
+                <div class="column-label bg-danger text-white py-1 rounded-top fw-bold small">Free</div>
+                <div class="bar-track bg-white border border-danger position-relative" style="height: 200px; width: 70px;">
+                    <div class="bar-fill bg-danger position-bottom w-100" style="height: 20%;"></div>
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_free|default(399.25)) }}</span>
+                </div>
+            </div>
+
+            <!-- Personal Use -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">🤲</div>
+                <div class="column-label bg-warning text-dark py-1 rounded-top fw-bold small">Personal</div>
+                <div class="bar-track bg-white border border-warning position-relative" style="height: 200px; width: 70px;">
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.personal_use|default(96.75)) }}</span>
+                </div>
+            </div>
+
+            <!-- MB -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">📱</div>
+                <div class="column-label bg-purple text-white py-1 rounded-top fw-bold small">MB</div>
+                <div class="bar-track bg-white border border-purple position-relative" style="height: 200px; width: 70px;">
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_mb|default(174.00)) }}</span>
+                </div>
+            </div>
+
+            <!-- Transport -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">🚗</div>
+                <div class="column-label bg-primary text-white py-1 rounded-top fw-bold small">Transport</div>
+                <div class="bar-track bg-white border border-primary position-relative" style="height: 200px; width: 70px;">
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_transport|default(248.25)) }}</span>
+                </div>
+            </div>
+
+            <!-- Currence -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">💳</div>
+                <div class="column-label bg-secondary text-white py-1 rounded-top fw-bold small">Currence</div>
+                <div class="bar-track bg-white border border-secondary position-relative" style="height: 200px; width: 70px;">
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_currence|default(32.00)) }}</span>
+                </div>
+            </div>
+
+            <!-- My Rest -->
+            <div class="chart-column text-center">
+                <div class="icon-box mb-2">👤</div>
+                <div class="column-label bg-success text-white py-1 rounded-top fw-bold small">My Rest</div>
+                <div class="bar-track bg-white border border-success position-relative" style="height: 200px; width: 70px;">
+                    <span class="badge bg-white text-danger border border-danger position-absolute translate-middle-x start-50 bottom-10 fw-bold px-1 shadow-sm small">${{ "%.2f"|format(rate.total_rest|default(23.35)) }}</span>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- Custom CSS Styling -->
+<style>
+    .header-main {
+        background: linear-gradient(135deg, #00b09b, #96c93d);
+    }
+    .sub-header {
+        background: #111;
+        font-size: 0.95rem;
+    }
+    .badge-start {
+        background: #000;
+        color: #fff !important;
+        border: 1px solid #444;
+    }
+    .badge-end {
+        background: #ff7f00;
+    }
+    .bg-pink {
+        background-color: #ff1493 !important;
+    }
+    .bg-purple {
+        background-color: #9932cc !important;
+    }
+    .bg-indigo {
+        background-color: #4b0082 !important;
+    }
+    .summary-table th, .summary-table td {
+        font-size: 0.85rem;
+        padding: 8px 4px;
+    }
+    .bar-track {
+        border-radius: 4px;
+        overflow: hidden;
+        background: #f8f9fa;
+    }
+    .bar-fill {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        transition: height 0.5s ease-in-out;
+    }
+</style>
+
+<!-- Custom JavaScript (Haddii loo baahdo dhaqdhaqaaq ama animation dheeraad ah) -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        console.log("Rate Of Years Dashboard loaded successfully!");
+        // Halkan waxaad ku dari kartaa interactivity ama Chart.js haddii aad rabto in baararka si dynamic ah u kacaan.
+    });
+</script>
+{% endblock %}
