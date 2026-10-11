@@ -134074,11 +134074,12 @@ def ai_assistant():
             # total_balance. Preserve source fields and do not invent data.
             try:
                 yearly_rates_query = {"user_id": {"$in": user_ids}}
-                yearly_rates_projection = {"user_id": 1}
+                # Fetch complete annual financial records. A restrictive
+                # projection here would hide financial fields such as
+                # total_gained, total_send, cash_rest and total_balance.
                 yearly_rates_documents = list(
                     mongo.db.yearly_rates.find(
-                        yearly_rates_query,
-                        yearly_rates_projection
+                        yearly_rates_query
                     ).sort([
                         ("start_date", -1),
                         ("updated_at", -1),
@@ -134098,7 +134099,7 @@ def ai_assistant():
                         return {
                             str(k): _yearly_rates_json_safe(v)
                             for k, v in value.items()
-                            if str(k) != "user_id"
+                            if str(k) not in {"user_id", "_id"}
                         }
                     if isinstance(value, (list, tuple)):
                         return [_yearly_rates_json_safe(v) for v in value]
@@ -136740,6 +136741,19 @@ Never mix data from another user.
 
 Never invent private user data.
 
+PRIVACY FOR GENERAL FINANCIAL REPORTS:
+- When answering general financial, annual, yearly, account-summary,
+  or overall-report questions, report aggregate figures and relevant
+  financial fields only.
+- Do NOT list or reveal individual people's names from person ledgers,
+  transactions, notes, descriptions, or annual records in a general report.
+- Do NOT print raw database documents or internal identifiers such as
+  user_id or MongoDB _id.
+- Only discuss a specific person's name/details when the authenticated
+  user explicitly asks about that person and the request is within scope.
+- For yearly_rates questions, prioritize year_label/title, dates, status,
+  income, expenses, cash, savings and balance figures, not people's names.
+
 Never reveal another user's:
 
 - profile
@@ -137902,6 +137916,12 @@ Rules:
 - Respect start_date, end_date, start_day, end_day, year_label, title and status.
 - Do not add annual records together unless the user asks for a combined total.
 - Do not invent missing rates, dates, currencies or financial values.
+- For general annual reports, do not mention individual names; present
+  the annual financial figures and calculations only.
+- Do not output raw MongoDB documents, user_id, or _id values.
+- If the user asks for a report across multiple annual records, give
+  record count and the requested aggregate/comparison without listing
+  individual people's names.
 
 # ============================================================
 SAVINGS CONTEXT
