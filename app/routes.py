@@ -132847,6 +132847,12 @@ def ai_is_person_ledger_question(message, financial_context=None):
 #--- AI ASSICANCE
 #===============================
 
+
+
+#================================
+#--- AI ASSICANCE
+#===============================
+
 def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
                                   prompt="", extra=None):
     """
@@ -133917,6 +133923,11 @@ def ai_assistant():
 
         savings_context = []
 
+        # Live yearly financial summaries from MongoDB collection `yearly_rates`.
+        # Loaded per authenticated user and refreshed on every AI request.
+        yearly_rates_context = []
+        yearly_rates_summary = {}
+
         savings_analysis_context = []
 
         savings_summary = {}
@@ -134056,6 +134067,81 @@ def ai_assistant():
             user_ids = unique_user_ids
 
             # ========================================================
+            # LIVE YEARLY RATES — AUTHENTICATED USER ONLY
+            # ========================================================
+            # The collection stores annual financial summaries such as
+            # total_gained, total_send, cash_rest, saving_balance and
+            # total_balance. Preserve source fields and do not invent data.
+            try:
+                yearly_rates_query = {"user_id": {"$in": user_ids}}
+                yearly_rates_projection = {"user_id": 1}
+                yearly_rates_documents = list(
+                    mongo.db.yearly_rates.find(
+                        yearly_rates_query,
+                        yearly_rates_projection
+                    ).sort([
+                        ("start_date", -1),
+                        ("updated_at", -1),
+                        ("created_at", -1),
+                        ("_id", -1)
+                    ]).limit(100)
+                )
+
+                def _yearly_rates_json_safe(value):
+                    if value is None:
+                        return None
+                    if isinstance(value, ObjectId):
+                        return str(value)
+                    if isinstance(value, datetime):
+                        return value.isoformat()
+                    if isinstance(value, dict):
+                        return {
+                            str(k): _yearly_rates_json_safe(v)
+                            for k, v in value.items()
+                            if str(k) != "user_id"
+                        }
+                    if isinstance(value, (list, tuple)):
+                        return [_yearly_rates_json_safe(v) for v in value]
+                    try:
+                        # Handles BSON numeric types and other JSON scalars.
+                        json.dumps(value)
+                        return value
+                    except (TypeError, ValueError):
+                        return str(value)
+
+                for yearly_doc in yearly_rates_documents:
+                    safe_yearly_doc = _yearly_rates_json_safe(yearly_doc)
+                    if isinstance(safe_yearly_doc, dict):
+                        yearly_rates_context.append(safe_yearly_doc)
+
+                yearly_rates_summary = {
+                    "record_count": len(yearly_rates_context),
+                    "source": "LIVE MongoDB yearly_rates",
+                    "authenticated_user_only": True,
+                    "refreshed_for_every_request": True,
+                    "records": yearly_rates_context
+                }
+
+                print(
+                    "MAAREYE AI LIVE YEARLY RATES:",
+                    len(yearly_rates_context),
+                    "records"
+                )
+            except Exception as yearly_rates_error:
+                print(
+                    "MAAREYE AI YEARLY RATES ERROR:",
+                    repr(yearly_rates_error)
+                )
+                # Keep the AI usable if this optional collection is not
+                # deployed in an older environment.
+                yearly_rates_context = []
+                yearly_rates_summary = {
+                    "record_count": 0,
+                    "source": "LIVE MongoDB yearly_rates",
+                    "available": False
+                }
+
+            # ========================================================
             # USER PROFILE
             # ========================================================
 
@@ -134100,6 +134186,12 @@ def ai_assistant():
                     or
                     {}
                 )
+
+                # Make annual financial records available to Maareye AI
+                # alongside the existing live financial context.
+                financial_context = dict(financial_context)
+                financial_context["yearly_rates"] = yearly_rates_context
+                financial_context["yearly_rates_summary"] = yearly_rates_summary
 
             except Exception as financial_error:
 
@@ -137793,6 +137885,25 @@ CURRENT USER FINANCIAL CONTEXT
 {ai_json(financial_context)}
 
 # ============================================================
+YEARLY RATES COLLECTION — ANNUAL FINANCIAL SUMMARIES
+# ============================================================
+
+When the user asks about yearly/annual money summaries, financial
+periods, yearly income or expenses, opening balances, savings balances,
+cash remaining, total balance, or the dates covered by a financial year,
+use financial_context.yearly_rates and financial_context.yearly_rates_summary.
+
+Rules:
+- These records come live from MongoDB collection `yearly_rates`.
+- Only the authenticated user's records are loaded.
+- Treat each record's stored fields as the source of truth.
+- Distinguish total_gained/period_income, total_send/period_expenses,
+  cash_rest, saving_balance, opening_savings_balance and total_balance.
+- Respect start_date, end_date, start_day, end_day, year_label, title and status.
+- Do not add annual records together unless the user asks for a combined total.
+- Do not invent missing rates, dates, currencies or financial values.
+
+# ============================================================
 SAVINGS CONTEXT
 # ============================================================
 
@@ -139029,6 +139140,9 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
+
 
 
 
