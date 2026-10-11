@@ -4,6 +4,7 @@ from collections import defaultdict
 import datetime
 from decimal import Decimal, InvalidOperation
 import enum
+from http.client import HTTPException
 import io
 import json
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -34,7 +35,7 @@ from flask import Response
 import dns.resolver  # Ku dar kor faylkaaga
 from flask import send_file
 
-from app.modal import Account, Category, PersonalTimeline, Saving, SavingTransaction, Transaction, User, UserRole
+from app.modal import Account, Category, PersonalTimeline, Saving, SavingTransaction, Transaction, User, UserRole, YearlyRate
 
 
 bp = Blueprint('main', __name__)
@@ -16633,503 +16634,412 @@ def api_personal_timeline(timeline_id):
 
 
 
+
+
 # ============================================================
-# PERSONAL TIMELINE DURATION UPDATER
+# PERSONAL TIMELINE — FULL DYNAMIC RECORD UPDATER
+# FIX: DUPLICATE DURATION TEXT
+# ACTIVE + ENDED RECORDS
 # ============================================================
 
 def update_personal_timeline_durations():
     """
-    Automatically updates Personal Timeline duration fields.
+    Recalculate and repair Personal Timeline records.
 
-    RULES
-    -----
-
-    1. start_date + end_date
-       -> duration is calculated from start_date to end_date.
-
-    2. start_date + no end_date
-       -> duration is calculated from start_date to TODAY.
-
-    3. end_date < today
-       -> event is ended.
-
-    4. end_date == today
-       -> event is ONGOING.
-       -> end_date becomes NULL.
-       -> status = active.
-       -> duration is calculated from start_date to TODAY.
-
-    5. end_date > today
-       -> event remains active.
-       -> future end date is preserved.
-
-    6. end_date is NULL
-       -> event remains active.
-       -> duration keeps increasing.
-
-    7. MongoDB is updated only when values actually changed.
+    Fixes:
+      - Removes repeated duration strings.
+      - Preserves event names before the duration.
+      - Synchronizes title, display_name, description,
+        event_type_other and import_days_text.
+      - Recalculates duration using actual dates.
+      - Updates active and ended records.
+      - Uses Africa/Mogadishu local date.
+      - Preserves end_date and record identity metadata.
     """
 
-    # ============================================================
-    # IMPORTS
-    # ============================================================
-
-    from datetime import datetime, timezone
+    import re
+    from datetime import datetime, date, timezone
+    from zoneinfo import ZoneInfo
     from dateutil.relativedelta import relativedelta
 
     try:
-
-        # ========================================================
-        # CURRENT TIME
-        # ========================================================
-
         now = datetime.now(timezone.utc)
+        local_tz = ZoneInfo("Africa/Mogadishu")
+        today = now.astimezone(local_tz).date()
 
-        # Current date
-        today = now.date()
+        collection = mongo.db.personal_timeline
 
         modified_count = 0
+        skipped_count = 0
+        error_count = 0
 
-        # ========================================================
-        # GET TIMELINES
-        # ========================================================
+        # --------------------------------------------------------
+        # DATE HELPERS
+        # --------------------------------------------------------
 
-        timelines = mongo.db.personal_timeline.find({
+        def get_day(value):
+            """Convert MongoDB date/datetime or ISO date string to date."""
+
+            if isinstance(value, datetime):
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
+
+                return value.astimezone(local_tz).date()
+
+            if isinstance(value, date):
+                return value
+
+            if isinstance(value, str) and value.strip():
+                raw = value.strip()
+
+                try:
+                    return date.fromisoformat(raw[:10])
+                except (ValueError, TypeError):
+                    try:
+                        parsed = datetime.fromisoformat(
+                            raw.replace("Z", "+00:00")
+                        )
+
+                        if parsed.tzinfo is None:
+                            parsed = parsed.replace(tzinfo=timezone.utc)
+
+                        return parsed.astimezone(local_tz).date()
+
+                    except (ValueError, TypeError):
+                        return None
+
+            return None
+
+        # --------------------------------------------------------
+        # DURATION FORMATTERS
+        # --------------------------------------------------------
+
+        def format_duration(years, months, days):
+            """Human-readable duration for the Duration column."""
+
+            parts = []
+
+            if years:
+                parts.append(
+                    f"{years} {'Year' if years == 1 else 'Years'}"
+                )
+
+            if months:
+                parts.append(
+                    f"{months} {'Month' if months == 1 else 'Months'}"
+                )
+
+            parts.append(
+                f"{days} {'Day' if days == 1 else 'Days'}"
+            )
+
+            return " ".join(parts)
+
+        def format_import_duration(years, months, days):
+            """Standard format used in legacy timeline text."""
+
+            return f"{years} Yrs {months} Mnths {days} Dys"
+
+        # --------------------------------------------------------
+        # DURATION TEXT REPAIR — MAIN FIX
+        # --------------------------------------------------------
+
+        # Matches the FIRST duration unit, whether or not the
+        # complete duration is valid or duplicated.
+        #
+        # Examples:
+        #   2 Yrs 2 Yrs 5 Mnths 13 Dys
+        #   -> calculated duration only
+        #
+        #   Salman Mhmd Comes 0 Yrs 0 Yrs 0 Mnths 5 Dys
+        #   -> Salman Mhmd Comes + calculated duration
+        #
+        #   Samiro 0 Yrs 0 Mnths 9 Dys
+        #   -> Samiro + calculated duration
+
+        duration_token = re.compile(
+            r"\b\d+\s*(?:yrs?|years?|mnths?|months?|dys?|days?)\b",
+            re.IGNORECASE
+        )
+
+        def sync_text(value, new_text):
+            """
+            Preserve text before the first duration token.
+            Replace ALL old/repeated duration content with new_text.
+            """
+
+            if not isinstance(value, str) or not value.strip():
+                return value
+
+            original = value.strip()
+
+            first_match = duration_token.search(original)
+
+            if not first_match:
+                # Do not append duration to unrelated text.
+                return value
+
+            # Everything before the FIRST duration token is the
+            # event name/label. Nothing from the old duration area
+            # is retained.
+            prefix = original[:first_match.start()].strip()
+            prefix = prefix.rstrip(" \t\r\n,;:|-")
+
+            if prefix:
+                return f"{prefix} {new_text}".strip()
+
+            return new_text
+
+        # --------------------------------------------------------
+        # IMPORT DAYS TEXT REPAIR
+        # --------------------------------------------------------
+
+        def sync_import_days_text(value, total_days):
+            """
+            Update a trailing 'N Days' or 'N Dys' value while
+            preserving a meaningful prefix.
+            """
+
+            if not isinstance(value, str) or not value.strip():
+                return value
+
+            original = value.strip()
+
+            match = re.match(
+                r"^(.*?)\s+\d+\s*(?:days?|dys?)\s*$",
+                original,
+                re.IGNORECASE
+            )
+
+            if not match:
+                return value
+
+            prefix = match.group(1).strip()
+            weekdays = {
+                "monday", "tuesday", "wednesday", "thursday",
+                "friday", "saturday", "sunday"
+            }
+
+            if prefix.lower() in weekdays:
+                prefix = ""
+
+            new_text = f"{total_days} Days"
+
+            if prefix:
+                return f"{prefix} {new_text}".strip()
+
+            return new_text
+
+        # --------------------------------------------------------
+        # FETCH RECORDS WITH START DATES
+        # Includes active and ended records.
+        # --------------------------------------------------------
+
+        timelines = collection.find({
             "start_date": {
                 "$exists": True,
                 "$ne": None
             }
         })
 
-        # ========================================================
-        # LOOP THROUGH RECORDS
-        # ========================================================
-
         for timeline in timelines:
-
             try:
+                start_day = get_day(timeline.get("start_date"))
 
-                # ====================================================
-                # START DATE
-                # ====================================================
-
-                start_date = timeline.get("start_date")
-
-                if not start_date:
-                    continue
-
-                # ====================================================
-                # NORMALIZE START DATE
-                # ====================================================
-
-                if isinstance(start_date, datetime):
-
-                    if start_date.tzinfo is None:
-                        start_date = start_date.replace(
-                            tzinfo=timezone.utc
-                        )
-
-                    start_day = (
-                        start_date
-                        .astimezone(timezone.utc)
-                        .date()
-                    )
-
-                else:
-
-                    if not hasattr(start_date, "year"):
-                        continue
-
-                    start_day = start_date
-
-                # ====================================================
-                # END DATE
-                # ====================================================
-
-                raw_end_date = timeline.get("end_date")
-
-                end_date = raw_end_date
-
-                is_ongoing = False
-
-                # ====================================================
-                # END DATE EXISTS
-                # ====================================================
-
-                if end_date:
-
-                    if isinstance(end_date, datetime):
-
-                        if end_date.tzinfo is None:
-                            end_date = end_date.replace(
-                                tzinfo=timezone.utc
-                            )
-
-                        end_day = (
-                            end_date
-                            .astimezone(timezone.utc)
-                            .date()
-                        )
-
-                    else:
-
-                        if not hasattr(end_date, "year"):
-                            continue
-
-                        end_day = end_date
-
-                    # =================================================
-                    # END DATE == TODAY
-                    # =================================================
-                    #
-                    # TODAY = ONGOING
-                    #
-                    # Example:
-                    #
-                    # start_date = 2026-10-01
-                    # end_date   = 2026-10-06
-                    # today      = 2026-10-06
-                    #
-                    # Result:
-                    #
-                    # end_date   = None
-                    # status     = active
-                    # is_ongoing = True
-                    #
-                    # =================================================
-
-                    if end_day == today:
-
-                        end_date = None
-                        end_day = today
-                        is_ongoing = True
-
-                    # =================================================
-                    # FUTURE END DATE
-                    # =================================================
-
-                    elif end_day > today:
-
-                        is_ongoing = False
-
-                    # =================================================
-                    # PAST END DATE
-                    # =================================================
-
-                    else:
-
-                        is_ongoing = False
-
-                # ====================================================
-                # NO END DATE
-                # ====================================================
-
-                else:
-
-                    end_day = today
-                    is_ongoing = True
-
-                # ====================================================
-                # INVALID DATE RANGE
-                # ====================================================
-
-                if end_day < start_day:
-
+                if start_day is None:
+                    skipped_count += 1
                     print(
-                        "[PersonalTimeline] "
-                        f"Invalid date range: "
+                        "[PersonalTimeline] Invalid start_date; skipped: "
                         f"{timeline.get('_id')}"
                     )
-
                     continue
 
-                # ====================================================
-                # TOTAL DAYS
-                # ====================================================
+                raw_end = timeline.get("end_date")
+                end_day = get_day(raw_end)
 
-                total_days = (
-                    end_day - start_day
-                ).days
-
-                # ====================================================
-                # RELATIVE DATE
-                # ====================================================
-
-                delta = relativedelta(
-                    end_day,
-                    start_day
-                )
-
-                years = int(
-                    delta.years or 0
-                )
-
-                months = int(
-                    delta.months or 0
-                )
-
-                days = int(
-                    delta.days or 0
-                )
-
-                # ====================================================
-                # DURATION TEXT
-                # ====================================================
-
-                parts = []
-
-                if years > 0:
-
-                    parts.append(
-                        f"{years} "
-                        f"{'Year' if years == 1 else 'Years'}"
+                if raw_end is not None and end_day is None:
+                    skipped_count += 1
+                    print(
+                        "[PersonalTimeline] Invalid end_date; skipped: "
+                        f"{timeline.get('_id')}"
                     )
+                    continue
 
-                if months > 0:
+                # ------------------------------------------------
+                # DETERMINE ACTIVE / ENDED STATUS
+                # ------------------------------------------------
 
-                    parts.append(
-                        f"{months} "
-                        f"{'Month' if months == 1 else 'Months'}"
-                    )
+                if end_day is None:
+                    # No saved end date means ongoing.
+                    is_ongoing = True
+                    effective_end = today
 
-                # Always show days
-                parts.append(
-                    f"{days} "
-                    f"{'Day' if days == 1 else 'Days'}"
-                )
-
-                duration_text = " ".join(parts)
-
-                # ====================================================
-                # UPDATE DATA
-                # ====================================================
-
-                update_data = {}
-
-                # ====================================================
-                # END DATE NORMALIZATION
-                # ====================================================
-
-                current_end_date = timeline.get("end_date")
-
-                if is_ongoing:
-
-                    # Today's end date must become NULL
-                    if current_end_date is not None:
-
-                        update_data[
-                            "end_date"
-                        ] = None
+                elif end_day <= today:
+                    # Preserve the actual saved end date.
+                    # An event ending today is treated as ended.
+                    is_ongoing = False
+                    effective_end = end_day
 
                 else:
+                    # Future end date: currently ongoing.
+                    is_ongoing = True
+                    effective_end = today
 
-                    # Future or past real end date
-                    if end_date != current_end_date:
-
-                        update_data[
-                            "end_date"
-                        ] = end_date
-
-                # ====================================================
-                # DURATION YEARS
-                # ====================================================
-
-                if timeline.get(
-                    "duration_years",
-                    0
-                ) != years:
-
-                    update_data[
-                        "duration_years"
-                    ] = years
-
-                # ====================================================
-                # DURATION MONTHS
-                # ====================================================
-
-                if timeline.get(
-                    "duration_months",
-                    0
-                ) != months:
-
-                    update_data[
-                        "duration_months"
-                    ] = months
-
-                # ====================================================
-                # DURATION DAYS
-                # ====================================================
-
-                if timeline.get(
-                    "duration_days",
-                    0
-                ) != days:
-
-                    update_data[
-                        "duration_days"
-                    ] = days
-
-                # ====================================================
-                # TOTAL DAYS
-                # ====================================================
-
-                if timeline.get(
-                    "duration_total_days",
-                    0
-                ) != total_days:
-
-                    update_data[
-                        "duration_total_days"
-                    ] = total_days
-
-                # ====================================================
-                # DURATION TEXT
-                # ====================================================
-
-                if timeline.get(
-                    "duration_text",
-                    ""
-                ) != duration_text:
-
-                    update_data[
-                        "duration_text"
-                    ] = duration_text
-
-                # ====================================================
-                # STATUS
-                # ====================================================
-
-                current_status = (
-                    timeline.get("status")
-                    or ""
-                ).lower().strip()
-
-                # ----------------------------------------------------
-                # ONGOING
-                # ----------------------------------------------------
-
-                if is_ongoing:
-
-                    if current_status != "active":
-
-                        update_data[
-                            "status"
-                        ] = "active"
-
-                # ----------------------------------------------------
-                # ENDED / FUTURE
-                # ----------------------------------------------------
-
-                else:
-
-                    if end_day < today:
-
-                        if current_status != "ended":
-
-                            update_data[
-                                "status"
-                            ] = "ended"
-
-                    else:
-
-                        # Future end date
-                        if current_status != "active":
-
-                            update_data[
-                                "status"
-                            ] = "active"
-
-                # ====================================================
-                # IS ONGOING
-                # ====================================================
-
-                current_is_ongoing = bool(
-                    timeline.get(
-                        "is_ongoing",
-                        False
+                if start_day > effective_end:
+                    skipped_count += 1
+                    print(
+                        "[PersonalTimeline] Start date after effective "
+                        f"end date; skipped: {timeline.get('_id')}"
                     )
+                    continue
+
+                # ------------------------------------------------
+                # CALCULATE DURATION FROM REAL DATES
+                # ------------------------------------------------
+
+                delta = relativedelta(effective_end, start_day)
+
+                years = int(delta.years or 0)
+                months = int(delta.months or 0)
+                days = int(delta.days or 0)
+
+                total_days = (effective_end - start_day).days
+
+                duration_text = format_duration(
+                    years,
+                    months,
+                    days
                 )
 
-                if current_is_ongoing != is_ongoing:
+                legacy_duration = format_import_duration(
+                    years,
+                    months,
+                    days
+                )
 
-                    update_data[
-                        "is_ongoing"
-                    ] = is_ongoing
+                # ------------------------------------------------
+                # BASE FIELD UPDATES
+                # ------------------------------------------------
 
-                # ====================================================
-                # UPDATE MONGO
-                # ====================================================
+                update_data = {
+                    "duration_years": years,
+                    "duration_months": months,
+                    "duration_days": days,
+                    "duration_total_days": total_days,
+                    "duration_text": duration_text,
+                    "is_ongoing": is_ongoing,
+                    "status": "active" if is_ongoing else "ended",
+                }
 
-                if update_data:
+                # ------------------------------------------------
+                # REPAIR TEXT FIELDS
+                # ------------------------------------------------
 
-                    update_data[
-                        "updated_at"
-                    ] = now
+                # Include title/display_name because the Event
+                # column may itself contain an appended duration.
+                # parent_title and group IDs are intentionally
+                # untouched to preserve timeline grouping.
+                text_fields = (
+                    "title",
+                    "display_name",
+                    "description",
+                    "event_type_other",
+                )
 
-                    result = (
-                        mongo.db.personal_timeline.update_one(
-                            {
-                                "_id": timeline["_id"]
-                            },
-                            {
-                                "$set": update_data
-                            }
-                        )
+                for field in text_fields:
+                    old_value = timeline.get(field)
+
+                    if not isinstance(old_value, str):
+                        continue
+
+                    if not old_value.strip():
+                        continue
+
+                    new_value = sync_text(
+                        old_value,
+                        legacy_duration
                     )
 
-                    if result.modified_count:
+                    if new_value != old_value:
+                        update_data[field] = new_value
 
-                        modified_count += 1
+                # ------------------------------------------------
+                # REPAIR IMPORT DAYS TEXT
+                # ------------------------------------------------
 
-                        # =================================================
-                        # SAFE STATUS TEXT
-                        # =================================================
+                old_import_days = timeline.get("import_days_text")
 
-                        display_status = (
-                            "active"
-                            if is_ongoing
-                            else "ended"
-                        )
+                if isinstance(old_import_days, str):
+                    new_import_days = sync_import_days_text(
+                        old_import_days,
+                        total_days
+                    )
 
-                        print(
-                            "[PersonalTimeline] "
-                            f"Updated {timeline.get('_id')} "
-                            f"-> {duration_text} "
-                            f"| status={display_status} "
-                            f"| end_date={end_date}"
-                        )
+                    if new_import_days != old_import_days:
+                        update_data["import_days_text"] = new_import_days
+
+                # ------------------------------------------------
+                # UPDATE CHANGED FIELDS ONLY
+                # ------------------------------------------------
+
+                changed = {
+                    key: value
+                    for key, value in update_data.items()
+                    if timeline.get(key) != value
+                }
+
+                if not changed:
+                    continue
+
+                changed["updated_at"] = now
+
+                result = collection.update_one(
+                    {"_id": timeline["_id"]},
+                    {"$set": changed}
+                )
+
+                if result.modified_count:
+                    modified_count += 1
+
+                    # print(
+                    #     "[PersonalTimeline] Updated | "
+                    #     f"title={timeline.get('title', '')} | "
+                    #     f"status={update_data['status']} | "
+                    #     f"duration={duration_text} | "
+                    #     f"legacy={legacy_duration} | "
+                    #     f"total_days={total_days}"
+                    # )
 
             except Exception as item_error:
+                error_count += 1
 
                 print(
-                    "[PersonalTimeline] "
-                    f"Record error "
-                    f"{timeline.get('_id')}: "
-                    f"{item_error}"
+                    "[PersonalTimeline] Record error "
+                    f"{timeline.get('_id')}: {item_error}"
                 )
 
-                continue
+        # --------------------------------------------------------
+        # FINAL REPORT
+        # --------------------------------------------------------
 
-        # ============================================================
-        # FINISHED
-        # ============================================================
-
-        print(
-            "[PersonalTimeline Scheduler] "
-            f"Completed | Modified: {modified_count} | "
-            f"Date: {today}"
-        )
+        # print(
+        #     "[PersonalTimeline] Finished | "
+        #     f"Date={today} | "
+        #     f"Modified={modified_count} | "
+        #     f"Skipped={skipped_count} | "
+        #     f"Errors={error_count}"
+        # )
 
         return modified_count
 
-    except Exception as e:
-
+    except Exception as error:
         print(
-            "[PersonalTimeline Scheduler] "
-            f"FATAL ERROR: {e}"
+            "[PersonalTimeline] Fatal error: "
+            f"{error}"
         )
-
         return 0
+
+
 
 
 
@@ -19611,6 +19521,1779 @@ def delete_all_personal_timeline():
             "main.personal_timeline"
         )
     )
+
+
+
+
+# ============================================================
+# YEARLY RATE: AUTOMATIC HISTORICAL + CURRENT YEAR SYNC
+# Financial year: October 10 -> October 10
+# ============================================================
+
+# ============================================================
+# YEARLY RATE HELPER — FULL VERSION
+# Target user: 6a3fb30b7e3a09592080f815
+# Financial year: October 10 -> October 10
+# Timezone: Africa/Mogadishu
+# ============================================================
+
+import math
+import re
+from datetime import datetime, date, time, timezone, timedelta
+from zoneinfo import ZoneInfo
+
+from bson import ObjectId
+
+# Change this import if your Mongo extension is elsewhere.
+
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+YEARLY_RATE_TZ = ZoneInfo("Africa/Mogadishu")
+
+YEARLY_RATE_START = date(2021, 10, 10)
+
+YEARLY_RATE_USER_ID = "6a3fb30b7e3a09592080f815"
+
+YEARLY_RATE_USER_OBJECT_ID = ObjectId(
+       YEARLY_RATE_USER_ID
+)
+
+
+# Verified previous-year closing breakdown:
+# Total $306 = $300 savings + $6 cash.
+YEARLY_RATE_HISTORY = {
+       "2021 ~ 2022": {
+           "total_gained": 2577.10,
+           "total_send": 2553.75,
+           "personal_exp": 1603.50,
+           "total_free": 399.25,
+           "total_transport": 96.75,
+           "personal_use": 174.00,
+           "total_mb": 248.25,
+           "total_currence": 32.00,
+           "total_rest": 23.35,
+       },
+       "2022 ~ 2023": {
+           "total_gained": 2150.45,
+           "total_send": 2148.20,
+           "personal_exp": 1491.70,
+           "total_free": 266.50,
+           "total_transport": 111.75,
+           "personal_use": 112.75,
+           "total_mb": 157.00,
+           "total_currence": 8.50,
+           "total_rest": 2.25,
+       },
+       "2023 ~ 2024": {
+           "total_gained": 2080.00,
+           "total_send": 2080.00,
+           "personal_exp": 1082.50,
+           "total_free": 548.50,
+           "total_transport": 168.25,
+           "personal_use": 155.75,
+           "total_mb": 123.00,
+           "total_currence": 2.00,
+           "total_rest": 0.00,
+       },
+       "2024 ~ 2025": {
+           "total_gained": 1368.45,
+           "total_send": 1218.45,
+           "personal_exp": 908.00,
+           "total_free": 145.00,
+           "total_transport": 58.50,
+           "personal_use": 73.85,
+           "total_mb": 32.10,
+           "total_currence": 1.00,
+           "total_rest": 150.00,
+       },
+       "2025 ~ 2026": {
+           "total_gained": 759.60,
+           "total_send": 459.60,
+           "personal_exp": 40.00,
+           "total_free": 404.45,
+           "total_transport": 3.10,
+           "personal_use": 5.90,
+           "total_mb": 6.40,
+           "total_currence": 0.00,
+
+           "cash_rest": 0.00,
+           "saving_balance": 300.00,
+           "total_balance": 300.00,
+           "total_rest": 300.00,
+       },
+}
+
+
+# ============================================================
+# 1. BASIC HELPERS
+# ============================================================
+
+def _yr_money(value):
+       """Safely normalize a monetary value to two decimal places."""
+       try:
+           if isinstance(value, str):
+               value = (
+                   value.replace(",", "")
+                   .replace("$", "")
+                   .strip()
+               )
+
+           result = float(value or 0)
+
+           if not math.isfinite(result):
+               return 0.00
+
+           return round(result, 2)
+
+       except (TypeError, ValueError, OverflowError):
+           return 0.00
+
+
+def _yr_now():
+       return datetime.now(timezone.utc)
+
+
+def _yr_normalize_text(value):
+       value = str(value or "").strip().lower()
+       value = value.replace("-", " ")
+       value = value.replace("_", " ")
+       value = value.replace("/", " ")
+
+       return re.sub(r"\s+", " ", value)
+
+
+def _yr_as_date(value):
+       """Convert common Mongo/Python date formats to Mogadishu date."""
+       if value is None or value == "":
+           return None
+
+       if isinstance(value, datetime):
+           if value.tzinfo is None:
+               value = value.replace(tzinfo=timezone.utc)
+
+           return value.astimezone(YEARLY_RATE_TZ).date()
+
+       if isinstance(value, date):
+           return value
+
+       if isinstance(value, str):
+           value = value.strip()
+
+           if not value:
+               return None
+
+           formats = (
+               "%Y-%m-%d",
+               "%d/%m/%Y",
+               "%m/%d/%Y",
+               "%Y/%m/%d",
+               "%d-%m-%Y",
+               "%B %d, %Y",
+           )
+
+           for fmt in formats:
+               try:
+                   return datetime.strptime(value, fmt).date()
+               except ValueError:
+                   pass
+
+           try:
+               parsed = datetime.fromisoformat(
+                   value.replace("Z", "+00:00")
+               )
+
+               if parsed.tzinfo is None:
+                   parsed = parsed.replace(tzinfo=timezone.utc)
+
+               return parsed.astimezone(YEARLY_RATE_TZ).date()
+
+           except (ValueError, TypeError, OverflowError):
+               return None
+
+       return None
+
+
+def _yr_date_datetime(value):
+       """
+       Store financial-year boundary dates at UTC midnight so UTC-based
+       clients do not display October 10 as October 9.
+
+       Financial calculations still use date values and the half-open
+       interval [start, end), so the next October 10 is the boundary,
+       not an extra day of transactions.
+       """
+       value = _yr_as_date(value)
+
+       if value is None:
+           raise ValueError("Invalid financial-year date.")
+
+       return datetime.combine(
+           value,
+           time.min,
+           tzinfo=timezone.utc,
+       )
+
+
+def _yr_financial_start(value):
+       """Financial year starts on October 10."""
+       value = _yr_as_date(value)
+
+       if value is None:
+           return None
+
+       boundary = date(value.year, 10, 10)
+
+       if value >= boundary:
+           return boundary
+
+       return date(value.year - 1, 10, 10)
+
+
+def _yr_next_year(start):
+       start = _yr_financial_start(start)
+
+       if start is None:
+           raise ValueError("Invalid financial-year start.")
+
+       return date(start.year + 1, 10, 10)
+
+
+def _yr_year_label(start):
+       start = _yr_financial_start(start)
+
+       if start is None:
+           raise ValueError("Invalid financial-year start.")
+
+       return f"{start.year} ~ {start.year + 1}"
+
+
+def _yr_user_ids(user_id=None):
+       """
+       Restrict this helper to the configured user only.
+       Accept both ObjectId and string user IDs in MongoDB.
+       """
+       requested = str(user_id or YEARLY_RATE_USER_ID)
+
+       if requested != YEARLY_RATE_USER_ID:
+           raise PermissionError(
+               "Yearly-rate helper is restricted to the configured user."
+           )
+
+       return [
+           YEARLY_RATE_USER_ID,
+           YEARLY_RATE_USER_OBJECT_ID,
+       ]
+
+
+def _yr_is_active_document(document):
+       status = document.get("status")
+
+       if status is False:
+           return False
+
+       status = _yr_normalize_text(status)
+
+       return status not in {
+           "deleted",
+           "cancelled",
+           "canceled",
+           "void",
+           "inactive",
+           "archived",
+       }
+
+
+# ============================================================
+# 2. TRANSACTION CLASSIFICATION
+# ============================================================
+
+def _yr_category_key(transaction):
+       fields = (
+           "category",
+           "item",
+           "description",
+           "note",
+           "title",
+           "name",
+           "account_type",
+           "destination",
+           "source",
+           "transfer_type",
+           "payment_method",
+       )
+
+       return " ".join(
+           _yr_normalize_text(transaction.get(field))
+           for field in fields
+           if transaction.get(field) not in (None, "")
+       )
+
+
+def _yr_transaction_type(transaction):
+       raw = (
+           transaction.get("transaction_type")
+           or transaction.get("transactionType")
+           or transaction.get("type")
+           or transaction.get("flow")
+           or transaction.get("kind")
+           or ""
+       )
+
+       value = _yr_normalize_text(raw).replace(" ", "_")
+
+       income_types = {
+           "income",
+           "in",
+           "gained",
+           "gain",
+           "earning",
+           "earnings",
+           "received",
+           "credit",
+           "revenue",
+           "money_in",
+           "cash_in",
+           "income_received",
+           "money_received",
+       }
+
+       expense_types = {
+           "expense",
+           "expenses",
+           "out",
+           "send",
+           "sent",
+           "spent",
+           "payment",
+           "debit",
+           "money_out",
+           "cash_out",
+           "purchase",
+           "money_sent",
+           "expense_paid",
+       }
+
+       if value in income_types:
+           return "income"
+
+       if value in expense_types:
+           return "expense"
+
+       for key in (
+           "is_income",
+           "income",
+           "is_expense",
+           "expense",
+       ):
+           flag = transaction.get(key)
+
+           if (
+               flag is True
+               or str(flag or "").strip().lower()
+               in {"true", "yes", "1"}
+           ):
+               if key in {"is_income", "income"}:
+                   return "income"
+
+               return "expense"
+
+       return None
+
+
+def _yr_savings_transfer_direction(transaction):
+       """
+       Return:
+           to_savings
+           from_savings
+           transfer
+           None
+       """
+       flag_keys = (
+           "is_savings_transfer",
+           "is_saving_transfer",
+           "savings_transfer",
+           "saving_transfer",
+           "is_transfer",
+       )
+
+       explicit = any(
+           transaction.get(key) is True
+           or str(transaction.get(key) or "").strip().lower()
+           in {"true", "yes", "1"}
+           for key in flag_keys
+       )
+
+       raw_type = _yr_normalize_text(
+           transaction.get("transaction_type")
+           or transaction.get("transactionType")
+           or transaction.get("type")
+           or transaction.get("flow")
+           or transaction.get("transfer_type")
+           or ""
+       )
+
+       combined = (
+           raw_type.replace("_", " ").replace("-", " ")
+           + " "
+           + _yr_category_key(transaction)
+       ).strip()
+
+       to_terms = (
+           "transfer to savings",
+           "transfer to saving",
+           "to savings",
+           "to saving",
+           "saving deposit",
+           "savings deposit",
+           "deposit to savings",
+           "deposit to saving",
+           "add to savings",
+           "add to saving",
+           "lacag kayd",
+           "lacagta kaydka",
+           "u wareejiyay kayd",
+           "u wareejiyay savings",
+           "loo wareejiyay savings",
+           "ku shub kayd",
+           "kayd geli",
+       )
+
+       from_terms = (
+           "transfer from savings",
+           "transfer from saving",
+           "from savings",
+           "from saving",
+           "savings withdrawal",
+           "saving withdrawal",
+           "withdraw from savings",
+           "withdraw from saving",
+           "take from savings",
+           "kala baxay kayd",
+           "kayd kala baxay",
+           "kayd laga saaray",
+           "kayd kasoo baxay",
+       )
+
+       # Generic "deposit"/"withdrawal" is a savings transfer only when
+       # the same transaction explicitly mentions a savings account/kayd.
+       savings_context = any(
+           term in combined
+           for term in ("savings", "saving", "kayd", "kaydka")
+       )
+       if savings_context and any(
+           term in combined
+           for term in ("deposit", "deposited", "deposite", "dhig", "ku shub")
+       ):
+           return "to_savings"
+
+       if savings_context and any(
+           term in combined
+           for term in ("withdrawal", "withdraw", "withdrawn", "bax", "kala baxay")
+       ):
+           return "from_savings"
+
+       if any(term in combined for term in to_terms):
+           return "to_savings"
+
+       if any(term in combined for term in from_terms):
+           return "from_savings"
+
+       transfer_types = {
+           "saving",
+           "savings",
+           "saving transfer",
+           "savings transfer",
+           "transfer",
+           "transfer to saving",
+           "transfer to savings",
+           "transfer from saving",
+           "transfer from savings",
+           "saving deposit",
+           "savings deposit",
+           "saving withdrawal",
+           "savings withdrawal",
+       }
+
+       normalized_type = raw_type.replace("_", " ").replace("-", " ")
+
+       if normalized_type in transfer_types or explicit:
+           return "transfer"
+
+       return None
+
+
+def _yr_is_savings_transfer(transaction):
+       return (
+           _yr_savings_transfer_direction(transaction) is not None
+       )
+
+
+def _yr_expense_bucket(transaction):
+       text = _yr_category_key(transaction)
+
+       rules = (
+           (
+               "total_transport",
+               (
+                   "transport",
+                   "gaadiid",
+                   "taxi",
+                   "bus",
+                   "fuel",
+                   "shidaal",
+                   "safar",
+                   "fare",
+               ),
+           ),
+           (
+               "total_mb",
+               (
+                   "internet",
+                   "data bundle",
+                   "mobile data",
+                   "total mb",
+                   "xirmo internet",
+                   "airtime",
+               ),
+           ),
+           (
+               "total_currence",
+               (
+                   "currency",
+                   "currence",
+                   "exchange",
+                   "sarif",
+                   "exchange rate",
+               ),
+           ),
+           (
+               "total_free",
+               (
+                   "free",
+                   "gift",
+                   "hadiyad",
+                   "donation",
+                   "charity",
+               ),
+           ),
+           (
+               "personal_use",
+               (
+                   "personal use",
+                   "isticmaal shaqsi",
+                   "personal usage",
+               ),
+           ),
+           (
+               "personal_exp",
+               (
+                   "personal expense",
+                   "personal exp",
+                   "shaqsi",
+                   "personal",
+               ),
+           ),
+       )
+
+       for bucket, keywords in rules:
+           if any(keyword in text for keyword in keywords):
+               return bucket
+
+       return None
+
+
+# ============================================================
+# 3. LOAD USER TRANSACTIONS
+# ============================================================
+
+def _yr_get_transactions(user_id=YEARLY_RATE_USER_ID):
+       user_ids = _yr_user_ids(user_id)
+
+       cursor = mongo.db.transactions.find({
+           "user_id": {"$in": user_ids}
+       })
+
+       result = []
+
+       for raw_document in cursor:
+           transaction = dict(raw_document)
+
+           if not _yr_is_active_document(transaction):
+               continue
+
+           tx_date = _yr_as_date(transaction.get("date"))
+
+           if tx_date is None:
+               tx_date = _yr_as_date(
+                   transaction.get("transaction_date")
+               )
+
+           if tx_date is None:
+               tx_date = _yr_as_date(
+                   transaction.get("created_at")
+               )
+
+           if tx_date is None:
+               continue
+
+           amount = transaction.get(
+               "amount",
+               transaction.get(
+                   "value",
+                   transaction.get("total", 0),
+               ),
+           )
+
+           transaction["_yr_date"] = tx_date
+           transaction["_yr_amount"] = abs(_yr_money(amount))
+           transaction["_yr_type"] = _yr_transaction_type(
+               transaction
+           )
+
+           direction = _yr_savings_transfer_direction(
+               transaction
+           )
+
+           transaction["_yr_transfer_direction"] = direction
+           transaction["_yr_is_savings_transfer"] = (
+               direction is not None
+           )
+
+           result.append(transaction)
+
+       return result
+
+
+# ============================================================
+# 4. READ SAVINGS BALANCE
+# ============================================================
+
+def _yr_get_savings_balance(user_id=YEARLY_RATE_USER_ID):
+       """
+       Read the current savings balance.
+
+       Important:
+       This assumes each savings document's current_balance,
+       balance, or amount field represents its CURRENT balance.
+       If amount represents each historical deposit, adapt this
+       function to your actual savings schema.
+       """
+       user_ids = _yr_user_ids(user_id)
+
+       cursor = mongo.db.savings.find({
+           "user_id": {"$in": user_ids}
+       })
+
+       total = 0.00
+
+       for document in cursor:
+           if not _yr_is_active_document(document):
+               continue
+
+           if document.get("current_balance") is not None:
+               balance = document.get("current_balance")
+
+           elif document.get("balance") is not None:
+               balance = document.get("balance")
+
+           else:
+               balance = document.get("amount", 0)
+
+           total += _yr_money(balance)
+
+       return _yr_money(total)
+
+
+# ============================================================
+# 5. CALCULATE TRANSACTIONS FOR A YEAR
+# ============================================================
+
+def _yr_calculate_period(transactions, start, end):
+       """
+       Calculate transactions in [start, end).
+
+       Opening balances are not income.
+       Savings transfers are not income or expenses.
+       """
+       start = _yr_as_date(start)
+       end = _yr_as_date(end)
+
+       if start is None or end is None or end <= start:
+           raise ValueError("Invalid financial-year period.")
+
+       totals = {
+           "total_gained": 0.00,
+           "total_send": 0.00,
+
+           "personal_exp": 0.00,
+           "total_free": 0.00,
+           "total_transport": 0.00,
+           "personal_use": 0.00,
+           "total_mb": 0.00,
+           "total_currence": 0.00,
+
+           "total_savings_transfers": 0.00,
+           "transfers_to_savings": 0.00,
+           "transfers_from_savings": 0.00,
+           "transfers_unknown_direction": 0.00,
+
+           "unclassified_transactions": 0.00,
+           "unclassified_transaction_count": 0,
+       }
+
+       expense_fields = {
+           "personal_exp",
+           "total_free",
+           "total_transport",
+           "personal_use",
+           "total_mb",
+           "total_currence",
+       }
+
+       for transaction in transactions:
+           tx_date = transaction.get("_yr_date")
+
+           if tx_date is None:
+               continue
+
+           if not (start <= tx_date < end):
+               continue
+
+           amount = abs(
+               _yr_money(transaction.get("_yr_amount"))
+           )
+
+           direction = transaction.get(
+               "_yr_transfer_direction"
+           )
+
+           if direction:
+               totals["total_savings_transfers"] += amount
+
+               if direction == "to_savings":
+                   totals["transfers_to_savings"] += amount
+
+               elif direction == "from_savings":
+                   totals["transfers_from_savings"] += amount
+
+               else:
+                   totals["transfers_unknown_direction"] += amount
+
+               continue
+
+           tx_type = (
+               transaction.get("_yr_type")
+               or _yr_transaction_type(transaction)
+           )
+
+           if tx_type == "income":
+               totals["total_gained"] += amount
+
+           elif tx_type == "expense":
+               totals["total_send"] += amount
+
+               bucket = _yr_expense_bucket(transaction)
+
+               if bucket in expense_fields:
+                   totals[bucket] += amount
+
+           else:
+               totals["unclassified_transactions"] += amount
+               totals["unclassified_transaction_count"] += 1
+
+       for key, value in list(totals.items()):
+           if key != "unclassified_transaction_count":
+               totals[key] = _yr_money(value)
+
+       totals["total_rest"] = _yr_money(
+           totals["total_gained"] - totals["total_send"]
+       )
+
+       return totals
+
+
+# ============================================================
+# 6. NORMALIZE SAVED TOTALS
+# ============================================================
+
+def _yr_normalize_totals(source):
+       source = source or {}
+
+       fields = (
+           "total_gained",
+           "total_send",
+           "personal_exp",
+           "total_free",
+           "total_transport",
+           "personal_use",
+           "total_mb",
+           "total_currence",
+           "total_rest",
+       )
+
+       result = {
+           key: _yr_money(source.get(key))
+           for key in fields
+       }
+
+       if source.get("total_rest") is None:
+           result["total_rest"] = _yr_money(
+               result["total_gained"] - result["total_send"]
+           )
+
+       optional_fields = (
+           "cash_rest",
+           "saving_balance",
+           "total_balance",
+           "total_savings_transfers",
+       )
+
+       for key in optional_fields:
+           if source.get(key) is not None:
+               result[key] = _yr_money(source.get(key))
+
+       return result
+
+
+# ============================================================
+# 7. FIND A YEAR RECORD
+# ============================================================
+
+def _yr_find_record(user_ids, label):
+       allowed = {
+           YEARLY_RATE_USER_ID,
+           str(YEARLY_RATE_USER_OBJECT_ID),
+       }
+
+       if not user_ids or not any(
+           str(value) in allowed for value in user_ids
+       ):
+           raise PermissionError(
+               "Unauthorized yearly-rate user."
+           )
+
+       return mongo.db.yearly_rates.find_one({
+           "user_id": {"$in": user_ids},
+           "year_label": label,
+       })
+
+
+# ============================================================
+# 8. GET PREVIOUS CASH BALANCE
+# ============================================================
+
+def _yr_previous_cash_balance(record):
+       """
+       Carry forward previous cash, not the combined savings+cash.
+
+       Known 2025 ~ 2026 breakdown:
+           cash_rest      = $6
+           saving_balance = $300
+           total_rest     = $306
+       """
+       if not record:
+           return 0.00
+
+       if record.get("cash_rest") is not None:
+           return _yr_money(record.get("cash_rest"))
+
+       if record.get("year_label") == "2025 ~ 2026":
+           return 6.00
+
+       # Legacy fallback for records without a saved split.
+       return _yr_money(record.get("total_rest"))
+
+
+# ============================================================
+# 9. CALCULATE FINAL YEAR BALANCES
+# ============================================================
+
+def _yr_calculate_year_balances(
+       totals,
+       opening_cash,
+       savings_balance,
+):
+       """
+       Income = current financial-year income only.
+       Cash = opening cash + income - expenses - deposits + withdrawals.
+       Total = cash + current savings balance.
+       """
+       income = _yr_money(totals.get("total_gained"))
+       expenses = _yr_money(totals.get("total_send"))
+
+       opening_cash = _yr_money(opening_cash)
+       saving_balance = _yr_money(savings_balance)
+
+       to_savings = _yr_money(
+           totals.get("transfers_to_savings")
+       )
+
+       from_savings = _yr_money(
+           totals.get("transfers_from_savings")
+       )
+
+       cash_rest = _yr_money(
+           opening_cash
+           + income
+           - expenses
+           - to_savings
+           + from_savings
+       )
+
+       total_balance = _yr_money(
+           cash_rest + saving_balance
+       )
+
+       totals.update({
+           "opening_balance": opening_cash,
+
+           "period_income": income,
+           "period_expenses": expenses,
+
+           "total_gained": income,
+           "total_send": expenses,
+
+           "cash_rest": cash_rest,
+           "saving_balance": saving_balance,
+
+           "total_balance": total_balance,
+           "total_rest": total_balance,
+
+           "transfers_to_savings": to_savings,
+           "transfers_from_savings": from_savings,
+       })
+
+       return totals
+
+
+# ============================================================
+# 10. MAIN YEARLY RATE SYNC
+# ============================================================
+
+def sync_yearly_rates_for_user(
+       user_id=YEARLY_RATE_USER_ID,
+):
+       """
+       Refresh yearly records for the configured user only.
+
+       Current-year totals are recalculated from transactions.
+       Previous cash and savings are carried forward separately.
+       If the scheduler missed October 10, running this function later still
+       creates/refreshes the correct current financial-year record.
+       Existing closed-year figures are preserved.
+       """
+       user_ids = _yr_user_ids(user_id)
+       user_oid = YEARLY_RATE_USER_OBJECT_ID
+
+       today = datetime.now(YEARLY_RATE_TZ).date()
+       current_start = _yr_financial_start(today)
+
+       transactions = _yr_get_transactions(user_id)
+       savings_balance = _yr_get_savings_balance(user_id)
+
+       first_start = YEARLY_RATE_START
+
+       for transaction in transactions:
+           tx_date = transaction.get("_yr_date")
+
+           if tx_date is None:
+               continue
+
+           tx_start = _yr_financial_start(tx_date)
+
+           if tx_start and tx_start < first_start:
+               first_start = tx_start
+
+       created = 0
+       updated = 0
+       unchanged = 0
+
+       start = first_start
+
+       while start <= current_start:
+           end = _yr_next_year(start)
+           label = _yr_year_label(start)
+
+           title = (
+               f"Xisab Wadaredka Guud Sanadka {label}"
+           )
+
+           existing = _yr_find_record(user_ids, label)
+
+           is_current = start == current_start
+           is_closed = end <= today
+
+           # ----------------------------------------------------
+           # PRESERVE CLOSED-YEAR TOTALS
+           # ----------------------------------------------------
+           if existing is not None and not is_current:
+               updates = {}
+
+               if existing.get("status") != "closed":
+                   updates["status"] = "closed"
+
+               if existing.get("title") != title:
+                   updates["title"] = title
+
+               if (
+                   _yr_as_date(existing.get("start_date"))
+                   != start
+               ):
+                   updates["start_date"] = (
+                       _yr_date_datetime(start)
+                   )
+                   updates["start_day"] = start.strftime("%a")
+
+               if (
+                   _yr_as_date(existing.get("end_date"))
+                   != end
+               ):
+                   updates["end_date"] = (
+                       _yr_date_datetime(end)
+                   )
+                   updates["end_day"] = end.strftime("%a")
+
+               # Repair only the confirmed historical split.
+               historical = YEARLY_RATE_HISTORY.get(label, {})
+
+               for field in (
+                   "cash_rest",
+                   "saving_balance",
+                   "total_balance",
+               ):
+                   if field not in historical:
+                       continue
+
+                   expected = _yr_money(historical[field])
+
+                   if existing.get(field) is None or (
+                       _yr_money(existing.get(field)) != expected
+                   ):
+                       updates[field] = expected
+
+               if updates:
+                   updates["updated_at"] = _yr_now()
+
+                   mongo.db.yearly_rates.update_one(
+                       {
+                           "_id": existing["_id"],
+                           "user_id": {"$in": user_ids},
+                       },
+                       {"$set": updates},
+                   )
+
+                   updated += 1
+
+               else:
+                   unchanged += 1
+
+               start = end
+               continue
+
+           # ----------------------------------------------------
+           # GET CURRENT PERIOD TRANSACTION TOTALS
+           # ----------------------------------------------------
+           # Current year must ALWAYS be calculated from transactions.
+           # Do not use a historical snapshot as current income.
+           if is_current:
+               totals = _yr_calculate_period(
+                   transactions,
+                   start,
+                   today + timedelta(days=1),
+               )
+
+           elif existing is None:
+               historical = YEARLY_RATE_HISTORY.get(label)
+
+               if historical is not None:
+                   totals = _yr_normalize_totals(historical)
+
+               else:
+                   totals = _yr_calculate_period(
+                       transactions,
+                       start,
+                       end,
+                   )
+
+           else:
+               totals = _yr_calculate_period(
+                   transactions,
+                   start,
+                   end,
+               )
+
+           # ----------------------------------------------------
+           # FIND PREVIOUS YEAR'S CASH
+           # ----------------------------------------------------
+           previous_label = f"{start.year - 1} ~ {start.year}"
+
+           previous = (
+               _yr_find_record(user_ids, previous_label)
+               if start > YEARLY_RATE_START
+               else None
+           )
+
+           opening_cash = _yr_previous_cash_balance(previous)
+
+           # ----------------------------------------------------
+           # CURRENT YEAR: CASH + SAVINGS
+           # ----------------------------------------------------
+           if is_current:
+               # Start with the previous year's closing savings balance,
+               # then apply only this year's deposits/withdrawals.
+               # Do not sum savings documents here: some schemas contain
+               # both a running balance and individual deposit amounts,
+               # which can count the same deposit twice.
+               savings_to_add = _yr_money(
+                   totals.get("transfers_to_savings")
+               )
+               savings_to_remove = _yr_money(
+                   totals.get("transfers_from_savings")
+               )
+
+               if previous and previous.get("saving_balance") is not None:
+                   # Normal rollover: begin with last year's closing savings,
+                   # then apply only transfers dated in the new financial year.
+                   opening_savings = _yr_money(
+                       previous.get("saving_balance")
+                   )
+                   calculated_savings_balance = _yr_money(
+                       opening_savings + savings_to_add - savings_to_remove
+                   )
+               else:
+                   # First run / missing previous snapshot: the live savings
+                   # balance already reflects recorded deposits/withdrawals.
+                   # Treat it as the current balance instead of adding the same
+                   # transfers again (which would double-count deposits).
+                   calculated_savings_balance = _yr_money(savings_balance)
+                   opening_savings = _yr_money(
+                       calculated_savings_balance
+                       - savings_to_add
+                       + savings_to_remove
+                   )
+
+               totals["opening_savings_balance"] = opening_savings
+
+               totals = _yr_calculate_year_balances(
+                   totals=totals,
+                   opening_cash=opening_cash,
+                   savings_balance=calculated_savings_balance,
+               )
+               totals["opening_savings_balance"] = opening_savings
+
+           # Calculate a missing non-historical year.
+           elif existing is None and (
+               label not in YEARLY_RATE_HISTORY
+           ):
+               totals = _yr_calculate_year_balances(
+                   totals=totals,
+                   opening_cash=opening_cash,
+                   savings_balance=savings_balance,
+               )
+
+           # ----------------------------------------------------
+           # BUILD DOCUMENT
+           # ----------------------------------------------------
+           document = {
+               "user_id": user_oid,
+
+               "title": title,
+               "year_label": label,
+
+               "start_day": start.strftime("%a"),
+               "start_date": _yr_date_datetime(start),
+
+               "end_day": end.strftime("%a"),
+               "end_date": _yr_date_datetime(end),
+
+               **totals,
+
+               "space_between": (
+                   "1 Year, 0 Months and 0 Days"
+               ),
+
+               "status": "closed" if is_closed else "active",
+               "updated_at": _yr_now(),
+           }
+
+           if existing is not None:
+               mongo.db.yearly_rates.update_one(
+                   {
+                       "_id": existing["_id"],
+                       "user_id": {"$in": user_ids},
+                   },
+                   {"$set": document},
+               )
+
+               updated += 1
+
+           else:
+               document["created_at"] = _yr_now()
+
+               mongo.db.yearly_rates.insert_one(document)
+
+               created += 1
+
+           start = end
+
+       # --------------------------------------------------------
+       # RETURN THE CURRENT YEAR'S RESULTS
+       # --------------------------------------------------------
+       current_label = _yr_year_label(current_start)
+
+       current_record = (
+           _yr_find_record(user_ids, current_label) or {}
+       )
+
+       previous_label = (
+           f"{current_start.year - 1} ~ {current_start.year}"
+       )
+
+       previous_record = _yr_find_record(
+           user_ids,
+           previous_label,
+       )
+
+       return {
+           "user_id": YEARLY_RATE_USER_ID,
+
+           "created": created,
+           "updated": updated,
+           "unchanged": unchanged,
+
+           "current_year": current_label,
+           "previous_year": previous_label,
+
+           "opening_balance": _yr_money(
+               current_record.get("opening_balance")
+           ),
+
+           "period_income": _yr_money(
+               current_record.get("period_income")
+           ),
+
+           "period_expenses": _yr_money(
+               current_record.get("period_expenses")
+           ),
+
+           "cash_rest": _yr_money(
+               current_record.get("cash_rest")
+           ),
+
+           "saving_balance": _yr_money(
+               current_record.get("saving_balance")
+           ),
+
+           "opening_savings_balance": _yr_money(
+               current_record.get("opening_savings_balance")
+           ),
+
+           "total_rest": _yr_money(
+               current_record.get("total_rest")
+           ),
+
+           "total_balance": _yr_money(
+               current_record.get("total_balance")
+           ),
+
+           "live_savings_balance": savings_balance,
+
+           "transfers_to_savings": _yr_money(
+               current_record.get("transfers_to_savings")
+           ),
+
+           "transfers_from_savings": _yr_money(
+               current_record.get("transfers_from_savings")
+           ),
+
+           "transfers_unknown_direction": _yr_money(
+               current_record.get(
+                   "transfers_unknown_direction"
+               )
+           ),
+
+           "unclassified_transactions": _yr_money(
+               current_record.get(
+                   "unclassified_transactions"
+               )
+           ),
+
+           "previous_year_total": (
+               _yr_money(previous_record.get("total_rest"))
+               if previous_record
+               else 0.00
+           ),
+
+           "previous_year_cash": (
+               _yr_previous_cash_balance(previous_record)
+           ),
+
+           "today": today.isoformat(),
+       }
+
+
+# ============================================================
+# 11. BACKWARD-COMPATIBLE FUNCTION
+# ============================================================
+
+def sync_yearly_rates_for_all_users():
+       """
+       Preserve the old function name for existing callers.
+       It intentionally syncs only the configured user.
+       """
+       result = sync_yearly_rates_for_user(
+           YEARLY_RATE_USER_ID
+       )
+
+       return {
+           "users_found": 1,
+           "users_synced": 1,
+           "failures": [],
+           "results": [result],
+       }
+
+
+# ============================================================
+# 12. OPTIONAL DELETE FUNCTION
+# ============================================================
+
+def clear_yearly_rates_for_target_user():
+       """
+       Delete yearly summary documents for this user only.
+       Never call this automatically during a page refresh.
+       """
+       user_ids = _yr_user_ids(YEARLY_RATE_USER_ID)
+
+       result = mongo.db.yearly_rates.delete_many({
+           "user_id": {"$in": user_ids}
+       })
+
+       return {
+           "user_id": YEARLY_RATE_USER_ID,
+           "deleted_yearly_records": int(
+               result.deleted_count
+           ),
+       }
+
+
+# ============================================================
+# 13. READ-ONLY TRANSACTION DIAGNOSTICS
+# ============================================================
+
+def diagnose_yearly_rate_transactions(
+       user_id=YEARLY_RATE_USER_ID,
+       start=None,
+       end=None,
+):
+       """
+       Inspect transactions without modifying the database.
+       """
+       _yr_user_ids(user_id)
+
+       transactions = _yr_get_transactions(user_id)
+
+       start_date = _yr_as_date(start) if start else None
+       end_date = _yr_as_date(end) if end else None
+
+       report = {
+           "user_id": YEARLY_RATE_USER_ID,
+           "transactions_checked": 0,
+
+           "income_count": 0,
+           "income_total": 0.00,
+
+           "expense_count": 0,
+           "expense_total": 0.00,
+
+           "savings_to_count": 0,
+           "savings_to_total": 0.00,
+
+           "savings_from_count": 0,
+           "savings_from_total": 0.00,
+
+           "unknown_transfer_count": 0,
+           "unknown_transfer_total": 0.00,
+
+           "unclassified_count": 0,
+           "unclassified_total": 0.00,
+
+           "samples": [],
+       }
+
+       for transaction in transactions:
+           tx_date = transaction.get("_yr_date")
+
+           if start_date and (
+               tx_date is None or tx_date < start_date
+           ):
+               continue
+
+           if end_date and (
+               tx_date is None or tx_date >= end_date
+           ):
+               continue
+
+           report["transactions_checked"] += 1
+
+           amount = _yr_money(
+               transaction.get("_yr_amount")
+           )
+
+           direction = transaction.get(
+               "_yr_transfer_direction"
+           )
+
+           tx_type = transaction.get("_yr_type")
+
+           if direction == "to_savings":
+               report["savings_to_count"] += 1
+               report["savings_to_total"] += amount
+
+           elif direction == "from_savings":
+               report["savings_from_count"] += 1
+               report["savings_from_total"] += amount
+
+           elif direction == "transfer":
+               report["unknown_transfer_count"] += 1
+               report["unknown_transfer_total"] += amount
+
+           elif tx_type == "income":
+               report["income_count"] += 1
+               report["income_total"] += amount
+
+           elif tx_type == "expense":
+               report["expense_count"] += 1
+               report["expense_total"] += amount
+
+           else:
+               report["unclassified_count"] += 1
+               report["unclassified_total"] += amount
+
+           if len(report["samples"]) < 100:
+               report["samples"].append({
+                   "date": (
+                       tx_date.isoformat()
+                       if tx_date
+                       else None
+                   ),
+                   "amount": amount,
+                   "type": tx_type,
+                   "transfer_direction": direction,
+                   "category": transaction.get("category"),
+                   "item": transaction.get("item"),
+                   "description": transaction.get("description"),
+                   "note": transaction.get("note"),
+                   "title": transaction.get("title"),
+               })
+
+       money_fields = (
+           "income_total",
+           "expense_total",
+           "savings_to_total",
+           "savings_from_total",
+           "unknown_transfer_total",
+           "unclassified_total",
+       )
+
+       for field in money_fields:
+           report[field] = _yr_money(report[field])
+
+       report["savings_balance"] = (
+           _yr_get_savings_balance(user_id)
+       )
+
+       return report
+
+
+
+# ------------------------------------------------------------
+# 4. YEARLY RATE PAGE
+# Target user only
+# Financial year: October 10 -> October 10
+# Timezone: Africa/Mogadishu
+# ------------------------------------------------------------
+
+@bp.route("/yearly-rate")
+@bp.route("/yearly-rate/<rate_id>")
+@login_required
+def yearly_rate(rate_id=None):
+    from datetime import datetime, date, timezone
+    from bson import ObjectId
+    from flask import abort, render_template
+    from werkzeug.exceptions import HTTPException
+
+    TARGET_USER_ID = YEARLY_RATE_USER_ID
+    TARGET_USER_OBJECT_ID = YEARLY_RATE_USER_OBJECT_ID
+
+    try:
+        # --------------------------------------------------
+        # 1. AUTHORIZE TARGET USER ONLY
+        # --------------------------------------------------
+        user_id = str(current_user.id)
+
+        if user_id != TARGET_USER_ID:
+            abort(403, description="Yearly rate is not available.")
+
+        user_ids = [
+            TARGET_USER_ID,
+            TARGET_USER_OBJECT_ID,
+        ]
+
+        # --------------------------------------------------
+        # 2. GET CURRENT FINANCIAL YEAR
+        # --------------------------------------------------
+        today = datetime.now(YEARLY_RATE_TZ).date()
+
+        current_start = _yr_financial_start(today)
+        current_end = _yr_next_year(current_start)
+        current_label = _yr_year_label(current_start)
+
+        # --------------------------------------------------
+        # 3. SYNC TARGET USER'S YEARLY RECORDS
+        # --------------------------------------------------
+        # Updates/creates the target user's yearly records.
+        # Does not delete transactions or savings.
+        sync_result = sync_yearly_rates_for_user(
+            user_id=TARGET_USER_ID
+        )
+
+        # --------------------------------------------------
+        # 4. READ-ONLY DIAGNOSTICS FOR CURRENT FINANCIAL YEAR
+        # --------------------------------------------------
+        # Diagnostic function only reads transactions/savings.
+        # It does not change database records.
+        diagnostic_result = diagnose_yearly_rate_transactions(
+            user_id=TARGET_USER_ID,
+            start=current_start,
+            end=current_end,
+        )
+
+        # --------------------------------------------------
+        # 5. DATE FORMATTING HELPERS
+        # --------------------------------------------------
+        def local_midnight_utc(local_date):
+            return _yr_date_datetime(local_date)
+
+        def format_local_date(value):
+            if isinstance(value, datetime):
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=timezone.utc)
+
+                return value.astimezone(
+                    YEARLY_RATE_TZ
+                ).strftime("%d %b %Y")
+
+            if isinstance(value, date):
+                return value.strftime("%d %b %Y")
+
+            return ""
+
+        # --------------------------------------------------
+        # 6. REPAIR DATE METADATA ONLY
+        # --------------------------------------------------
+        # This section does not recalculate financial totals.
+        # It only repairs date/title/label/status metadata.
+        #
+        # Important: updated_at is changed ONLY if metadata
+        # actually needs repair, preventing writes on every GET.
+
+        cursor = mongo.db.yearly_rates.find({
+            "user_id": {"$in": user_ids}
+        })
+
+        for doc in cursor:
+            label = str(doc.get("year_label", "")).strip()
+
+            start_year = None
+
+            try:
+                normalized_label = (
+                    label.replace("–", "~")
+                    .replace("—", "~")
+                    .replace("-", "~")
+                )
+
+                parts = normalized_label.split("~")
+
+                if len(parts) == 2:
+                    start_year = int(parts[0].strip())
+
+            except (ValueError, IndexError):
+                start_year = None
+
+            # Fall back to start_date if the label is invalid.
+            if start_year is None:
+                existing_start = doc.get("start_date")
+
+                if isinstance(existing_start, datetime):
+                    if existing_start.tzinfo is None:
+                        existing_start = existing_start.replace(
+                            tzinfo=timezone.utc
+                        )
+
+                    start_year = existing_start.astimezone(
+                        YEARLY_RATE_TZ
+                    ).year
+
+                elif isinstance(existing_start, date):
+                    start_year = existing_start.year
+
+            if start_year is None:
+                continue
+
+            correct_start = date(start_year, 10, 10)
+            correct_end = date(start_year + 1, 10, 10)
+
+            correct_label = (
+                f"{correct_start.year} ~ {correct_end.year}"
+            )
+
+            updates = {
+                "start_date": local_midnight_utc(correct_start),
+                "end_date": local_midnight_utc(correct_end),
+                "start_day": correct_start.strftime("%a"),
+                "end_day": correct_end.strftime("%a"),
+                "year_label": correct_label,
+                "title": (
+                    "Xisab Wadaredka Guud Sanadka "
+                    f"{correct_label}"
+                ),
+                "space_between": "1 Year, 0 Months and 0 Days",
+            }
+
+            # Repair status without touching financial totals.
+            if correct_start == current_start:
+                if doc.get("status") != "active":
+                    updates["status"] = "active"
+
+            elif correct_end <= today:
+                if doc.get("status") != "closed":
+                    updates["status"] = "closed"
+
+            # Compare metadata before writing.
+            changed_fields = {}
+
+            for key, new_value in updates.items():
+                old_value = doc.get(key)
+
+                if key in ("start_date", "end_date"):
+                    if isinstance(old_value, datetime):
+                        if old_value.tzinfo is None:
+                            old_value = old_value.replace(
+                                tzinfo=timezone.utc
+                            )
+
+                        if old_value.astimezone(
+                            timezone.utc
+                        ) != new_value:
+                            changed_fields[key] = new_value
+                    else:
+                        changed_fields[key] = new_value
+
+                elif old_value != new_value:
+                    changed_fields[key] = new_value
+
+            if changed_fields:
+                changed_fields["updated_at"] = datetime.now(
+                    timezone.utc
+                )
+
+                mongo.db.yearly_rates.update_one(
+                    {
+                        "_id": doc["_id"],
+                        "user_id": {"$in": user_ids},
+                    },
+                    {
+                        "$set": changed_fields
+                    },
+                )
+
+        # --------------------------------------------------
+        # 7. LOAD REQUESTED YEARLY RATE RECORD
+        # --------------------------------------------------
+        if rate_id:
+            if not ObjectId.is_valid(rate_id):
+                abort(
+                    404,
+                    description="Invalid Yearly Rate ID",
+                )
+
+            rate_doc = mongo.db.yearly_rates.find_one({
+                "_id": ObjectId(rate_id),
+                "user_id": {"$in": user_ids},
+            })
+
+            if not rate_doc:
+                abort(
+                    404,
+                    description="Yearly Rate not found",
+                )
+
+        else:
+            rate_doc = mongo.db.yearly_rates.find_one({
+                "user_id": {"$in": user_ids},
+                "year_label": current_label,
+            })
+
+            if not rate_doc:
+                abort(
+                    404,
+                    description=(
+                        "Current financial year was not created."
+                    ),
+                )
+
+        # --------------------------------------------------
+        # 8. LOAD ALL YEARLY RATE RECORDS
+        # --------------------------------------------------
+        all_rates_cursor = mongo.db.yearly_rates.find({
+            "user_id": {"$in": user_ids}
+        }).sort("start_date", -1)
+
+        all_rates = [
+            YearlyRate(doc)
+            for doc in all_rates_cursor
+        ]
+
+        # Keep raw MongoDB documents for templates that use
+        # yearly_rates directly.
+        yearly_rates = list(
+            mongo.db.yearly_rates.find({
+                "user_id": {"$in": user_ids}
+            }).sort("start_date", -1)
+        )
+
+        # --------------------------------------------------
+        # 9. RENDER TEMPLATE
+        # --------------------------------------------------
+        rate = YearlyRate(rate_doc)
+
+        return render_template(
+            "backend/pages/components/yearly_rates/yearly_rate.html",
+            rate=rate,
+            all_rates=all_rates,
+            yearly_rates=yearly_rates,
+            start_date_display=format_local_date(
+                rate_doc.get("start_date")
+            ),
+            end_date_display=format_local_date(
+                rate_doc.get("end_date")
+            ),
+            sync_result=sync_result,
+            diagnostic_result=diagnostic_result,
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        raise
+
 
 
 # ==============================
@@ -131153,6 +132836,16 @@ def ai_is_person_ledger_question(message, financial_context=None):
     return False
 
 
+
+
+# ============================================================
+# MAAREYE AI ASSISTANT New - 10/10/2026
+# ============================================================
+
+
+#================================
+#--- AI ASSICANCE
+#===============================
 
 def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
                                   prompt="", extra=None):
