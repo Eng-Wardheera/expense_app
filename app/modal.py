@@ -440,6 +440,127 @@ class PersonalTimeline:
         )
 
 
+class YearlyRate:
+    collection_name = "yearly_rates"
+
+    def __init__(self, data=None):
+        self.data = data or {}
+
+        self.id = str(self.data.get("_id")) if self.data.get("_id") else str(ObjectId())
+        self.user_id = str(self.data.get("user_id")) if self.data.get("user_id") else None
+
+        # Cinwaanka iyo Sanadka (Tusaale: "Xisab Wadaredka Guud Sanadka 2025 ~ 2026")
+        self.title = self.data.get("title")
+        self.year_label = self.data.get("year_label")  # Tusaale: "2025 ~ 2026" ama "2021 ~ 2022"
+
+        # Maalmaha iyo Taariikhaha billowga iyo dhammaadka
+        self.start_day = self.data.get("start_day")      # Tusaale: "Fri"
+        self.start_date = self.data.get("start_date")    # Tusaale: "October 10, 2025" ama datetime object
+        
+        self.end_day = self.data.get("end_day")          # Tusaale: "Sat"
+        self.end_date = self.data.get("end_date")        # Tusaale: "October 10, 2026" ama datetime object
+
+        # Tirakoobyada Maaliyadeed (Financial Summaries)
+        self.total_gained = self.data.get("total_gained", 0.0)
+        self.total_send = self.data.get("total_send", 0.0)
+        self.personal_exp = self.data.get("personal_exp", 0.0)
+        self.total_free = self.data.get("total_free", 0.0)
+        self.total_transport = self.data.get("total_transport", 0.0)
+        self.personal_use = self.data.get("personal_use", 0.0)
+        self.total_mb = self.data.get("total_mb", 0.0)
+        self.total_currence = self.data.get("total_currence", 0.0)
+        self.total_rest = self.data.get("total_rest", 0.0)
+
+        # Farqiga u dhexeeya taariikhaha (Space Between)
+        self.space_between = self.data.get("space_between", "1 Year, 0 Months and 0 Days")
+
+        # Xaaladda iyo Waqtiga la abuuray
+        self.status = self.data.get("status", "closed")  # closed maxaa yeelay waa sanad soo xirmay
+        self.created_at = self.data.get("created_at") or datetime.now(timezone.utc)
+        self.updated_at = self.data.get("updated_at") or datetime.now(timezone.utc)
+
+    def add_yearly_rate(
+        self,
+        user_id,
+        title,
+        year_label,
+        start_day,
+        start_date,
+        end_day,
+        end_date,
+        total_gained,
+        total_send,
+        personal_exp,
+        total_free,
+        total_transport,
+        personal_use,
+        total_mb,
+        total_currence,
+        total_rest,
+        space_between="1 Year, 0 Months and 0 Days"
+    ):
+        """Habkan wuxuu kuu ogolaanayaa in aad si toos ah u geliso xogta sanadka hore"""
+        self.user_id = str(user_id)
+        self.title = title
+        self.year_label = year_label
+        self.start_day = start_day
+        self.start_date = start_date
+        self.end_day = end_day
+        self.end_date = end_date
+        
+        self.total_gained = float(total_gained)
+        self.total_send = float(total_send)
+        self.personal_exp = float(personal_exp)
+        self.total_free = float(total_free)
+        self.total_transport = float(total_transport)
+        self.personal_use = float(personal_use)
+        self.total_mb = float(total_mb)
+        self.total_currence = float(total_currence)
+        self.total_rest = float(total_rest)
+        
+        self.space_between = space_between
+        self.status = "closed"
+        
+        now = datetime.now(timezone.utc)
+        self.created_at = now
+        self.updated_at = now
+
+        return self.to_dict()
+
+    def to_dict(self):
+        """U beddelidda qaab MongoDB document ah"""
+        return {
+            "_id": ObjectId(self.id) if ObjectId.is_valid(self.id) else self.id,
+            "user_id": ObjectId(self.user_id) if ObjectId.is_valid(self.user_id) else self.user_id,
+            "title": self.title,
+            "year_label": self.year_label,
+            "start_day": self.start_day,
+            "start_date": self.start_date,
+            "end_day": self.end_day,
+            "end_date": self.end_date,
+            "total_gained": self.total_gained,
+            "total_send": self.total_send,
+            "personal_exp": self.personal_exp,
+            "total_free": self.total_free,
+            "total_transport": self.total_transport,
+            "personal_use": self.personal_use,
+            "total_mb": self.total_mb,
+            "total_currence": self.total_currence,
+            "total_rest": self.total_rest,
+            "space_between": self.space_between,
+            "status": self.status,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """MongoDB document ka soo akhrinta"""
+        if not data:
+            return None
+        return cls(data)
+
+
 
 class Category:
     def __init__(self, data):
