@@ -212,6 +212,10 @@ def create_app():
     scheduler.start()
 
 
+    # 4. Start yearly-rate scheduler LAST
+    from app.yearly_rate_scheduler import init_yearly_rate_scheduler
+
+    init_yearly_rate_scheduler(app)
 
     # Oggolow dhammaan domains ama ku xadid domain gaar ah:
   
