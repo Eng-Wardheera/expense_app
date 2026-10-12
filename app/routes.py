@@ -28705,7 +28705,6 @@ def get_biggest_category(data):
     return key,data[key]
 
 
-
 @bp.route("/transactions")
 @login_required
 def transaction_list():
@@ -28743,7 +28742,10 @@ def transaction_list():
     first_transaction = mongo.db.transactions.find_one(
 
         {
-            "user_id": ObjectId(current_user.id),
+            "$or": [
+                {"user_id": user_object_id},
+                {"user_id": user_string_id},
+            ],
             "status": True
         },
 
@@ -28784,31 +28786,19 @@ def transaction_list():
     # CURRENT SELECTED FILTER
     # ==========================================
 
-    year = int(
+    try:
+        year = int(request.args.get("year", now.year))
+    except (TypeError, ValueError):
+        year = now.year
 
-        request.args.get(
+    try:
+        month = int(request.args.get("month", now.month))
+    except (TypeError, ValueError):
+        month = now.month
 
-            "year",
-
-            now.year
-
-        )
-
-    )
-
-
-
-    month = int(
-
-        request.args.get(
-
-            "month",
-
-            now.month
-
-        )
-
-    )
+    # Keep filters within valid calendar ranges.
+    year = max(1970, min(year, now.year))
+    month = max(1, min(month, 12))
 
 
 
@@ -28965,20 +28955,26 @@ def transaction_list():
     # TRANSACTION QUERY
     # ==================================================
 
+    # IMPORTANT:
+    # Older records may store user_id as ObjectId, while newer/AI-created
+    # transactions may store it as a string. Query both formats so that
+    # records such as the Transportation $0.75 transaction are not hidden.
     transaction_query = {
-
-        "user_id": user_object_id,
-
-        "status": True,
-
-        "date": {
-
-            "$gte": month_start,
-
-            "$lt": month_end
-
-        }
-
+        "$and": [
+            {
+                "$or": [
+                    {"user_id": user_object_id},
+                    {"user_id": user_string_id},
+                ]
+            },
+            {"status": True},
+            {
+                "date": {
+                    "$gte": month_start,
+                    "$lt": month_end
+                }
+            }
+        ]
     }
 
 
@@ -29046,11 +29042,15 @@ def transaction_list():
     accounts = list(
 
         mongo.db.accounts.find({
-
-            "user_id": user_object_id,
-
-            "status": True
-
+            "$and": [
+                {
+                    "$or": [
+                        {"user_id": user_object_id},
+                        {"user_id": user_string_id},
+                    ]
+                },
+                {"status": True}
+            ]
         })
 
     )
@@ -29684,6 +29684,110 @@ item_recommendations=item_recommendations,
         )
 
     )
+
+
+
+
+# ============================================================
+# DELETE TRANSACTION — OWNERSHIP + BALANCE SAFE-GUARDS
+# Compatible with user_id/account_id stored as ObjectId or string.
+# ============================================================
+@bp.route("/delete-transaction/<id>", methods=["GET", "POST"])
+@login_required
+def delete_transaction(id):
+    from bson import ObjectId
+    from flask import flash, redirect, url_for
+
+    # Validate transaction ID before querying MongoDB.
+    if not ObjectId.is_valid(str(id)):
+        flash("Invalid transaction ID.", "danger")
+        return redirect(url_for("main.transaction_list"))
+
+    trx_id = ObjectId(str(id))
+    user_id_string = str(current_user.id)
+    user_id_object = ObjectId(user_id_string) if ObjectId.is_valid(user_id_string) else None
+
+    user_id_values = [user_id_string]
+    if user_id_object is not None:
+        user_id_values.append(user_id_object)
+
+    # Only fetch a transaction owned by the currently logged-in user.
+    trx = mongo.db.transactions.find_one({
+        "_id": trx_id,
+        "user_id": {"$in": user_id_values},
+    })
+
+    if not trx:
+        flash("Transaction not found or you do not have permission to delete it.", "danger")
+        return redirect(url_for("main.transaction_list"))
+
+    try:
+        amount = float(trx.get("amount", 0) or 0)
+    except (TypeError, ValueError):
+        flash("Transaction amount is invalid; nothing was deleted.", "danger")
+        return redirect(url_for("main.transaction_list"))
+
+    trx_type = str(trx.get("transaction_type", "")).strip().lower()
+    account_id = trx.get("account_id")
+
+    # Reverse only normal income/expense transactions. Do not assume that
+    # every other transaction type is an expense.
+    balance_delta = None
+    if trx_type == "income":
+        balance_delta = -amount
+    elif trx_type == "expense":
+        balance_delta = amount
+
+    account_id_values = []
+    if isinstance(account_id, ObjectId):
+        account_id_values = [account_id, str(account_id)]
+    elif account_id is not None:
+        account_id_values = [str(account_id)]
+        if ObjectId.is_valid(str(account_id)):
+            account_id_values.append(ObjectId(str(account_id)))
+
+    balance_updated = False
+    account_query = None
+
+    # Reverse the balance only on an account belonging to this user.
+    if balance_delta is not None and account_id_values:
+        account_query = {
+            "_id": {"$in": account_id_values},
+            "user_id": {"$in": user_id_values},
+        }
+        account_result = mongo.db.accounts.update_one(
+            account_query,
+            {"$inc": {"balance": balance_delta}},
+        )
+        balance_updated = account_result.modified_count > 0
+
+    # Delete with ownership in the query as a second authorization check.
+    delete_result = mongo.db.transactions.delete_one({
+        "_id": trx_id,
+        "user_id": {"$in": user_id_values},
+    })
+
+    if delete_result.deleted_count != 1:
+        # If deletion failed after changing the balance, undo that change.
+        if balance_updated and account_query is not None:
+            mongo.db.accounts.update_one(
+                account_query,
+                {"$inc": {"balance": -balance_delta}},
+            )
+        flash("Transaction could not be deleted. Your balance was left unchanged.", "danger")
+        return redirect(url_for("main.transaction_list"))
+
+    if balance_delta is not None and not balance_updated:
+        flash(
+            "Transaction deleted, but its account balance could not be adjusted because the account was not found.",
+            "warning",
+        )
+    else:
+        flash("Transaction deleted successfully.", "success")
+
+    return redirect(url_for("main.transaction_list"))
+
+
 
 
 
@@ -32949,42 +33053,6 @@ def edit_transaction(id):
         categories=categories
     )
 
-
-
-@bp.route("/delete-transaction/<id>")
-@login_required
-def delete_transaction(id):
-
-    trx = mongo.db.transactions.find_one({
-        "_id": ObjectId(id),
-        "user_id": ObjectId(current_user.id)
-    })
-
-    if not trx:
-        flash("Transaction not found.", "danger")
-        return redirect(url_for("main.transaction_list"))
-
-    amount = float(trx["amount"])
-
-    # 🔥 REVERSE BALANCE
-    if trx["transaction_type"] == "income":
-        mongo.db.accounts.update_one(
-            {"_id": trx["account_id"]},
-            {"$inc": {"balance": -amount}}
-        )
-    else:
-        mongo.db.accounts.update_one(
-            {"_id": trx["account_id"]},
-            {"$inc": {"balance": amount}}
-        )
-
-    # DELETE
-    mongo.db.transactions.delete_one({
-        "_id": ObjectId(id)
-    })
-
-    flash("Transaction deleted successfully.", "success")
-    return redirect(url_for("main.transaction_list"))
 
 
 @bp.route("/add-saving", methods=["GET", "POST"])
@@ -132855,10 +132923,1135 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
+#================================
+#--- AI ASSICANCE
+#===============================
+
+
 
 #================================
 #--- AI ASSICANCE
 #===============================
+
+
+
+def _maareye_ai_detect_bookkeeping_action(message, data=None):
+    """
+    Detect only explicit bookkeeping instructions. This creates ledger records;
+    it never performs an external payment or bank transfer.
+    """
+    import re
+
+    data = data if isinstance(data, dict) else {}
+    text = str(message or "").strip().lower()
+    explicit = str(data.get("bookkeeping_action") or data.get("action") or "").strip().lower()
+
+    # Delete only when the user clearly requests deletion/cancellation. The
+    # executor validates the transaction ID and authenticated user ownership.
+    delete_phrases = (
+        "delete transaction", "remove transaction", "cancel transaction",
+        "tirtir transaction", "transaction tirtir", "tirtir transaction-ka",
+        "transaction-ka tirtir", "ii tirtir transaction", "ka tirtir transaction",
+        "tirtir diiwaanka", "diiwaanka tirtir", "ka saar transaction",
+        "transaction-ka iga tirtir", "ii tirtir", "tirtir record",
+        "delete this transaction", "delete it", "tirtir kan", "ka saar diiwaanka",
+        "ka tuur", "tirtir id", "id-ga tirtir", "id giisa tuur",
+        "id-giisa tuur", "id-gaas tuur", "transaction id-ga tirtir",
+        "transaction id-gaas tirtir", "id-gaas iga tirtir"
+    )
+    has_mongo_id = bool(re.search(r"(?<![0-9a-fA-F])[0-9a-fA-F]{24}(?![0-9a-fA-F])", text))
+    delete_verb_with_id = has_mongo_id and any(verb in text for verb in (
+        "tirtir", "delete", "remove", "cancel", "ka saar", "tuur", "iga saar"
+    ))
+    if explicit in {"transaction_delete", "delete_transaction", "delete", "delete_record"} or delete_verb_with_id or any(
+        phrase in text for phrase in delete_phrases
+    ):
+        return "transaction_delete"
+
+    # Savings withdrawal is deliberately rejected before any other intent.
+    withdrawal_phrases = (
+        "withdraw", "withdrawal", "kaydka iga saar", "iga saar kaydka",
+        "iga saar kayd", "lacagta kaydka iga saar", "kaydka kala bax",
+        "kaydka ka bax", "kaydka ka soo saar", "lacag iga saar kayd",
+        "lacag kala bax kayd", "jebi kayd", "kaydka jebi", "saving withdrawal",
+        "withdraw from savings", "take money out of savings"
+    )
+    if explicit in {"withdraw", "withdrawal", "saving_withdrawal", "savings_withdrawal"} or any(
+        phrase in text for phrase in withdrawal_phrases
+    ):
+        return "saving_withdrawal"
+
+    deposit_phrases = (
+        "kayd", "kaydi", "savings", "saving", "deposit to savings",
+        "put into savings", "save this money"
+    )
+    deposit_verbs = (
+        "dhig", "ku shub", "igu shub", "kaydi", "ii kaydi", "ii dhig",
+        "deposit", "save", "transfer to savings", "put into savings"
+    )
+    if explicit in {"saving_deposit", "savings_deposit", "deposit_savings"} or (
+        any(p in text for p in deposit_phrases)
+        and any(v in text for v in deposit_verbs)
+    ):
+        return "saving_deposit"
+
+    income_words = (
+        "income", "dakhli", "helay", "la i siiyay", "soo galay",
+        "received", "earned", "salary", "mushahar"
+    )
+    expense_words = (
+        "expense", "kharash", "spent", "spend", "bixiyay", "ku bixiyay",
+        "ka baxay", "iibsaday", "iibsatay", "paid for", "purchase"
+    )
+    record_words = (
+        "ii diiwaangeli", "diiwaangeli", "diiwaan geli", "diwaan gali",
+        "ii diwaan gali", "diiwaan gali", "ii diwaan geli", "record",
+        "log transaction", "add transaction", "ku qor", "ii qor"
+    )
+
+    if explicit in {"income", "record_income", "transaction_income"}:
+        return "income"
+    if explicit in {"expense", "record_expense", "transaction_expense"}:
+        return "expense"
+
+    # Past-tense receipt/earnings are direct ledger intents; questions about
+    # income totals are not, because they normally contain no past-tense event.
+    if any(phrase in text for phrase in (
+        "received", "earned", "i got paid", "helay", "la i siiyay",
+        "lacag ayaa ii soo gashay", "lacag baa ii soo gashay",
+        "dakhli ayaan helay", "mushahar ayaan helay"
+    )):
+        return "income"
+    if any(word in text for word in income_words) and any(
+        word in text for word in record_words
+    ):
+        return "income"
+
+    if any(word in text for word in expense_words) and (
+        any(word in text for word in record_words)
+        or "spent" in text
+        or "kharash gareeyay" in text
+        or "kharash gareeyey" in text
+        or "waxaan ku bixiyay" in text
+        or "waan bixiyay" in text
+        or "waan iibsaday" in text
+        or "i spent" in text
+        or "i paid" in text
+    ):
+        return "expense"
+
+    return None
+
+
+def _maareye_ai_bookkeeping_amount(message, data=None):
+    """Return a positive, explicit amount; never guess a numeric value."""
+    import re
+
+    data = data if isinstance(data, dict) else {}
+    raw = data.get("amount")
+    if raw not in (None, ""):
+        try:
+            raw_text = str(raw).replace("$", "").strip()
+            if "," in raw_text and "." not in raw_text and re.search(r",\d{1,2}$", raw_text):
+                raw_text = raw_text.replace(",", ".")
+            else:
+                raw_text = raw_text.replace(",", "")
+            value = float(raw_text)
+            if value > 0:
+                return round(value, 2)
+        except (TypeError, ValueError):
+            pass
+
+    text = str(message or "")
+    # Accept common Somali/English money phrasing, including "0.75 centi".
+    # In this app's conversational convention, "0.75 centi" means $0.75,
+    # not 75 cents of a dollar divided again and not an unspecified amount.
+    match = re.search(
+        r"(?:\$|usd\s*)\s*([0-9]+(?:[.,][0-9]{1,2})?)"
+        r"|([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:\$|usd|dollars?|doollar|centi|senti|cents?)\b",
+        text,
+        flags=re.IGNORECASE
+    )
+    if not match:
+        return None
+    try:
+        raw_value = match.group(1) or match.group(2)
+        if "," in raw_value and "." not in raw_value and re.search(r",\d{1,2}$", raw_value):
+            raw_value = raw_value.replace(",", ".")
+        else:
+            raw_value = raw_value.replace(",", "")
+        value = float(raw_value)
+        return round(value, 2) if value > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _maareye_ai_bookkeeping_user_query(user_ids):
+    """User-scoped query supporting legacy string and ObjectId user IDs."""
+    return {"user_id": {"$in": list(user_ids or [])}}
+
+
+def _maareye_ai_bookkeeping_available_balance(financial_context):
+    """
+    Use only explicit spendable-cash fields supplied by the trusted server
+    context. Savings balances and annual total balances are not spendable cash.
+    """
+    if not isinstance(financial_context, dict):
+        return None
+
+    for key in ("available_balance", "cash_available", "cash_rest", "spendable_balance"):
+        value = financial_context.get(key)
+        if value is not None:
+            try:
+                number = float(value)
+                if number >= 0:
+                    return round(number, 2)
+            except (TypeError, ValueError):
+                continue
+    return None
+
+
+def _maareye_ai_bookkeeping_save_chat(user_id, message, answer):
+    """Persist a bookkeeping action response in the existing AI chat collection."""
+    from datetime import datetime, timezone
+
+    now = datetime.now(timezone.utc)
+    document = {
+        "user_id": user_id,
+        "user_id_str": str(user_id) if user_id is not None else None,
+        "message": str(message or ""),
+        "user_message": str(message or ""),
+        "answer": str(answer or ""),
+        "assistant_message": str(answer or ""),
+        "model": globals().get("GEMINI_MODEL", "maareye-bookkeeping"),
+        "logged_in": True,
+        "created_at": now,
+        "updated_at": now,
+        "created_at_eat": now.isoformat(),
+        "updated_at_eat": now.isoformat(),
+        "financial_action": "BOOKKEEPING"
+    }
+    result = mongo.db.ai_chat_messages.insert_one(document)
+    return str(result.inserted_id)
+
+
+def _maareye_ai_execute_bookkeeping_action(
+    action, message, data, user_id, user_ids, financial_context
+):
+    """
+    Execute a requested internal ledger entry against the existing collections.
+    Returns a Flask (payload, status_code) pair, or None when no action applies.
+    Savings withdrawals are always refused.
+    """
+    import re
+    from datetime import datetime, timezone
+    from bson import ObjectId
+
+    data = data if isinstance(data, dict) else {}
+    user_query = _maareye_ai_bookkeeping_user_query(user_ids)
+    now = datetime.now(timezone.utc)
+
+    if action == "transaction_delete":
+        # Accept an explicit transaction_id field or a 24-character MongoDB
+        # ObjectId in the user's deletion instruction.
+        raw_transaction_id = str(
+            data.get("transaction_id") or data.get("transactionId") or data.get("id") or ""
+        ).strip()
+        if not raw_transaction_id:
+            id_match = re.search(r"(?<![0-9a-fA-F])[0-9a-fA-F]{24}(?![0-9a-fA-F])", str(message or ""))
+            raw_transaction_id = id_match.group(0) if id_match else ""
+        try:
+            transaction_oid = ObjectId(raw_transaction_id)
+        except Exception:
+            return {
+                "success": False,
+                "action_required": True,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "NEEDS_TRANSACTION_ID",
+                "answer": "Fadlan ku dar transaction ID-ga 24 xaraf ee aad rabto in la tirtiro. Waxba lama tirtirin.",
+            }, 400
+
+        transaction = mongo.db.transactions.find_one({"_id": transaction_oid, **user_query})
+        if not transaction:
+            # A savings transaction ID is also a valid deletion target. Reverse
+            # its internal ledger effects against the linked saving and account.
+            saving_tx = mongo.db.saving_transactions.find_one({"_id": transaction_oid, **user_query})
+            if not saving_tx:
+                return {
+                    "success": False,
+                    "financial_action": "TRANSACTION_DELETE",
+                    "status": "TRANSACTION_NOT_FOUND",
+                    "answer": "Transaction-kan lagama helin transactions ama saving_transactions akoonkaaga. Waxba lama beddelin.",
+                }, 404
+
+            saving_type = str(saving_tx.get("transaction_type") or "").strip().lower()
+            if saving_type not in {"deposit", "withdrawal"}:
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "UNSUPPORTED_SAVING_TRANSACTION_TYPE",
+                    "answer": "Nooca saving transaction-kan lama aqoonsan; waxba lama beddelin."
+                }, 409
+            try:
+                saving_amount = round(float(saving_tx.get("amount", 0) or 0), 2)
+            except (TypeError, ValueError):
+                saving_amount = 0.0
+            if saving_amount <= 0:
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "INVALID_TRANSACTION_AMOUNT",
+                    "answer": "Qadarka saving transaction-kan ma saxna; waxba lama beddelin."
+                }, 409
+
+            saving_doc = mongo.db.savings.find_one({"_id": saving_tx.get("saving_id"), **user_query})
+            account_doc = mongo.db.accounts.find_one({"_id": saving_tx.get("account_id"), **user_query})
+            if not account_doc:
+                # Legacy data can contain an account_id that no longer resolves.
+                # Never guess between multiple accounts; only recover automatically
+                # when this user has exactly one active account, or an explicit
+                # account selector was supplied with the delete request.
+                requested_account = str(
+                    data.get("account_id") or data.get("account_name") or data.get("account") or ""
+                ).strip()
+                if requested_account:
+                    try:
+                        requested_oid = ObjectId(requested_account)
+                    except Exception:
+                        requested_oid = None
+                    if requested_oid:
+                        account_doc = mongo.db.accounts.find_one({"_id": requested_oid, **user_query, "status": {"$ne": False}})
+                    if not account_doc:
+                        account_matches = list(mongo.db.accounts.find({
+                            **user_query, "status": {"$ne": False},
+                            "name": {"$regex": re.escape(requested_account), "$options": "i"}
+                        }).limit(2))
+                        if len(account_matches) == 1:
+                            account_doc = account_matches[0]
+                else:
+                    active_accounts = list(mongo.db.accounts.find({
+                        **user_query, "status": {"$ne": False}
+                    }).limit(2))
+                    if len(active_accounts) == 1:
+                        account_doc = active_accounts[0]
+            if not saving_doc or not account_doc:
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "SAVING_OR_ACCOUNT_NOT_FOUND",
+                    "answer": "Saving-ka ama account-kii saxda ahaa lama helin. Haddii account_id-gu duugoobay, dooro account-ka saxda ah. Waxba lama tirtirin si balance-ku uusan u qaldamin."
+                }, 409
+            try:
+                old_saving_balance = float(saving_doc.get("current_balance", 0) or 0)
+                old_account_balance = float(account_doc.get("balance", 0) or 0)
+            except (TypeError, ValueError):
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "INVALID_BALANCE",
+                    "answer": "Balance-ka saving/account ma saxna; waxba lama beddelin."
+                }, 409
+
+            # Reversing a deposit: account gets money back, saving balance falls.
+            # Reversing a legacy withdrawal: account is debited, saving restored.
+            saving_delta = -saving_amount if saving_type == "deposit" else saving_amount
+            account_delta = saving_amount if saving_type == "deposit" else -saving_amount
+            if old_saving_balance + saving_delta < -1e-9 or old_account_balance + account_delta < -1e-9:
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "INSUFFICIENT_BALANCE_TO_REVERSE",
+                    "answer": (
+                        f"Saving transaction-kan lama tirtiri karo iyadoo balance taban iman karo. "
+                        f"Saving: ${old_saving_balance:,.2f}; account: ${old_account_balance:,.2f}; "
+                        f"qadarka: ${saving_amount:,.2f}. Waxba lama beddelin."
+                    )
+                }, 409
+
+            new_account_balance = round(old_account_balance + account_delta, 2)
+            new_saving_balance = round(old_saving_balance + saving_delta, 2)
+            account_filter = {"_id": account_doc["_id"], **user_query, "balance": account_doc.get("balance", 0)}
+            if account_delta < 0:
+                account_filter["balance"] = {"$gte": saving_amount}
+            account_update = mongo.db.accounts.update_one(
+                account_filter,
+                {"$inc": {"balance": account_delta}, "$set": {"updated_at": now}}
+            )
+            if account_update.matched_count != 1:
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "ACCOUNT_CHANGED_RETRY",
+                    "answer": "Account balance-ku wuu isbeddelay. Saving transaction lama tirtirin; fadlan mar kale isku day."
+                }, 409
+
+            target_amount = max(float(saving_doc.get("target_amount", 0) or 0), 0.0)
+            remaining_amount = max(round(target_amount - new_saving_balance, 2), 0.0) if target_amount > 0 else 0.0
+            progress = min(round((new_saving_balance / target_amount) * 100, 2), 100.0) if target_amount > 0 else 0.0
+            derived_fields = {
+                "current_balance": new_saving_balance,
+                "remaining_amount": remaining_amount,
+                "progress": progress,
+                "updated_at": now,
+            }
+            maturity = saving_doc.get("maturity_date")
+            try:
+                maturity_date = maturity.date() if isinstance(maturity, datetime) else maturity
+                days_remaining = max((maturity_date - now.date()).days, 0) if maturity_date else None
+            except Exception:
+                days_remaining = None
+            if days_remaining is not None:
+                derived_fields["days_remaining"] = days_remaining
+                divisor = days_remaining if days_remaining > 0 else 1
+                derived_fields["daily_required"] = round(remaining_amount / divisor, 2)
+                derived_fields["weekly_required"] = round(remaining_amount / divisor * 7, 2)
+                derived_fields["monthly_required"] = round(remaining_amount / divisor * 30, 2)
+            saving_update = mongo.db.savings.update_one(
+                {"_id": saving_doc["_id"], **user_query, "current_balance": saving_doc.get("current_balance", 0)},
+                {"$set": derived_fields}
+            )
+            if saving_update.matched_count != 1:
+                mongo.db.accounts.update_one(
+                    {"_id": account_doc["_id"], **user_query, "balance": new_account_balance},
+                    {"$inc": {"balance": -account_delta}, "$set": {"updated_at": now}}
+                )
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "SAVING_CHANGED_RETRY",
+                    "answer": "Saving balance-ku wuu isbeddelay; account balance-kii waa la celiyey intii suurtagal ah. Transaction lama tirtirin."
+                }, 409
+
+            try:
+                deleted_saving_tx = mongo.db.saving_transactions.delete_one({"_id": transaction_oid, **user_query})
+            except Exception as exc:
+                deleted_saving_tx = None
+                print("MAAREYE SAVING TRANSACTION DELETE ERROR:", repr(exc))
+            if not deleted_saving_tx or deleted_saving_tx.deleted_count != 1:
+                rollback_remaining = max(round(target_amount - old_saving_balance, 2), 0.0) if target_amount > 0 else 0.0
+                rollback_fields = {
+                    "current_balance": old_saving_balance,
+                    "remaining_amount": rollback_remaining,
+                    "progress": min(round((old_saving_balance / target_amount) * 100, 2), 100.0) if target_amount > 0 else 0.0,
+                    "updated_at": now,
+                }
+                if days_remaining is not None:
+                    divisor = days_remaining if days_remaining > 0 else 1
+                    rollback_fields.update({
+                        "days_remaining": days_remaining,
+                        "daily_required": round(rollback_remaining / divisor, 2),
+                        "weekly_required": round(rollback_remaining / divisor * 7, 2),
+                        "monthly_required": round(rollback_remaining / divisor * 30, 2),
+                    })
+                mongo.db.savings.update_one(
+                    {"_id": saving_doc["_id"], **user_query, "current_balance": new_saving_balance},
+                    {"$set": rollback_fields}
+                )
+                mongo.db.accounts.update_one(
+                    {"_id": account_doc["_id"], **user_query, "balance": new_account_balance},
+                    {"$inc": {"balance": -account_delta}, "$set": {"updated_at": now}}
+                )
+                return {
+                    "success": False, "financial_action": "TRANSACTION_DELETE",
+                    "status": "DELETE_FAILED",
+                    "answer": "Saving transaction-ka lama tirtirin; Maareye wuxuu isku dayay inuu labada balance celiyo. Fadlan hubi xogta."
+                }, 500
+
+            answer = (
+                f"✅ Saving transaction waa la tirtiray. ID: `{transaction_oid}`; "
+                f"nooca: {saving_type}; qadarka: ${saving_amount:,.2f}; saving: {saving_doc.get('title') or 'Kaydkaaga'}; "
+                f"account: {account_doc.get('name') or 'Account-kaaga'}. "
+                f"Saving balance: ${old_saving_balance:,.2f} → ${new_saving_balance:,.2f}; "
+                f"account balance: ${old_account_balance:,.2f} → ${new_account_balance:,.2f}."
+            )
+            try:
+                chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
+            except Exception as exc:
+                chat_id = None
+                print("MAAREYE SAVING TRANSACTION DELETE CHAT SAVE ERROR:", repr(exc))
+            return {
+                "success": True, "financial_action": "TRANSACTION_DELETE", "status": "COMPLETED",
+                "transaction_id": str(transaction_oid), "transaction_collection": "saving_transactions",
+                "amount": saving_amount, "transaction_type": saving_type,
+                "previous_account_balance": round(old_account_balance, 2), "current_account_balance": new_account_balance,
+                "previous_saving_balance": round(old_saving_balance, 2), "current_saving_balance": new_saving_balance,
+                "message_id": chat_id, "answer": answer
+            }, 200
+
+        tx_type = str(transaction.get("transaction_type") or "").strip().lower()
+        if tx_type not in {"expense", "income"}:
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "UNSUPPORTED_TRANSACTION_TYPE",
+                "answer": "Noocan transaction-ka si ammaan ah halkan loogama tirtiri karo. Waxba lama beddelin.",
+            }, 409
+
+        try:
+            tx_amount = round(float(transaction.get("amount", 0) or 0), 2)
+        except (TypeError, ValueError):
+            tx_amount = 0.0
+        if tx_amount <= 0:
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "INVALID_TRANSACTION_AMOUNT",
+                "answer": "Qadarka transaction-kan ma saxna; si ammaan ah looma tirtirin.",
+            }, 409
+
+        tx_account_id = transaction.get("account_id")
+        account = mongo.db.accounts.find_one({"_id": tx_account_id, **user_query}) if tx_account_id else None
+        if not account:
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "ACCOUNT_NOT_FOUND",
+                "answer": "Account-kii transaction-kan lama helin; waxba lama tirtirin si balance-ku uusan u qaldamin.",
+            }, 409
+
+        try:
+            previous_balance = float(account.get("balance", 0) or 0)
+        except (TypeError, ValueError):
+            previous_balance = 0.0
+
+        # Reversing an expense restores funds. Reversing income removes those
+        # funds; refuse if doing so would make the account negative.
+        reverse_delta = tx_amount if tx_type == "expense" else -tx_amount
+        if tx_type == "income" and previous_balance + 1e-9 < tx_amount:
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "INSUFFICIENT_BALANCE_TO_REVERSE_INCOME",
+                "account_balance": round(previous_balance, 2),
+                "answer": (
+                    f"Transaction-ka dakhligan lama tirtiri karo hadda: account-ku wuxuu leeyahay "
+                    f"${previous_balance:,.2f}, halka lacagta laga celinayo ay tahay ${tx_amount:,.2f}. "
+                    "Si looga fogaado balance taban, waxba lama beddelin."
+                ),
+            }, 409
+
+        account_update = mongo.db.accounts.update_one(
+            {"_id": tx_account_id, **user_query, "balance": account.get("balance", 0)},
+            {"$inc": {"balance": reverse_delta}, "$set": {"updated_at": now}},
+        )
+        if account_update.matched_count != 1:
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "ACCOUNT_CHANGED_RETRY",
+                "answer": "Balance-ka account-ka ayaa isbeddelay isla waqtigan. Wax transaction ah lama tirtirin; dib u eeg oo mar kale isku day.",
+            }, 409
+
+        try:
+            deleted = mongo.db.transactions.delete_one({"_id": transaction_oid, **user_query})
+        except Exception as exc:
+            deleted = None
+            print("MAAREYE TRANSACTION DELETE ERROR:", repr(exc))
+
+        if not deleted or deleted.deleted_count != 1:
+            try:
+                mongo.db.accounts.update_one(
+                    {"_id": tx_account_id, **user_query},
+                    {"$inc": {"balance": -reverse_delta}, "$set": {"updated_at": now}},
+                )
+            except Exception as rollback_exc:
+                print("MAAREYE TRANSACTION DELETE ROLLBACK ERROR:", repr(rollback_exc))
+            return {
+                "success": False,
+                "financial_action": "TRANSACTION_DELETE",
+                "status": "DELETE_FAILED",
+                "answer": "Transaction-ka lama tirtirin; Maareye wuxuu isku dayay inuu balance-kii hore celiyo. Fadlan hubi xogta.",
+            }, 500
+
+        new_balance = round(previous_balance + reverse_delta, 2)
+        answer = (
+            f"✅ Transaction waa la tirtiray. ID: `{transaction_oid}`; "
+            f"nooca: {tx_type}; qadarka: ${tx_amount:,.2f}; "
+            f"account: {account.get('name') or 'Account-kaaga'}. "
+            f"Balance-kii hore: ${previous_balance:,.2f}; balance-ka cusub: ${new_balance:,.2f}. "
+            "Jadwalka All Transactions dib u cusboonaysii si safku uga baxo."
+        )
+        try:
+            chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
+        except Exception as exc:
+            chat_id = None
+            print("MAAREYE TRANSACTION DELETE CHAT SAVE ERROR:", repr(exc))
+        return {
+            "success": True,
+            "financial_action": "TRANSACTION_DELETE",
+            "status": "COMPLETED",
+            "transaction_id": str(transaction_oid),
+            "amount": tx_amount,
+            "transaction_type": tx_type,
+            "account_name": account.get("name"),
+            "previous_account_balance": round(previous_balance, 2),
+            "current_account_balance": new_balance,
+            "message_id": chat_id,
+            "answer": answer,
+        }, 200
+
+    if action == "saving_withdrawal":
+        answer = (
+            "⛔ **Kaydka lacag lagama saari karo.** Siyaasadda Maareye waxay "
+            "diidaysaa withdrawal-ka kaydka. Wax record ah lama abuurin, "
+            "mana jirto wax balance ah oo la beddelay."
+        )
+        return {
+            "success": True,
+            "action_required": False,
+            "financial_action": "SAVINGS_WITHDRAWAL_BLOCKED",
+            "status": "BLOCKED",
+            "answer": answer
+        }, 200
+
+    amount = _maareye_ai_bookkeeping_amount(message, data)
+    all_available_requested = False
+    if action == "saving_deposit":
+        lower = str(message or "").lower()
+        all_available_requested = any(term in lower for term in (
+            "lacagta bannaan", "lacagta ii bannaan", "all available",
+            "available balance", "lacagta hartay oo dhan", "lacagta harsan"
+        ))
+
+    # For "deposit all available", resolve the saving's linked account first;
+    # the account's live MongoDB balance is the source of truth.
+    if amount is None and not (action == "saving_deposit" and all_available_requested):
+        return {
+            "success": True,
+            "action_required": True,
+            "financial_action": action.upper(),
+            "status": "NEEDS_AMOUNT",
+            "answer": "Fadlan sheeg qadarka saxda ah, tusaale ahaan $5, si aan si sax ah ugu diiwaangeliyo."
+        }, 200
+
+    # ---------------------------- SAVINGS DEPOSIT ----------------------------
+    if action == "saving_deposit":
+        saving_query = dict(user_query)
+        saving_query["status"] = {"$in": ["active", "ACTIVE", True]}
+        savings = list(mongo.db.savings.find(saving_query).sort([
+            ("updated_at", -1), ("created_at", -1), ("_id", -1)
+        ]).limit(100))
+
+        requested_saving = str(
+            data.get("saving_id") or data.get("saving_title") or ""
+        ).strip().lower()
+        if requested_saving:
+            chosen = None
+            for item in savings:
+                if requested_saving in {
+                    str(item.get("_id", "")).lower(),
+                    str(item.get("title", "")).lower()
+                } or requested_saving in str(item.get("title", "")).lower():
+                    chosen = item
+                    break
+            if chosen is None:
+                return {
+                    "success": True, "action_required": True,
+                    "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "SAVING_NOT_FOUND",
+                    "answer": "Kaydkaas kama helin kaydadkaaga firfircoon. Fadlan sheeg magaca kaydka saxda ah."
+                }, 200
+        elif len(savings) == 1:
+            chosen = savings[0]
+        else:
+            # Match a saving title mentioned naturally in the user's message.
+            lower_message = str(message or "").lower()
+            matches = [
+                item for item in savings
+                if str(item.get("title") or "").strip()
+                and str(item.get("title") or "").strip().lower() in lower_message
+            ]
+            if len(matches) == 1:
+                chosen = matches[0]
+            elif len(savings) == 0:
+                return {
+                    "success": True, "action_required": True,
+                    "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "NO_ACTIVE_SAVING",
+                    "answer": "Ma helin kayd firfircoon oo aad lacagta ku shubto. Marka hore samee saving, kadib mar kale isku day."
+                }, 200
+            else:
+                titles = ", ".join(str(item.get("title") or "Kayd aan magac lahayn") for item in savings[:10])
+                return {
+                    "success": True, "action_required": True,
+                    "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "CHOOSE_SAVING",
+                    "answer": "Waxaad leedahay kaydad badan. Fadlan sheeg kaydka aad rabto: " + titles
+                }, 200
+
+        saving_id = chosen.get("_id")
+        account_id = chosen.get("account_id")
+        if not saving_id or not account_id:
+            return {
+                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                "status": "SAVING_ACCOUNT_INCOMPLETE",
+                "answer": "Kaydkan ma laha saving ID ama account_id sax ah; waxba lama beddelin."
+            }, 409
+
+        # Always use the actual linked account balance, never a model estimate
+        # or a stale balance inferred from chat history.
+        account_doc = mongo.db.accounts.find_one({
+            "_id": account_id, **user_query, "status": {"$ne": False}
+        })
+        if not account_doc:
+            # Repair stale legacy saving.account_id only when the correct account
+            # can be resolved unambiguously (explicit name/ID or one active account).
+            requested_account = str(
+                data.get("account_id") or data.get("account_name") or data.get("account") or ""
+            ).strip()
+            if not requested_account:
+                lower_message = str(message or "").lower()
+                named_matches = list(mongo.db.accounts.find({
+                    **user_query, "status": {"$ne": False}
+                }).limit(100))
+                named_matches = [a for a in named_matches if str(a.get("name") or "").strip() and str(a.get("name")).lower() in lower_message]
+                if len(named_matches) == 1:
+                    account_doc = named_matches[0]
+                elif len(named_matches) == 0:
+                    active_accounts = list(mongo.db.accounts.find({
+                        **user_query, "status": {"$ne": False}
+                    }).limit(2))
+                    if len(active_accounts) == 1:
+                        account_doc = active_accounts[0]
+            else:
+                try:
+                    requested_oid = ObjectId(requested_account)
+                except Exception:
+                    requested_oid = None
+                if requested_oid:
+                    account_doc = mongo.db.accounts.find_one({"_id": requested_oid, **user_query, "status": {"$ne": False}})
+                if not account_doc:
+                    account_matches = list(mongo.db.accounts.find({
+                        **user_query, "status": {"$ne": False},
+                        "name": {"$regex": re.escape(requested_account), "$options": "i"}
+                    }).limit(2))
+                    if len(account_matches) == 1:
+                        account_doc = account_matches[0]
+            if account_doc:
+                # Conditional repair avoids overwriting a concurrent account-link change.
+                mongo.db.savings.update_one(
+                    {"_id": saving_id, **user_query, "account_id": account_id},
+                    {"$set": {"account_id": account_doc["_id"], "updated_at": now}}
+                )
+                account_id = account_doc["_id"]
+            else:
+                return {
+                    "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "SAVING_ACCOUNT_NOT_FOUND",
+                    "answer": "Account-ka ku xiran kaydkan lama helin. Haddii account_id-gu duugoobay, sheeg magaca/ID-ga account-ka saxda ah. Waxba lama beddelin."
+                }, 404
+        try:
+            account_previous_balance = float(account_doc.get("balance", 0) or 0)
+        except (TypeError, ValueError):
+            account_previous_balance = 0.0
+        available = round(account_previous_balance, 2)
+
+        if amount is None and all_available_requested:
+            amount = available
+        if amount is None or amount <= 0:
+            return {
+                "success": False, "action_required": True,
+                "financial_action": "SAVINGS_DEPOSIT", "status": "NO_AVAILABLE_FUNDS",
+                "account_balance": available,
+                "answer": f"Account-ka **{account_doc.get('name') or 'la doortay'}** ma laha lacag bannaan oo lagu shubi karo (${available:,.2f}). Waxba lama beddelin."
+            }, 409
+        if amount > available:
+            return {
+                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                "status": "INSUFFICIENT_FUNDS",
+                "account_balance": available,
+                "requested_amount": amount,
+                "answer": f"Kaydka lama kordhin. Account-ka **{account_doc.get('name') or 'la doortay'}** wuxuu leeyahay ${available:,.2f}, waxaadna codsatay ${amount:,.2f}. Waxba lama beddelin."
+            }, 409
+
+        # Debit the linked account with an atomic balance guard before recording
+        # the saving deposit. Every subsequent failure attempts compensation.
+        # The saving/account collections remain the source of truth.
+        account_debit = mongo.db.accounts.update_one(
+            {"_id": account_id, **user_query, "status": {"$ne": False}, "balance": {"$gte": float(amount)}},
+            {"$inc": {"balance": -float(amount)}, "$set": {"updated_at": now}}
+        )
+        if account_debit.matched_count != 1:
+            latest_account = mongo.db.accounts.find_one({"_id": account_id, **user_query}) or {}
+            latest_balance = round(float(latest_account.get("balance", 0) or 0), 2)
+            return {
+                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                "status": "ACCOUNT_BALANCE_CHANGED",
+                "account_balance": latest_balance,
+                "answer": f"Account balance-ku wuu isbeddelay. Hadda waa ${latest_balance:,.2f}; deposit lama samayn. Dib u eeg oo mar kale isku day."
+            }, 409
+
+        old_balance = float(chosen.get("current_balance") or 0)
+        target = float(chosen.get("target_amount") or 0)
+        new_balance = round(old_balance + amount, 2)
+        remaining = max(round(target - new_balance, 2), 0.0) if target > 0 else 0.0
+        progress = min(round((new_balance / target) * 100, 2), 100.0) if target > 0 else 0.0
+
+        maturity = chosen.get("maturity_date")
+        days_remaining = None
+        try:
+            maturity_date = maturity.date() if isinstance(maturity, datetime) else maturity
+            days_remaining = max((maturity_date - now.date()).days, 0) if maturity_date else None
+        except Exception:
+            days_remaining = None
+
+        update_fields = {
+            "current_balance": new_balance,
+            "remaining_amount": remaining,
+            "progress": progress,
+            "updated_at": now
+        }
+        if days_remaining is not None:
+            update_fields["days_remaining"] = days_remaining
+            if days_remaining > 0:
+                update_fields["daily_required"] = round(remaining / days_remaining, 2)
+                update_fields["weekly_required"] = round(remaining / days_remaining * 7, 2)
+                update_fields["monthly_required"] = round(remaining / days_remaining * 30, 2)
+            else:
+                update_fields["daily_required"] = remaining
+                update_fields["weekly_required"] = remaining
+                update_fields["monthly_required"] = remaining
+
+        # Conditional update protects against concurrent edits/deposits.
+        update_result = mongo.db.savings.update_one(
+            {
+                "_id": saving_id,
+                "user_id": {"$in": list(user_ids or [])},
+                "current_balance": chosen.get("current_balance", 0)
+            },
+            {"$set": update_fields}
+        )
+        if not update_result.modified_count:
+            # Handle older documents where current_balance was missing/null.
+            if chosen.get("current_balance") in (None, 0, 0.0):
+                update_result = mongo.db.savings.update_one(
+                    {
+                        "_id": saving_id,
+                        "user_id": {"$in": list(user_ids or [])},
+                        "$or": [
+                            {"current_balance": {"$exists": False}},
+                            {"current_balance": None},
+                            {"current_balance": 0},
+                            {"current_balance": 0.0}
+                        ]
+                    },
+                    {"$set": update_fields}
+                )
+        if not update_result.modified_count:
+            mongo.db.accounts.update_one(
+                {"_id": account_id, **user_query, "balance": round(account_previous_balance - float(amount), 2)},
+                {"$inc": {"balance": float(amount)}, "$set": {"updated_at": now}}
+            )
+            return {
+                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                "status": "SAVING_CHANGED_RETRY",
+                "answer": "Kaydka waxaa laga yaabaa in isla waqtigan la beddelay. Account balance-kii waa la celiyey intii suurtagal ah; deposit lama xaqiijin. Fadlan dib u eeg oo mar kale isku day."
+            }, 409
+
+        saving_transaction = {
+            "user_id": user_id,
+            "saving_id": saving_id,
+            "account_id": account_id,
+            "transaction_type": "deposit",
+            "amount": float(amount),
+            "description": str(data.get("description") or "AI assistant savings deposit").strip()[:500],
+            "note": str(message or "").strip()[:1000],
+            "reference_no": str(data.get("reference_no") or "").strip()[:100],
+            "date": now,
+            "status": True,
+            "created_at": now,
+            "updated_at": now
+        }
+        try:
+            inserted = mongo.db.saving_transactions.insert_one(saving_transaction)
+        except Exception as exc:
+            # Roll back the balance if the transaction record could not be saved.
+            rollback_fields = {
+                "current_balance": old_balance,
+                "remaining_amount": max(round(target - old_balance, 2), 0.0) if target > 0 else 0.0,
+                "progress": min(round((old_balance / target) * 100, 2), 100.0) if target > 0 else 0.0,
+                "updated_at": now
+            }
+            if days_remaining is not None:
+                rollback_remaining = max(round(target - old_balance, 2), 0.0) if target > 0 else 0.0
+                rollback_fields["days_remaining"] = days_remaining
+                rollback_fields["daily_required"] = round(rollback_remaining / days_remaining, 2) if days_remaining > 0 else rollback_remaining
+                rollback_fields["weekly_required"] = round(rollback_remaining / days_remaining * 7, 2) if days_remaining > 0 else rollback_remaining
+                rollback_fields["monthly_required"] = round(rollback_remaining / days_remaining * 30, 2) if days_remaining > 0 else rollback_remaining
+            mongo.db.savings.update_one(
+                {"_id": saving_id, "user_id": {"$in": list(user_ids or [])}, "current_balance": new_balance},
+                {"$set": rollback_fields}
+            )
+            mongo.db.accounts.update_one(
+                {"_id": account_id, **user_query, "balance": round(account_previous_balance - float(amount), 2)},
+                {"$inc": {"balance": float(amount)}, "$set": {"updated_at": now}}
+            )
+            print("MAAREYE SAVINGS DEPOSIT INSERT ERROR:", repr(exc))
+            return {
+                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                "status": "SAVE_FAILED",
+                "answer": "Deposit-ka lama kaydin, balance-kiina waa la celiyey. Fadlan mar kale isku day."
+            }, 500
+
+        answer = (
+            f"✅ Kaydka waa la diiwaangeliyey: **${amount:,.2f}** ayaa lagu daray "
+            f"**{chosen.get('title') or 'Kaydkaaga'}**. "
+            f"Balance-kii hore ee saving-ka: ${old_balance:,.2f}; balance-ka cusub ee saving-ka: ${new_balance:,.2f}. "
+            f"Account: {account_doc.get('name') or 'Account-kaaga'}; account balance-kii hore: ${account_previous_balance:,.2f}; "
+            f"account balance-ka cusub: ${round(account_previous_balance - amount, 2):,.2f}. "
+            "Tani waa diiwaan gudaha Maareye ah; ma aha wareejin bangi oo dibadda ah."
+        )
+        try:
+            chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
+        except Exception as exc:
+            chat_id = None
+            print("MAAREYE SAVINGS CHAT SAVE ERROR:", repr(exc))
+        return {
+            "success": True,
+            "financial_action": "SAVINGS_DEPOSIT",
+            "status": "COMPLETED",
+            "transaction_id": str(inserted.inserted_id),
+            "saving_id": str(saving_id),
+            "saving_title": chosen.get("title"),
+            "amount": amount,
+            "previous_saving_balance": old_balance,
+            "current_saving_balance": new_balance,
+            "account_name": account_doc.get("name"),
+            "previous_account_balance": round(account_previous_balance, 2),
+            "current_account_balance": round(account_previous_balance - amount, 2),
+            "available_balance_before_deposit": available,
+            "message_id": chat_id,
+            "answer": answer
+        }, 200
+
+    # ---------------------------- NORMAL INCOME / EXPENSE ---------------------
+    if action not in {"income", "expense"}:
+        return None
+
+    explicit_account = data.get("account_id")
+    account_id = None
+    if explicit_account:
+        try:
+            account_id = ObjectId(str(explicit_account))
+        except Exception:
+            return {
+                "success": True, "action_required": True,
+                "financial_action": action.upper(), "status": "INVALID_ACCOUNT_ID",
+                "answer": "account_id-ga la soo diray sax ma aha. Fadlan dooro account sax ah."
+            }, 400
+    else:
+        latest = mongo.db.transactions.find_one(
+            user_query,
+            {"account_id": 1},
+            sort=[("date", -1), ("created_at", -1), ("_id", -1)]
+        )
+        if latest and latest.get("account_id") is not None:
+            account_id = latest.get("account_id")
+
+    if account_id is None:
+        return {
+            "success": True, "action_required": True,
+            "financial_action": action.upper(), "status": "NEEDS_ACCOUNT",
+            "answer": "Maareye ma helin account_id lagu kalsoonaan karo. Fadlan dooro account-ka lacagtu ka baxday ama ku soo gashay; wax transaction ah lama abuurin."
+        }, 200
+
+    # Verify the selected account belongs to this user and is active.
+    account_doc = mongo.db.accounts.find_one({
+        "_id": account_id,
+        **user_query,
+        "status": {"$ne": False}
+    })
+    if not account_doc:
+        return {
+            "success": False, "action_required": True,
+            "financial_action": action.upper(), "status": "ACCOUNT_NOT_FOUND",
+            "answer": "Account-ka la doortay lama helin ama adiga kuma laha. Wax transaction ah lama abuurin."
+        }, 404
+
+    category_type = "income" if action == "income" else "expense"
+    categories = list(mongo.db.categories.find({
+        **user_query,
+        "type": category_type,
+        "status": {"$ne": False}
+    }).limit(300))
+
+    lower_message = str(message or "").lower()
+    requested_category = str(data.get("category") or "").strip().lower()
+    requested_item = str(data.get("item") or "").strip()
+    candidates = []
+    for category_doc in categories:
+        cat_name = str(category_doc.get("name") or "").strip()
+        items = category_doc.get("items") or []
+        if isinstance(items, str):
+            items = [items]
+        clean_items = []
+        for raw_item in items if isinstance(items, (list, tuple)) else []:
+            cleaned = re.sub(r'^[\s\[\]"\\]+|[\s\[\]"\\]+$', "", str(raw_item)).strip()
+            cleaned = re.sub(r'\\["\']', "", cleaned).strip()
+            if cleaned:
+                clean_items.append(cleaned)
+        item_match = None
+        for item_name in clean_items:
+            if item_name.lower() in lower_message or item_name.lower().replace("received by ", "") in lower_message:
+                item_match = item_name
+                break
+        category_match = bool(
+            requested_category and (
+                requested_category == cat_name.lower()
+                or requested_category in cat_name.lower()
+            )
+        ) or bool(cat_name and cat_name.lower() in lower_message)
+        if requested_item:
+            item_match = requested_item
+        if category_match or item_match:
+            candidates.append((category_doc, item_match, category_match))
+
+    if requested_category:
+        candidates = [
+            row for row in candidates
+            if requested_category in str(row[0].get("name") or "").lower()
+            or requested_category == str(row[0].get("_id") or "").lower()
+        ]
+        if not candidates:
+            for category_doc in categories:
+                if requested_category == str(category_doc.get("_id") or "").lower():
+                    candidates.append((category_doc, requested_item or None, True))
+
+    if not candidates and len(categories) == 1:
+        candidates = [(categories[0], requested_item or None, True)]
+
+    if not candidates:
+        names = [str(item.get("name") or "") for item in categories if item.get("name")]
+        return {
+            "success": True, "action_required": True,
+            "financial_action": action.upper(), "status": "NEEDS_CATEGORY",
+            "categories": names[:30],
+            "answer": (
+                "Qaybta transaction-ka si la hubo looma aqoonsan. Fadlan sheeg category-ga "
+                + ((" ka mid ah: " + ", ".join(names[:12])) if names else " saxda ah")
+                + ". Wax record ah lama abuurin."
+            )
+        }, 200
+
+    category_doc, matched_item, _ = candidates[0]
+    category_name = str(category_doc.get("name") or "").strip()
+    item_name = requested_item or matched_item or category_name
+    description = str(data.get("description") or message or "").strip()[:1000]
+    note = str(data.get("note") or "").strip()[:1000]
+    reference_no = str(data.get("reference_no") or "").strip()[:100]
+
+    transaction_doc = {
+        "user_id": user_id,
+        "account_id": account_id,
+        "transaction_type": action,
+        "category": category_name,
+        "item": item_name,
+        "amount": float(amount),
+        "description": description,
+        "note": note,
+        "reference_no": reference_no,
+        "date": now,
+        "status": True,
+        "created_at": now,
+        "updated_at": now
+    }
+    # Update the real account balance as part of bookkeeping. Expenses are
+    # refused when the account has insufficient funds. The conditional update
+    # makes the check and decrement one atomic MongoDB operation.
+    try:
+        old_account_balance = float(account_doc.get("balance", 0) or 0)
+    except (TypeError, ValueError):
+        old_account_balance = 0.0
+
+    if action == "expense" and old_account_balance + 1e-9 < float(amount):
+        return {
+            "success": False, "action_required": True,
+            "financial_action": "EXPENSE", "status": "INSUFFICIENT_FUNDS",
+            "account": account_doc.get("name"),
+            "account_balance": round(old_account_balance, 2),
+            "requested_amount": round(float(amount), 2),
+            "answer": (
+                f"⛔ Kharashka lama diiwaangelin: account-ka **{account_doc.get('name') or 'la doortay'}** "
+                f"wuxuu leeyahay **${old_account_balance:,.2f}**, laakiin waxaad rabtaa inaad bixiso "
+                f"**${float(amount):,.2f}**. Wax transaction ah lama abuurin, balance-kana lama beddelin."
+            )
+        }, 409
+
+    balance_delta = -float(amount) if action == "expense" else float(amount)
+    balance_filter = {
+        "_id": account_id,
+        **user_query,
+        "status": {"$ne": False}
+    }
+    if action == "expense":
+        balance_filter["balance"] = {"$gte": float(amount)}
+
+    balance_update = mongo.db.accounts.update_one(
+        balance_filter,
+        {"$inc": {"balance": balance_delta}, "$set": {"updated_at": now}}
+    )
+    if balance_update.matched_count != 1:
+        latest_account = mongo.db.accounts.find_one({"_id": account_id, **user_query}) or {}
+        try:
+            latest_balance = float(latest_account.get("balance", 0) or 0)
+        except (TypeError, ValueError):
+            latest_balance = 0.0
+        return {
+            "success": False, "action_required": True,
+            "financial_action": action.upper(), "status": "INSUFFICIENT_FUNDS_OR_ACCOUNT_CHANGED",
+            "account_balance": round(latest_balance, 2),
+            "answer": (
+                f"⛔ Account-ka **{latest_account.get('name') or 'la doortay'}** lama cusboonaysiin. "
+                f"Balance-ka hadda waa **${latest_balance:,.2f}**; transaction lama abuurin."
+            )
+        }, 409
+
+    try:
+        inserted = mongo.db.transactions.insert_one(transaction_doc)
+    except Exception as exc:
+        # Compensate if the transaction document could not be inserted.
+        try:
+            mongo.db.accounts.update_one(
+                {"_id": account_id, **user_query},
+                {"$inc": {"balance": -balance_delta}, "$set": {"updated_at": now}}
+            )
+        except Exception as rollback_exc:
+            print("MAAREYE ACCOUNT BALANCE ROLLBACK ERROR:", repr(rollback_exc))
+        print("MAAREYE NORMAL TRANSACTION INSERT ERROR:", repr(exc))
+        return {
+            "success": False, "financial_action": action.upper(),
+            "status": "SAVE_FAILED",
+            "answer": "Transaction-ka lama kaydin. Maareye wuxuu isku dayay inuu account balance-kii hore celiyo; fadlan hubi account-ka iyo transactions-ka."
+        }, 500
+
+    new_account_balance = round(old_account_balance + balance_delta, 2)
+    action_label = "kharash" if action == "expense" else "dakhli"
+    answer = (
+        f"✅ {action_label.capitalize()} waa la diiwaangeliyey: **${amount:,.2f}**. "
+        f"Account: **{account_doc.get('name') or 'Account-kaaga'}**; "
+        f"balance-kii hore: **${old_account_balance:,.2f}**; "
+        f"balance-ka cusub: **${new_account_balance:,.2f}**. "
+        f"Category: **{category_name}**; item: **{item_name}**; "
+        f"transaction ID: `{inserted.inserted_id}`."
+    )
+    try:
+        chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
+    except Exception as exc:
+        chat_id = None
+        print("MAAREYE BOOKKEEPING CHAT SAVE ERROR:", repr(exc))
+    return {
+        "success": True,
+        "financial_action": action.upper(),
+        "status": "COMPLETED",
+        "transaction_id": str(inserted.inserted_id),
+        "transaction": {
+            "transaction_type": action,
+            "category": category_name,
+            "item": item_name,
+            "amount": amount,
+            "account_id": str(account_id),
+            "account_name": account_doc.get("name"),
+            "previous_account_balance": round(old_account_balance, 2),
+            "current_account_balance": new_account_balance
+        },
+        "message_id": chat_id,
+        "answer": answer
+    }, 200
+
+
 
 def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
                                   prompt="", extra=None):
@@ -133780,91 +134973,6 @@ def ai_assistant():
                     "Go'aankaaga maaliyadeed adigaa iska leh; digniintani "
                     "waxay joojinaysaa diyaarinta transfer-kan AI-ga oo keliya."
                 )
-            }), 200
-
-            # Use the live authenticated ledger to find the recipient.
-            recipient_key = str(recipient).strip().casefold()
-            person_match = None
-            for person in (
-                financial_context.get("person_summary", {}).get("people", [])
-                or []
-            ):
-                if str(
-                    person.get("normalized_name") or ""
-                ).casefold() == recipient_key:
-                    person_match = person
-                    break
-
-            # We do not silently create a recipient that does not exist
-            # in the user's trusted financial context.
-            if person_match is None:
-                return jsonify({
-                    "success": True,
-                    "action_required": True,
-                    "action": "TRANSFER",
-                    "status": "RECIPIENT_NOT_VERIFIED",
-                    "answer":
-                        "Qofka '" + recipient + "' kama helin "
-                        "Person Ledger-kaaga. Fadlan xaqiiji magaca "
-                        "saxda ah ka hor inta aan lacag-bixin la diyaarin."
-                }), 200
-
-            # Affordability check from trusted financial context.
-            available = None
-            for key in (
-                "available_balance",
-                "balance",
-                "current_balance",
-                "account_balance",
-                "total_balance"
-            ):
-                if financial_context.get(key) is not None:
-                    try:
-                        available = float(financial_context.get(key))
-                        break
-                    except Exception:
-                        pass
-
-            if available is not None and amount > available:
-                return jsonify({
-                    "success": True,
-                    "action_required": False,
-                    "action": "TRANSFER",
-                    "status": "INSUFFICIENT_FUNDS",
-                    "answer":
-                        f"Ma diyaarin karo lacag-bixinta ${amount:,.2f}; "
-                        f"available balance-ka la helay waa ${available:,.2f}."
-                }), 200
-
-            action_token = _maareye_ai_create_pending_action(
-                current_user_id,
-                amount,
-                person_match.get("person_name") or recipient,
-                message
-            )
-
-            return jsonify({
-                "success": True,
-                "action_required": True,
-                "action": "TRANSFER",
-                "status": "PENDING_CONFIRMATION",
-                "confirmation_token": action_token,
-                "transfer": {
-                    "recipient": person_match.get("person_name") or recipient,
-                    "amount": round(amount, 2),
-                    "currency": "USD",
-                    "historical_person_expense":
-                        round(
-                            float(person_match.get("expense") or 0),
-                            2
-                        ),
-                    "historical_transaction_count":
-                        int(person_match.get("transaction_count") or 0)
-                },
-                "answer":
-                    "Lacag-bixinta waa la diyaariyey, lacagtu weli ma bixin. "
-                    "Fadlan si cad u xaqiiji bixinta ka hor inta aan "
-                    "server-ka trusted-ka ahi fulin."
             }), 200
 
         # ============================================================
@@ -138142,6 +139250,45 @@ Do not fabricate database records.
 """
 
         # ============================================================
+        # TRUSTED BOOKKEEPING ACTIONS — SERVER-SIDE ENFORCEMENT
+        # ============================================================
+        # These are internal ledger records only. They never execute bank
+        # transfers. Withdrawals from savings are always blocked.
+        try:
+            if is_logged_in and current_user_id:
+                bookkeeping_action = _maareye_ai_detect_bookkeeping_action(
+                    original_message, data
+                )
+                if bookkeeping_action:
+                    action_result, action_status = _maareye_ai_execute_bookkeeping_action(
+                        bookkeeping_action,
+                        original_message,
+                        data,
+                        current_user_id,
+                        user_ids,
+                        financial_context
+                    )
+                    return jsonify(action_result), action_status
+            else:
+                bookkeeping_action = _maareye_ai_detect_bookkeeping_action(
+                    original_message, data
+                )
+                if bookkeeping_action:
+                    return jsonify({
+                        "success": False,
+                        "error": "authentication_required",
+                        "financial_action": bookkeeping_action.upper(),
+                        "answer": "Fadlan login samee marka hore. Transaction lama abuurin."
+                    }), 401
+        except Exception as bookkeeping_error:
+            print("MAAREYE AI BOOKKEEPING ACTION ERROR:", repr(bookkeeping_error))
+            return jsonify({
+                "success": False,
+                "error": "bookkeeping_action_failed",
+                "answer": "Diiwaangelinta lama xaqiijin sababo farsamo awgood. Fadlan hubi transactions-ka ka hor intaadan mar kale isku dayin."
+            }), 500
+
+        # ============================================================
         # FINAL PROMPT
         # ============================================================
 
@@ -139303,6 +140450,7 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
