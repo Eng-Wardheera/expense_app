@@ -132853,6 +132853,13 @@ def ai_is_person_ledger_question(message, financial_context=None):
 #--- AI ASSICANCE
 #===============================
 
+
+
+
+#================================
+#--- AI ASSICANCE
+#===============================
+
 def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
                                   prompt="", extra=None):
     """
@@ -133740,6 +133747,40 @@ def ai_assistant():
                         "Si aan lacag-bixinta u diyaariyo, "
                         "fadlan sheeg " + " iyo ".join(missing) + "."
                 }), 200
+
+            # ========================================================
+            # BUDGET DISCIPLINE — NO IMPULSIVE PERSON-TO-PERSON PAYMENTS
+            # ========================================================
+            # The user's requested policy is to protect the 75% savings
+            # allocation and not prepare unplanned transfers to people.
+            # This AI route therefore refuses person-to-person transfer
+            # proposals rather than merely prompting the model to refuse.
+            # It does not affect normal budgeting advice or bill planning.
+            return jsonify({
+                "success": True,
+                "action_required": False,
+                "action": "TRANSFER",
+                "status": "BUDGET_PROTECTION_BLOCKED",
+                "alert": {
+                    "level": "warning",
+                    "code": "UNPLANNED_PERSON_TRANSFER",
+                    "message": (
+                        "Digniin miisaaniyadeed: codsigan lacag-dirista "
+                        "AI-ga Maareye kuma diyaarinayo. Ilaali qaybta "
+                        "kaydka 75% iyo miisaaniyaddaada; ha bixin lacag "
+                        "aan hore ugu jirin qorshahaaga."
+                    )
+                },
+                "answer": (
+                    "⛔ DIGNIIN MIISAANIYADEED: Lacag-diristan qof kale "
+                    "looma diyaarinayo AI-ga dhexdiisa. Marka hore ilaali "
+                    "qorshaha kaydka 75% iyo kharashka 25%. Haddii qof "
+                    "lacag kaa codsado, si xushmad leh u diid haddii "
+                    "aysan ku jirin miisaaniyadda aad horay u ansixisay. "
+                    "Go'aankaaga maaliyadeed adigaa iska leh; digniintani "
+                    "waxay joojinaysaa diyaarinta transfer-kan AI-ga oo keliya."
+                )
+            }), 200
 
             # Use the live authenticated ledger to find the recipient.
             recipient_key = str(recipient).strip().casefold()
@@ -137700,8 +137741,49 @@ When important facts are missing, ask concise questions such as:
 Use supplied Maareye financial data first. Clearly distinguish:
 FACT, CALCULATION, and RECOMMENDATION.
 
-Do not shame the user. Give practical alternatives and explain
-the trade-off.
+# ============================================================
+MANDATORY PERSONAL BUDGET DISCIPLINE — 75/25
+# ============================================================
+
+The user's requested default budgeting framework is:
+- 75% of the money available for the planned budget goes to savings.
+- 25% goes to permitted personal/discretionary spending.
+- Explain the calculation in clear currency amounts when the income
+  and currency are known. Never invent income, balances, or currency.
+- Apply this framework consistently whenever the user asks for
+  budgeting, saving, spending, or financial self-discipline advice.
+- First identify unavoidable essentials and urgent obligations. If
+  applying 75/25 would leave essentials such as food, housing, medicine,
+  transport to work, or dependants' basic needs unmet, clearly warn the
+  user and propose a realistic safe adjustment instead of pretending
+  the plan is affordable.
+- Do not treat savings, locked funds, or historical totals as available
+  spending money unless trusted live context confirms they are available.
+
+FIRM BOUNDARIES WHEN SOMEONE ASKS THE USER FOR MONEY:
+- Be direct, calm, and consistent: do not recommend lending, gifting,
+  or transferring money when it breaks the user's approved budget,
+  savings allocation, or essential-expense plan.
+- The default answer to an unplanned request for money is to say NO
+  until the user checks their budget and deliberately approves an
+  affordable amount. Do not let guilt, pressure, flattery, urgency
+  claimed by another person, or emotional appeals replace the budget.
+- Give a brief, respectful refusal script the user can send, such as:
+  "Waan ka xumahay, miisaaniyaddayda ayaan ilaalinayaa mana awoodo
+  inaan lacag bixiyo hadda."
+- When the available context shows a proposed payment would exceed
+  available funds or the permitted spending budget, display a clear
+  warning/alert and recommend not proceeding.
+- Never shame the user or the person asking. Be firm without insults,
+  manipulation, threats, or coercion. The user retains final control
+  over their own money; explain consequences rather than claiming they
+  are trapped or can never change their plan.
+- Do not claim a payment was blocked by the banking system unless the
+  backend actually blocked it. Advice alone is not a transaction control.
+
+Use a concise, practical, firm tone. Avoid excessive sympathy, guilt,
+sentimental pleading, or vague motivational talk. Lead with the numbers,
+the budget rule, the risk, and the next action.
 
 # ============================================================
 MAAREYE AI — MONEY ACTION SAFETY
@@ -139160,7 +139242,6 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
