@@ -132928,6 +132928,59 @@ def ai_is_person_ledger_question(message, financial_context=None):
 #===============================
 
 
+# ---------------------------------------------------------------------------
+# MAAREYE AI MONGODB ID POLICY
+# Every document created by this AI module receives a BSON ObjectId _id.
+# Mongo reference fields are normalized to ObjectId when they contain a valid
+# 24-hex Mongo ID. user_id is stored as ObjectId for authenticated users.
+# ---------------------------------------------------------------------------
+def _maareye_ai_prepare_insert_document(document):
+    from bson import ObjectId
+
+    if not isinstance(document, dict):
+        raise TypeError("Maareye AI MongoDB insert requires a document dictionary")
+
+    prepared = dict(document)
+    raw_id = prepared.get("_id")
+    if isinstance(raw_id, ObjectId):
+        pass
+    elif raw_id is None or str(raw_id).strip() == "":
+        prepared["_id"] = ObjectId()
+    elif ObjectId.is_valid(str(raw_id).strip()):
+        prepared["_id"] = ObjectId(str(raw_id).strip())
+    else:
+        raise ValueError("Maareye AI documents must use a BSON ObjectId _id")
+
+    # A logged-in user's ID must be stored as ObjectId, not as a hex string.
+    raw_user_id = prepared.get("user_id")
+    if raw_user_id is not None and not isinstance(raw_user_id, ObjectId):
+        raw_user_id_text = str(raw_user_id).strip()
+        if not ObjectId.is_valid(raw_user_id_text):
+            raise ValueError("Maareye AI user_id must be a valid MongoDB ObjectId")
+        prepared["user_id"] = ObjectId(raw_user_id_text)
+
+    # Normalize Mongo reference IDs written by AI-created ledger/pending records.
+    reference_fields = (
+        "account_id", "saving_id", "funding_account_id", "from_account",
+        "to_account", "from_saving", "to_saving", "source_account_id",
+        "destination_account_id", "transaction_id"
+    )
+    for field in reference_fields:
+        value = prepared.get(field)
+        if value is None or value == "" or isinstance(value, ObjectId):
+            continue
+        value_text = str(value).strip()
+        if ObjectId.is_valid(value_text):
+            prepared[field] = ObjectId(value_text)
+
+    return prepared
+
+
+def _maareye_ai_insert_one(collection, document):
+    """Insert an AI-created document with strict Mongo ObjectId conventions."""
+    return collection.insert_one(_maareye_ai_prepare_insert_document(document))
+
+
 
 #================================
 #--- AI ASSICANCE
@@ -133000,7 +133053,7 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
         "received", "earned", "salary", "mushahar"
     )
     expense_words = (
-        "expense", "kharash", "spent", "spend", "bixiyay", "ku bixiyay",
+        "expense", "kharash", "spent", "spend", "bixiyay", "bixiyey", "ku bixiyay", "ku bixiyey",
         "ka baxay", "iibsaday", "iibsatay", "paid for", "purchase"
     )
     record_words = (
@@ -133044,8 +133097,9 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
 
 
 def _maareye_ai_bookkeeping_amount(message, data=None):
-    """Return a positive, explicit amount; never guess a numeric value."""
+    """Return a finite, positive, explicit amount; never guess a numeric value."""
     import re
+    import math
 
     data = data if isinstance(data, dict) else {}
     raw = data.get("amount")
@@ -133057,15 +133111,15 @@ def _maareye_ai_bookkeeping_amount(message, data=None):
             else:
                 raw_text = raw_text.replace(",", "")
             value = float(raw_text)
-            if value > 0:
+            if math.isfinite(value) and value > 0:
                 return round(value, 2)
         except (TypeError, ValueError):
             pass
 
     text = str(message or "")
-    # Accept common Somali/English money phrasing, including "0.75 centi".
-    # In this app's conversational convention, "0.75 centi" means $0.75,
-    # not 75 cents of a dollar divided again and not an unspecified amount.
+    # Accept common Somali/English money phrasing, including decimal amounts
+    # followed by "centi" or "senti" even when more Somali words follow.
+    # App convention: "0.5 centi" means $0.50.
     match = re.search(
         r"(?:\$|usd\s*)\s*([0-9]+(?:[.,][0-9]{1,2})?)"
         r"|([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:\$|usd|dollars?|doollar|centi|senti|cents?)\b",
@@ -133081,7 +133135,7 @@ def _maareye_ai_bookkeeping_amount(message, data=None):
         else:
             raw_value = raw_value.replace(",", "")
         value = float(raw_value)
-        return round(value, 2) if value > 0 else None
+        return round(value, 2) if math.isfinite(value) and value > 0 else None
     except (TypeError, ValueError):
         return None
 
@@ -133131,8 +133185,169 @@ def _maareye_ai_bookkeeping_save_chat(user_id, message, answer):
         "updated_at_eat": now.isoformat(),
         "financial_action": "BOOKKEEPING"
     }
-    result = mongo.db.ai_chat_messages.insert_one(document)
+    result = _maareye_ai_insert_one(mongo.db.ai_chat_messages, document)
     return str(result.inserted_id)
+
+
+def _maareye_ai_find_pending_savings_action(user_id):
+    """Return the newest pending savings confirmation, supporting legacy IDs."""
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    ids = [user_id]
+    try:
+        oid = user_id if isinstance(user_id, ObjectId) else ObjectId(str(user_id))
+        if oid not in ids:
+            ids.append(oid)
+        text_id = str(oid)
+        if text_id not in ids:
+            ids.append(text_id)
+    except Exception:
+        pass
+    try:
+        return mongo.db.ai_pending_financial_actions.find_one({
+            "user_id": {"$in": ids},
+            "action": "SAVINGS_DEPOSIT",
+            "status": "PENDING_CONFIRMATION",
+            "expires_at": {"$gt": datetime.now(timezone.utc)},
+        }, sort=[("created_at", -1)])
+    except Exception:
+        return None
+
+
+def _maareye_ai_history_text(history):
+    """Extract recent conversational text without trusting model-generated facts."""
+    pieces = []
+    if not isinstance(history, list):
+        return ""
+    for item in history[-12:]:
+        if isinstance(item, dict):
+            value = item.get("content") or item.get("message") or item.get("text") or item.get("answer") or ""
+            if isinstance(value, str):
+                pieces.append(value)
+        elif isinstance(item, str):
+            pieces.append(item)
+    return "\n".join(pieces)[-12000:]
+
+
+def _maareye_ai_savings_context_from_text(text, user_ids):
+    """Resolve a savings plan and an explicitly named funding account from live MongoDB."""
+    import re
+    from bson import ObjectId
+    user_query = _maareye_ai_bookkeeping_user_query(user_ids)
+    active_savings = list(mongo.db.savings.find({
+        **user_query, "status": {"$in": ["active", "ACTIVE", True]}
+    }).sort([("updated_at", -1), ("created_at", -1)]).limit(100))
+    lower = str(text or "").lower()
+    saving_matches = [x for x in active_savings if str(x.get("title") or "").strip() and str(x.get("title")).strip().lower() in lower]
+    saving = saving_matches[0] if len(saving_matches) == 1 else (active_savings[0] if len(active_savings) == 1 else None)
+
+    active_accounts = list(mongo.db.accounts.find({
+        **user_query, "status": {"$ne": False}
+    }).limit(100))
+    account_matches = [x for x in active_accounts if str(x.get("name") or "").strip() and str(x.get("name")).strip().lower() in lower]
+    account = account_matches[0] if len(account_matches) == 1 else None
+
+    # A supplied account ID may be used only when it belongs to this user.
+    account_id_match = re.search(r"(?<![0-9a-fA-F])[0-9a-fA-F]{24}(?![0-9a-fA-F])", str(text or ""))
+    if account is None and account_id_match:
+        try:
+            account = mongo.db.accounts.find_one({"_id": ObjectId(account_id_match.group(0)), **user_query, "status": {"$ne": False}})
+        except Exception:
+            account = None
+
+    # If the user did not specify a funding account, use the saving's linked account
+    # only if it resolves to a real account owned by the same user.
+    if account is None and saving and saving.get("account_id"):
+        account = mongo.db.accounts.find_one({"_id": saving.get("account_id"), **user_query, "status": {"$ne": False}})
+    return saving, account
+
+
+def _maareye_ai_prepare_savings_deposit(user_id, user_ids, message, data, history=None):
+    """Prepare (never execute) a savings deposit and request explicit confirmation."""
+    from datetime import datetime, timezone, timedelta
+    import math
+    data = data if isinstance(data, dict) else {}
+    full_text = str(message or "") + "\n" + _maareye_ai_history_text(history)
+    saving, account = _maareye_ai_savings_context_from_text(full_text, user_ids)
+    if not saving:
+        return {
+            "success": True, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+            "status": "CHOOSE_SAVING",
+            "answer": "Fadlan sheeg magaca kaydka aad rabto. Ma diyaarin karo dhigaalka ilaa kaydka saxda ah la aqoonsado."
+        }, 200
+    if not account:
+        return {
+            "success": False, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+            "status": "CHOOSE_FUNDING_ACCOUNT",
+            "answer": "Ma xaqiijin karo account-ka lacagta laga jarayo. Fadlan sheeg magaca account-ka saxda ah; waxba lama beddelin."
+        }, 409
+
+    amount = _maareye_ai_bookkeeping_amount(message, data)
+    try:
+        available = float(account.get("balance", 0) or 0)
+    except (TypeError, ValueError, OverflowError):
+        available = float("nan")
+    if not math.isfinite(available) or available < 0:
+        return {
+            "success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "INVALID_ACCOUNT_BALANCE",
+            "answer": "Balance-ka account-ka lama xaqiijin karo; waxba lama beddelin. Fadlan sax account-ka kadib mar kale isku day."
+        }, 409
+    available = round(available, 2)
+    if amount is None:
+        return {
+            "success": True, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+            "status": "NEEDS_AMOUNT", "account_name": account.get("name"),
+            "saving_title": saving.get("title"), "account_balance": available,
+            "answer": f"Waxaan helay account-ka **{account.get('name')}** iyo kaydka **{saving.get('title')}**. Balance-ka account-ku waa ${available:,.2f}. Fadlan sheeg qadarka saxda ah ee aad rabto inaad dhigato."
+        }, 200
+    if amount <= 0:
+        return {"success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "INVALID_AMOUNT", "answer": "Qadarku waa inuu ka weynaadaa $0.00. Waxba lama beddelin."}, 400
+    if amount > available:
+        return {
+            "success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "INSUFFICIENT_FUNDS",
+            "account_balance": available, "requested_amount": amount,
+            "answer": f"❌ Lacag kugu filan kuma jirto **{account.get('name')}**. Balance-ka dhabta ah waa ${available:,.2f}; waxaad codsatay ${amount:,.2f}. Deposit lama samayn, waxna lama beddelin."
+        }, 409
+
+    try:
+        saving_balance = round(float(saving.get("current_balance", 0) or 0), 2)
+        target = round(float(saving.get("target_amount", 0) or 0), 2)
+    except (TypeError, ValueError, OverflowError):
+        saving_balance, target = 0.0, 0.0
+    new_saving_balance = round(saving_balance + amount, 2)
+    remaining = max(round(target - new_saving_balance, 2), 0.0) if target > 0 else 0.0
+    progress = min(round(new_saving_balance / target * 100, 2), 100.0) if target > 0 else 0.0
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    pending = {
+        "token": token, "user_id": user_id, "action": "SAVINGS_DEPOSIT",
+        "amount": amount, "saving_id": saving["_id"], "saving_title": str(saving.get("title") or ""),
+        "funding_account_id": account["_id"], "funding_account_name": str(account.get("name") or ""),
+        "source": "ai_assistant", "original_message": str(message or ""),
+        "status": "PENDING_CONFIRMATION", "created_at": now,
+        "expires_at": now + timedelta(minutes=10),
+    }
+    _maareye_ai_insert_one(mongo.db.ai_pending_financial_actions, pending)
+    return {
+        "success": True, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+        "status": "CONFIRMATION_REQUIRED", "confirmation_token": token,
+        "amount": amount, "account_name": account.get("name"),
+        "account_balance_before": available, "account_balance_after": round(available - amount, 2),
+        "saving_id": str(saving["_id"]), "saving_title": saving.get("title"),
+        "saving_balance_before": saving_balance, "saving_balance_after": new_saving_balance,
+        "target_amount": target, "remaining_after": remaining, "progress_after": progress,
+        "answer": (
+            "📋 **Xaqiijinta Dhigaalka Kaydka**\n\n"
+            f"- Account-ka laga jarayo: **{account.get('name')}** (hadda ${available:,.2f})\n"
+            f"- Kaydka lagu darayo: **{saving.get('title')}** (hadda ${saving_balance:,.2f})\n"
+            f"- Qadarka: **${amount:,.2f}**\n"
+            f"- Account-ka hadhay: **${available - amount:,.2f}**\n"
+            f"- Kaydka cusub: **${new_saving_balance:,.2f}**\n"
+            f"- Target-ka ka dhiman: **${remaining:,.2f}** ({progress:.2f}% dhammaystiran)\n\n"
+            "⚠️ Weli wax lacag ah lama jarin. Si loo fuliyo, ku jawaab **Haa** 10 daqiiqo gudahood; ku jawaab **Maya** si loo joojiyo."
+        )
+    }, 200
 
 
 def _maareye_ai_execute_bookkeeping_action(
@@ -133177,11 +133392,146 @@ def _maareye_ai_execute_bookkeeping_action(
             # its internal ledger effects against the linked saving and account.
             saving_tx = mongo.db.saving_transactions.find_one({"_id": transaction_oid, **user_query})
             if not saving_tx:
+                # Account-to-account transfer records live in account_transfers.
+                # Deleting a completed transfer reverses both ledger balances first;
+                # it refuses if the destination no longer has enough funds to reverse.
+                transfer_doc = mongo.db.account_transfers.find_one({"_id": transaction_oid, **user_query})
+                if transfer_doc:
+                    transfer_status = str(transfer_doc.get("status") or "").strip().lower()
+                    transfer_type = str(transfer_doc.get("transfer_type") or "").strip().lower()
+                    direction = str(transfer_doc.get("direction") or "").strip().lower()
+                    if transfer_status not in {"completed", "complete", "success", "successful"}:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "TRANSFER_NOT_COMPLETED",
+                            "answer": f"Wareejintan status-keedu waa '{transfer_doc.get('status')}'. Kaliya completed transfer ayaa laga rogi karaa; waxba lama beddelin."
+                        }, 409
+                    if transfer_type not in {"account_to_account", "account_transfer", "transfer"} or direction not in {"transfer", "account_to_account", ""}:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "UNSUPPORTED_TRANSFER_TYPE",
+                            "answer": "Nooca account transfer-kan lama aqoonsan; waxba lama beddelin."
+                        }, 409
+                    try:
+                        transfer_amount = round(float(transfer_doc.get("amount", 0) or 0), 2)
+                    except (TypeError, ValueError):
+                        transfer_amount = 0.0
+                    if transfer_amount <= 0:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "INVALID_TRANSACTION_AMOUNT",
+                            "answer": "Qadarka account transfer-kan ma saxna; waxba lama beddelin."
+                        }, 409
+
+                    from_account_id = transfer_doc.get("from_account")
+                    to_account_id = transfer_doc.get("to_account")
+                    if not from_account_id or not to_account_id or from_account_id == to_account_id:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "INVALID_TRANSFER_ACCOUNTS",
+                            "answer": "Account-ka laga jaray ama account-ka loo shubay lama xaqiijin karo. Waxba lama beddelin."
+                        }, 409
+                    from_doc = mongo.db.accounts.find_one({"_id": from_account_id, **user_query})
+                    to_doc = mongo.db.accounts.find_one({"_id": to_account_id, **user_query})
+                    if not from_doc or not to_doc:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "TRANSFER_ACCOUNT_NOT_FOUND",
+                            "answer": "Labada account ee wareejinta lama helin ama kuma xirna user-kan. Waxba lama beddelin."
+                        }, 409
+                    try:
+                        from_before = float(from_doc.get("balance", 0) or 0)
+                        to_before = float(to_doc.get("balance", 0) or 0)
+                    except (TypeError, ValueError):
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "INVALID_ACCOUNT_BALANCE",
+                            "answer": "Balance-ka account transfer-ka ma saxna; waxba lama beddelin."
+                        }, 409
+                    if to_before + 1e-9 < transfer_amount:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "INSUFFICIENT_BALANCE_TO_REVERSE",
+                            "answer": (f"Wareejinta lama tirtiri karo: **{to_doc.get('name') or 'Account-ka loo shubay'}** "
+                                       f"wuxuu hadda leeyahay ${to_before:,.2f}, halka ${transfer_amount:,.2f} loo baahan yahay in dib looga jaro. "
+                                       "Waxba lama beddelin.")
+                        }, 409
+
+                    # First debit the credited destination with compare-and-set;
+                    # then refund the original source. Roll back on any failure.
+                    to_update = mongo.db.accounts.update_one(
+                        {"_id": to_doc["_id"], **user_query, "balance": {"$gte": transfer_amount, "$eq": to_doc.get("balance", 0)}},
+                        {"$inc": {"balance": -transfer_amount}, "$set": {"updated_at": now}}
+                    )
+                    if to_update.matched_count != 1:
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "ACCOUNT_CHANGED_RETRY",
+                            "answer": "Balance-ka account-ka loo shubay wuu isbeddelay. Wareejinta lama tirtirin; mar kale isku day."
+                        }, 409
+                    to_after = round(to_before - transfer_amount, 2)
+                    from_update = mongo.db.accounts.update_one(
+                        {"_id": from_doc["_id"], **user_query, "balance": from_doc.get("balance", 0)},
+                        {"$inc": {"balance": transfer_amount}, "$set": {"updated_at": now}}
+                    )
+                    if from_update.matched_count != 1:
+                        mongo.db.accounts.update_one(
+                            {"_id": to_doc["_id"], **user_query, "balance": to_after},
+                            {"$inc": {"balance": transfer_amount}, "$set": {"updated_at": now}}
+                        )
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "ACCOUNT_CHANGED_RETRY",
+                            "answer": "Account-kii lacagta laga jaray wuu isbeddelay; dib-u-celinta waa la rogay intii suurtagal ah. Wareejinta lama tirtirin."
+                        }, 409
+                    from_after = round(from_before + transfer_amount, 2)
+                    try:
+                        deleted_transfer = mongo.db.account_transfers.delete_one({"_id": transaction_oid, **user_query, "status": transfer_doc.get("status")})
+                    except Exception as exc:
+                        deleted_transfer = None
+                        print("MAAREYE ACCOUNT TRANSFER DELETE ERROR:", repr(exc))
+                    if not deleted_transfer or deleted_transfer.deleted_count != 1:
+                        mongo.db.accounts.update_one(
+                            {"_id": from_doc["_id"], **user_query, "balance": from_after},
+                            {"$inc": {"balance": -transfer_amount}, "$set": {"updated_at": now}}
+                        )
+                        mongo.db.accounts.update_one(
+                            {"_id": to_doc["_id"], **user_query, "balance": to_after},
+                            {"$inc": {"balance": transfer_amount}, "$set": {"updated_at": now}}
+                        )
+                        return {
+                            "success": False, "financial_action": "TRANSACTION_DELETE",
+                            "status": "DELETE_FAILED",
+                            "answer": "Record-ka wareejinta lama tirtirin; Maareye wuxuu isku dayay inuu labada balance celiyo. Fadlan hubi xogta."
+                        }, 500
+
+                    answer = (
+                        f"✅ Account transfer waa la tirtiray, balance-yadiina waa la rogay. "
+                        f"Reference: `{transfer_doc.get('reference') or transfer_doc.get('reference_no') or str(transaction_oid)}`; "
+                        f"qadarka: ${transfer_amount:,.2f}. "
+                        f"{from_doc.get('name') or 'From account'}: ${from_before:,.2f} → ${from_after:,.2f}; "
+                        f"{to_doc.get('name') or 'To account'}: ${to_before:,.2f} → ${to_after:,.2f}."
+                    )
+                    try:
+                        chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
+                    except Exception as exc:
+                        chat_id = None
+                        print("MAAREYE ACCOUNT TRANSFER DELETE CHAT SAVE ERROR:", repr(exc))
+                    return {
+                        "success": True, "financial_action": "TRANSACTION_DELETE", "status": "COMPLETED",
+                        "transaction_id": str(transaction_oid), "transaction_collection": "account_transfers",
+                        "transfer_type": transfer_type, "amount": transfer_amount,
+                        "from_account_id": str(from_account_id), "to_account_id": str(to_account_id),
+                        "previous_from_account_balance": round(from_before, 2), "current_from_account_balance": from_after,
+                        "previous_to_account_balance": round(to_before, 2), "current_to_account_balance": to_after,
+                        "message_id": chat_id, "answer": answer
+                    }, 200
+
                 return {
                     "success": False,
                     "financial_action": "TRANSACTION_DELETE",
                     "status": "TRANSACTION_NOT_FOUND",
-                    "answer": "Transaction-kan lagama helin transactions ama saving_transactions akoonkaaga. Waxba lama beddelin.",
+                    "answer": "Transaction-kan lagama helin transactions, saving_transactions ama account_transfers akoonkaaga. Waxba lama beddelin.",
                 }, 404
 
             saving_type = str(saving_tx.get("transaction_type") or "").strip().lower()
@@ -133573,22 +133923,59 @@ def _maareye_ai_execute_bookkeeping_action(
                 }, 200
 
         saving_id = chosen.get("_id")
-        account_id = chosen.get("account_id")
-        if not saving_id or not account_id:
+        linked_account_id = chosen.get("account_id")
+        if not saving_id:
             return {
                 "success": False, "financial_action": "SAVINGS_DEPOSIT",
                 "status": "SAVING_ACCOUNT_INCOMPLETE",
-                "answer": "Kaydkan ma laha saving ID ama account_id sax ah; waxba lama beddelin."
+                "answer": "Kaydkan ma laha saving ID sax ah; waxba lama beddelin."
             }, 409
 
-        # Always use the actual linked account balance, never a model estimate
-        # or a stale balance inferred from chat history.
-        account_doc = mongo.db.accounts.find_one({
-            "_id": account_id, **user_query, "status": {"$ne": False}
-        })
-        if not account_doc:
+        # A deposit may explicitly name a funding wallet/account different from
+        # the account associated with the savings goal. Do NOT rewrite the
+        # saving's account_id to the funding wallet.
+        requested_funding_account = str(
+            data.get("funding_account_id") or data.get("funding_account_name") or ""
+        ).strip()
+        account_doc = None
+        if requested_funding_account:
+            try:
+                requested_oid = ObjectId(requested_funding_account)
+            except Exception:
+                requested_oid = None
+            if requested_oid:
+                account_doc = mongo.db.accounts.find_one({
+                    "_id": requested_oid, **user_query, "status": {"$ne": False}
+                })
+            if not account_doc:
+                matches = list(mongo.db.accounts.find({
+                    **user_query, "status": {"$ne": False},
+                    "name": {"$regex": re.escape(requested_funding_account), "$options": "i"}
+                }).limit(2))
+                if len(matches) == 1:
+                    account_doc = matches[0]
+            if not account_doc:
+                return {
+                    "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "FUNDING_ACCOUNT_NOT_FOUND",
+                    "answer": "Account-ka lacagta laga jarayo lama xaqiijin karo. Kaydka iyo account-ka midna lama beddelin."
+                }, 404
+            account_id = account_doc["_id"]
+        else:
+            account_id = linked_account_id
+            if not account_id:
+                return {
+                    "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                    "status": "SAVING_ACCOUNT_INCOMPLETE",
+                    "answer": "Kaydkan ma laha account ku xiran, mana aadan sheegin account-ka laga jarayo. Waxba lama beddelin."
+                }, 409
+            account_doc = mongo.db.accounts.find_one({
+                "_id": account_id, **user_query, "status": {"$ne": False}
+            })
+        if not account_doc and not requested_funding_account:
             # Repair stale legacy saving.account_id only when the correct account
-            # can be resolved unambiguously (explicit name/ID or one active account).
+            # can be resolved unambiguously. Never relink a saving when a separate
+            # funding account was explicitly chosen.
             requested_account = str(
                 data.get("account_id") or data.get("account_name") or data.get("account") or ""
             ).strip()
@@ -133633,10 +134020,25 @@ def _maareye_ai_execute_bookkeeping_action(
                     "status": "SAVING_ACCOUNT_NOT_FOUND",
                     "answer": "Account-ka ku xiran kaydkan lama helin. Haddii account_id-gu duugoobay, sheeg magaca/ID-ga account-ka saxda ah. Waxba lama beddelin."
                 }, 404
+        import math
+
         try:
             account_previous_balance = float(account_doc.get("balance", 0) or 0)
-        except (TypeError, ValueError):
-            account_previous_balance = 0.0
+        except (TypeError, ValueError, OverflowError):
+            account_previous_balance = float("nan")
+
+        if not math.isfinite(account_previous_balance) or account_previous_balance < 0:
+            return {
+                "success": False,
+                "financial_action": "SAVINGS_DEPOSIT",
+                "status": "INVALID_ACCOUNT_BALANCE",
+                "answer": (
+                    f"Account-ka **{account_doc.get('name') or 'la doortay'}** "
+                    "balance-kiisa lama xaqiijin karo. Kaydka lama beddelin. "
+                    "Fadlan sax balance-ka account-ka kadibna mar kale isku day."
+                )
+            }, 409
+
         available = round(account_previous_balance, 2)
 
         if amount is None and all_available_requested:
@@ -133654,7 +134056,11 @@ def _maareye_ai_execute_bookkeeping_action(
                 "status": "INSUFFICIENT_FUNDS",
                 "account_balance": available,
                 "requested_amount": amount,
-                "answer": f"Kaydka lama kordhin. Account-ka **{account_doc.get('name') or 'la doortay'}** wuxuu leeyahay ${available:,.2f}, waxaadna codsatay ${amount:,.2f}. Waxba lama beddelin."
+                "answer": (
+                    f"❌ Lacag kugu filan kuma jirto account-ka **{account_doc.get('name') or 'la doortay'}**. "
+                    f"Balance-ka dhabta ah waa ${available:,.2f}, halka aad codsatay ${amount:,.2f}. "
+                    "Deposit-ka waa la diiday; account-ka iyo saving-ka midna lama beddelin."
+                )
             }, 409
 
         # Debit the linked account with an atomic balance guard before recording
@@ -133756,7 +134162,7 @@ def _maareye_ai_execute_bookkeeping_action(
             "updated_at": now
         }
         try:
-            inserted = mongo.db.saving_transactions.insert_one(saving_transaction)
+            inserted = _maareye_ai_insert_one(mongo.db.saving_transactions, saving_transaction)
         except Exception as exc:
             # Roll back the balance if the transaction record could not be saved.
             rollback_fields = {
@@ -134000,7 +134406,7 @@ def _maareye_ai_execute_bookkeeping_action(
         }, 409
 
     try:
-        inserted = mongo.db.transactions.insert_one(transaction_doc)
+        inserted = _maareye_ai_insert_one(mongo.db.transactions, transaction_doc)
     except Exception as exc:
         # Compensate if the transaction document could not be inserted.
         try:
@@ -134124,7 +134530,7 @@ def _maareye_ai_cloudinary_store(raw_bytes, mime_type, user_id, media_kind,
         "metadata": extra or {},
         "is_shared": False
     }
-    saved = mongo.db.ai_media_assets.insert_one(record)
+    saved = _maareye_ai_insert_one(mongo.db.ai_media_assets, record)
     record["_id"] = str(saved.inserted_id)
     record["created_at"] = now.isoformat()
     return record
@@ -134173,7 +134579,7 @@ def _maareye_ai_save_visual_chat(user_id, prompt, answer, media_record,
         "created_at_eat": now.isoformat(),
         "updated_at_eat": now.isoformat()
     }
-    result = mongo.db.ai_chat_messages.insert_one(document)
+    result = _maareye_ai_insert_one(mongo.db.ai_chat_messages, document)
     return str(result.inserted_id)
 
 
@@ -134465,7 +134871,7 @@ def _maareye_ai_create_pending_action(user_id, amount, person, message):
     from datetime import timedelta
     document["expires_at"] = now + timedelta(minutes=5)
 
-    mongo.db.ai_pending_financial_actions.insert_one(document)
+    _maareye_ai_insert_one(mongo.db.ai_pending_financial_actions, document)
     return token
 
 
@@ -134473,10 +134879,22 @@ def _maareye_ai_find_pending_action(token, user_id):
     if not token:
         return None
 
+    from bson import ObjectId
+    ids = [user_id]
+    try:
+        oid = user_id if isinstance(user_id, ObjectId) else ObjectId(str(user_id))
+        if oid not in ids:
+            ids.append(oid)
+        text_id = str(oid)
+        if text_id not in ids:
+            ids.append(text_id)
+    except Exception:
+        pass
+
     return mongo.db.ai_pending_financial_actions.find_one({
         "token": str(token),
-        "user_id": user_id,
-        "action": "TRANSFER",
+        "user_id": {"$in": ids},
+        "action": {"$in": ["TRANSFER", "SAVINGS_DEPOSIT"]},
         "status": "PENDING_CONFIRMATION"
     })
 
@@ -134575,6 +134993,51 @@ def ai_confirm_financial_action():
                     f"Xaqiiji: ma rabtaa in ${amount:,.2f} "
                     f"loo diro {recipient}?"
             }), 200
+
+        if pending.get("action") == "SAVINGS_DEPOSIT":
+            if not confirmed:
+                return jsonify({
+                    "success": True, "action_required": True, "status": "CONFIRMATION_REQUIRED",
+                    "financial_action": "SAVINGS_DEPOSIT", "confirmation_token": token,
+                    "amount": amount, "answer": f"Xaqiiji dhigaalka ${amount:,.2f} ee kaydka {pending.get('saving_title') or ''}?"
+                }), 200
+            claim = mongo.db.ai_pending_financial_actions.update_one(
+                {"_id": pending["_id"], "status": "PENDING_CONFIRMATION", "expires_at": {"$gt": datetime.now(timezone.utc)}},
+                {"$set": {"status": "PROCESSING", "processing_at": datetime.now(timezone.utc)}}
+            )
+            if claim.modified_count != 1:
+                return jsonify({"success": False, "error": "action_already_processed_or_expired", "answer": "Codsigan mar hore ayaa loo qabtay ama wuu dhacay."}), 409
+            try:
+                exec_data = {
+                    "amount": pending.get("amount"), "saving_id": str(pending.get("saving_id") or ""),
+                    "funding_account_id": str(pending.get("funding_account_id") or ""),
+                    "description": "Confirmed AI savings deposit"
+                }
+                confirmation_user_ids = [user_id, str(user_id)]
+                try:
+                    from bson import ObjectId
+                    parsed_user_oid = ObjectId(str(user_id))
+                    if parsed_user_oid not in confirmation_user_ids:
+                        confirmation_user_ids.append(parsed_user_oid)
+                except Exception:
+                    pass
+                result, result_status = _maareye_ai_execute_bookkeeping_action(
+                    "saving_deposit", pending.get("original_message") or "Savings deposit confirmed",
+                    exec_data, user_id, confirmation_user_ids, {}
+                )
+                final_state = "COMPLETED" if result_status < 400 and result.get("status") == "COMPLETED" else "FAILED"
+                mongo.db.ai_pending_financial_actions.update_one(
+                    {"_id": pending["_id"], "status": "PROCESSING"},
+                    {"$set": {"status": final_state, "completed_at": datetime.now(timezone.utc)}}
+                )
+                return jsonify(result), result_status
+            except Exception as exc:
+                mongo.db.ai_pending_financial_actions.update_one(
+                    {"_id": pending["_id"], "status": "PROCESSING"},
+                    {"$set": {"status": "FAILED", "completed_at": datetime.now(timezone.utc)}}
+                )
+                print("MAAREYE SAVINGS CONFIRM ENDPOINT ERROR:", repr(exc))
+                return jsonify({"success": False, "error": "savings_deposit_failed", "answer": "Dhigaalka lama xaqiijin sababo farsamo awgood. Hubi balance-ka ka hor isku day kale."}), 500
 
         executor = globals().get("ai_execute_transfer")
 
@@ -139250,6 +139713,197 @@ Do not fabricate database records.
 """
 
         # ============================================================
+        # SAVINGS DEPOSIT CONFIRMATION FLOW
+        # ============================================================
+        # Follow-up messages such as "$5", "Haa", or "Maya" are connected to
+        # a user-scoped pending savings action instead of being sent back to the
+        # language model, which previously repeated summaries without executing.
+        if is_logged_in and current_user_id:
+            try:
+                from datetime import datetime, timezone, timedelta
+                pending_saving = _maareye_ai_find_pending_savings_action(current_user_id)
+                lower_current = str(original_message or "").strip().lower()
+                yes_words = {"haa", "haa.", "haye", "yes", "confirm", "xaqiiji", "waan xaqiijinayaa", "fuli", "fuli hadda"}
+                no_words = {"maya", "maya.", "no", "cancel", "jooji", "ka noqo", "baaji"}
+                if pending_saving and lower_current in no_words:
+                    mongo.db.ai_pending_financial_actions.update_one(
+                        {"_id": pending_saving["_id"], "status": "PENDING_CONFIRMATION"},
+                        {"$set": {"status": "CANCELLED", "cancelled_at": datetime.now(timezone.utc)}}
+                    )
+                    return jsonify({
+                        "success": True, "financial_action": "SAVINGS_DEPOSIT", "status": "CANCELLED",
+                        "answer": "Waa la joojiyey. Account-ka iyo kaydka midna lama beddelin."
+                    }), 200
+
+                if pending_saving and lower_current in yes_words:
+                    # Claim the pending proposal before running it so a double-click
+                    # or duplicate request cannot debit the account twice.
+                    claimed = mongo.db.ai_pending_financial_actions.update_one(
+                        {"_id": pending_saving["_id"], "status": "PENDING_CONFIRMATION",
+                         "expires_at": {"$gt": datetime.now(timezone.utc)}},
+                        {"$set": {"status": "PROCESSING", "processing_at": datetime.now(timezone.utc)}}
+                    )
+                    if claimed.modified_count != 1:
+                        return jsonify({
+                            "success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "ALREADY_PROCESSED_OR_EXPIRED",
+                            "answer": "Codsigan mar hore ayaa loo qabtay ama wuu dhacay. Fadlan hubi balance-ka iyo saving transactions-ka."
+                        }), 409
+                    from bson import ObjectId
+                    exec_data = {
+                        "amount": pending_saving.get("amount"),
+                        "saving_id": str(pending_saving.get("saving_id") or ""),
+                        "funding_account_id": str(pending_saving.get("funding_account_id") or ""),
+                        "description": "Confirmed AI savings deposit",
+                    }
+                    try:
+                        action_result, action_status = _maareye_ai_execute_bookkeeping_action(
+                            "saving_deposit", pending_saving.get("original_message") or original_message,
+                            exec_data, current_user_id, user_ids, financial_context
+                        )
+                        final_status = "COMPLETED" if action_status < 400 and action_result.get("status") == "COMPLETED" else "FAILED"
+                        mongo.db.ai_pending_financial_actions.update_one(
+                            {"_id": pending_saving["_id"], "status": "PROCESSING"},
+                            {"$set": {"status": final_status, "completed_at": datetime.now(timezone.utc),
+                                      "execution_status": action_result.get("status")}}
+                        )
+                        return jsonify(action_result), action_status
+                    except Exception:
+                        mongo.db.ai_pending_financial_actions.update_one(
+                            {"_id": pending_saving["_id"], "status": "PROCESSING"},
+                            {"$set": {"status": "FAILED", "completed_at": datetime.now(timezone.utc)}}
+                        )
+                        raise
+
+                # A pending draft without an amount can be completed by the next
+                # explicit amount message, then a fresh confirmation is requested.
+                if pending_saving and not pending_saving.get("amount"):
+                    followup_amount = _maareye_ai_bookkeeping_amount(original_message, data)
+                    if followup_amount:
+                        mongo.db.ai_pending_financial_actions.update_one(
+                            {"_id": pending_saving["_id"], "status": "PENDING_CONFIRMATION"},
+                            {"$set": {"amount": followup_amount, "updated_at": datetime.now(timezone.utc)}}
+                        )
+                        pending_saving["amount"] = followup_amount
+                        # Refresh live balance and saving data before showing the confirmation.
+                        from bson import ObjectId
+                        saving_id_value = pending_saving.get("saving_id")
+                        funding_id_value = pending_saving.get("funding_account_id")
+                        saving_doc = mongo.db.savings.find_one({"_id": saving_id_value, **_maareye_ai_bookkeeping_user_query(user_ids)})
+                        funding_doc = mongo.db.accounts.find_one({"_id": funding_id_value, **_maareye_ai_bookkeeping_user_query(user_ids), "status": {"$ne": False}})
+                        if not saving_doc or not funding_doc:
+                            mongo.db.ai_pending_financial_actions.update_one({"_id": pending_saving["_id"]}, {"$set": {"status": "FAILED"}})
+                            return jsonify({"success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "ACCOUNT_OR_SAVING_NOT_FOUND", "answer": "Account-ka ama kaydka lama xaqiijin karo. Waxba lama beddelin."}), 409
+                        balance = round(float(funding_doc.get("balance", 0) or 0), 2)
+                        amount = round(float(followup_amount), 2)
+                        if amount > balance:
+                            mongo.db.ai_pending_financial_actions.update_one({"_id": pending_saving["_id"]}, {"$set": {"status": "FAILED"}})
+                            return jsonify({"success": False, "financial_action": "SAVINGS_DEPOSIT", "status": "INSUFFICIENT_FUNDS", "answer": f"Lacag kugu filan kuma jirto {funding_doc.get('name')}. Balance-ku waa ${balance:,.2f}, waxaad codsatay ${amount:,.2f}. Waxba lama beddelin."}), 409
+                        saving_balance = round(float(saving_doc.get("current_balance", 0) or 0), 2)
+                        target = round(float(saving_doc.get("target_amount", 0) or 0), 2)
+                        new_saving_balance = round(saving_balance + amount, 2)
+                        remaining = max(round(target - new_saving_balance, 2), 0.0) if target > 0 else 0.0
+                        progress = min(round(new_saving_balance / target * 100, 2), 100.0) if target > 0 else 0.0
+                        token = pending_saving.get("token")
+                        return jsonify({
+                            "success": True, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+                            "status": "CONFIRMATION_REQUIRED", "confirmation_token": token,
+                            "amount": amount, "account_name": funding_doc.get("name"), "account_balance_before": balance,
+                            "account_balance_after": round(balance - amount, 2), "saving_title": saving_doc.get("title"),
+                            "saving_balance_before": saving_balance, "saving_balance_after": new_saving_balance,
+                            "remaining_after": remaining, "progress_after": progress,
+                            "answer": f"📋 **Xaqiijinta Dhigaalka Kaydka**\n\n- Account laga jarayo: **{funding_doc.get('name')}** (hadda ${balance:,.2f})\n- Kaydka: **{saving_doc.get('title')}** (hadda ${saving_balance:,.2f})\n- Qadarka: **${amount:,.2f}**\n- Account-ka hadhaya: **${balance-amount:,.2f}**\n- Kaydka cusub: **${new_saving_balance:,.2f}**\n- Target-ka ka dhiman: **${remaining:,.2f}** ({progress:.2f}%)\n\nWeli wax lacag ah lama jarin. Ku jawaab **Haa** si aad u xaqiijiso ama **Maya** si aad u joojiso."
+                        }), 200
+
+                # If an amount is already awaiting confirmation, a follow-up like
+                # "Savings Deposit baan u rabaa" or "$5" must show the same live
+                # confirmation summary again instead of returning to the LLM.
+                if pending_saving and pending_saving.get("amount"):
+                    mentions_savings_again = any(term in lower_current for term in (
+                        "saving", "savings", "kayd", "kaydi", "deposit", "$", "dollar", "haa"
+                    ))
+                    if mentions_savings_again:
+                        saving_doc = mongo.db.savings.find_one({
+                            "_id": pending_saving.get("saving_id"),
+                            **_maareye_ai_bookkeeping_user_query(user_ids)
+                        })
+                        funding_doc = mongo.db.accounts.find_one({
+                            "_id": pending_saving.get("funding_account_id"),
+                            **_maareye_ai_bookkeeping_user_query(user_ids),
+                            "status": {"$ne": False}
+                        })
+                        amount = round(float(pending_saving.get("amount") or 0), 2)
+                        if not saving_doc or not funding_doc:
+                            return jsonify({
+                                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                                "status": "ACCOUNT_OR_SAVING_NOT_FOUND",
+                                "answer": "Account-ka ama kaydka lama xaqiijin karo. Waxba lama beddelin."
+                            }), 409
+                        balance = round(float(funding_doc.get("balance", 0) or 0), 2)
+                        saving_balance = round(float(saving_doc.get("current_balance", 0) or 0), 2)
+                        target = round(float(saving_doc.get("target_amount", 0) or 0), 2)
+                        if amount > balance:
+                            mongo.db.ai_pending_financial_actions.update_one(
+                                {"_id": pending_saving["_id"], "status": "PENDING_CONFIRMATION"},
+                                {"$set": {"status": "FAILED", "failed_at": datetime.now(timezone.utc)}}
+                            )
+                            return jsonify({
+                                "success": False, "financial_action": "SAVINGS_DEPOSIT",
+                                "status": "INSUFFICIENT_FUNDS", "account_balance": balance,
+                                "requested_amount": amount,
+                                "answer": f"Lacag kugu filan kuma jirto **{funding_doc.get('name')}**. Balance-ka hadda waa ${balance:,.2f}; waxaad codsatay ${amount:,.2f}. Waxba lama beddelin."
+                            }), 409
+                        new_saving_balance = round(saving_balance + amount, 2)
+                        remaining = max(round(target - new_saving_balance, 2), 0.0) if target > 0 else 0.0
+                        progress = min(round(new_saving_balance / target * 100, 2), 100.0) if target > 0 else 0.0
+                        return jsonify({
+                            "success": True, "action_required": True, "financial_action": "SAVINGS_DEPOSIT",
+                            "status": "CONFIRMATION_REQUIRED", "confirmation_token": pending_saving.get("token"),
+                            "amount": amount, "account_name": funding_doc.get("name"),
+                            "account_balance_before": balance, "account_balance_after": round(balance - amount, 2),
+                            "saving_title": saving_doc.get("title"), "saving_balance_before": saving_balance,
+                            "saving_balance_after": new_saving_balance, "remaining_after": remaining,
+                            "progress_after": progress,
+                            "answer": f"📋 **Xaqiijinta Dhigaalka Kaydka**\n\n- Account laga jarayo: **{funding_doc.get('name')}** (hadda ${balance:,.2f})\n- Kaydka: **{saving_doc.get('title')}** (hadda ${saving_balance:,.2f})\n- Qadarka: **${amount:,.2f}**\n- Account-ka hadhaya: **${balance-amount:,.2f}**\n- Kaydka cusub: **${new_saving_balance:,.2f}**\n- Target-ka ka dhiman: **${remaining:,.2f}** ({progress:.2f}%)\n\nWeli wax lacag ah lama jarin. Ku jawaab **Haa** si aad u xaqiijiso ama **Maya** si aad u joojiso."
+                        }), 200
+
+                # If the latest user message/history describes a source account and
+                # a saving destination, create a real pending proposal, not an LLM-only summary.
+                history_text = _maareye_ai_history_text(history)
+                combined_text = (str(original_message or "") + "\n" + history_text).lower()
+                active_savings_for_intent = list(mongo.db.savings.find({
+                    **_maareye_ai_bookkeeping_user_query(user_ids), "status": {"$in": ["active", "ACTIVE", True]}
+                }).limit(100))
+                target_mentioned = any(str(x.get("title") or "").strip().lower() in combined_text for x in active_savings_for_intent if str(x.get("title") or "").strip())
+                deposit_language = any(term in combined_text for term in ("saving deposit", "savings deposit", "kayd", "kaydi", "ii dhig", "ku shub", "deposit to savings"))
+                source_language = any(term in combined_text for term in ("iga qaad", "ka jar", "from", "account-ka", "wallet"))
+                has_amount_now = _maareye_ai_bookkeeping_amount(original_message, data) is not None
+                if target_mentioned and deposit_language and source_language and not pending_saving:
+                    prepared, prepared_status = _maareye_ai_prepare_savings_deposit(
+                        current_user_id, user_ids, original_message, data, history=history
+                    )
+                    if prepared.get("status") == "NEEDS_AMOUNT":
+                        # Persist a draft so the next message containing only "$5"
+                        # remains attached to the correct savings/account intent.
+                        saving_doc, funding_doc = _maareye_ai_savings_context_from_text(combined_text, user_ids)
+                        if saving_doc and funding_doc:
+                            now_pending = datetime.now(timezone.utc)
+                            token = secrets.token_urlsafe(32)
+                            pending_draft = {
+                                "token": token, "user_id": current_user_id, "action": "SAVINGS_DEPOSIT",
+                                "amount": None, "saving_id": saving_doc["_id"], "saving_title": saving_doc.get("title"),
+                                "funding_account_id": funding_doc["_id"], "funding_account_name": funding_doc.get("name"),
+                                "source": "ai_assistant", "original_message": original_message,
+                                "status": "PENDING_CONFIRMATION", "created_at": now_pending,
+                                "expires_at": now_pending + timedelta(minutes=10)
+                            }
+                            _maareye_ai_insert_one(mongo.db.ai_pending_financial_actions, pending_draft)
+                            prepared["confirmation_token"] = token
+                    return jsonify(prepared), prepared_status
+            except Exception as savings_flow_error:
+                print("MAAREYE SAVINGS CONFIRMATION FLOW ERROR:", repr(savings_flow_error))
+                return jsonify({"success": False, "error": "savings_confirmation_flow_failed", "answer": "Codsiga kaydka si ammaan ah looma diyaarin. Wax lacag ah lama jarin; hubi balance-ka iyo kaydka ka hor intaadan mar kale isku dayin."}), 500
+
+        # ============================================================
         # TRUSTED BOOKKEEPING ACTIONS — SERVER-SIDE ENFORCEMENT
         # ============================================================
         # These are internal ledger records only. They never execute bank
@@ -140045,7 +140699,7 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                     mongo.db
                     .ai_chat_messages
                     .insert_one(
-                        chat_document
+                        _maareye_ai_prepare_insert_document(chat_document)
                     )
 
                 )
