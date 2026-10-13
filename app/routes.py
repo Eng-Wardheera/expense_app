@@ -132923,10 +132923,6 @@ def ai_is_person_ledger_question(message, financial_context=None):
 
 
 
-#================================
-#--- AI ASSICANCE
-#===============================
-
 
 # ---------------------------------------------------------------------------
 # MAAREYE AI MONGODB ID POLICY
@@ -133157,8 +133153,44 @@ def _maareye_ai_bookkeeping_amount(message, data=None):
 
 
 def _maareye_ai_bookkeeping_user_query(user_ids):
-    """User-scoped query supporting legacy string and ObjectId user IDs."""
-    return {"user_id": {"$in": list(user_ids or [])}}
+    """Build a safe user-scoped Mongo query matching both ObjectId and legacy string IDs.
+
+    Flask-Login commonly exposes current_user.id as a string, while older Mongo
+    documents may store user_id as BSON ObjectId (or as its string form). Expand
+    valid IDs into both representations so account/category lookup does not fail
+    merely because the stored BSON type differs.
+    """
+    from bson import ObjectId
+
+    raw_values = user_ids if isinstance(user_ids, (list, tuple, set)) else [user_ids]
+    normalized = []
+    seen = set()
+    for value in raw_values:
+        if value is None:
+            continue
+        candidates = [value, str(value).strip()]
+        text_value = str(value).strip()
+        if ObjectId.is_valid(text_value):
+            try:
+                candidates.extend([ObjectId(text_value), text_value.lower()])
+            except Exception:
+                pass
+        for candidate in candidates:
+            if candidate is None:
+                continue
+            # Avoid hashing arbitrary values such as dicts; user IDs should be
+            # scalar, but safely handle unexpected values without crashing.
+            try:
+                marker = (type(candidate).__name__, str(candidate))
+                if marker not in seen:
+                    seen.add(marker)
+                    normalized.append(candidate)
+            except Exception:
+                continue
+    if not normalized:
+        # Never return an unscoped query when the authenticated user ID is absent.
+        return {"user_id": {"$in": ["__NO_MATCHING_USER_ID__"]}}
+    return {"user_id": {"$in": normalized}}
 
 
 def _maareye_ai_bookkeeping_available_balance(financial_context):
@@ -134283,13 +134315,20 @@ def _maareye_ai_execute_bookkeeping_action(
 
         matched_named_accounts = []
         if requested_account_name:
-            wanted = requested_account_name.casefold()
+            wanted = re.sub(r"\s+", " ", requested_account_name).strip().casefold()
             matched_named_accounts = [
                 doc for doc in active_account_docs
                 if str(doc.get("name") or "").strip()
-                and (str(doc.get("name") or "").strip().casefold() == wanted
-                     or wanted in str(doc.get("name") or "").strip().casefold())
+                and re.sub(r"\s+", " ", str(doc.get("name") or "")).strip().casefold() == wanted
             ]
+            # If the supplied field contains a descriptive phrase rather than
+            # the exact account name, allow a unique containment match.
+            if not matched_named_accounts:
+                matched_named_accounts = [
+                    doc for doc in active_account_docs
+                    if str(doc.get("name") or "").strip()
+                    and wanted in re.sub(r"\s+", " ", str(doc.get("name") or "")).strip().casefold()
+                ]
         else:
             matched_named_accounts = [
                 doc for doc in active_account_docs
@@ -134323,15 +134362,59 @@ def _maareye_ai_execute_bookkeeping_action(
                 "answer": f"Account-ka **{requested_account_name or 'aad sheegtay'}** lama helin ama ma aha account firfircoon oo adiga kuu diiwaangashan. Fadlan hubi magaca account-ka; wax transaction ah lama abuurin."
             }, 200
         else:
-            # Legacy fallback is allowed only when the user did not name an
-            # account at all. Explicit account names always take precedence.
-            latest = mongo.db.transactions.find_one(
-                user_query,
-                {"account_id": 1},
-                sort=[("date", -1), ("created_at", -1), ("_id", -1)]
-            )
-            if latest and latest.get("account_id") is not None:
-                account_id = latest.get("account_id")
+            # Dynamic account selection: do not hard-code Primary Hormuud and
+            # do not blindly reuse the last transaction's account. For expenses,
+            # inspect live active account balances and select an account that
+            # can cover the amount. If several can cover it, prefer the one
+            # with the largest available balance. If none can cover it, choose
+            # the account with the largest positive balance so the normal
+            # insufficient-balance guard can return the correct result.
+            if active_account_docs and action == "expense":
+                def _live_balance(doc):
+                    try:
+                        value = float(doc.get("balance", 0) or 0)
+                        return value if value == value and value not in (float("inf"), float("-inf")) else 0.0
+                    except (TypeError, ValueError):
+                        return 0.0
+
+                amount_needed = float(amount or 0)
+                accounts_with_funds = [
+                    doc for doc in active_account_docs
+                    if _live_balance(doc) >= amount_needed and _live_balance(doc) > 0
+                ]
+                if accounts_with_funds:
+                    chosen_account = max(accounts_with_funds, key=_live_balance)
+                    account_id = chosen_account.get("_id")
+                else:
+                    accounts_with_any_funds = [
+                        doc for doc in active_account_docs if _live_balance(doc) > 0
+                    ]
+                    if accounts_with_any_funds:
+                        chosen_account = max(accounts_with_any_funds, key=_live_balance)
+                        account_id = chosen_account.get("_id")
+                    elif len(active_account_docs) == 1:
+                        account_id = active_account_docs[0].get("_id")
+            elif len(active_account_docs) == 1:
+                # For income or other non-expense actions, use the only active
+                # account if the user did not specify one.
+                account_id = active_account_docs[0].get("_id")
+            else:
+                # For income with multiple accounts, use the latest valid
+                # transaction's account only if it still belongs to the user
+                # and is active. Expense account selection never uses this path.
+                latest = mongo.db.transactions.find_one(
+                    user_query,
+                    {"account_id": 1},
+                    sort=[("date", -1), ("created_at", -1), ("_id", -1)]
+                )
+                if latest and latest.get("account_id") is not None:
+                    try:
+                        latest_id = latest.get("account_id")
+                        latest_id = latest_id if isinstance(latest_id, ObjectId) else ObjectId(str(latest_id))
+                        if any(doc.get("_id") == latest_id for doc in active_account_docs):
+                            account_id = latest_id
+                    except Exception:
+                        account_id = None
 
     if account_id is None:
         return {
@@ -134415,10 +134498,14 @@ def _maareye_ai_execute_bookkeeping_action(
     has_mobile_data_hint = bool(re.search(r"\bmb\b", lower_message)) or any(
         term in lower_message for term in ("internet", "mobile data", "data bundle", "internet bundle", "xirmo internet")
     )
+    has_personal_use_hint = any(term in lower_message for term in (
+        "personal use", "personal expense", "my personal", "isticmaal shaqsi", "isticmaalkeyga",
+        "isticmaal shakhsi", "aniga ii gaar ah", "kharash shaqsi", "kharashkeyga gaarka"
+    ))
     # Do not misclassify a named expense such as MB/mobile data into an
     # unrelated sole category (for example Utility & Transport). If no saved
     # category/item matches, ask for the correct category instead.
-    if not candidates and len(categories) == 1 and not has_mobile_data_hint:
+    if not candidates and len(categories) == 1 and not has_mobile_data_hint and not has_personal_use_hint:
         candidates = [(categories[0], requested_item or None, True)]
 
     # MB/mobile-data expenses get a dedicated category/item when the user has
@@ -134465,6 +134552,48 @@ def _maareye_ai_execute_bookkeeping_action(
                 candidates = [(mobile_category, "MB", True)]
             except Exception as category_exc:
                 print("MAAREYE MOBILE CATEGORY CREATE ERROR:", repr(category_exc))
+
+    # Personal-use expenses are categorized explicitly instead of being
+    # incorrectly filed under an unrelated single category such as transport.
+    # Reuse an existing personal/miscellaneous category when available; create
+    # one for this user only when no suitable category exists.
+    if not candidates and has_personal_use_hint and action == "expense":
+        personal_category = next((doc for doc in categories if any(
+            term in str(doc.get("name") or "").casefold()
+            for term in ("personal", "miscellaneous", "other expense", "general expense")
+        )), None)
+        if personal_category:
+            personal_items = personal_category.get("items") or []
+            if isinstance(personal_items, str):
+                personal_items = [personal_items]
+            personal_item = next((str(item).strip() for item in personal_items if any(
+                term in str(item).casefold() for term in ("personal use", "personal", "miscellaneous")
+            )), None)
+            if not personal_item:
+                personal_item = "Personal Use"
+                mongo.db.categories.update_one(
+                    {"_id": personal_category["_id"], **user_query},
+                    {"$addToSet": {"items": personal_item}, "$set": {"updated_at": now}}
+                )
+            candidates = [(personal_category, personal_item, True)]
+        else:
+            personal_category = {
+                "user_id": user_id,
+                "name": "Personal Use",
+                "slug": "personal-use",
+                "items": ["Personal Use"],
+                "type": "expense",
+                "status": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+            try:
+                inserted_category = _maareye_ai_insert_one(mongo.db.categories, personal_category)
+                personal_category["_id"] = inserted_category.inserted_id
+                categories.append(personal_category)
+                candidates = [(personal_category, "Personal Use", True)]
+            except Exception as category_exc:
+                print("MAAREYE PERSONAL CATEGORY CREATE ERROR:", repr(category_exc))
 
     if not candidates:
         names = [str(item.get("name") or "") for item in categories if item.get("name")]
@@ -141257,7 +141386,6 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
