@@ -133097,15 +133097,23 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
 
 
 def _maareye_ai_bookkeeping_amount(message, data=None):
-    """Return a finite, positive, explicit amount; never guess a numeric value."""
+    """Return a finite, positive, explicit amount from the message/payload.
+
+    Maareye convention: "0.5 centi" / "0.5 senti" means USD 0.50.
+    Do not guess an amount when no explicit numeric value is present.
+    """
     import re
     import math
 
     data = data if isinstance(data, dict) else {}
+
+    # First accept a clean numeric payload amount. Invalid/non-numeric payload
+    # values do not prevent us from extracting the amount from the user text.
     raw = data.get("amount")
     if raw not in (None, ""):
         try:
-            raw_text = str(raw).replace("$", "").strip()
+            raw_text = str(raw).strip().replace("$", "")
+            raw_text = re.sub(r"\s*(?:usd|dollars?|doollar|centi|senti|cents?)\s*$", "", raw_text, flags=re.I)
             if "," in raw_text and "." not in raw_text and re.search(r",\d{1,2}$", raw_text):
                 raw_text = raw_text.replace(",", ".")
             else:
@@ -133113,31 +133121,39 @@ def _maareye_ai_bookkeeping_amount(message, data=None):
             value = float(raw_text)
             if math.isfinite(value) and value > 0:
                 return round(value, 2)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             pass
 
-    text = str(message or "")
-    # Accept common Somali/English money phrasing, including decimal amounts
-    # followed by "centi" or "senti" even when more Somali words follow.
-    # App convention: "0.5 centi" means $0.50.
-    match = re.search(
-        r"(?:\$|usd\s*)\s*([0-9]+(?:[.,][0-9]{1,2})?)"
-        r"|([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:\$|usd|dollars?|doollar|centi|senti|cents?)\b",
-        text,
+    # Search the actual message first, then common text fields that some
+    # frontends send separately. This protects against a blank/rewritten
+    # `message` argument while preserving the user's literal amount.
+    texts = [str(message or "")]
+    for key in ("message", "user_message", "text", "prompt", "content", "original_message"):
+        candidate = data.get(key)
+        if candidate not in (None, "") and str(candidate) not in texts:
+            texts.append(str(candidate))
+
+    money_pattern = re.compile(
+        r"(?:\$\s*|\bUSD\s*)([0-9]+(?:[.,][0-9]{1,2})?)"
+        r"|\b([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:\$|USD|dollars?|doollar|centi|senti|cents?)(?=\b|[^A-Za-z]|$)",
         flags=re.IGNORECASE
     )
-    if not match:
-        return None
-    try:
-        raw_value = match.group(1) or match.group(2)
-        if "," in raw_value and "." not in raw_value and re.search(r",\d{1,2}$", raw_value):
-            raw_value = raw_value.replace(",", ".")
-        else:
-            raw_value = raw_value.replace(",", "")
-        value = float(raw_value)
-        return round(value, 2) if math.isfinite(value) and value > 0 else None
-    except (TypeError, ValueError):
-        return None
+    for text in texts:
+        match = money_pattern.search(text)
+        if not match:
+            continue
+        try:
+            raw_value = match.group(1) or match.group(2)
+            if "," in raw_value and "." not in raw_value and re.search(r",\d{1,2}$", raw_value):
+                raw_value = raw_value.replace(",", ".")
+            else:
+                raw_value = raw_value.replace(",", "")
+            value = float(raw_value)
+            if math.isfinite(value) and value > 0:
+                return round(value, 2)
+        except (TypeError, ValueError, OverflowError):
+            continue
+    return None
 
 
 def _maareye_ai_bookkeeping_user_query(user_ids):
@@ -134228,10 +134244,24 @@ def _maareye_ai_execute_bookkeeping_action(
         return None
 
     explicit_account = data.get("account_id")
+    # Also accept a MongoDB account ID written directly in the user's message.
+    # This is useful when the chat request does not separately populate JSON data.account_id.
+    if not explicit_account:
+        account_id_in_message = re.search(
+            r"(?<![0-9a-fA-F])[0-9a-fA-F]{24}(?![0-9a-fA-F])", str(message or "")
+        )
+        if account_id_in_message:
+            explicit_account = account_id_in_message.group(0)
     account_id = None
+    requested_account_name = str(
+        data.get("account_name") or data.get("from_account_name") or data.get("account") or ""
+    ).strip()
+    lower_message_for_account = str(message or "").lower()
+    named_account_was_requested = bool(requested_account_name)
+
     if explicit_account:
         try:
-            account_id = ObjectId(str(explicit_account))
+            account_id = explicit_account if isinstance(explicit_account, ObjectId) else ObjectId(str(explicit_account))
         except Exception:
             return {
                 "success": True, "action_required": True,
@@ -134239,19 +134269,75 @@ def _maareye_ai_execute_bookkeeping_action(
                 "answer": "account_id-ga la soo diray sax ma aha. Fadlan dooro account sax ah."
             }, 400
     else:
-        latest = mongo.db.transactions.find_one(
-            user_query,
-            {"account_id": 1},
-            sort=[("date", -1), ("created_at", -1), ("_id", -1)]
-        )
-        if latest and latest.get("account_id") is not None:
-            account_id = latest.get("account_id")
+        # Resolve an account explicitly named by the user before considering
+        # any previous transaction. Never silently charge the most recently
+        # used account when the message names a different account.
+        try:
+            active_account_docs = list(mongo.db.accounts.find(
+                {**user_query, "status": {"$ne": False}},
+                {"_id": 1, "name": 1, "balance": 1}
+            ).limit(300))
+        except Exception as account_lookup_exc:
+            active_account_docs = []
+            print("MAAREYE EXPLICIT ACCOUNT LOOKUP ERROR:", repr(account_lookup_exc))
+
+        matched_named_accounts = []
+        if requested_account_name:
+            wanted = requested_account_name.casefold()
+            matched_named_accounts = [
+                doc for doc in active_account_docs
+                if str(doc.get("name") or "").strip()
+                and (str(doc.get("name") or "").strip().casefold() == wanted
+                     or wanted in str(doc.get("name") or "").strip().casefold())
+            ]
+        else:
+            matched_named_accounts = [
+                doc for doc in active_account_docs
+                if str(doc.get("name") or "").strip()
+                and str(doc.get("name") or "").strip().casefold() in lower_message_for_account
+            ]
+            if matched_named_accounts:
+                # Prefer the longest explicit account name to avoid matching a
+                # short account name contained inside a longer one.
+                longest = max(len(str(doc.get("name") or "").strip()) for doc in matched_named_accounts)
+                matched_named_accounts = [
+                    doc for doc in matched_named_accounts
+                    if len(str(doc.get("name") or "").strip()) == longest
+                ]
+                named_account_was_requested = True
+
+        if len(matched_named_accounts) == 1:
+            account_id = matched_named_accounts[0].get("_id")
+        elif len(matched_named_accounts) > 1:
+            names = ", ".join(str(doc.get("name") or "") for doc in matched_named_accounts)
+            return {
+                "success": True, "action_required": True,
+                "financial_action": action.upper(), "status": "CHOOSE_ACCOUNT",
+                "accounts": [{"id": str(doc.get("_id")), "name": doc.get("name")} for doc in matched_named_accounts],
+                "answer": f"Waxaan helay in ka badan hal account oo ku habboon ({names}). Fadlan dooro hal account oo sax ah; wax transaction ah lama abuurin."
+            }, 200
+        elif named_account_was_requested:
+            return {
+                "success": True, "action_required": True,
+                "financial_action": action.upper(), "status": "ACCOUNT_NAME_NOT_FOUND",
+                "answer": f"Account-ka **{requested_account_name or 'aad sheegtay'}** lama helin ama ma aha account firfircoon oo adiga kuu diiwaangashan. Fadlan hubi magaca account-ka; wax transaction ah lama abuurin."
+            }, 200
+        else:
+            # Legacy fallback is allowed only when the user did not name an
+            # account at all. Explicit account names always take precedence.
+            latest = mongo.db.transactions.find_one(
+                user_query,
+                {"account_id": 1},
+                sort=[("date", -1), ("created_at", -1), ("_id", -1)]
+            )
+            if latest and latest.get("account_id") is not None:
+                account_id = latest.get("account_id")
 
     if account_id is None:
         return {
             "success": True, "action_required": True,
             "financial_action": action.upper(), "status": "NEEDS_ACCOUNT",
-            "answer": "Maareye ma helin account_id lagu kalsoonaan karo. Fadlan dooro account-ka lacagtu ka baxday ama ku soo gashay; wax transaction ah lama abuurin."
+            "answer": "Maareye ma helin account_id lagu kalsoonaan karo. Fadlan sheeg magaca account-ka lacagtu ka baxday ama ku soo gashay, tusaale ahaan **Primary Hormuud Walet**; wax transaction ah lama abuurin."
         }, 200
 
     # Verify the selected account belongs to this user and is active.
@@ -134291,7 +134377,17 @@ def _maareye_ai_execute_bookkeeping_action(
                 clean_items.append(cleaned)
         item_match = None
         for item_name in clean_items:
-            if item_name.lower() in lower_message or item_name.lower().replace("received by ", "") in lower_message:
+            item_lower = item_name.lower()
+            direct_match = item_lower in lower_message or item_lower.replace("received by ", "") in lower_message
+            # Users commonly say "MB" for mobile data/internet bundles. Map
+            # that wording only to an item already present in this user's DB.
+            mb_alias_match = bool(re.search(r"\bmb\b", lower_message)) and any(
+                alias in item_lower for alias in ("mb", "mobile data", "internet data", "data bundle", "internet bundle")
+            )
+            mobile_data_alias_match = any(term in lower_message for term in (
+                "mobile data", "internet data", "data bundle", "internet bundle", "xirmo internet"
+            )) and any(alias in item_lower for alias in ("mb", "mobile data", "internet data", "data bundle", "internet bundle"))
+            if direct_match or mb_alias_match or mobile_data_alias_match:
                 item_match = item_name
                 break
         category_match = bool(
@@ -134316,8 +134412,59 @@ def _maareye_ai_execute_bookkeeping_action(
                 if requested_category == str(category_doc.get("_id") or "").lower():
                     candidates.append((category_doc, requested_item or None, True))
 
-    if not candidates and len(categories) == 1:
+    has_mobile_data_hint = bool(re.search(r"\bmb\b", lower_message)) or any(
+        term in lower_message for term in ("internet", "mobile data", "data bundle", "internet bundle", "xirmo internet")
+    )
+    # Do not misclassify a named expense such as MB/mobile data into an
+    # unrelated sole category (for example Utility & Transport). If no saved
+    # category/item matches, ask for the correct category instead.
+    if not candidates and len(categories) == 1 and not has_mobile_data_hint:
         candidates = [(categories[0], requested_item or None, True)]
+
+    # MB/mobile-data expenses get a dedicated category/item when the user has
+    # no saved matching item. This uses the user's dynamic Category.items model
+    # and avoids misclassifying mobile data as transportation or utilities.
+    if not candidates and has_mobile_data_hint and action == "expense":
+        mobile_category = next((doc for doc in categories if any(
+            term in str(doc.get("name") or "").lower()
+            for term in ("mobile", "internet", "data", "telecom", "phone")
+        )), None)
+        if mobile_category:
+            items = mobile_category.get("items") or []
+            if isinstance(items, str):
+                items = [items]
+            mb_item = next((str(item).strip() for item in items if any(
+                alias in str(item).lower()
+                for alias in ("mb", "mobile data", "internet data", "data bundle", "internet bundle")
+            )), None)
+            if not mb_item:
+                mongo.db.categories.update_one(
+                    {"_id": mobile_category["_id"], **user_query},
+                    {"$addToSet": {"items": "MB"}, "$set": {"updated_at": now}}
+                )
+                mb_item = "MB"
+            mobile_category.setdefault("items", [])
+            if isinstance(mobile_category["items"], list) and mb_item not in mobile_category["items"]:
+                mobile_category["items"].append(mb_item)
+            candidates = [(mobile_category, mb_item, True)]
+        else:
+            mobile_category = {
+                "user_id": user_id,
+                "name": "Mobile & Internet",
+                "slug": "mobile-internet",
+                "items": ["MB"],
+                "type": "expense",
+                "status": True,
+                "created_at": now,
+                "updated_at": now,
+            }
+            try:
+                inserted_category = _maareye_ai_insert_one(mongo.db.categories, mobile_category)
+                mobile_category["_id"] = inserted_category.inserted_id
+                categories.append(mobile_category)
+                candidates = [(mobile_category, "MB", True)]
+            except Exception as category_exc:
+                print("MAAREYE MOBILE CATEGORY CREATE ERROR:", repr(category_exc))
 
     if not candidates:
         names = [str(item.get("name") or "") for item in categories if item.get("name")]
@@ -135237,6 +135384,12 @@ def ai_assistant_shared_media():
     methods=["POST"]
 )
 def ai_assistant():
+
+    # Import datetime names at function entry. Because this route also has a
+    # later local import, Python treats these names as local throughout the
+    # whole function; initializing them here prevents UnboundLocalError in
+    # the LIVE PERSON LEDGER block, which runs earlier in the route.
+    from datetime import datetime, timezone, timedelta
 
     try:
 
@@ -141104,6 +141257,7 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
 
 
 
