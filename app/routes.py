@@ -133210,6 +133210,118 @@ def _maareye_ai_bookkeeping_user_query(user_ids):
     return {"user_id": {"$in": normalized}}
 
 
+def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
+    """Fetch a fresh, user-scoped account/transaction/savings snapshot on every AI turn.
+
+    This deliberately bypasses any previously assembled/cached financial context.
+    Account balances are read from the current accounts documents; transactions and
+    savings are included as recent source records for the model to ground its answer.
+    """
+    from datetime import date, datetime
+    from bson import ObjectId
+
+    user_query = _maareye_ai_bookkeeping_user_query(user_ids)
+
+    def safe_value(value):
+        if isinstance(value, ObjectId):
+            return str(value)
+        if isinstance(value, (datetime, date)):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {str(k): safe_value(v) for k, v in value.items() if k != "_id"}
+        if isinstance(value, (list, tuple)):
+            return [safe_value(v) for v in value]
+        if isinstance(value, float):
+            import math
+            return round(value, 4) if math.isfinite(value) else None
+        return value
+
+    accounts = []
+    transactions = []
+    savings = []
+    try:
+        accounts = list(mongo.db.accounts.find(
+            {**user_query, "status": {"$ne": False}},
+            {"_id": 1, "name": 1, "type": 1, "balance": 1, "currency": 1, "status": 1, "updated_at": 1}
+        ).limit(200))
+    except Exception as exc:
+        print("MAAREYE LIVE SNAPSHOT ACCOUNTS ERROR:", repr(exc))
+    try:
+        transactions = list(mongo.db.transactions.find(
+            user_query,
+            {"_id": 1, "account_id": 1, "transaction_type": 1, "category": 1, "item": 1,
+             "amount": 1, "description": 1, "note": 1, "date": 1, "created_at": 1, "status": 1}
+        ).sort([("date", -1), ("created_at", -1)]).limit(max(1, min(int(limit), 200))))
+    except Exception as exc:
+        print("MAAREYE LIVE SNAPSHOT TRANSACTIONS ERROR:", repr(exc))
+    try:
+        savings = list(mongo.db.savings.find(
+            user_query,
+            {"_id": 1, "title": 1, "target_amount": 1, "current_balance": 1,
+             "account_id": 1, "status": 1, "updated_at": 1}
+        ).limit(200))
+    except Exception as exc:
+        print("MAAREYE LIVE SNAPSHOT SAVINGS ERROR:", repr(exc))
+
+    account_rows = []
+    for doc in accounts:
+        try:
+            balance = float(doc.get("balance", 0) or 0)
+        except (TypeError, ValueError, OverflowError):
+            balance = None
+        account_rows.append({
+            "id": str(doc.get("_id", "")),
+            "name": str(doc.get("name") or ""),
+            "type": str(doc.get("type") or ""),
+            "balance": safe_value(balance),
+            "currency": str(doc.get("currency") or "USD"),
+            "status": safe_value(doc.get("status", True)),
+            "updated_at": safe_value(doc.get("updated_at")),
+        })
+
+    transaction_rows = []
+    for doc in transactions:
+        transaction_rows.append({
+            "id": str(doc.get("_id", "")),
+            "account_id": safe_value(doc.get("account_id")),
+            "transaction_type": safe_value(doc.get("transaction_type")),
+            "category": safe_value(doc.get("category")),
+            "item": safe_value(doc.get("item")),
+            "amount": safe_value(doc.get("amount")),
+            "description": safe_value(doc.get("description")),
+            "note": safe_value(doc.get("note")),
+            "date": safe_value(doc.get("date") or doc.get("created_at")),
+            "status": safe_value(doc.get("status", True)),
+        })
+
+    savings_rows = []
+    for doc in savings:
+        savings_rows.append({
+            "id": str(doc.get("_id", "")),
+            "title": str(doc.get("title") or ""),
+            "target_amount": safe_value(doc.get("target_amount", 0)),
+            "current_balance": safe_value(doc.get("current_balance", 0)),
+            "account_id": safe_value(doc.get("account_id")),
+            "status": safe_value(doc.get("status", "active")),
+            "updated_at": safe_value(doc.get("updated_at")),
+        })
+
+    return {
+        "source": "LIVE_MONGODB_READ_ON_EVERY_AI_REQUEST",
+        "refreshed_at_utc": datetime.utcnow().isoformat() + "Z",
+        "accounts": account_rows,
+        "accounts_count": len(account_rows),
+        "transactions_recent": transaction_rows,
+        "transactions_count_returned": len(transaction_rows),
+        "savings": savings_rows,
+        "savings_count": len(savings_rows),
+        "account_balance_total": round(sum(
+            float(row["balance"]) for row in account_rows
+            if isinstance(row.get("balance"), (int, float))
+        ), 2),
+    }
+
+
 def _maareye_ai_bookkeeping_available_balance(financial_context):
     """
     Use only explicit spendable-cash fields supplied by the trusted server
@@ -135525,6 +135637,16 @@ def ai_assistant_shared_media():
         return jsonify({"success": False, "error": "shared_media_load_failed"}), 500
 
 
+@bp.after_request
+def maareye_ai_disable_stale_http_cache(response):
+    """Prevent browsers/proxies from serving stale AI/API responses across tabs."""
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["Vary"] = "Cookie, Authorization"
+    return response
+
+
 @bp.route(
     "/ai-assistant",
     methods=["POST"]
@@ -136104,6 +136226,20 @@ def ai_assistant():
                 financial_context = dict(financial_context)
                 financial_context["yearly_rates"] = yearly_rates_context
                 financial_context["yearly_rates_summary"] = yearly_rates_summary
+
+                # Always override any stale account/transaction/savings snapshot
+                # with direct MongoDB reads for this authenticated user and turn.
+                if is_logged_in and current_user_id:
+                    live_snapshot = _maareye_ai_live_mongodb_snapshot(user_ids)
+                    financial_context["live_realtime_snapshot"] = live_snapshot
+                    financial_context["live_realtime_snapshot_summary"] = {
+                        "source": live_snapshot.get("source"),
+                        "refreshed_at_utc": live_snapshot.get("refreshed_at_utc"),
+                        "accounts_count": live_snapshot.get("accounts_count", 0),
+                        "transactions_count_returned": live_snapshot.get("transactions_count_returned", 0),
+                        "savings_count": live_snapshot.get("savings_count", 0),
+                        "account_balance_total": live_snapshot.get("account_balance_total", 0),
+                    }
 
             except Exception as financial_error:
 
@@ -138686,6 +138822,16 @@ Never reveal another user's:
 # ============================================================
 MONGODB SOURCE OF TRUTH
 # ============================================================
+
+REAL-TIME MULTI-TAB RULE:
+- For every new user message, use financial_context.live_realtime_snapshot as the newest
+  server-fetched MongoDB snapshot for accounts, balances, recent transactions, and savings.
+- Its refreshed_at_utc and records are fetched anew for this request; prefer them over any
+  older assistant answer, conversation history, remembered balance, or stale calculated field.
+- Never claim a current balance from chat history if the live snapshot contains the account.
+- If a required live record is missing or the snapshot could not be fetched, say it cannot be
+  verified now; do not invent a balance or pretend the data is current.
+- Old chat history is for conversational continuity only, not the source of current financial facts.
 
 MongoDB is the source of truth for RECORDED values.
 
@@ -141407,9 +141553,6 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
-
-
 
 
 
