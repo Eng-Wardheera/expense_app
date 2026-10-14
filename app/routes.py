@@ -134263,36 +134263,47 @@ def _maareye_ai_execute_bookkeeping_action(
         remaining = max(round(target - new_balance, 2), 0.0) if target > 0 else 0.0
         progress = min(round((new_balance / target) * 100, 2), 100.0) if target > 0 else 0.0
 
+        # Recalculate every derived savings field from the verified live record.
+        # Handle BSON datetime/date values and ISO date strings safely.
         maturity = chosen.get("maturity_date")
-        days_remaining = None
+        days_remaining = 0
         try:
-            maturity_date = maturity.date() if isinstance(maturity, datetime) else maturity
-            days_remaining = max((maturity_date - now.date()).days, 0) if maturity_date else None
+            if isinstance(maturity, datetime):
+                maturity_date = maturity.date()
+            elif hasattr(maturity, "year") and hasattr(maturity, "month") and hasattr(maturity, "day"):
+                maturity_date = maturity
+            elif isinstance(maturity, str) and maturity.strip():
+                from datetime import date
+                maturity_date = date.fromisoformat(maturity.strip()[:10])
+            else:
+                maturity_date = None
+            if maturity_date:
+                days_remaining = max((maturity_date - now.date()).days, 0)
+            else:
+                # Preserve a valid existing plan horizon when no maturity date exists.
+                days_remaining = max(int(float(chosen.get("days_remaining", 0) or 0)), 0)
         except Exception:
-            days_remaining = None
+            days_remaining = max(int(float(chosen.get("days_remaining", 0) or 0)), 0)
 
         update_fields = {
             "current_balance": new_balance,
             "remaining_amount": remaining,
             "progress": progress,
-            "updated_at": now
+            "days_remaining": days_remaining,
+            "daily_required": round(remaining / days_remaining, 2) if days_remaining > 0 else remaining,
+            "weekly_required": round((remaining / days_remaining) * 7, 2) if days_remaining > 0 else remaining,
+            "monthly_required": round((remaining / days_remaining) * 30.4375, 2) if days_remaining > 0 else remaining,
+            "updated_at": now,
         }
-        if days_remaining is not None:
-            update_fields["days_remaining"] = days_remaining
-            if days_remaining > 0:
-                update_fields["daily_required"] = round(remaining / days_remaining, 2)
-                update_fields["weekly_required"] = round(remaining / days_remaining * 7, 2)
-                update_fields["monthly_required"] = round(remaining / days_remaining * 30, 2)
-            else:
-                update_fields["daily_required"] = remaining
-                update_fields["weekly_required"] = remaining
-                update_fields["monthly_required"] = remaining
 
-        # Conditional update protects against concurrent edits/deposits.
+        # Conditional update protects against concurrent edits/deposits and
+        # requires the saving to remain active at commit time.
+        active_status_query = {"$in": ["active", "ACTIVE", True]}
         update_result = mongo.db.savings.update_one(
             {
                 "_id": saving_id,
-                "user_id": {"$in": list(user_ids or [])},
+                **user_query,
+                "status": active_status_query,
                 "current_balance": chosen.get("current_balance", 0)
             },
             {"$set": update_fields}
@@ -134303,7 +134314,8 @@ def _maareye_ai_execute_bookkeeping_action(
                 update_result = mongo.db.savings.update_one(
                     {
                         "_id": saving_id,
-                        "user_id": {"$in": list(user_ids or [])},
+                        **user_query,
+                        "status": {"$in": ["active", "ACTIVE", True]},
                         "$or": [
                             {"current_balance": {"$exists": False}},
                             {"current_balance": None},
@@ -134353,9 +134365,9 @@ def _maareye_ai_execute_bookkeeping_action(
                 rollback_fields["days_remaining"] = days_remaining
                 rollback_fields["daily_required"] = round(rollback_remaining / days_remaining, 2) if days_remaining > 0 else rollback_remaining
                 rollback_fields["weekly_required"] = round(rollback_remaining / days_remaining * 7, 2) if days_remaining > 0 else rollback_remaining
-                rollback_fields["monthly_required"] = round(rollback_remaining / days_remaining * 30, 2) if days_remaining > 0 else rollback_remaining
+                rollback_fields["monthly_required"] = round(rollback_remaining / days_remaining * 30.4375, 2) if days_remaining > 0 else rollback_remaining
             mongo.db.savings.update_one(
-                {"_id": saving_id, "user_id": {"$in": list(user_ids or [])}, "current_balance": new_balance},
+                {"_id": saving_id, **user_query, "status": {"$in": ["active", "ACTIVE", True]}, "current_balance": new_balance},
                 {"$set": rollback_fields}
             )
             mongo.db.accounts.update_one(
@@ -134392,6 +134404,14 @@ def _maareye_ai_execute_bookkeeping_action(
             "amount": amount,
             "previous_saving_balance": old_balance,
             "current_saving_balance": new_balance,
+            "target_amount": target,
+            "remaining_amount": remaining,
+            "progress": progress,
+            "days_remaining": days_remaining,
+            "daily_required": update_fields["daily_required"],
+            "weekly_required": update_fields["weekly_required"],
+            "monthly_required": update_fields["monthly_required"],
+            "saving_updated_at": now.isoformat(),
             "account_name": account_doc.get("name"),
             "previous_account_balance": round(account_previous_balance, 2),
             "current_account_balance": round(account_previous_balance - amount, 2),
