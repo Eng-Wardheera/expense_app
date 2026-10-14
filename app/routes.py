@@ -132921,9 +132921,6 @@ def ai_is_person_ledger_question(message, financial_context=None):
 #--- AI ASSICANCE
 #===============================
 
-
-
-
 # ---------------------------------------------------------------------------
 # MAAREYE AI MONGODB ID POLICY
 # Every document created by this AI module receives a BSON ObjectId _id.
@@ -133050,7 +133047,9 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
     )
     expense_words = (
         "expense", "kharash", "spent", "spend", "bixiyay", "bixiyey", "ku bixiyay", "ku bixiyey",
-        "ka baxay", "iibsaday", "iibsatay", "paid for", "purchase"
+        "ka baxay", "iibsaday", "iibsatay", "paid for", "purchase",
+        "sariftay", "sarfay", "u sariftay", "ku sariftay", "mb u sariftay",
+        "mb ku sariftay", "mb ayaan sariftay", "mb baan sariftay"
     )
     record_words = (
         "ii diiwaangeli", "diiwaangeli", "diiwaan geli", "diwaan gali",
@@ -133077,7 +133076,8 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
         return "income"
 
     if any(word in text for word in expense_words) and (
-        any(word in text for word in record_words)
+        (bool(re.search(r"\bmb\b", text)) and any(v in text for v in ("sariftay", "sarfay", "u sariftay", "ku sariftay")))
+        or any(word in text for word in record_words)
         or "spent" in text
         or "kharash gareeyay" in text
         or "kharash gareeyey" in text
@@ -133149,6 +133149,23 @@ def _maareye_ai_bookkeeping_amount(message, data=None):
                 return round(value, 2)
         except (TypeError, ValueError, OverflowError):
             continue
+    # Somali shorthand such as "0.5 baa MB u sariftay" omits USD/dollar.
+    # Accept a bare number only when an explicit MB-spending phrase is present;
+    # do not treat arbitrary numbers in ordinary chat as money.
+    for text in texts:
+        lower = text.lower()
+        if re.search(r"\bmb\b", lower) and any(verb in lower for verb in (
+            "sariftay", "sarfay", "u sariftay", "ku sariftay", "bixiyay", "bixiyey"
+        )):
+            match = re.search(r"(?<![\w.])([0-9]+(?:[.,][0-9]{1,2})?)(?![\w.])", text)
+            if match:
+                try:
+                    raw_value = match.group(1).replace(",", ".")
+                    value = float(raw_value)
+                    if math.isfinite(value) and value > 0:
+                        return round(value, 2)
+                except (TypeError, ValueError, OverflowError):
+                    pass
     return None
 
 
@@ -140156,8 +140173,12 @@ Do not fabricate database records.
                     **_maareye_ai_bookkeeping_user_query(user_ids), "status": {"$in": ["active", "ACTIVE", True]}
                 }).limit(100))
                 target_mentioned = any(str(x.get("title") or "").strip().lower() in combined_text for x in active_savings_for_intent if str(x.get("title") or "").strip())
-                deposit_language = any(term in combined_text for term in ("saving deposit", "savings deposit", "kayd", "kaydi", "ii dhig", "ku shub", "deposit to savings"))
-                source_language = any(term in combined_text for term in ("iga qaad", "ka jar", "from", "account-ka", "wallet"))
+                # Only the current user message may trigger a savings deposit.
+                # Old history may contain savings/account words while the user
+                # is now asking to record an unrelated expense (e.g. MB).
+                current_request_text = str(original_message or "").lower()
+                deposit_language = any(term in current_request_text for term in ("saving deposit", "savings deposit", "kayd", "kaydi", "ii dhig", "ku shub", "deposit to savings"))
+                source_language = any(term in current_request_text for term in ("iga qaad", "ka jar", "from", "account-ka", "wallet"))
                 has_amount_now = _maareye_ai_bookkeeping_amount(original_message, data) is not None
                 if target_mentioned and deposit_language and source_language and not pending_saving:
                     prepared, prepared_status = _maareye_ai_prepare_savings_deposit(
@@ -141386,6 +141407,10 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
+
+
 
 
 
