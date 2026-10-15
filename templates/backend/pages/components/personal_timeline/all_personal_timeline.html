@@ -3369,6 +3369,723 @@
     }
 }
 
+
+
+/* =========================================================
+   FINAL MODAL + ADD/EDIT FORM RESPONSIVE FIX
+   Modal markup lives outside .pt-page, so these selectors
+   intentionally target modal elements globally.
+========================================================= */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+.pt-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100000 !important;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2vw, 24px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pt-modal.is-open {
+    display: flex !important;
+}
+
+.pt-modal-backdrop {
+    position: fixed;
+    inset: 0;
+}
+
+.pt-modal-dialog,
+.pt-modal .pt-modal-dialog {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    width: min(100%, 760px);
+    min-width: 0;
+    max-width: min(100%, 760px);
+    max-height: calc(100vh - 48px);
+    max-height: calc(100dvh - 48px);
+    margin: auto;
+    overflow: hidden;
+    border-radius: clamp(10px, 2vw, 18px);
+}
+
+.pt-modal .pt-modal-header {
+    flex: 0 0 auto;
+    min-width: 0;
+    align-items: flex-start;
+    gap: 12px;
+    padding: clamp(12px, 2.5vw, 22px);
+}
+
+.pt-modal .pt-modal-header > div,
+.pt-modal .pt-modal-header h3,
+.pt-modal .pt-modal-header p {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.pt-modal .pt-modal-header h3 {
+    line-height: 1.3;
+}
+
+.pt-modal .pt-modal-close {
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+}
+
+.pt-modal .pt-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    padding: clamp(12px, 2.5vw, 22px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pt-modal .pt-modal-footer {
+    flex: 0 0 auto;
+    min-width: 0;
+    gap: 8px;
+    padding: clamp(10px, 2vw, 16px) clamp(12px, 2.5vw, 22px);
+}
+
+.pt-modal .pt-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(10px, 1.8vw, 16px);
+    width: 100%;
+    min-width: 0;
+}
+
+.pt-modal .pt-form-group,
+.pt-modal .pt-form-group-full {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.pt-modal .pt-form-group-full {
+    grid-column: 1 / -1;
+}
+
+.pt-modal .pt-field-label {
+    display: block;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    line-height: 1.45;
+}
+
+.pt-modal .pt-input,
+.pt-modal .pt-select,
+.pt-modal .pt-textarea,
+.pt-modal input:not([type="radio"]):not([type="checkbox"]),
+.pt-modal select,
+.pt-modal textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin-inline: 0;
+    box-sizing: border-box;
+}
+
+.pt-modal .pt-textarea,
+.pt-modal textarea {
+    resize: vertical;
+    min-height: 100px;
+    overflow-wrap: anywhere;
+}
+
+.pt-modal .pt-radio-grid,
+.pt-modal .pt-reaction-picker {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+}
+
+.pt-modal .pt-radio-label {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.pt-modal .pt-custom-event {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.pt-modal .pt-modal-footer .pt-btn {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+#timelineDetailModal .pt-modal-dialog {
+    width: min(100%, 1450px);
+    max-width: min(100%, 1450px);
+}
+
+#timelineDeleteModal .pt-modal-dialog {
+    width: min(100%, 470px);
+    max-width: min(100%, 470px);
+}
+
+@media (max-width: 760px) {
+    .pt-modal {
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .pt-modal .pt-modal-dialog,
+    .pt-modal-dialog {
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 20px);
+        max-height: calc(100dvh - 20px);
+        margin: auto;
+        border-radius: 14px;
+    }
+
+    .pt-modal .pt-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .pt-modal .pt-modal-header {
+        padding: 13px 14px;
+    }
+
+    .pt-modal .pt-modal-body {
+        padding: 14px;
+    }
+
+    .pt-modal .pt-modal-footer {
+        flex-wrap: wrap;
+        justify-content: stretch;
+        padding: 11px 14px;
+    }
+
+    .pt-modal .pt-modal-footer .pt-btn {
+        flex: 1 1 130px;
+    }
+}
+
+@media (max-width: 560px) {
+    .pt-modal {
+        align-items: stretch;
+        padding: 0;
+    }
+
+    .pt-modal .pt-modal-dialog,
+    .pt-modal-dialog {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        max-height: 100vh;
+        max-height: 100dvh;
+        min-height: 0;
+        margin: 0;
+        border-radius: 0;
+        border: 0;
+    }
+
+    .pt-modal .pt-modal-header {
+        padding-top: max(12px, env(safe-area-inset-top));
+        padding-left: 13px;
+        padding-right: 13px;
+        gap: 9px;
+    }
+
+    .pt-modal .pt-modal-header h3 {
+        font-size: 16px;
+    }
+
+    .pt-modal .pt-modal-header p {
+        font-size: 11px;
+        line-height: 1.45;
+    }
+
+    .pt-modal .pt-modal-body {
+        padding: 13px;
+    }
+
+    .pt-modal .pt-form-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 13px;
+    }
+
+    .pt-modal .pt-form-group-full {
+        grid-column: auto;
+    }
+
+    .pt-modal .pt-input,
+    .pt-modal .pt-select,
+    .pt-modal .pt-textarea,
+    .pt-modal input:not([type="radio"]):not([type="checkbox"]),
+    .pt-modal select,
+    .pt-modal textarea {
+        font-size: 16px;
+        min-height: 43px;
+    }
+
+    .pt-modal .pt-textarea,
+    .pt-modal textarea {
+        min-height: 105px;
+    }
+
+    .pt-modal .pt-radio-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .pt-modal .pt-radio-option,
+    .pt-modal .pt-radio-label {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .pt-modal .pt-radio-label {
+        min-height: 40px;
+        padding: 6px;
+        text-align: center;
+        white-space: normal;
+    }
+
+    .pt-modal .pt-reaction-picker {
+        align-items: center;
+    }
+
+    .pt-modal .pt-modal-footer {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        padding: 10px 13px max(10px, env(safe-area-inset-bottom));
+    }
+
+    .pt-modal .pt-modal-footer .pt-btn {
+        width: 100%;
+        min-height: 42px;
+        padding: 9px 8px;
+        font-size: 12px;
+    }
+
+    #timelineDetailModal .pt-modal-dialog {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    #timelineDetailModal .pt-detail-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 360px) {
+    .pt-modal .pt-modal-header {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .pt-modal .pt-modal-body {
+        padding: 10px;
+    }
+
+    .pt-modal .pt-modal-footer {
+        grid-template-columns: minmax(0, 1fr);
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .pt-modal .pt-modal-footer .pt-btn {
+        width: 100%;
+    }
+}
+
+
+
+/* =========================================================
+   FINAL FIX — ADD / EDIT FORM CONTENT AND SAVE BUTTON VISIBILITY
+   The form is a flex child of the modal dialog. Keep the header
+   and footer visible while the complete field list scrolls.
+========================================================= */
+#timelineFormModal .pt-modal-dialog {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 0 !important;
+    height: min( min-content, calc(100vh - 40px) );
+    height: min( min-content, calc(100dvh - 40px) );
+    max-height: calc(100vh - 40px) !important;
+    max-height: calc(100dvh - 40px) !important;
+}
+
+#timelineFormModal #timelineForm {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+}
+
+#timelineFormModal #timelineForm > .pt-modal-body {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable;
+}
+
+#timelineFormModal #timelineForm > .pt-modal-footer {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    min-height: 64px !important;
+    padding: 12px 20px !important;
+    border-top: 1px solid var(--pt-border, #e3e8ef) !important;
+    background: #fbfcfe !important;
+    z-index: 3 !important;
+}
+
+#timelineFormModal #timelineForm .pt-form-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    gap: 16px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+#timelineFormModal #timelineForm .pt-form-group,
+#timelineFormModal #timelineForm .pt-form-group-full {
+    display: block !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+}
+
+#timelineFormModal #timelineForm .pt-form-group-full {
+    grid-column: 1 / -1 !important;
+}
+
+#timelineFormModal #timelineForm label,
+#timelineFormModal #timelineForm .pt-field-label,
+#timelineFormModal #timelineForm .pt-help-text,
+#timelineFormModal #timelineForm .pt-char-counter {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+#timelineFormModal #timelineForm input:not([type="hidden"]),
+#timelineFormModal #timelineForm select,
+#timelineFormModal #timelineForm textarea {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+#timelineFormModal #timelineForm textarea {
+    min-height: 100px;
+}
+
+#timelineFormModal #timelineForm .pt-modal-footer .pt-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    min-width: 112px !important;
+    min-height: 40px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@media (max-height: 720px) and (min-width: 561px) {
+    #timelineFormModal .pt-modal-dialog {
+        max-height: calc(100vh - 20px) !important;
+        max-height: calc(100dvh - 20px) !important;
+    }
+    #timelineFormModal .pt-modal-header {
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-body {
+        padding-top: 14px !important;
+        padding-bottom: 14px !important;
+    }
+}
+
+@media (max-width: 760px) {
+    #timelineFormModal .pt-modal-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-footer {
+        padding: 10px 14px !important;
+    }
+}
+
+@media (max-width: 560px) {
+    #timelineFormModal .pt-modal-dialog {
+        width: 100% !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 13px !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-group-full {
+        grid-column: 1 !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-body {
+        padding: 13px !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-footer {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        padding: 10px 13px max(10px, env(safe-area-inset-bottom)) !important;
+    }
+    #timelineFormModal #timelineForm .pt-modal-footer .pt-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+
+/* =========================================================
+   DEFINITIVE ADD / EDIT MODAL SCROLL FIX
+   Keep every field reachable; pin header and Save/Update footer.
+   The previous rules constrained max-height but left the dialog
+   without a definite height, so the form body could expand past
+   the visible viewport instead of becoming the scrolling area.
+========================================================= */
+#timelineFormModal {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
+    overflow: hidden !important;
+}
+
+#timelineFormModal .pt-modal-dialog {
+    display: flex !important;
+    flex-direction: column !important;
+    width: min(100%, 760px) !important;
+    max-width: 760px !important;
+    height: min(900px, calc(100vh - 40px)) !important;
+    height: min(900px, calc(100dvh - 40px)) !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 40px) !important;
+    max-height: calc(100dvh - 40px) !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+#timelineFormModal .pt-modal-header {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+}
+
+#timelineFormModal #timelineForm {
+    display: flex !important;
+    flex: 1 1 0% !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow: hidden !important;
+}
+
+#timelineFormModal #timelineForm > .pt-modal-body {
+    display: block !important;
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin;
+    touch-action: pan-y;
+}
+
+#timelineFormModal #timelineForm .pt-form-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    align-items: start !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    gap: 16px !important;
+}
+
+#timelineFormModal #timelineForm .pt-form-group,
+#timelineFormModal #timelineForm .pt-form-group-full {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-column: auto;
+}
+
+#timelineFormModal #timelineForm .pt-form-group-full {
+    grid-column: 1 / -1 !important;
+}
+
+#timelineFormModal #timelineForm input:not([type="hidden"]),
+#timelineFormModal #timelineForm select,
+#timelineFormModal #timelineForm textarea {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+#timelineFormModal #timelineForm textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#timelineFormModal #timelineForm > .pt-modal-footer {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    min-height: 62px !important;
+    padding: 12px 20px !important;
+    border-top: 1px solid var(--pt-border, #e3e8ef) !important;
+    background: #fbfcfe !important;
+    z-index: 5 !important;
+}
+
+#timelineFormModal #timelineForm > .pt-modal-footer .pt-btn {
+    display: inline-flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 112px !important;
+    min-height: 40px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+@media (max-width: 760px) {
+    #timelineFormModal {
+        padding: 10px !important;
+    }
+    #timelineFormModal .pt-modal-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: min(900px, calc(100vh - 20px)) !important;
+        height: min(900px, calc(100dvh - 20px)) !important;
+        max-height: calc(100vh - 20px) !important;
+        max-height: calc(100dvh - 20px) !important;
+        border-radius: 14px !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-footer {
+        padding: 10px 14px !important;
+    }
+}
+
+@media (max-width: 560px) {
+    #timelineFormModal {
+        align-items: stretch !important;
+        padding: 0 !important;
+    }
+    #timelineFormModal .pt-modal-dialog {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        min-height: 0 !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 13px !important;
+    }
+    #timelineFormModal #timelineForm .pt-form-group-full {
+        grid-column: 1 / -1 !important;
+    }
+    #timelineFormModal .pt-modal-header {
+        padding-top: max(12px, env(safe-area-inset-top)) !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-body {
+        padding: 13px !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-footer {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+        padding: 10px 13px max(10px, env(safe-area-inset-bottom)) !important;
+    }
+    #timelineFormModal #timelineForm > .pt-modal-footer .pt-btn {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+}
+
+@media (max-width: 360px) {
+    #timelineFormModal #timelineForm > .pt-modal-footer {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
+
 </style>
 
 
@@ -8705,4 +9422,4 @@
 </script>
 
 
-{% endblock %}a
+{% endblock %}
