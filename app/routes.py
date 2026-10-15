@@ -137137,11 +137137,124 @@ def ai_assistant():
                         # =============================================
 
                         calculated_analysis = (
+
                             ai_calculate_saving_analysis(
+
                                 saving,
+
                                 today=analysis_today
+
                             )
+
                         )
+
+                        # -------------------------------------------------
+                        # RECONCILE SAVINGS NUMBERS AGAINST LIVE RAW FACTS
+                        # Never trust cached remaining_amount/progress.
+                        # Target minus current balance is authoritative.
+                        # -------------------------------------------------
+                        try:
+                            _live_target = round(float(saving.get("target_amount", 0) or 0), 2)
+                            _live_balance = round(float(saving.get("current_balance", 0) or 0), 2)
+                        except (TypeError, ValueError, OverflowError):
+                            _live_target, _live_balance = 0.0, 0.0
+                        _live_remaining = round(max(_live_target - _live_balance, 0.0), 2)
+                        _live_progress = min(round((_live_balance / _live_target) * 100, 2), 100.0) if _live_target > 0 else 0.0
+
+                        if not isinstance(calculated_analysis, dict):
+                            calculated_analysis = {}
+                        _analysis_payload = calculated_analysis.get("analysis")
+                        if not isinstance(_analysis_payload, dict):
+                            _analysis_payload = {}
+                        _calculated_payload = calculated_analysis.get("calculated")
+                        if not isinstance(_calculated_payload, dict):
+                            _calculated_payload = {}
+
+                        # Prefer dynamically calculated days from the helper;
+                        # if unavailable, calculate from the maturity date.
+                        _live_days = 0
+                        try:
+                            _candidate_days = _analysis_payload.get("days_remaining", _calculated_payload.get("days_remaining"))
+                            if _candidate_days is not None:
+                                _live_days = max(int(float(_candidate_days)), 0)
+                        except (TypeError, ValueError, OverflowError):
+                            _live_days = 0
+                        if _live_days == 0:
+                            try:
+                                from datetime import date as _date, datetime as _datetime
+                                _maturity = saving.get("maturity_date")
+                                if isinstance(_maturity, _datetime):
+                                    _maturity_day = _maturity.date()
+                                elif isinstance(_maturity, _date):
+                                    _maturity_day = _maturity
+                                elif isinstance(_maturity, str) and _maturity.strip():
+                                    _maturity_day = _date.fromisoformat(_maturity.strip()[:10])
+                                else:
+                                    _maturity_day = None
+                                if _maturity_day is not None:
+                                    _live_days = max((_maturity_day - analysis_today).days, 0)
+                            except Exception:
+                                _live_days = 0
+                        if _live_days == 0:
+                            try:
+                                _live_days = max(int(float(saving.get("days_remaining", 0) or 0)), 0)
+                            except (TypeError, ValueError, OverflowError):
+                                _live_days = 0
+
+                        _live_daily = round(_live_remaining / _live_days, 2) if _live_days > 0 else _live_remaining
+                        _live_weekly = round((_live_remaining / _live_days) * 7, 2) if _live_days > 0 else _live_remaining
+                        _live_monthly = round((_live_remaining / _live_days) * 30.4375, 2) if _live_days > 0 else _live_remaining
+
+                        # Optional planned contributions are reported separately;
+                        # they must never be confused with money already saved.
+                        _planned_amount = 0.0
+                        for _planned_key in ("planned_amount", "planned_contribution", "planned_deposit", "scheduled_amount", "pending_deposit_amount"):
+                            try:
+                                _planned_amount = max(float(saving.get(_planned_key, 0) or 0), 0.0)
+                            except (TypeError, ValueError, OverflowError):
+                                _planned_amount = 0.0
+                            if _planned_amount > 0:
+                                break
+
+                        _recorded_remaining = saving.get("remaining_amount")
+                        try:
+                            _remaining_stale = abs(float(_recorded_remaining) - _live_remaining) > 0.009
+                        except (TypeError, ValueError, OverflowError):
+                            _remaining_stale = True
+
+                        _analysis_payload.update({
+                            "target_amount": _live_target,
+                            "current_balance": _live_balance,
+                            "remaining_amount": _live_remaining,
+                            "progress": _live_progress,
+                            "days_remaining": _live_days,
+                            "daily_required": _live_daily,
+                            "weekly_required": _live_weekly,
+                            "monthly_required": _live_monthly,
+                        })
+                        _calculated_payload.update({
+                            "target_amount": _live_target,
+                            "current_balance": _live_balance,
+                            "remaining_amount": _live_remaining,
+                            "progress": _live_progress,
+                            "days_remaining": _live_days,
+                            "daily_required": _live_daily,
+                            "weekly_required": _live_weekly,
+                            "monthly_required": _live_monthly,
+                        })
+                        calculated_analysis["analysis"] = _analysis_payload
+                        calculated_analysis["calculated"] = _calculated_payload
+                        calculated_analysis["recorded_values_stale"] = bool(
+                            calculated_analysis.get("recorded_values_stale", False) or _remaining_stale
+                        )
+                        calculated_analysis["data_quality"] = {
+                            "recorded_remaining_amount": _recorded_remaining,
+                            "calculated_remaining_amount": _live_remaining,
+                            "remaining_amount_stale": _remaining_stale,
+                            "planned_contribution": round(_planned_amount, 2),
+                            "remaining_after_planned_contribution": round(max(_live_remaining - _planned_amount, 0.0), 2) if _planned_amount > 0 else None,
+                            "note": "Calculated from target_amount minus current_balance; stored remaining_amount is treated as cached data."
+                        }
 
                         # =============================================
                         # SAFE RAW VALUES
@@ -137283,7 +137396,20 @@ def ai_assistant():
                                     saving.get(
                                         "remaining_amount"
                                     )
-                                )
+                                ),
+
+                            "calculated_remaining_amount":
+                                round(max(
+                                    ai_safe_float(saving.get("target_amount")) -
+                                    ai_safe_float(saving.get("current_balance")),
+                                    0.0
+                                ), 2),
+
+                            "remaining_amount_is_stale":
+                                abs(
+                                    ai_safe_float(saving.get("remaining_amount")) -
+                                    max(ai_safe_float(saving.get("target_amount")) - ai_safe_float(saving.get("current_balance")), 0.0)
+                                ) > 0.009
 
                         }
 
@@ -137385,32 +137511,8 @@ def ai_assistant():
                         # REMAINING
                         # =============================================
 
-                        remaining = ai_safe_float(
-                            analysis_data.get(
-                                "remaining_amount",
-                                calculated.get(
-                                    "remaining_amount",
-                                    0
-                                )
-                            )
-                        )
-
-                        if (
-                            remaining <= 0
-                            and
-                            target > balance
-                        ):
-
-                            remaining = (
-                                target
-                                -
-                                balance
-                            )
-
-                        remaining = max(
-                            remaining,
-                            0
-                        )
+                        # Canonical arithmetic always wins over cached fields.
+                        remaining = round(max(target - balance, 0.0), 2)
 
                         total_target += target
 
@@ -137422,15 +137524,19 @@ def ai_assistant():
                         # DAILY
                         # =============================================
 
-                        daily_required = ai_safe_float(
-                            analysis_data.get(
-                                "daily_required",
-                                calculated.get(
-                                    "daily_required",
-                                    0
-                                )
-                            )
-                        )
+                        try:
+                            _days_for_summary = max(int(float(
+                                analysis_data.get(
+                                    "days_remaining",
+                                    calculated.get(
+                                        "days_remaining",
+                                        saving.get("days_remaining", 0)
+                                    )
+                                ) or 0
+                            )), 0)
+                        except (TypeError, ValueError, OverflowError):
+                            _days_for_summary = 0
+                        daily_required = round(remaining / _days_for_summary, 2) if _days_for_summary > 0 else remaining
 
                         total_daily_required += (
                             daily_required
@@ -137440,15 +137546,7 @@ def ai_assistant():
                         # WEEKLY
                         # =============================================
 
-                        weekly_required = ai_safe_float(
-                            analysis_data.get(
-                                "weekly_required",
-                                calculated.get(
-                                    "weekly_required",
-                                    0
-                                )
-                            )
-                        )
+                        weekly_required = round((remaining / _days_for_summary) * 7, 2) if _days_for_summary > 0 else remaining
 
                         total_weekly_required += (
                             weekly_required
@@ -137458,15 +137556,7 @@ def ai_assistant():
                         # MONTHLY
                         # =============================================
 
-                        monthly_required = ai_safe_float(
-                            analysis_data.get(
-                                "monthly_required",
-                                calculated.get(
-                                    "monthly_required",
-                                    0
-                                )
-                            )
-                        )
+                        monthly_required = round((remaining / _days_for_summary) * 30.4375, 2) if _days_for_summary > 0 else remaining
 
                         total_monthly_required += (
                             monthly_required
@@ -139028,6 +139118,18 @@ daily_required * 30.4375
 
 These are mathematical calculations based on supplied
 MongoDB values and the current server date.
+
+MANDATORY RECONCILIATION EXAMPLE:
+- target_amount = 500 and current_balance = 300 means the actual amount
+  still needed to reach the target is $200, not the cached remaining_amount
+  value if MongoDB stores a different number.
+- If a separate verified planned contribution of $5 exists, report both:
+  actual remaining before that plan = $200; projected remaining after the
+  planned $5 = $195. Do not present $195 as the current remaining amount
+  unless that $5 plan is actually present in current data or explicitly stated
+  by the user as a plan. Never infer a plan from a stale remaining_amount.
+- Do not change the raw MongoDB document merely to make the answer look
+  consistent. Report calculated values and identify the stale field.
 
 # ============================================================
 DATA QUALITY
@@ -141573,6 +141675,8 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
 
 
 
