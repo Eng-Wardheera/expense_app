@@ -12583,6 +12583,12 @@ def import_categories():
 # PERSONAL TIMELINE
 # ============================================================
 
+
+
+# ============================================================
+# PERSONAL TIMELINE
+# ============================================================
+
 # ============================================================
 # HELPERS
 # ============================================================
@@ -12670,13 +12676,18 @@ def _timeline_get_document(timeline_id):
     except Exception:
         return None
 
-    query = {
-        "_id": object_id
-    }
+    query = {"_id": object_id}
 
-    # Normal users only see their own records.
+    # Support legacy records where user_id was saved as either ObjectId
+    # or string, and records that also contain user_id_str.
     if not _timeline_is_superadmin():
-        query["user_id"] = _timeline_user_id()
+        uid = str(current_user.id)
+        ownership = [{"user_id": uid}, {"user_id_str": uid}]
+        try:
+            ownership.insert(0, {"user_id": ObjectId(uid)})
+        except Exception:
+            pass
+        query["$or"] = ownership
 
     return mongo.db.personal_timeline.find_one(query)
 
@@ -13401,6 +13412,12 @@ def personal_timeline():
             ""
         )
     )
+
+    # Direct access to /personal-timeline/add must open the Add modal even
+    # if the request did not arrive with ?modal=add. This avoids depending
+    # on a redirect or on mutating Flask's cached request arguments.
+    if request.path.rstrip("/") == "/personal-timeline/add":
+        modal = "add"
 
     # ========================================================
     # PAGINATION
@@ -15087,13 +15104,13 @@ def personal_timeline():
 )
 @login_required
 def personal_timeline_add():
+    """Open the existing Personal Timeline page with its Add modal.
 
-    return redirect(
-        url_for(
-            "main.personal_timeline",
-            modal="add"
-        )
-    )
+    This route intentionally does not return redirect(). It renders the
+    same page directly, and personal_timeline() detects this path and sets
+    modal="add". Therefore no Werkzeug "Redirecting..." page is produced.
+    """
+    return personal_timeline()
 
 
 # ============================================================
@@ -15106,172 +15123,93 @@ def personal_timeline_add():
 )
 @login_required
 def personal_timeline_add_post():
+    """Create and persist a timeline record in MongoDB.
 
+    Keep the required validation local to this form so unrelated model-level
+    validation rules cannot silently prevent an otherwise valid record from
+    being saved. Any database exception is logged and shown as a flash message.
+    """
     try:
+        title = (request.form.get("title") or request.form.get("name") or "").strip()
+        raw_start = (request.form.get("start_date") or "").strip()
+        raw_end = (request.form.get("end_date") or "").strip()
+        event_type = (request.form.get("event_type") or "meeting").strip().lower()
+        event_type_other = (request.form.get("event_type_other") or "").strip()
 
-        timeline = _timeline_build_from_request()
+        errors = []
+        if not title:
+            errors.append("Please enter the person or event name.")
+        if not raw_start:
+            errors.append("Please select the start date.")
 
-        # ====================================================
-        # VALIDATE
-        # ====================================================
-
-        errors = timeline.validate()
-
-        # Custom Other validation
-        if timeline.event_type == "other":
-
-            custom_other = getattr(
-                timeline,
-                "event_type_other",
-                None
-            )
-
-            if not custom_other:
-
-                errors.append(
-                    "Please enter the custom event type."
-                )
-
-            elif len(custom_other) < 2:
-
-                errors.append(
-                    "Custom event type must contain at least 2 characters."
-                )
-
-            elif len(custom_other) > 100:
-
-                errors.append(
-                    "Custom event type cannot exceed 100 characters."
-                )
+        start_date = _timeline_parse_date(raw_start)
+        end_date = _timeline_parse_date(raw_end) if raw_end else None
+        if raw_start and start_date is None:
+            errors.append("The start date is invalid. Please choose a valid date.")
+        if raw_end and end_date is None:
+            errors.append("The end date is invalid. Please choose a valid date.")
+        if start_date and end_date and end_date < start_date:
+            errors.append("End date cannot be before start date.")
+        if event_type == "other" and not event_type_other:
+            errors.append("Please enter the custom event type.")
+        elif event_type == "other" and len(event_type_other) < 2:
+            errors.append("Custom event type must contain at least 2 characters.")
+        elif event_type == "other" and len(event_type_other) > 100:
+            errors.append("Custom event type cannot exceed 100 characters.")
 
         if errors:
-
-            timeline_data = (
-                _timeline_document_for_template(
-                    timeline.to_dict()
-                )
-            )
-
-            # Ensure custom fields exist even when
-            # PersonalTimeline.to_dict() does not include them.
-            timeline_data["event_type_other"] = getattr(
-                timeline,
-                "event_type_other",
-                None
-            )
-
-            timeline_data["duration_years"] = getattr(
-                timeline,
-                "duration_years",
-                0
-            )
-
-            timeline_data["duration_months"] = getattr(
-                timeline,
-                "duration_months",
-                0
-            )
-
-            timeline_data["duration_days"] = getattr(
-                timeline,
-                "duration_days",
-                0
-            )
-
-            timeline_data["duration_total_days"] = getattr(
-                timeline,
-                "duration_total_days",
-                0
-            )
-
-            timeline_data["duration_text"] = getattr(
-                timeline,
-                "duration_text",
-                "0 Days"
-            )
-
             for error in errors:
                 flash(error, "danger")
+            return redirect(url_for("main.personal_timeline", modal="add"), code=303)
 
-            return redirect(
-                url_for(
-                    "main.personal_timeline",
-                    modal="add"
-                )
-            ), 400
-
-        # ====================================================
-        # INSERT
-        # ====================================================
-
+        # Use the existing model builder to preserve the app's data structure,
+        # then explicitly normalize all form fields before inserting.
+        timeline = _timeline_build_from_request()
         document = timeline.to_dict()
+        if not isinstance(document, dict):
+            raise TypeError("PersonalTimeline.to_dict() did not return a dictionary")
 
-        # Make sure these fields are persisted even if
-        # PersonalTimeline.to_dict() does not know about them.
-        document["event_type_other"] = getattr(
-            timeline,
-            "event_type_other",
-            None
-        )
+        now = datetime.now(timezone.utc)
+        document.pop("_id", None)
+        document["user_id"] = _timeline_user_id()
+        document["title"] = title
+        document["name"] = title
+        document["category"] = (request.form.get("category") or "personal").strip().lower()
+        document["event_type"] = event_type
+        document["event_type_other"] = event_type_other if event_type == "other" else None
+        document["reaction"] = (request.form.get("reaction") or "").strip() or None
+        document["start_date"] = start_date
+        document["end_date"] = end_date
+        document["status"] = (request.form.get("status") or "ongoing").strip().lower()
+        document["description"] = (request.form.get("description") or "").strip()
+        document["notes"] = (request.form.get("notes") or "").strip()
+        document["created_at"] = document.get("created_at") or now
+        document["updated_at"] = now
+        document["duration_years"] = getattr(timeline, "duration_years", document.get("duration_years", 0)) or 0
+        document["duration_months"] = getattr(timeline, "duration_months", document.get("duration_months", 0)) or 0
+        document["duration_days"] = getattr(timeline, "duration_days", document.get("duration_days", 0)) or 0
+        document["duration_total_days"] = getattr(timeline, "duration_total_days", document.get("duration_total_days", 0)) or 0
+        document["duration_text"] = getattr(timeline, "duration_text", document.get("duration_text", "0 Days")) or "0 Days"
 
-        document["duration_years"] = getattr(
-            timeline,
-            "duration_years",
-            0
-        )
+        result = mongo.db.personal_timeline.insert_one(document)
+        if not getattr(result, "inserted_id", None):
+            raise RuntimeError("MongoDB did not confirm that the timeline record was inserted")
 
-        document["duration_months"] = getattr(
-            timeline,
-            "duration_months",
-            0
+        current_app.logger.info(
+            "Personal Timeline saved: id=%s user_id=%s",
+            result.inserted_id,
+            document.get("user_id"),
         )
-
-        document["duration_days"] = getattr(
-            timeline,
-            "duration_days",
-            0
-        )
-
-        document["duration_total_days"] = getattr(
-            timeline,
-            "duration_total_days",
-            0
-        )
-
-        document["duration_text"] = getattr(
-            timeline,
-            "duration_text",
-            "0 Days"
-        )
-
-        mongo.db.personal_timeline.insert_one(
-            document
-        )
-
-        flash(
-            "Personal timeline event added successfully.",
-            "success"
-        )
-
-        return redirect(
-            url_for(
-                "main.personal_timeline"
-            )
-        )
+        flash("Personal timeline event saved successfully.", "success")
+        return redirect(url_for("main.personal_timeline"), code=303)
 
     except Exception as e:
-
-        flash(
-            f"Unable to add timeline event: {str(e)}",
-            "danger"
-        )
-
-        return redirect(
-            url_for(
-                "main.personal_timeline"
-            )
-        )
-
+        try:
+            current_app.logger.exception("Personal Timeline save failed")
+        except Exception:
+            pass
+        flash("Unable to save timeline. Please check the server log for the exact error.", "danger")
+        return redirect(url_for("main.personal_timeline", modal="add"), code=303)
 
 
 # ============================================================
@@ -19467,10 +19405,17 @@ def delete_all_personal_timeline():
 
     try:
 
+        uid_string = str(current_user.id)
+        ownership_query = {
+            "$or": [
+                {"user_id": user_id},
+                {"user_id": uid_string},
+                {"user_id_str": uid_string},
+            ]
+        }
+
         result = mongo.db.personal_timeline.delete_many(
-            {
-                "user_id": user_id
-            }
+            ownership_query
         )
 
         deleted_count = result.deleted_count
@@ -19521,6 +19466,8 @@ def delete_all_personal_timeline():
             "main.personal_timeline"
         )
     )
+
+
 
 
 
