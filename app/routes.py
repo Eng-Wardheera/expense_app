@@ -19479,6 +19479,7 @@ def delete_all_personal_timeline():
 # Financial year: October 10 -> October 10
 # ============================================================
 
+
 # ============================================================
 # YEARLY RATE HELPER — FULL VERSION
 # Target user: 6a3fb30b7e3a09592080f815
@@ -19559,7 +19560,7 @@ YEARLY_RATE_HISTORY = {
            "total_rest": 150.00,
        },
        "2025 ~ 2026": {
-           "total_gained": 759.60,
+           "total_gained": 765.60,
            "total_send": 459.60,
            "personal_exp": 40.00,
            "total_free": 404.45,
@@ -19568,10 +19569,12 @@ YEARLY_RATE_HISTORY = {
            "total_mb": 6.40,
            "total_currence": 0.00,
 
-           "cash_rest": 0.00,
+           # Closing balance is $306 = $6 cash + $300 savings.
+           # Only the $6 cash is carried into the next year's opening cash.
+           "cash_rest": 6.00,
            "saving_balance": 300.00,
-           "total_balance": 300.00,
-           "total_rest": 300.00,
+           "total_balance": 306.00,
+           "total_rest": 306.00,
        },
 }
 
@@ -19720,21 +19723,110 @@ def _yr_year_label(start):
 
 
 def _yr_user_ids(user_id=None):
-       """
-       Restrict this helper to the configured user only.
-       Accept both ObjectId and string user IDs in MongoDB.
-       """
-       requested = str(user_id or YEARLY_RATE_USER_ID)
+    """Return string/ObjectId variants for one user's records only."""
+    if user_id is None:
+        user_id = YEARLY_RATE_USER_ID
+    requested = str(user_id).strip()
+    if not requested:
+        raise ValueError("A valid user_id is required.")
+    ids = [requested]
+    if ObjectId.is_valid(requested):
+        oid = ObjectId(requested)
+        if oid not in ids:
+            ids.append(oid)
+    return ids
 
-       if requested != YEARLY_RATE_USER_ID:
-           raise PermissionError(
-               "Yearly-rate helper is restricted to the configured user."
-           )
 
-       return [
-           YEARLY_RATE_USER_ID,
-           YEARLY_RATE_USER_OBJECT_ID,
-       ]
+def _yr_is_target_user(user_id):
+    """True only for the account whose historical data was imported."""
+    return str(user_id or "").strip() == YEARLY_RATE_USER_ID
+
+
+def _yr_get_user_created_date(user_id):
+    """Find a user's registration date without mixing another user's data."""
+    requested = str(user_id or "").strip()
+    if not requested:
+        return None
+
+    ids = _yr_user_ids(requested)
+    # Flask apps commonly use `users`; other supported names are safe fallbacks.
+    for collection_name in ("users", "user", "accounts", "user_accounts"):
+        try:
+            collection = mongo.db[collection_name]
+            user_doc = collection.find_one({"_id": {"$in": ids}})
+            if not user_doc:
+                user_doc = collection.find_one({"user_id": {"$in": ids}})
+            if not user_doc:
+                continue
+
+            for field in (
+                "created_at", "date_created", "registered_at",
+                "registration_date", "date_registered", "created_on",
+                "created", "joined_at", "date_joined", "register_date",
+            ):
+                created = _yr_as_date(user_doc.get(field))
+                if created:
+                    return created
+
+            # Mongo ObjectId includes the account document's creation timestamp.
+            document_id = user_doc.get("_id")
+            if isinstance(document_id, ObjectId):
+                return _yr_as_date(document_id.generation_time)
+        except Exception:
+            # A missing collection should not prevent the report from loading.
+            continue
+
+    # If the user collection lookup is unavailable, ObjectId's timestamp is a
+    # better registration-date fallback than incorrectly using old global data.
+    if ObjectId.is_valid(requested):
+        try:
+            return _yr_as_date(ObjectId(requested).generation_time)
+        except Exception:
+            pass
+    return None
+
+
+def _yr_user_year_start(year, user_id):
+    """Return a user's annual boundary; imported target remains Oct 10."""
+    if _yr_is_target_user(user_id):
+        return date(int(year), 10, 10)
+
+    created = _yr_get_user_created_date(user_id)
+    if not created:
+        return date(int(year), 10, 10)
+
+    # A Feb 29 registration anniversary becomes Feb 28 in non-leap years.
+    month, day = created.month, created.day
+    try:
+        return date(int(year), month, day)
+    except ValueError:
+        return date(int(year), 2, 28)
+
+
+def _yr_financial_start_for_user(value, user_id):
+    """Calculate the current period start for this specific user's anniversary."""
+    value = _yr_as_date(value)
+    if value is None:
+        return None
+
+    boundary = _yr_user_year_start(value.year, user_id)
+    if value >= boundary:
+        return boundary
+    return _yr_user_year_start(value.year - 1, user_id)
+
+
+def _yr_next_year_for_user(start, user_id):
+    start = _yr_as_date(start)
+    if start is None:
+        raise ValueError("Invalid financial-year start.")
+    return _yr_user_year_start(start.year + 1, user_id)
+
+
+def _yr_year_label_for_user(start, user_id):
+    start = _yr_financial_start_for_user(start, user_id)
+    if start is None:
+        raise ValueError("Invalid financial-year start.")
+    return f"{start.year} ~ {start.year + 1}"
 
 
 def _yr_is_active_document(document):
@@ -20312,22 +20404,13 @@ def _yr_normalize_totals(source):
 # ============================================================
 
 def _yr_find_record(user_ids, label):
-       allowed = {
-           YEARLY_RATE_USER_ID,
-           str(YEARLY_RATE_USER_OBJECT_ID),
-       }
-
-       if not user_ids or not any(
-           str(value) in allowed for value in user_ids
-       ):
-           raise PermissionError(
-               "Unauthorized yearly-rate user."
-           )
-
-       return mongo.db.yearly_rates.find_one({
-           "user_id": {"$in": user_ids},
-           "year_label": label,
-       })
+    """Find a yearly report only among the signed-in user's identifiers."""
+    if not user_ids:
+        raise ValueError("User identifiers are required.")
+    return mongo.db.yearly_rates.find_one({
+        "user_id": {"$in": user_ids},
+        "year_label": label,
+    })
 
 
 # ============================================================
@@ -20349,7 +20432,10 @@ def _yr_previous_cash_balance(record):
        if record.get("cash_rest") is not None:
            return _yr_money(record.get("cash_rest"))
 
-       if record.get("year_label") == "2025 ~ 2026":
+       if (
+           record.get("year_label") == "2025 ~ 2026"
+           and str(record.get("user_id", "")) == YEARLY_RATE_USER_ID
+       ):
            return 6.00
 
        # Legacy fallback for records without a saved split.
@@ -20428,33 +20514,45 @@ def sync_yearly_rates_for_user(
        """
        Refresh yearly records for the configured user only.
 
-       Current-year totals are recalculated from transactions.
+       Current-year totals are recalculated from this user's transactions.
+       The imported target account uses October 10 boundaries. Other accounts
+       use their own registration anniversary as the full-year boundary.
        Previous cash and savings are carried forward separately.
-       If the scheduler missed October 10, running this function later still
-       creates/refreshes the correct current financial-year record.
        Existing closed-year figures are preserved.
        """
        user_ids = _yr_user_ids(user_id)
-       user_oid = YEARLY_RATE_USER_OBJECT_ID
+       requested_user_id = str(user_id or YEARLY_RATE_USER_ID).strip()
+       user_oid = (
+           ObjectId(requested_user_id)
+           if ObjectId.is_valid(requested_user_id)
+           else requested_user_id
+       )
+       is_target_user = _yr_is_target_user(requested_user_id)
 
        today = datetime.now(YEARLY_RATE_TZ).date()
-       current_start = _yr_financial_start(today)
+       current_start = _yr_financial_start_for_user(today, requested_user_id)
 
        transactions = _yr_get_transactions(user_id)
        savings_balance = _yr_get_savings_balance(user_id)
 
-       first_start = YEARLY_RATE_START
-
-       for transaction in transactions:
-           tx_date = transaction.get("_yr_date")
-
-           if tx_date is None:
-               continue
-
-           tx_start = _yr_financial_start(tx_date)
-
-           if tx_start and tx_start < first_start:
-               first_start = tx_start
+       # The configured account retains imported history from 2021.
+       # Every other account begins on its registration date and uses that
+       # anniversary for each complete financial year. Earliest transactions
+       # are a fallback only if the registration date cannot be found.
+       created_date = _yr_get_user_created_date(requested_user_id)
+       if is_target_user:
+           first_start = YEARLY_RATE_START
+       elif created_date:
+           first_start = created_date
+       else:
+           first_start = current_start
+           for transaction in transactions:
+               tx_date = transaction.get("_yr_date")
+               if tx_date is None:
+                   continue
+               tx_start = _yr_financial_start_for_user(tx_date, requested_user_id)
+               if tx_start and tx_start < first_start:
+                   first_start = tx_start
 
        created = 0
        updated = 0
@@ -20463,8 +20561,8 @@ def sync_yearly_rates_for_user(
        start = first_start
 
        while start <= current_start:
-           end = _yr_next_year(start)
-           label = _yr_year_label(start)
+           end = _yr_next_year_for_user(start, requested_user_id)
+           label = _yr_year_label_for_user(start, requested_user_id)
 
            title = (
                f"Xisab Wadaredka Guud Sanadka {label}"
@@ -20506,7 +20604,11 @@ def sync_yearly_rates_for_user(
                    updates["end_day"] = end.strftime("%a")
 
                # Repair only the confirmed historical split.
-               historical = YEARLY_RATE_HISTORY.get(label, {})
+               historical = (
+                   YEARLY_RATE_HISTORY.get(label, {})
+                   if is_target_user
+                   else {}
+               )
 
                for field in (
                    "cash_rest",
@@ -20555,7 +20657,11 @@ def sync_yearly_rates_for_user(
                )
 
            elif existing is None:
-               historical = YEARLY_RATE_HISTORY.get(label)
+               historical = (
+                   YEARLY_RATE_HISTORY.get(label)
+                   if is_target_user
+                   else None
+               )
 
                if historical is not None:
                    totals = _yr_normalize_totals(historical)
@@ -20581,7 +20687,7 @@ def sync_yearly_rates_for_user(
 
            previous = (
                _yr_find_record(user_ids, previous_label)
-               if start > YEARLY_RATE_START
+               if start > first_start
                else None
            )
 
@@ -20635,7 +20741,7 @@ def sync_yearly_rates_for_user(
 
            # Calculate a missing non-historical year.
            elif existing is None and (
-               label not in YEARLY_RATE_HISTORY
+               not is_target_user or label not in YEARLY_RATE_HISTORY
            ):
                totals = _yr_calculate_year_balances(
                    totals=totals,
@@ -20691,7 +20797,7 @@ def sync_yearly_rates_for_user(
        # --------------------------------------------------------
        # RETURN THE CURRENT YEAR'S RESULTS
        # --------------------------------------------------------
-       current_label = _yr_year_label(current_start)
+       current_label = _yr_year_label_for_user(current_start, requested_user_id)
 
        current_record = (
            _yr_find_record(user_ids, current_label) or {}
@@ -20707,7 +20813,7 @@ def sync_yearly_rates_for_user(
        )
 
        return {
-           "user_id": YEARLY_RATE_USER_ID,
+           "user_id": requested_user_id,
 
            "created": created,
            "updated": updated,
@@ -20788,21 +20894,16 @@ def sync_yearly_rates_for_user(
 # 11. BACKWARD-COMPATIBLE FUNCTION
 # ============================================================
 
-def sync_yearly_rates_for_all_users():
-       """
-       Preserve the old function name for existing callers.
-       It intentionally syncs only the configured user.
-       """
-       result = sync_yearly_rates_for_user(
-           YEARLY_RATE_USER_ID
-       )
-
-       return {
-           "users_found": 1,
-           "users_synced": 1,
-           "failures": [],
-           "results": [result],
-       }
+def sync_yearly_rates_for_all_users(user_id=None):
+    """Backward-compatible wrapper; syncs one specified user only."""
+    requested_user_id = str(user_id or YEARLY_RATE_USER_ID)
+    result = sync_yearly_rates_for_user(requested_user_id)
+    return {
+        "users_found": 1,
+        "users_synced": 1,
+        "failures": [],
+        "results": [result],
+    }
 
 
 # ============================================================
@@ -20848,7 +20949,7 @@ def diagnose_yearly_rate_transactions(
        end_date = _yr_as_date(end) if end else None
 
        report = {
-           "user_id": YEARLY_RATE_USER_ID,
+           "user_id": str(user_id or YEARLY_RATE_USER_ID),
            "transactions_checked": 0,
 
            "income_count": 0,
@@ -20960,7 +21061,7 @@ def diagnose_yearly_rate_transactions(
 
 # ------------------------------------------------------------
 # 4. YEARLY RATE PAGE
-# Target user only
+# Each signed-in user sees their own report only
 # Financial year: October 10 -> October 10
 # Timezone: Africa/Mogadishu
 # ------------------------------------------------------------
@@ -20975,38 +21076,30 @@ def yearly_rate(rate_id=None):
     from werkzeug.exceptions import HTTPException
 
     TARGET_USER_ID = YEARLY_RATE_USER_ID
-    TARGET_USER_OBJECT_ID = YEARLY_RATE_USER_OBJECT_ID
 
     try:
         # --------------------------------------------------
-        # 1. AUTHORIZE TARGET USER ONLY
+        # 1. AUTHORIZE THE SIGNED-IN USER'S OWN REPORT
         # --------------------------------------------------
-        user_id = str(current_user.id)
-
-        if user_id != TARGET_USER_ID:
-            abort(403, description="Yearly rate is not available.")
-
-        user_ids = [
-            TARGET_USER_ID,
-            TARGET_USER_OBJECT_ID,
-        ]
+        user_id = str(current_user.get_id() if hasattr(current_user, "get_id") else current_user.id)
+        user_ids = _yr_user_ids(user_id)
 
         # --------------------------------------------------
         # 2. GET CURRENT FINANCIAL YEAR
         # --------------------------------------------------
         today = datetime.now(YEARLY_RATE_TZ).date()
 
-        current_start = _yr_financial_start(today)
-        current_end = _yr_next_year(current_start)
-        current_label = _yr_year_label(current_start)
+        current_start = _yr_financial_start_for_user(today, user_id)
+        current_end = _yr_next_year_for_user(current_start, user_id)
+        current_label = _yr_year_label_for_user(current_start, user_id)
 
         # --------------------------------------------------
-        # 3. SYNC TARGET USER'S YEARLY RECORDS
+        # 3. SYNC THIS USER'S YEARLY RECORDS
         # --------------------------------------------------
-        # Updates/creates the target user's yearly records.
+        # Updates/creates only the signed-in user's yearly records.
         # Does not delete transactions or savings.
         sync_result = sync_yearly_rates_for_user(
-            user_id=TARGET_USER_ID
+            user_id=user_id
         )
 
         # --------------------------------------------------
@@ -21015,7 +21108,7 @@ def yearly_rate(rate_id=None):
         # Diagnostic function only reads transactions/savings.
         # It does not change database records.
         diagnostic_result = diagnose_yearly_rate_transactions(
-            user_id=TARGET_USER_ID,
+            user_id=user_id,
             start=current_start,
             end=current_end,
         )
@@ -21093,8 +21186,8 @@ def yearly_rate(rate_id=None):
             if start_year is None:
                 continue
 
-            correct_start = date(start_year, 10, 10)
-            correct_end = date(start_year + 1, 10, 10)
+            correct_start = _yr_user_year_start(start_year, user_id)
+            correct_end = _yr_user_year_start(start_year + 1, user_id)
 
             correct_label = (
                 f"{correct_start.year} ~ {correct_end.year}"
@@ -21242,6 +21335,9 @@ def yearly_rate(rate_id=None):
         import traceback
         traceback.print_exc()
         raise
+
+
+
 
 
 
@@ -135933,6 +136029,7 @@ def ai_assistant():
         savings_analysis_context = []
 
         savings_summary = {}
+        savings_records_loaded = False
 
         password_security_context = []
 
@@ -137062,6 +137159,21 @@ def ai_assistant():
                         )
 
                     )
+
+                    # SAFETY: do not calculate from deleted/void/archived
+                    # savings documents. A user with no valid savings plan
+                    # must receive an explicit zero-record result, not a
+                    # calculation copied from old chat history or a stale row.
+                    _excluded_saving_statuses = {
+                        "deleted", "cancelled", "canceled", "void",
+                        "inactive", "archived", "removed"
+                    }
+                    savings_documents = [
+                        _saving_doc for _saving_doc in savings_documents
+                        if str(_saving_doc.get("status", "") or "").strip().lower()
+                        not in _excluded_saving_statuses
+                    ]
+                    savings_records_loaded = True
 
                     savings_context = []
 
@@ -139957,6 +140069,29 @@ actually reports success.
 """
 
         # ============================================================
+        # NO SAVINGS = NO SAVINGS CALCULATION (LIVE REQUEST GUARD)
+        # ============================================================
+        # This is appended after live MongoDB savings loading so it reflects
+        # the current request, not old assistant messages or cached context.
+        if is_logged_in and savings_context_allowed and savings_records_loaded and not savings_analysis_context:
+            savings_instruction += """
+
+# STRICT LIVE-DATABASE GUARD — THIS USER HAS NO SAVINGS RECORDS
+The current request's live MongoDB query returned ZERO valid savings records.
+Therefore:
+- Do not calculate or report any savings target, saved amount, remaining amount,
+  progress percentage, daily/weekly/monthly requirement, or savings plan.
+- Do not reuse savings numbers from previous chat messages, prior assistant
+  answers, remembered context, stale summaries, or another user's records.
+- Say clearly in Somali: "Xogta MongoDB ee hadda jirta kuma jiro qorshe kayd oo
+  kuu diiwaangashan, sidaas darteed ma jiro xisaab kayd oo aan hadda kuu
+  samayn karo." You may offer to help create a savings plan if the user wants.
+- Keep ordinary account balances and transactions separate; they are not savings.
+- Only calculate savings after a valid savings record for the logged-in user is
+  present in the current MongoDB result.
+"""
+
+        # ============================================================
         # COMBINE SYSTEM INSTRUCTIONS
         # ============================================================
 
@@ -141624,6 +141759,8 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
 
 
 
