@@ -45,6 +45,7 @@ bp = Blueprint('main', __name__)
 #------------------------------------------
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
  
 def create_guest_session(mongo):
     if not session.get("guest_token"):
@@ -443,11 +444,6 @@ def index():
         login_url="https://maareye.vercel.app/login",
         app_url="https://appsgeyser.io/19942993/Maareeye Expense"
     )
-
-
-
-
-
 
 
 
@@ -4513,18 +4509,13 @@ def dashboard():
 
 
 
-# =====================================
-# MONTHLY CHART DATA
-# =====================================
-
+    # =====================================
+    # MONTHLY CHART DATA
+    # =====================================
 
     monthly_income = defaultdict(float)
 
     monthly_expense = defaultdict(float)
-
-
-
-
 
 
     for t in transactions:
@@ -4584,8 +4575,6 @@ def dashboard():
 
     ]
 
-
-
     chart_expense = [
 
         round(
@@ -4627,7 +4616,6 @@ def dashboard():
 
     total_account_transfers = 0
     total_transfer_amount = 0.0
-
 
     try:
 
@@ -5607,6 +5595,308 @@ def dashboard():
 
         total_transfer_amount = 0.0
 
+    #
+    
+    # ============================================================
+    # YEARLY RATE — ACTIVE YEAR PROGRESS
+    # Dynamic | Current user only | MongoDB
+    # Timezone: Africa/Mogadishu
+    # ============================================================
+
+    # ============================================================
+    # DATE NORMALIZER
+    # ============================================================
+
+    def yearly_progress_date(value):
+        """Convert MongoDB datetime, date, or ISO string to local date."""
+
+        tz = ZoneInfo("Africa/Mogadishu")
+
+        if value is None or value == "":
+            return None
+
+        if isinstance(value, datetime):
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+
+            return value.astimezone(tz).date()
+
+        if isinstance(value, date):
+            return value
+
+        if isinstance(value, str):
+            value = value.strip()
+
+            # Date-only string
+            try:
+                return date.fromisoformat(value[:10])
+            except (ValueError, TypeError):
+                pass
+
+            # ISO datetime string
+            try:
+                parsed = datetime.fromisoformat(
+                    value.replace("Z", "+00:00")
+                )
+
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+
+                return parsed.astimezone(tz).date()
+
+            except (ValueError, TypeError):
+                return None
+
+        return None
+
+
+    # ============================================================
+    # GET ACTIVE YEAR PROGRESS
+    # ============================================================
+
+    def get_active_year_progress(user_id):
+        """
+        Get yearly_rates information for the specified logged-in user.
+
+        Priority:
+        1. Active record covering today.
+        2. Latest record marked active.
+        3. Latest valid record belonging to this user.
+
+        Read-only: does not update MongoDB.
+        """
+
+        try:
+            tz = ZoneInfo("Africa/Mogadishu")
+            today = datetime.now(tz).date()
+
+            if user_id is None or not str(user_id).strip():
+                print("[YEARLY RATE] Missing user ID.")
+                return None
+
+            user_id_str = str(user_id).strip()
+
+            # ----------------------------------------------------
+            # USER ID: ObjectId OR string
+            # ----------------------------------------------------
+
+            user_conditions = [
+                {"user_id": user_id_str}
+            ]
+
+            try:
+                user_conditions.append({
+                    "user_id": ObjectId(user_id_str)
+                })
+            except Exception:
+                pass
+
+            user_filter = {"$or": user_conditions}
+
+            collection = mongo.db.yearly_rates
+
+            # ----------------------------------------------------
+            # GET ONLY THIS USER'S RECORDS
+            # ----------------------------------------------------
+
+            records = list(
+                collection.find(user_filter).limit(200)
+            )
+
+            if not records:
+                print(
+                    "[YEARLY RATE] No records found for user:",
+                    user_id_str
+                )
+                return None
+
+            # ----------------------------------------------------
+            # VALIDATE FINANCIAL YEAR DATES
+            # ----------------------------------------------------
+
+            valid_records = []
+
+            for record in records:
+                start_date = yearly_progress_date(
+                    record.get("start_date")
+                )
+
+                end_date = yearly_progress_date(
+                    record.get("end_date")
+                )
+
+                if start_date is None or end_date is None:
+                    print(
+                        "[YEARLY RATE] Invalid dates:",
+                        record.get("_id")
+                    )
+                    continue
+
+                if end_date <= start_date:
+                    print(
+                        "[YEARLY RATE] Invalid date range:",
+                        record.get("_id")
+                    )
+                    continue
+
+                record["_progress_start"] = start_date
+                record["_progress_end"] = end_date
+
+                valid_records.append(record)
+
+            if not valid_records:
+                print(
+                    "[YEARLY RATE] No valid date ranges for user:",
+                    user_id_str
+                )
+                return None
+
+            # ----------------------------------------------------
+            # SELECT THE MOST RELEVANT FINANCIAL YEAR
+            # ----------------------------------------------------
+
+            active_records = [
+                record for record in valid_records
+                if str(record.get("status", "")).strip().lower()
+                == "active"
+            ]
+
+            covering_records = [
+                record for record in active_records
+                if (
+                    record["_progress_start"] <= today
+                    and today < record["_progress_end"]
+                )
+            ]
+
+            if covering_records:
+                active_year = max(
+                    covering_records,
+                    key=lambda record: record["_progress_start"]
+                )
+
+            elif active_records:
+                active_year = max(
+                    active_records,
+                    key=lambda record: record["_progress_start"]
+                )
+
+            else:
+                active_year = max(
+                    valid_records,
+                    key=lambda record: record["_progress_start"]
+                )
+
+            start_date = active_year["_progress_start"]
+            end_date = active_year["_progress_end"]
+
+            # ----------------------------------------------------
+            # CALCULATE YEARLY PROGRESS
+            # End date is exclusive.
+            # ----------------------------------------------------
+
+            total_days = (end_date - start_date).days
+
+            if today < start_date:
+                elapsed_days = 0
+                remaining_days = total_days
+                progress_status = "upcoming"
+
+            elif today >= end_date:
+                elapsed_days = total_days
+                remaining_days = 0
+                progress_status = "completed"
+
+            else:
+                elapsed_days = (today - start_date).days
+                remaining_days = (end_date - today).days
+                progress_status = "active"
+
+            progress_percent = round(
+                elapsed_days / total_days * 100,
+                1
+            )
+
+            # ----------------------------------------------------
+            # FINANCIAL VALUES
+            # ----------------------------------------------------
+
+            total_gained = safe_float(
+                active_year.get("total_gained", 0)
+            )
+
+            total_send = safe_float(
+                active_year.get("total_send", 0)
+            )
+
+            cash_rest = safe_float(
+                active_year.get("cash_rest", 0)
+            )
+
+            saving_balance = safe_float(
+                active_year.get(
+                    "saving_balance",
+                    active_year.get("savings_balance", 0)
+                )
+            )
+
+            if active_year.get("total_balance") is not None:
+                total_balance = safe_float(
+                    active_year.get("total_balance")
+                )
+            else:
+                total_balance = cash_rest + saving_balance
+
+            # ----------------------------------------------------
+            # RETURN DATA FOR THE TEMPLATE
+            # ----------------------------------------------------
+
+            result = {
+                "title": active_year.get(
+                    "title",
+                    "Active Financial Year"
+                ),
+                "year_label": active_year.get(
+                    "year_label",
+                    ""
+                ),
+                "start_date": start_date,
+                "end_date": end_date,
+                "today": today,
+                "total_days": total_days,
+                "elapsed_days": elapsed_days,
+                "remaining_days": remaining_days,
+                "progress_percent": progress_percent,
+                "status": progress_status,
+                "total_gained": total_gained,
+                "total_send": total_send,
+                "cash_rest": cash_rest,
+                "saving_balance": saving_balance,
+                "total_balance": total_balance,
+            }
+
+            print(
+                "[YEARLY RATE] Loaded:",
+                result["year_label"],
+                "| User:",
+                user_id_str,
+                "| Progress:",
+                progress_percent,
+                "%"
+            )
+
+            return result
+
+        except Exception as exc:
+            print(
+                "[YEARLY RATE PROGRESS ERROR]",
+                repr(exc)
+            )
+            return None
+            # YEARLY RATE
+    active_year_progress = get_active_year_progress(
+        current_user.id
+    )
 
     return render_template(
         "backend/home/dashboard.html",
@@ -5625,8 +5915,11 @@ def dashboard():
 
         saving_progress=saving_progress,
 
+        active_year_progress=active_year_progress,
         
+   
         chart_labels=chart_labels,
+
 
 chart_income=chart_income,
 
@@ -19560,7 +19853,7 @@ YEARLY_RATE_HISTORY = {
            "total_rest": 150.00,
        },
        "2025 ~ 2026": {
-           "total_gained": 765.60,
+           "total_gained": 759.60,
            "total_send": 459.60,
            "personal_exp": 40.00,
            "total_free": 404.45,
@@ -19571,10 +19864,10 @@ YEARLY_RATE_HISTORY = {
 
            # Closing balance is $306 = $6 cash + $300 savings.
            # Only the $6 cash is carried into the next year's opening cash.
-           "cash_rest": 6.00,
+           "cash_rest": 0.00,
            "saving_balance": 300.00,
-           "total_balance": 306.00,
-           "total_rest": 306.00,
+           "total_balance": 300.00,
+           "total_rest": 300.00,
        },
 }
 
@@ -35459,12 +35752,41 @@ def delete_saving_transaction(id):
 
 
 
-
 #=========================================
 #--------------- Reports
 #------------------------------------------
 
 # ============================================================
+
+
+# ============================================================
+# REPORT DATA IS ALWAYS SCOPED TO THE LOGGED-IN USER
+# Supports legacy records where user_id is ObjectId or string.
+# ============================================================
+def _reports_current_user_scope():
+    from bson import ObjectId
+    from flask_login import current_user
+
+    raw_user_id = str(getattr(current_user, "id", "") or "").strip()
+    if not raw_user_id:
+        return {"_id": {"$exists": False}}
+
+    owner_conditions = [
+        {"user_id": raw_user_id},
+        {"user_id_str": raw_user_id},
+    ]
+    try:
+        owner_conditions.append({"user_id": ObjectId(raw_user_id)})
+    except Exception:
+        pass
+
+    return {"$or": owner_conditions}
+
+
+def _reports_scope_query(query=None):
+    query = query if isinstance(query, dict) else {}
+    return {"$and": [_reports_current_user_scope(), query]}
+
 @bp.route("/reports/transactions", methods=["GET"])
 @login_required
 def report_transactions():
@@ -35604,7 +35926,7 @@ def report_transactions():
     # --------------------------------------------------------
 
     transactions = list(
-        mongo.db.transactions.find(query).sort(
+        mongo.db.transactions.find(_reports_scope_query(query)).sort(
             "date",
             -1
         )
@@ -35615,10 +35937,10 @@ def report_transactions():
     # --------------------------------------------------------
 
     accounts = list(
-        mongo.db.accounts.find({
+        mongo.db.accounts.find(_reports_scope_query({
             "user_id": user_id,
             "status": True
-        }).sort(
+        })).sort(
             "name",
             1
         )
@@ -35629,10 +35951,10 @@ def report_transactions():
     # --------------------------------------------------------
 
     categories = list(
-        mongo.db.categories.find({
+        mongo.db.categories.find(_reports_scope_query({
             "user_id": user_id,
             "status": True
-        }).sort(
+        })).sort(
             "name",
             1
         )
@@ -35821,12 +36143,12 @@ def report_income_transactions():
 
         transactions = list(
             mongo.db.transactions.find(
-                {
+                _reports_scope_query({
                     "transaction_type": {
                         "$regex": "^income$",
                         "$options": "i"
                     }
-                }
+                })
             ).sort(
                 "date",
                 -1
@@ -36244,7 +36566,7 @@ def report_expense_transactions():
         # ========================================================
 
         accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         # ========================================================
@@ -36297,12 +36619,12 @@ def report_expense_transactions():
         # ========================================================
 
         transactions = list(
-            mongo.db.transactions.find({
+            mongo.db.transactions.find(_reports_scope_query({
                 "transaction_type": {
                     "$regex": "^expense$",
                     "$options": "i"
                 }
-            }).sort(
+            })).sort(
                 "date",
                 -1
             )
@@ -37075,7 +37397,7 @@ def report_transaction_by_category():
         # ========================================================
 
         accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         account_map = {}
@@ -37115,7 +37437,7 @@ def report_transaction_by_category():
         # ========================================================
 
         transactions = list(
-            mongo.db.transactions.find({})
+            mongo.db.transactions.find(_reports_scope_query({}))
             .sort("date", -1)
         )
 
@@ -38095,7 +38417,7 @@ def report_transaction_by_account():
         # ========================================================
 
         accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         account_map = {}
@@ -38135,7 +38457,7 @@ def report_transaction_by_account():
         # ========================================================
 
         transactions = list(
-            mongo.db.transactions.find({})
+            mongo.db.transactions.find(_reports_scope_query({}))
             .sort("date", -1)
         )
 
@@ -39159,7 +39481,7 @@ def report_transaction_by_date():
         # ========================================================
 
         accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         account_map = {}
@@ -39199,7 +39521,7 @@ def report_transaction_by_date():
         # ========================================================
 
         raw_transactions = list(
-            mongo.db.transactions.find({})
+            mongo.db.transactions.find(_reports_scope_query({}))
             .sort("date", -1)
         )
 
@@ -40290,7 +40612,7 @@ def report_income():
         # ========================================================
 
         accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         account_map = {}
@@ -40331,12 +40653,12 @@ def report_income():
         # ========================================================
 
         raw_transactions = list(
-            mongo.db.transactions.find({
+            mongo.db.transactions.find(_reports_scope_query({
                 "transaction_type": {
                     "$regex": "^income$",
                     "$options": "i"
                 }
-            }).sort(
+            })).sort(
                 "date",
                 -1
             )
@@ -41222,7 +41544,7 @@ def report_income_by_category():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = account.get("_id")
 
@@ -41248,12 +41570,12 @@ def report_income_by_category():
         # ========================================================
 
         raw_transactions = mongo.db.transactions.find(
-            {
+            _reports_scope_query({
                 "transaction_type": {
                     "$regex": "^income$",
                     "$options": "i"
                 }
-            }
+            })
         ).sort(
             "date",
             -1
@@ -41808,7 +42130,7 @@ def report_income_by_account():
 
         account_map = {}
 
-        accounts = mongo.db.accounts.find({})
+        accounts = mongo.db.accounts.find(_reports_scope_query({}))
 
         for account in accounts:
 
@@ -41831,12 +42153,12 @@ def report_income_by_account():
         # =========================================================
 
         raw_transactions = mongo.db.transactions.find(
-            {
+            _reports_scope_query({
                 "transaction_type": {
                     "$regex": "^income$",
                     "$options": "i"
                 }
-            }
+            })
         ).sort(
             [
                 ("date", -1),
@@ -42547,7 +42869,7 @@ def report_monthly_income():
         # =========================================================
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
             account_id = str(account.get("_id"))
 
             account_name = (
@@ -42566,12 +42888,12 @@ def report_monthly_income():
         # =========================================================
         raw_transactions = list(
             mongo.db.transactions.find(
-                {
+                _reports_scope_query({
                     "transaction_type": {
                         "$regex": "^income$",
                         "$options": "i"
                     }
-                }
+                })
             ).sort([
                 ("date", -1),
                 ("_id", -1)
@@ -43320,7 +43642,7 @@ def report_yearly_income():
         # =========================================================
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(
                 account.get("_id")
@@ -43344,12 +43666,12 @@ def report_yearly_income():
         # =========================================================
         raw_transactions = list(
             mongo.db.transactions.find(
-                {
+                _reports_scope_query({
                     "transaction_type": {
                         "$regex": "^income$",
                         "$options": "i"
                     }
-                }
+                })
             ).sort([
                 ("date", -1),
                 ("_id", -1)
@@ -44382,7 +44704,7 @@ def report_expenses():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(
                 account.get("_id")
@@ -44555,12 +44877,12 @@ def report_expenses():
 
         raw_transactions = list(
             mongo.db.transactions.find(
-                {
+                _reports_scope_query({
                     "transaction_type": {
                         "$regex": "^expense$",
                         "$options": "i"
                     }
-                }
+                })
             ).sort(
                 [
                     ("date", -1),
@@ -45599,7 +45921,7 @@ def report_expense_by_category():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(
                 account.get("_id")
@@ -45624,12 +45946,12 @@ def report_expense_by_category():
 
         raw_transactions = list(
             mongo.db.transactions.find(
-                {
+                _reports_scope_query({
                     "transaction_type": {
                         "$regex": "^expense$",
                         "$options": "i"
                     }
-                }
+                })
             ).sort([
                 ("date", -1),
                 ("_id", -1)
@@ -46641,7 +46963,7 @@ def report_expense_by_account():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(
                 account.get("_id")
@@ -46666,12 +46988,12 @@ def report_expense_by_account():
         # ========================================================
 
         cursor = mongo.db.transactions.find(
-            {
+            _reports_scope_query({
                 "transaction_type": {
                     "$regex": "^expense$",
                     "$options": "i"
                 }
-            }
+            })
         ).sort(
             [
                 ("date", -1),
@@ -47879,7 +48201,7 @@ def report_monthly_expenses():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(
                 account.get("_id")
@@ -48075,12 +48397,12 @@ def report_monthly_expenses():
         # ============================================================
 
         raw_transactions = list(
-            mongo.db.transactions.find({
+            mongo.db.transactions.find(_reports_scope_query({
                 "transaction_type": {
                     "$regex": "^expense$",
                     "$options": "i"
                 }
-            }).sort([
+            })).sort([
                 ("date", -1),
                 ("_id", -1)
             ])
@@ -49153,7 +49475,7 @@ def report_yearly_expenses():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
 
             account_id = str(account.get("_id"))
 
@@ -49267,12 +49589,12 @@ def report_yearly_expenses():
         # GET EXPENSE TRANSACTIONS ONLY
         # =========================================================
 
-        cursor = mongo.db.transactions.find({
+        cursor = mongo.db.transactions.find(_reports_scope_query({
             "transaction_type": {
                 "$regex": "^expense$",
                 "$options": "i"
             }
-        }).sort([
+        })).sort([
             ("date", -1),
             ("_id", -1)
         ])
@@ -50143,7 +50465,7 @@ def report_top_expenses():
 
         account_map = {}
 
-        for account in mongo.db.accounts.find({}):
+        for account in mongo.db.accounts.find(_reports_scope_query({})):
             account_id = str(account.get("_id"))
 
             account_name = (
@@ -50233,12 +50555,12 @@ def report_top_expenses():
         # ========================================================
 
         cursor = mongo.db.transactions.find(
-            {
+            _reports_scope_query({
                 "transaction_type": {
                     "$regex": "^expense$",
                     "$options": "i"
                 }
-            }
+            })
         )
 
         normalized_transactions = []
@@ -50975,7 +51297,7 @@ def report_accounts():
 
         account_map = {}
 
-        accounts_cursor = mongo.db.accounts.find({})
+        accounts_cursor = mongo.db.accounts.find(_reports_scope_query({}))
 
         for account in accounts_cursor:
 
@@ -51065,7 +51387,7 @@ def report_accounts():
         # GET ALL TRANSACTIONS
         # ========================================================
 
-        transactions = mongo.db.transactions.find({})
+        transactions = mongo.db.transactions.find(_reports_scope_query({}))
 
         for transaction in transactions:
 
@@ -51859,14 +52181,14 @@ def report_account_balances():
         # GET ACCOUNTS
         # --------------------------------------------------------
         raw_accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         # --------------------------------------------------------
         # GET TRANSACTIONS
         # --------------------------------------------------------
         raw_transactions = list(
-            mongo.db.transactions.find({})
+            mongo.db.transactions.find(_reports_scope_query({}))
         )
 
         # --------------------------------------------------------
@@ -52613,7 +52935,7 @@ def report_account_activity():
         # ========================================================
 
         raw_accounts = list(
-            mongo.db.accounts.find({})
+            mongo.db.accounts.find(_reports_scope_query({}))
         )
 
         # ========================================================
@@ -52621,7 +52943,7 @@ def report_account_activity():
         # ========================================================
 
         raw_transactions = list(
-            mongo.db.transactions.find({})
+            mongo.db.transactions.find(_reports_scope_query({}))
         )
 
         # ========================================================
@@ -53773,12 +54095,12 @@ def report_account_income_expense():
 
 
         accounts_docs = list(
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
 
 
         transactions_docs = list(
-            transactions_collection.find({})
+            transactions_collection.find(_reports_scope_query({}))
         )
 
 
@@ -54919,17 +55241,17 @@ def report_savings():
         # =========================================================
 
         savings_docs = list(
-            savings_collection.find({})
+            savings_collection.find(_reports_scope_query({}))
         )
 
 
         saving_transaction_docs = list(
-            saving_transactions_collection.find({})
+            saving_transactions_collection.find(_reports_scope_query({}))
         )
 
 
         accounts_docs = list(
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
 
 
@@ -56433,7 +56755,7 @@ def report_saving_progress():
         # ========================================================
 
         raw_accounts = list(
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
 
         account_map = {}
@@ -56508,7 +56830,7 @@ def report_saving_progress():
         # ========================================================
 
         raw_categories = list(
-            categories_collection.find({})
+            categories_collection.find(_reports_scope_query({}))
         )
 
         category_map = {}
@@ -56553,7 +56875,7 @@ def report_saving_progress():
         # ========================================================
 
         raw_savings = list(
-            savings_collection.find({})
+            savings_collection.find(_reports_scope_query({}))
         )
 
 
@@ -56562,7 +56884,7 @@ def report_saving_progress():
         # ========================================================
 
         raw_saving_transactions = list(
-            saving_transactions_collection.find({})
+            saving_transactions_collection.find(_reports_scope_query({}))
         )
 
 
@@ -59577,7 +59899,7 @@ def report_saving_deposits():
     try:
 
         account_documents_cursor = (
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
 
         for account in account_documents_cursor:
@@ -59622,7 +59944,7 @@ def report_saving_deposits():
     try:
 
         category_documents = (
-            categories_collection.find({})
+            categories_collection.find(_reports_scope_query({}))
         )
 
         for category in category_documents:
@@ -59662,7 +59984,7 @@ def report_saving_deposits():
     try:
 
         savings_documents = list(
-            savings_collection.find({})
+            savings_collection.find(_reports_scope_query({}))
         )
 
     except Exception:
@@ -59767,7 +60089,7 @@ def report_saving_deposits():
     try:
 
         transaction_documents = list(
-            saving_transactions_collection.find({})
+            saving_transactions_collection.find(_reports_scope_query({}))
         )
 
     except Exception:
@@ -60857,7 +61179,7 @@ def report_saving_transactions():
 
     try:
         account_documents = list(
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
     except Exception:
         account_documents = []
@@ -60907,7 +61229,7 @@ def report_saving_transactions():
 
     try:
         category_documents = list(
-            categories_collection.find({})
+            categories_collection.find(_reports_scope_query({}))
         )
     except Exception:
         category_documents = []
@@ -60946,7 +61268,7 @@ def report_saving_transactions():
 
     try:
         saving_documents = list(
-            savings_collection.find({})
+            savings_collection.find(_reports_scope_query({}))
         )
     except Exception:
         saving_documents = []
@@ -61139,7 +61461,7 @@ def report_saving_transactions():
 
     try:
         raw_transactions = list(
-            transactions_collection.find({})
+            transactions_collection.find(_reports_scope_query({}))
         )
     except Exception:
         raw_transactions = []
@@ -62292,7 +62614,7 @@ def report_active_savings():
 
     try:
         account_documents = list(
-            accounts_collection.find({})
+            accounts_collection.find(_reports_scope_query({}))
         )
     except Exception:
         account_documents = []
@@ -62340,7 +62662,7 @@ def report_active_savings():
 
     try:
         category_documents = list(
-            categories_collection.find({})
+            categories_collection.find(_reports_scope_query({}))
         )
     except Exception:
         category_documents = []
@@ -62372,7 +62694,7 @@ def report_active_savings():
 
     try:
         saving_documents = list(
-            savings_collection.find({})
+            savings_collection.find(_reports_scope_query({}))
         )
     except Exception:
         saving_documents = []
@@ -62383,7 +62705,7 @@ def report_active_savings():
 
     try:
         transaction_documents = list(
-            transactions_collection.find({})
+            transactions_collection.find(_reports_scope_query({}))
         )
     except Exception:
         transaction_documents = []
@@ -64101,7 +64423,7 @@ def report_completed_savings():
     account_map = {}
 
     try:
-        account_documents = accounts_collection.find({})
+        account_documents = accounts_collection.find(_reports_scope_query({}))
 
         for account in account_documents:
             account_id = oid(account.get("_id"))
@@ -64146,7 +64468,7 @@ def report_completed_savings():
     category_map = {}
 
     try:
-        category_documents = categories_collection.find({})
+        category_documents = categories_collection.find(_reports_scope_query({}))
 
         for category in category_documents:
             category_id = oid(category.get("_id"))
@@ -64179,7 +64501,7 @@ def report_completed_savings():
 
     try:
         all_transactions = list(
-            transactions_collection.find({})
+            transactions_collection.find(_reports_scope_query({}))
         )
     except Exception:
         all_transactions = []
@@ -64209,7 +64531,7 @@ def report_completed_savings():
     completed_savings = []
 
     try:
-        saving_documents = savings_collection.find({})
+        saving_documents = savings_collection.find(_reports_scope_query({}))
 
         for saving in saving_documents:
 
@@ -65423,6 +65745,42 @@ def report_completed_savings():
     )
 
 
+# ============================================================
+# REPORT QUERIES: SCOPE ALL READS TO THE LOGGED-IN USER
+# Supports legacy MongoDB records storing user_id as either
+# a BSON ObjectId or a string, plus user_id_str.
+# ============================================================
+def _others_reports_current_user_scope():
+    from bson import ObjectId
+    from flask_login import current_user
+
+    raw_user_id = str(getattr(current_user, "id", "") or "").strip()
+    if not raw_user_id:
+        # Fail closed: no user identity means no matching records.
+        return {"_id": {"$exists": False}}
+
+    owner_conditions = [
+        {"user_id": raw_user_id},
+        {"user_id_str": raw_user_id},
+    ]
+    try:
+        owner_conditions.append({"user_id": ObjectId(raw_user_id)})
+    except Exception:
+        pass
+
+    return {"$or": owner_conditions}
+
+
+def _others_reports_scope_query(query=None):
+    if query is None:
+        query = {}
+    if not isinstance(query, dict):
+        # MongoDB find/find_one filters are expected to be dictionaries.
+        # Do not silently discard an unexpected filter.
+        raise TypeError("MongoDB report query must be a dictionary")
+
+    return {"$and": [_others_reports_current_user_scope(), query]}
+
 
 
 # ============================================================
@@ -66100,7 +66458,7 @@ def report_persons():
 
         normal_transactions = list(
             mongo.db.transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -66116,7 +66474,7 @@ def report_persons():
 
         opening_transactions = list(
             mongo.db.person_opening_transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -67956,7 +68314,7 @@ def report_person_income():
     try:
         normal_transactions = list(
             mongo.db.transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
     except Exception:
@@ -67969,7 +68327,7 @@ def report_person_income():
     try:
         opening_transactions = list(
             mongo.db.person_opening_transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
     except Exception:
@@ -69590,7 +69948,7 @@ def report_person_expenses():
 
         normal_transactions = list(
             mongo.db.transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -69606,7 +69964,7 @@ def report_person_expenses():
 
         opening_transactions = list(
             mongo.db.person_opening_transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -71250,7 +71608,7 @@ def report_person_balances():
 
         normal_transactions = list(
             mongo.db.transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -71263,7 +71621,7 @@ def report_person_balances():
 
         opening_transactions = list(
             mongo.db.person_opening_transactions.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -73131,7 +73489,7 @@ def report_person_transactions():
     try:
 
         normal_cursor = mongo.db.transactions.find(
-            mongo_user_filter
+            _others_reports_scope_query(mongo_user_filter)
         ).sort(
             [
                 ("date", -1),
@@ -73149,9 +73507,9 @@ def report_person_transactions():
 
             normal_transactions = list(
                 mongo.db.transactions.find(
-                    {
+                    _others_reports_scope_query({
                         "user_id": str(current_user_id)
-                    }
+                    })
                 )
             )
 
@@ -73170,7 +73528,7 @@ def report_person_transactions():
 
         opening_cursor = (
             mongo.db.person_opening_transactions.find(
-                mongo_user_filter
+                _others_reports_scope_query(mongo_user_filter)
             ).sort(
                 [
                     ("date", -1),
@@ -73189,9 +73547,9 @@ def report_person_transactions():
 
             opening_transactions = list(
                 mongo.db.person_opening_transactions.find(
-                    {
+                    _others_reports_scope_query({
                         "user_id": str(current_user_id)
-                    }
+                    })
                 )
             )
 
@@ -74364,7 +74722,7 @@ def report_transfers():
 
     transfers_raw = list(
         mongo.db.account_transfers.find(
-            transfer_query
+            _others_reports_scope_query(transfer_query)
         ).sort(
             "created_at",
             -1
@@ -74401,9 +74759,9 @@ def report_transfers():
 
         try:
 
-            account = mongo.db.accounts.find_one({
+            account = mongo.db.accounts.find_one(_others_reports_scope_query({
                 "_id": ObjectId(account_id)
-            })
+            }))
 
             if account:
 
@@ -74445,9 +74803,9 @@ def report_transfers():
 
         try:
 
-            saving = mongo.db.savings.find_one({
+            saving = mongo.db.savings.find_one(_others_reports_scope_query({
                 "_id": ObjectId(saving_id)
-            })
+            }))
 
             if saving:
 
@@ -75575,7 +75933,7 @@ def report_account_transfers():
 
         transfer_documents = list(
             mongo.db.account_transfers.find(
-                transfer_query
+                _others_reports_scope_query(transfer_query)
             ).sort(
                 "created_at",
                 -1
@@ -75714,11 +76072,11 @@ def report_account_transfers():
 
             account_documents = list(
                 mongo.db.accounts.find(
-                    {
+                    _others_reports_scope_query({
                         "_id": {
                             "$in": list(account_ids)
                         }
-                    }
+                    })
                 )
             )
 
@@ -76475,7 +76833,7 @@ def report_saving_transfers():
 
         transfer_documents = list(
             mongo.db.account_transfers.find(
-                transfer_query
+                _others_reports_scope_query(transfer_query)
             ).sort(
                 "created_at",
                 -1
@@ -76630,13 +76988,13 @@ def report_saving_transfers():
 
             account_documents = list(
                 mongo.db.accounts.find(
-                    {
+                    _others_reports_scope_query({
                         "_id": {
                             "$in": list(
                                 account_ids
                             )
                         }
-                    }
+                    })
                 )
             )
 
@@ -76719,13 +77077,13 @@ def report_saving_transfers():
 
                 saving_documents = list(
                     mongo.db.savings.find(
-                        {
+                        _others_reports_scope_query({
                             "_id": {
                                 "$in": list(
                                     saving_ids
                                 )
                             }
-                        }
+                        })
                     )
                 )
 
@@ -77847,7 +78205,7 @@ def report_transfer_history():
 
         raw_transfers = list(
             mongo.db.account_transfers.find(
-                query
+                _others_reports_scope_query(query)
             ).sort(
                 "created_at",
                 -1
@@ -77864,7 +78222,7 @@ def report_transfer_history():
         try:
 
             accounts = list(
-                mongo.db.accounts.find({})
+                mongo.db.accounts.find(_others_reports_scope_query({}))
             )
 
             for account in accounts:
@@ -77898,7 +78256,7 @@ def report_transfer_history():
         try:
 
             savings = list(
-                mongo.db.savings.find({})
+                mongo.db.savings.find(_others_reports_scope_query({}))
             )
 
             for saving in savings:
@@ -78843,7 +79201,7 @@ def report_categories():
 
         raw_categories = list(
             mongo.db.categories
-            .find(category_query)
+            .find(_others_reports_scope_query(category_query))
             .sort("name", 1)
         )
 
@@ -78854,7 +79212,7 @@ def report_categories():
 
         transactions = list(
             mongo.db.transactions
-            .find(transaction_query)
+            .find(_others_reports_scope_query(transaction_query))
             .sort(
                 [
                     ("date", -1),
@@ -79257,10 +79615,10 @@ def report_categories():
 
                     account_doc = (
                         mongo.db.accounts.find_one(
-                            {
+                            _others_reports_scope_query({
                                 "_id":
                                     account_id
-                            }
+                            })
                         )
                     )
 
@@ -80303,7 +80661,7 @@ def report_income_categories():
         # ========================================================
 
         transactions_cursor = mongo.db.transactions.find(
-            query
+            _others_reports_scope_query(query)
         ).sort(
             [
                 ("date", -1),
@@ -80342,11 +80700,11 @@ def report_income_categories():
 
             if object_ids:
 
-                account_docs = mongo.db.accounts.find({
+                account_docs = mongo.db.accounts.find(_others_reports_scope_query({
                     "_id": {
                         "$in": object_ids
                     }
-                })
+                }))
 
                 for account in account_docs:
 
@@ -80912,7 +81270,7 @@ def report_expense_categories():
 
         transactions_cursor = (
             mongo.db.transactions
-            .find(query)
+            .find(_others_reports_scope_query(query))
             .sort(
                 [
                     ("date", -1),
@@ -80968,11 +81326,11 @@ def report_expense_categories():
             if object_ids:
 
                 account_docs = (
-                    mongo.db.accounts.find({
+                    mongo.db.accounts.find(_others_reports_scope_query({
                         "_id": {
                             "$in": object_ids
                         }
-                    })
+                    }))
                 )
 
                 for account in account_docs:
@@ -81729,7 +82087,7 @@ def report_category_performance():
 
     transactions = list(
         mongo.db.transactions.find(
-            query
+            _others_reports_scope_query(query)
         ).sort(
             [
                 ("date", -1),
@@ -81746,7 +82104,7 @@ def report_category_performance():
 
     try:
 
-        accounts = mongo.db.accounts.find({})
+        accounts = mongo.db.accounts.find(_others_reports_scope_query({}))
 
         for account in accounts:
 
@@ -83215,7 +83573,7 @@ def report_daily():
 
     transactions = list(
         mongo.db.transactions.find(
-            query
+            _others_reports_scope_query(query)
         ).sort(
             [
                 ("date", -1),
@@ -83232,7 +83590,7 @@ def report_daily():
 
     try:
 
-        accounts = mongo.db.accounts.find({})
+        accounts = mongo.db.accounts.find(_others_reports_scope_query({}))
 
         for account in accounts:
 
@@ -84561,7 +84919,7 @@ def report_weekly():
     account_map = {}
 
     try:
-        accounts_cursor = mongo.db.accounts.find({})
+        accounts_cursor = mongo.db.accounts.find(_others_reports_scope_query({}))
 
         for account in accounts_cursor:
             account_id = account.get("_id")
@@ -84617,7 +84975,7 @@ def report_weekly():
 
     transactions = list(
         mongo.db.transactions.find(
-            mongo_query
+            _others_reports_scope_query(mongo_query)
         ).sort(
             "date",
             -1
@@ -85580,7 +85938,7 @@ def report_monthly():
         account_query = dict(base_user_query)
 
     account_documents = mongo.db.accounts.find(
-        account_query
+        _others_reports_scope_query(account_query)
     )
 
     for account in account_documents:
@@ -85662,7 +86020,7 @@ def report_monthly():
 
     transactions = list(
         mongo.db.transactions.find(
-            month_query
+            _others_reports_scope_query(month_query)
         ).sort(
             "date",
             -1
@@ -86179,7 +86537,7 @@ def report_monthly():
 
     previous_transactions = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -86583,7 +86941,7 @@ def report_yearly():
 
     try:
         accounts_cursor = mongo.db.accounts.find(
-            base_user_query,
+            _others_reports_scope_query(base_user_query),
             {
                 "_id": 1,
                 "name": 1,
@@ -86762,7 +87120,7 @@ def report_yearly():
     # ============================================================
 
     raw_transactions = list(
-        mongo.db.transactions.find(year_query).sort(
+        mongo.db.transactions.find(_others_reports_scope_query(year_query)).sort(
             "date",
             -1
         )
@@ -87560,7 +87918,7 @@ def report_yearly():
 
     previous_transactions = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -88058,7 +88416,7 @@ def report_custom():
     try:
 
         accounts_cursor = mongo.db.accounts.find(
-            base_user_query,
+            _others_reports_scope_query(base_user_query),
             {
                 "_id": 1,
                 "name": 1,
@@ -88147,7 +88505,7 @@ def report_custom():
 
     raw_transactions = list(
         mongo.db.transactions.find(
-            transaction_query
+            _others_reports_scope_query(transaction_query)
         ).sort(
             "date",
             -1
@@ -88871,7 +89229,7 @@ def report_custom():
 
     previous_transactions = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -89360,7 +89718,7 @@ def report_financial_summary():
 
     try:
 
-        account_cursor = mongo.db.accounts.find({})
+        account_cursor = mongo.db.accounts.find(_others_reports_scope_query({}))
 
         for account in account_cursor:
 
@@ -89391,7 +89749,7 @@ def report_financial_summary():
 
     transactions = list(
         mongo.db.transactions
-        .find(query)
+        .find(_others_reports_scope_query(query))
         .sort("date", -1)
     )
 
@@ -90485,7 +90843,7 @@ def report_financial_summary():
 
     previous_transactions = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -91049,7 +91407,7 @@ def report_profit_loss():
 
     try:
 
-        account_documents = mongo.db.accounts.find({})
+        account_documents = mongo.db.accounts.find(_others_reports_scope_query({}))
 
         for account in account_documents:
 
@@ -91078,7 +91436,7 @@ def report_profit_loss():
 
     raw_transactions = list(
         mongo.db.transactions.find(
-            query
+            _others_reports_scope_query(query)
         ).sort(
             "date",
             -1
@@ -91992,7 +92350,7 @@ def report_profit_loss():
 
     previous_raw = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -92571,7 +92929,7 @@ def report_net_worth():
     # ========================================================
 
     accounts_cursor = mongo.db.accounts.find(
-        user_query
+        _others_reports_scope_query(user_query)
     )
 
     account_map = {}
@@ -92653,7 +93011,7 @@ def report_net_worth():
     try:
 
         savings_cursor = mongo.db.savings.find(
-            user_query
+            _others_reports_scope_query(user_query)
         )
 
     except Exception:
@@ -92816,7 +93174,7 @@ def report_net_worth():
 
     transactions = list(
         mongo.db.transactions.find(
-            transaction_query
+            _others_reports_scope_query(transaction_query)
         ).sort(
             [
                 ("date", -1),
@@ -93038,7 +93396,7 @@ def report_net_worth():
 
         liabilities_cursor = (
             mongo.db.liabilities.find(
-                user_query
+                _others_reports_scope_query(user_query)
             )
         )
 
@@ -93698,7 +94056,7 @@ def report_net_worth():
 
     previous_transactions = list(
         mongo.db.transactions.find(
-            previous_query
+            _others_reports_scope_query(previous_query)
         )
     )
 
@@ -94428,7 +94786,7 @@ def report_cash_flow():
 
         accounts = list(
             mongo.db.accounts.find(
-                user_scope_query
+                _others_reports_scope_query(user_scope_query)
             ).sort(
                 "name",
                 1
@@ -94632,7 +94990,7 @@ def report_cash_flow():
 
         raw_transactions = list(
             mongo.db.transactions.find(
-                transaction_query
+                _others_reports_scope_query(transaction_query)
             ).sort(
                 [
                     ("date", -1),
@@ -94647,7 +95005,7 @@ def report_cash_flow():
 
             raw_transactions = list(
                 mongo.db.transactions.find(
-                    user_scope_query
+                    _others_reports_scope_query(user_scope_query)
                 )
             )
 
@@ -96178,7 +96536,7 @@ def report_cash_flow():
 
         previous_raw_transactions = list(
             mongo.db.transactions.find(
-                previous_query
+                _others_reports_scope_query(previous_query)
             )
         )
 
@@ -97051,7 +97409,7 @@ def report_saving_rate():
 
         accounts_raw = list(
             mongo.db.accounts.find(
-                account_query
+                _others_reports_scope_query(account_query)
             )
         )
 
@@ -97139,7 +97497,7 @@ def report_saving_rate():
 
         transactions_raw = list(
             mongo.db.transactions.find(
-                transaction_query
+                _others_reports_scope_query(transaction_query)
             )
         )
 
@@ -98902,7 +99260,7 @@ def report_expense_rate():
 
         accounts_raw = list(
             mongo.db.accounts.find(
-                dict(user_query)
+                _others_reports_scope_query(dict(user_query))
             )
         )
 
@@ -99002,7 +99360,7 @@ def report_expense_rate():
 
         transactions_raw = list(
             mongo.db.transactions.find(
-                dict(user_query)
+                _others_reports_scope_query(dict(user_query))
             )
         )
 
@@ -100983,7 +101341,7 @@ def report_spending_analysis():
 
     accounts = list(
         mongo.db.accounts.find(
-            user_query
+            _others_reports_scope_query(user_query)
         ).sort(
             "name",
             1
@@ -101179,7 +101537,7 @@ def report_spending_analysis():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort(
                     [
                         ("date", -1),
@@ -101192,7 +101550,7 @@ def report_spending_analysis():
 
             documents = list(
                 mongo.db.transactions.find(
-                    user_query
+                    _others_reports_scope_query(user_query)
                 )
             )
 
@@ -102735,7 +103093,7 @@ def report_income_analysis():
 
     accounts = list(
         mongo.db.accounts.find(
-            user_query
+            _others_reports_scope_query(user_query)
         ).sort(
             "name",
             1
@@ -102942,7 +103300,7 @@ def report_income_analysis():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort(
                     [
                         ("date", -1),
@@ -102955,7 +103313,7 @@ def report_income_analysis():
 
             documents = list(
                 mongo.db.transactions.find(
-                    user_query
+                    _others_reports_scope_query(user_query)
                 )
             )
 
@@ -104856,7 +105214,7 @@ def report_savings_analysis():
 
         accounts = list(
             mongo.db.accounts.find(
-                accounts_query
+                _others_reports_scope_query(accounts_query)
             ).sort(
                 "name",
                 1
@@ -105156,7 +105514,7 @@ def report_savings_analysis():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort(
                     [
                         ("date", -1),
@@ -105202,7 +105560,7 @@ def report_savings_analysis():
 
                 documents = list(
                     mongo.db.transactions.find(
-                        fallback_query
+                        _others_reports_scope_query(fallback_query)
                     )
                 )
 
@@ -106482,7 +106840,7 @@ def report_savings_analysis():
 
         savings_documents = list(
             mongo.db.savings.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             )
         )
 
@@ -106726,7 +107084,7 @@ def report_savings_analysis():
 
         saving_documents = list(
             mongo.db.saving_transactions.find(
-                saving_query
+                _others_reports_scope_query(saving_query)
             ).sort(
                 [
                     ("date", -1),
@@ -106778,7 +107136,7 @@ def report_savings_analysis():
 
             saving_documents = list(
                 mongo.db.saving_transactions.find(
-                    fallback_saving_query
+                    _others_reports_scope_query(fallback_saving_query)
                 )
             )
 
@@ -107760,7 +108118,7 @@ def report_monthly_comparison():
     try:
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 "name",
                 1
@@ -108035,7 +108393,7 @@ def report_monthly_comparison():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort([
                     ("date", -1),
                     ("created_at", -1)
@@ -108051,7 +108409,7 @@ def report_monthly_comparison():
 
             documents = list(
                 mongo.db.transactions.find(
-                    fallback_query
+                    _others_reports_scope_query(fallback_query)
                 )
             )
 
@@ -110064,7 +110422,7 @@ def report_yearly_comparison():
 
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 [
                     ("name", 1)
@@ -110309,7 +110667,7 @@ def report_yearly_comparison():
         try:
 
             cursor = mongo.db.transactions.find(
-                query
+                _others_reports_scope_query(query)
             ).sort(
                 [
                     ("date", -1),
@@ -110333,7 +110691,7 @@ def report_yearly_comparison():
 
                 transactions = list(
                     mongo.db.transactions.find(
-                        fallback_query
+                        _others_reports_scope_query(fallback_query)
                     )
                 )
 
@@ -112763,7 +113121,7 @@ def report_top_categories():
 
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 [
                     ("name", 1)
@@ -113013,7 +113371,7 @@ def report_top_categories():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort(
                     [
                         ("date", -1),
@@ -113033,7 +113391,7 @@ def report_top_categories():
 
                 documents = list(
                     mongo.db.transactions.find(
-                        fallback_query
+                        _others_reports_scope_query(fallback_query)
                     ).sort(
                         [
                             ("date", -1),
@@ -114671,7 +115029,7 @@ def report_top_spenders():
 
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 [
                     ("name", 1)
@@ -114895,7 +115253,7 @@ def report_top_spenders():
 
             documents = list(
                 mongo.db.transactions.find(
-                    query
+                    _others_reports_scope_query(query)
                 ).sort(
                     [
                         ("date", -1),
@@ -114917,7 +115275,7 @@ def report_top_spenders():
 
                 documents = list(
                     mongo.db.transactions.find(
-                        fallback_query
+                        _others_reports_scope_query(fallback_query)
                     )
                 )
 
@@ -116757,7 +117115,7 @@ def report_export_transactions():
 
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 "name",
                 1
@@ -117020,7 +117378,7 @@ def report_export_transactions():
 
         raw_transactions = list(
             mongo.db.transactions.find(
-                mongo_query
+                _others_reports_scope_query(mongo_query)
             ).sort([
                 ("date", -1),
                 ("created_at", -1)
@@ -117037,7 +117395,7 @@ def report_export_transactions():
 
             raw_transactions = list(
                 mongo.db.transactions.find(
-                    base_user_query
+                    _others_reports_scope_query(base_user_query)
                 ).sort([
                     ("date", -1),
                     ("created_at", -1)
@@ -117838,7 +118196,7 @@ def report_export_transactions():
 
         category_documents = list(
             mongo.db.categories.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 "name",
                 1
@@ -118376,7 +118734,7 @@ def report_export_accounts():
 
         accounts = list(
             mongo.db.accounts.find(
-                base_user_query
+                _others_reports_scope_query(base_user_query)
             ).sort(
                 [
                     ("name", 1),
@@ -119460,7 +119818,7 @@ def report_export_accounts():
 
         transactions = list(
             mongo.db.transactions.find(
-                transaction_query
+                _others_reports_scope_query(transaction_query)
             )
         )
 
@@ -120016,7 +120374,7 @@ def report_export_savings():
     # ============================================================
 
     savings_documents = list(
-        mongo.db.savings.find(savings_query)
+        mongo.db.savings.find(_others_reports_scope_query(savings_query))
     )
 
     # ============================================================
@@ -120065,7 +120423,7 @@ def report_export_savings():
         }
 
     accounts_documents = list(
-        mongo.db.accounts.find(accounts_query)
+        mongo.db.accounts.find(_others_reports_scope_query(accounts_query))
     )
 
     account_map = {}
@@ -120140,7 +120498,7 @@ def report_export_savings():
 
     saving_transactions_documents = list(
         mongo.db.saving_transactions.find(
-            transaction_query
+            _others_reports_scope_query(transaction_query)
         ).sort(
             [
                 ("date", -1),
@@ -122007,7 +122365,7 @@ def report_export_transfers():
 
     accounts_documents = list(
         mongo.db.accounts.find(
-            accounts_query
+            _others_reports_scope_query(accounts_query)
         )
     )
 
@@ -122052,7 +122410,7 @@ def report_export_transfers():
 
     savings_documents = list(
         mongo.db.savings.find(
-            savings_query
+            _others_reports_scope_query(savings_query)
         )
     )
 
@@ -122127,7 +122485,7 @@ def report_export_transfers():
 
     transfer_documents = list(
         mongo.db.account_transfers.find(
-            transfer_query
+            _others_reports_scope_query(transfer_query)
         ).sort(
             [
                 ("date", -1),
@@ -124824,7 +125182,7 @@ def report_export_persons():
 
         account_documents = list(
             mongo.db.accounts.find(
-                build_user_query()
+                _others_reports_scope_query(build_user_query())
             )
         )
 
@@ -125575,7 +125933,7 @@ def report_export_persons():
             mongo.db
             .transactions
             .find(
-                build_user_query()
+                _others_reports_scope_query(build_user_query())
             )
         )
 
@@ -125637,7 +125995,7 @@ def report_export_persons():
             mongo.db
             .person_opening_transactions
             .find(
-                build_user_query()
+                _others_reports_scope_query(build_user_query())
             )
         )
 
@@ -127452,6 +127810,8 @@ def report_export_persons():
             datetime.now(),
 
     )
+
+
 
 
 
