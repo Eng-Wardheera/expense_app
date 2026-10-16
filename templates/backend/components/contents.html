@@ -222,6 +222,1203 @@
 </div>
 
 
+<!-- =========================================================
+     YEARLY RATE — COMPLETE ACTIVE FINANCIAL YEAR
+     Dynamic | Responsive | Full Dark Mode
+     Flask / Jinja2 Compatible
+========================================================= -->
+
+
+
+<div class="row">
+    <div class="col-12">
+
+        <div class="yearly-progress-card" data-yearly-theme="light">
+
+            {% if active_year_progress %}
+
+                {% set progress = active_year_progress.progress_percent|default(0, true)|float %}
+                {% set progress = [progress, 0]|max %}
+                {% set progress = [progress, 100]|min %}
+                {% set year_status = (active_year_progress.status or 'active')|lower|replace(' ', '-') %}
+
+                {% if progress < 25 %}
+                    {% set progress_color = 'progress-red' %}
+                    {% set progress_label = 'Just Started' %}
+                {% elif progress < 50 %}
+                    {% set progress_color = 'progress-orange' %}
+                    {% set progress_label = 'In Progress' %}
+                {% elif progress < 75 %}
+                    {% set progress_color = 'progress-blue' %}
+                    {% set progress_label = 'Halfway There' %}
+                {% elif progress < 100 %}
+                    {% set progress_color = 'progress-green' %}
+                    {% set progress_label = 'Almost Complete' %}
+                {% else %}
+                    {% set progress_color = 'progress-complete' %}
+                    {% set progress_label = 'Year Completed' %}
+                {% endif %}
+
+                <!-- HEADER -->
+                <div class="yearly-progress-header">
+                    <div class="yearly-header-info">
+                        <div class="yearly-heading-icon">
+                            <i class="feather-calendar"></i>
+                        </div>
+
+                        <div class="yearly-heading-text">
+                            <h3>{{ active_year_progress.title or 'Yearly Financial Summary' }}</h3>
+                            <p>
+                                <i class="feather-clock"></i>
+                                Financial Year:
+                                <strong>{{ active_year_progress.year_label or 'N/A' }}</strong>
+                            </p>
+                        </div>
+                    </div>
+
+                    <span class="yearly-status status-{{ year_status }}">
+                        <span class="yearly-status-dot"></span>
+                        {{ year_status|replace('_', ' ')|replace('-', ' ')|title }}
+                    </span>
+                </div>
+
+                <!-- FINANCIAL YEAR DATES -->
+                <div class="yearly-progress-dates">
+
+                    <div class="yearly-date-item">
+                        <div class="yearly-date-icon">
+                            <i class="feather-calendar"></i>
+                        </div>
+                        <div class="yearly-date-content">
+                            <small>Start Date</small>
+                            <strong>
+                                {{ active_year_progress.start_date.strftime('%d %b %Y') if active_year_progress.start_date else 'N/A' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="yearly-date-item yearly-today-item">
+                        <div class="yearly-date-icon">
+                            <i class="feather-sun"></i>
+                        </div>
+                        <div class="yearly-date-content">
+                            <small>Today</small>
+                            <strong>
+                                {{ active_year_progress.today.strftime('%d %b %Y') if active_year_progress.today else 'N/A' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div class="yearly-date-item">
+                        <div class="yearly-date-icon">
+                            <i class="feather-flag"></i>
+                        </div>
+                        <div class="yearly-date-content">
+                            <small>End Date</small>
+                            <strong>
+                                {{ active_year_progress.end_date.strftime('%d %b %Y') if active_year_progress.end_date else 'N/A' }}
+                            </strong>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- YEARLY PROGRESS -->
+                <div class="yearly-progress-section">
+
+                    <div class="yearly-progress-summary">
+                        <div class="yearly-progress-main">
+                            <span class="yearly-section-label">
+                                FINANCIAL YEAR PROGRESS
+                            </span>
+
+                            <div class="yearly-progress-percentage">
+                                {{ "%.1f"|format(progress) }}<span>%</span>
+                            </div>
+
+                            <span class="yearly-progress-label {{ progress_color }}">
+                                <span class="yearly-status-dot"></span>
+                                {{ progress_label }}
+                            </span>
+                        </div>
+
+                        <div class="yearly-progress-side">
+                            <div class="yearly-progress-side-icon">
+                                <i class="feather-trending-up"></i>
+                            </div>
+                            <div>
+                                <strong>Annual Overview</strong>
+                                <small>Financial year timeline</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="yearly-progress-track"
+                        role="progressbar"
+                        aria-label="Financial year progress"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="{{ progress }}"
+                    >
+                        <div
+                            class="yearly-progress-fill {{ progress_color }}"
+                            style="width: {{ progress }}%;"
+                        ></div>
+                    </div>
+
+                    <div class="yearly-progress-days">
+                        <div class="yearly-day-stat">
+                            <span class="yearly-day-dot elapsed-dot"></span>
+                            <span>
+                                <strong>{{ active_year_progress.elapsed_days|default(0, true) }}</strong>
+                                days elapsed
+                            </span>
+                        </div>
+
+                        <div class="yearly-day-stat">
+                            <span class="yearly-day-dot remaining-dot"></span>
+                            <span>
+                                <strong>{{ active_year_progress.remaining_days|default(0, true) }}</strong>
+                                days remaining
+                            </span>
+                        </div>
+
+                        <div class="yearly-day-stat yearly-total-days">
+                            <i class="feather-calendar"></i>
+                            <span>
+                                <strong>{{ active_year_progress.total_days|default(0, true) }}</strong>
+                                total days
+                            </span>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- FINANCIAL SUMMARY HEADING -->
+                <div class="yearly-financial-heading">
+                    <div>
+                        <h4>Financial Summary</h4>
+                        <p>Your financial position for this financial year</p>
+                    </div>
+                    <div class="yearly-financial-heading-icon">
+                        <i class="feather-bar-chart-2"></i>
+                    </div>
+                </div>
+
+                <!-- FINANCIAL CARDS -->
+                <div class="yearly-financial-grid">
+
+                    <div class="yearly-financial-item income-item">
+                        <div class="yearly-financial-top">
+                            <div class="yearly-financial-icon">
+                                <i class="feather-trending-up"></i>
+                            </div>
+                            <span class="yearly-financial-label">INCOME</span>
+                        </div>
+                        <small>Total Income</small>
+                        <strong class="yearly-money">
+                            ${{ "{:,.2f}".format(active_year_progress.total_gained|default(0, true)|float) }}
+                        </strong>
+                        <div class="yearly-financial-footer">
+                            <i class="feather-plus-circle"></i>
+                            <span>Money received</span>
+                        </div>
+                    </div>
+
+                    <div class="yearly-financial-item expense-item">
+                        <div class="yearly-financial-top">
+                            <div class="yearly-financial-icon">
+                                <i class="feather-trending-down"></i>
+                            </div>
+                            <span class="yearly-financial-label">EXPENSES</span>
+                        </div>
+                        <small>Total Expenses</small>
+                        <strong class="yearly-money">
+                            ${{ "{:,.2f}".format(active_year_progress.total_send|default(0, true)|float) }}
+                        </strong>
+                        <div class="yearly-financial-footer">
+                            <i class="feather-minus-circle"></i>
+                            <span>Money spent</span>
+                        </div>
+                    </div>
+
+                    <div class="yearly-financial-item cash-item">
+                        <div class="yearly-financial-top">
+                            <div class="yearly-financial-icon">
+                                <i class="feather-dollar-sign"></i>
+                            </div>
+                            <span class="yearly-financial-label">CASH</span>
+                        </div>
+                        <small>Cash Balance</small>
+                        <strong class="yearly-money">
+                            ${{ "{:,.2f}".format(active_year_progress.cash_rest|default(0, true)|float) }}
+                        </strong>
+                        <div class="yearly-financial-footer">
+                            <i class="feather-credit-card"></i>
+                            <span>Available cash</span>
+                        </div>
+                    </div>
+
+                    <div class="yearly-financial-item savings-item">
+                        <div class="yearly-financial-top">
+                            <div class="yearly-financial-icon">
+                                <i class="feather-pie-chart"></i>
+                            </div>
+                            <span class="yearly-financial-label">SAVINGS</span>
+                        </div>
+                        <small>Savings Balance</small>
+                        <strong class="yearly-money">
+                            ${{ "{:,.2f}".format(active_year_progress.saving_balance|default(0, true)|float) }}
+                        </strong>
+                        <div class="yearly-financial-footer">
+                            <i class="feather-shield"></i>
+                            <span>Saved money</span>
+                        </div>
+                    </div>
+
+                    <div class="yearly-financial-item yearly-total-balance">
+                        <div class="yearly-financial-top">
+                            <div class="yearly-financial-icon">
+                                <i class="feather-wallet"></i>
+                            </div>
+                            <span class="yearly-financial-label">TOTAL</span>
+                        </div>
+                        <small>Total Balance</small>
+                        <strong class="yearly-money">
+                            ${{ "{:,.2f}".format(active_year_progress.total_balance|default(0, true)|float) }}
+                        </strong>
+                        <div class="yearly-financial-footer">
+                            <i class="feather-check-circle"></i>
+                            <span>Cash + savings</span>
+                        </div>
+                    </div>
+
+                </div>
+
+            {% else %}
+
+                <div class="yearly-progress-empty">
+                    <div class="yearly-empty-icon">
+                        <i class="feather-calendar"></i>
+                    </div>
+                    <h3>No Financial Year Found</h3>
+                    <p>
+                        No yearly financial record is currently available.
+                        Please verify the yearly_rates data and financial-year configuration.
+                    </p>
+                </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<style>
+/* =========================================================
+   YEARLY RATE UI — NXL TEMPLATE
+   Theme is controlled by data-yearly-theme on the card.
+========================================================= */
+
+.yearly-progress-card {
+    --yr-bg: #ffffff;
+    --yr-surface: #f7f9fc;
+    --yr-surface-hover: #eef3f9;
+    --yr-border: #e1e7f0;
+    --yr-heading: #06245f;
+    --yr-text: #273449;
+    --yr-muted: #68778d;
+    --yr-green: #218838;
+    --yr-green-bg: #e9f8ee;
+    --yr-red: #c62828;
+    --yr-red-bg: #fff0f1;
+    --yr-blue: #1769aa;
+    --yr-blue-bg: #eaf4ff;
+    --yr-purple: #6246b5;
+    --yr-purple-bg: #f1edff;
+    --yr-track: #e5eaf2;
+    --yr-total-start: #effaf1;
+    --yr-total-end: #ffffff;
+    --yr-total-border: #c7e8ce;
+
+    width: 100%;
+    min-width: 0;
+    margin: 0 0 24px;
+    padding: 24px;
+    color: var(--yr-text);
+    background: var(--yr-bg);
+    border: 1px solid var(--yr-border);
+    border-radius: 18px;
+    box-shadow: 0 5px 22px rgba(6, 36, 95, .07);
+    color-scheme: light;
+    transition: background-color .2s ease, color .2s ease, border-color .2s ease;
+}
+
+.yearly-progress-card,
+.yearly-progress-card * {
+    box-sizing: border-box;
+}
+
+.yearly-progress-card h3,
+.yearly-progress-card h4 {
+    color: var(--yr-heading);
+}
+
+.yearly-progress-card p {
+    color: var(--yr-muted);
+}
+
+/* HEADER */
+
+.yearly-progress-card .yearly-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--yr-border);
+}
+
+.yearly-progress-card .yearly-header-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.yearly-progress-card .yearly-heading-icon,
+.yearly-progress-card .yearly-date-icon,
+.yearly-progress-card .yearly-progress-side-icon,
+.yearly-progress-card .yearly-financial-icon,
+.yearly-progress-card .yearly-financial-heading-icon,
+.yearly-progress-card .yearly-empty-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    border-radius: 12px;
+}
+
+.yearly-progress-card .yearly-heading-icon {
+    width: 46px;
+    height: 46px;
+    color: var(--yr-green);
+    background: var(--yr-green-bg);
+    font-size: 21px;
+}
+
+.yearly-progress-card .yearly-heading-text {
+    min-width: 0;
+}
+
+.yearly-progress-card .yearly-progress-header h3 {
+    margin: 0 0 8px;
+    font-size: 21px;
+    line-height: 1.4;
+    font-weight: 750;
+}
+
+.yearly-progress-card .yearly-progress-header p {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.yearly-progress-card .yearly-progress-header p strong {
+    color: var(--yr-text);
+}
+
+.yearly-progress-card .yearly-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 8px 13px;
+    border: 1px solid #c9ebd2;
+    border-radius: 30px;
+    background: var(--yr-green-bg);
+    color: var(--yr-green);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.yearly-progress-card .yearly-status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.yearly-progress-card .status-upcoming,
+.yearly-progress-card .status-scheduled {
+    color: #966000;
+    background: #fff5d9;
+    border-color: #f2dfa5;
+}
+
+.yearly-progress-card .status-completed,
+.yearly-progress-card .status-closed {
+    color: #536176;
+    background: #edf1f6;
+    border-color: #dce3ed;
+}
+
+.yearly-progress-card .status-cancelled {
+    color: var(--yr-red);
+    background: var(--yr-red-bg);
+    border-color: #f4cdd1;
+}
+
+/* DATES */
+
+.yearly-progress-card .yearly-progress-dates {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 13px;
+    margin: 22px 0 25px;
+}
+
+.yearly-progress-card .yearly-date-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-width: 0;
+    padding: 15px;
+    border: 1px solid var(--yr-border);
+    border-radius: 13px;
+    background: var(--yr-surface);
+}
+
+.yearly-progress-card .yearly-date-content {
+    min-width: 0;
+}
+
+.yearly-progress-card .yearly-date-icon {
+    width: 36px;
+    height: 36px;
+    color: var(--yr-blue);
+    background: var(--yr-blue-bg);
+}
+
+.yearly-progress-card .yearly-today-item .yearly-date-icon {
+    color: var(--yr-green);
+    background: var(--yr-green-bg);
+}
+
+.yearly-progress-card .yearly-date-item small {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--yr-muted);
+    font-size: 11px;
+}
+
+.yearly-progress-card .yearly-date-item strong {
+    display: block;
+    color: var(--yr-heading);
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+/* PROGRESS */
+
+.yearly-progress-card .yearly-progress-section {
+    padding: 20px;
+    border: 1px solid var(--yr-border);
+    border-radius: 14px;
+    background: var(--yr-surface);
+}
+
+.yearly-progress-card .yearly-progress-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 18px;
+}
+
+.yearly-progress-card .yearly-section-label {
+    display: block;
+    margin-bottom: 7px;
+    color: var(--yr-muted);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.1px;
+}
+
+.yearly-progress-card .yearly-progress-percentage {
+    color: var(--yr-heading);
+    font-size: 36px;
+    line-height: 1.2;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.yearly-progress-card .yearly-progress-percentage span {
+    margin-left: 2px;
+    color: var(--yr-muted);
+    font-size: 22px;
+}
+
+.yearly-progress-card .yearly-progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.yearly-progress-card .progress-red { color: #dc2626; }
+.yearly-progress-card .progress-orange { color: #ea580c; }
+.yearly-progress-card .progress-blue { color: #2563eb; }
+.yearly-progress-card .progress-green { color: #16a34a; }
+.yearly-progress-card .progress-complete { color: #047857; }
+
+.yearly-progress-card .yearly-progress-side {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--yr-muted);
+    font-size: 12px;
+}
+
+.yearly-progress-card .yearly-progress-side strong,
+.yearly-progress-card .yearly-progress-side small {
+    display: block;
+}
+
+.yearly-progress-card .yearly-progress-side strong {
+    margin-bottom: 4px;
+    color: var(--yr-heading);
+}
+
+.yearly-progress-card .yearly-progress-side small {
+    color: var(--yr-muted);
+}
+
+.yearly-progress-card .yearly-progress-side-icon {
+    width: 35px;
+    height: 35px;
+    color: var(--yr-green);
+    background: var(--yr-green-bg);
+}
+
+.yearly-progress-card .yearly-progress-track {
+    width: 100%;
+    height: 13px;
+    overflow: hidden;
+    border-radius: 30px;
+    background: var(--yr-track);
+}
+
+.yearly-progress-card .yearly-progress-fill {
+    display: block;
+    height: 100%;
+    max-width: 100%;
+    border-radius: inherit;
+    transition: width .6s ease;
+}
+
+.yearly-progress-card .yearly-progress-fill.progress-red {
+    background: linear-gradient(90deg, #dc2626, #fb7185);
+}
+
+.yearly-progress-card .yearly-progress-fill.progress-orange {
+    background: linear-gradient(90deg, #ea580c, #fbbf24);
+}
+
+.yearly-progress-card .yearly-progress-fill.progress-blue {
+    background: linear-gradient(90deg, #2563eb, #38bdf8);
+}
+
+.yearly-progress-card .yearly-progress-fill.progress-green {
+    background: linear-gradient(90deg, #16a34a, #4ade80);
+}
+
+.yearly-progress-card .yearly-progress-fill.progress-complete {
+    background: linear-gradient(90deg, #047857, #34d399);
+}
+
+.yearly-progress-card .yearly-progress-days {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 17px;
+}
+
+.yearly-progress-card .yearly-day-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--yr-muted);
+    font-size: 11px;
+}
+
+.yearly-progress-card .yearly-day-stat strong {
+    color: var(--yr-heading);
+}
+
+.yearly-progress-card .yearly-day-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
+    border-radius: 50%;
+}
+
+.yearly-progress-card .elapsed-dot { background: var(--yr-green); }
+.yearly-progress-card .remaining-dot { background: var(--yr-blue); }
+
+.yearly-progress-card .yearly-total-days i {
+    color: var(--yr-purple);
+}
+
+/* FINANCIAL HEADING */
+
+.yearly-progress-card .yearly-financial-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin: 27px 0 15px;
+}
+
+.yearly-progress-card .yearly-financial-heading h4 {
+    margin: 0 0 5px;
+    font-size: 16px;
+    font-weight: 750;
+}
+
+.yearly-progress-card .yearly-financial-heading p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.yearly-progress-card .yearly-financial-heading-icon {
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--yr-border);
+    background: var(--yr-surface);
+    color: var(--yr-blue);
+}
+
+/* FINANCIAL CARDS */
+
+.yearly-progress-card .yearly-financial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.yearly-progress-card .yearly-financial-item {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 17px;
+    overflow: hidden;
+    border: 1px solid var(--yr-border);
+    border-radius: 14px;
+    background: var(--yr-surface);
+    transition: background-color .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.yearly-progress-card .yearly-financial-item:hover {
+    background: var(--yr-surface-hover);
+    border-color: #c7d2e2;
+    transform: translateY(-2px);
+}
+
+.yearly-progress-card .yearly-financial-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 17px;
+}
+
+.yearly-progress-card .yearly-financial-icon {
+    width: 39px;
+    height: 39px;
+    background: var(--yr-track);
+    color: var(--yr-heading);
+    font-size: 18px;
+}
+
+.yearly-progress-card .yearly-financial-label {
+    color: var(--yr-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: .8px;
+}
+
+.yearly-progress-card .yearly-financial-item > small {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--yr-muted);
+    font-size: 12px;
+}
+
+.yearly-progress-card .yearly-money {
+    display: block;
+    min-width: 0;
+    color: var(--yr-heading);
+    font-size: clamp(16px, 1.5vw, 21px);
+    line-height: 1.4;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.yearly-progress-card .yearly-financial-footer {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 13px;
+    padding-top: 11px;
+    border-top: 1px solid var(--yr-border);
+    color: var(--yr-muted);
+    font-size: 10px;
+}
+
+.yearly-progress-card .income-item .yearly-financial-icon {
+    background: var(--yr-green-bg);
+    color: var(--yr-green);
+}
+
+.yearly-progress-card .income-item .yearly-money,
+.yearly-progress-card .income-item .yearly-financial-footer i {
+    color: var(--yr-green);
+}
+
+.yearly-progress-card .expense-item .yearly-financial-icon {
+    background: var(--yr-red-bg);
+    color: var(--yr-red);
+}
+
+.yearly-progress-card .expense-item .yearly-money,
+.yearly-progress-card .expense-item .yearly-financial-footer i {
+    color: var(--yr-red);
+}
+
+.yearly-progress-card .cash-item .yearly-financial-icon {
+    background: var(--yr-blue-bg);
+    color: var(--yr-blue);
+}
+
+.yearly-progress-card .cash-item .yearly-money,
+.yearly-progress-card .cash-item .yearly-financial-footer i {
+    color: var(--yr-blue);
+}
+
+.yearly-progress-card .savings-item .yearly-financial-icon {
+    background: var(--yr-purple-bg);
+    color: var(--yr-purple);
+}
+
+.yearly-progress-card .savings-item .yearly-money,
+.yearly-progress-card .savings-item .yearly-financial-footer i {
+    color: var(--yr-purple);
+}
+
+.yearly-progress-card .yearly-total-balance {
+    background: linear-gradient(145deg, var(--yr-total-start), var(--yr-total-end));
+    border-color: var(--yr-total-border);
+}
+
+.yearly-progress-card .yearly-total-balance .yearly-financial-icon {
+    background: var(--yr-green-bg);
+    color: var(--yr-green);
+}
+
+.yearly-progress-card .yearly-total-balance .yearly-money,
+.yearly-progress-card .yearly-total-balance .yearly-financial-footer i {
+    color: var(--yr-green);
+}
+
+/* EMPTY STATE */
+
+.yearly-progress-card .yearly-progress-empty {
+    padding: 45px 20px;
+    text-align: center;
+}
+
+.yearly-progress-card .yearly-empty-icon {
+    width: 65px;
+    height: 65px;
+    margin: 0 auto 18px;
+    border: 1px solid var(--yr-border);
+    background: var(--yr-surface);
+    color: var(--yr-blue);
+    font-size: 28px;
+}
+
+.yearly-progress-card .yearly-progress-empty h3 {
+    margin: 0 0 10px;
+    font-size: 20px;
+}
+
+.yearly-progress-card .yearly-progress-empty p {
+    max-width: 520px;
+    margin: 0 auto;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+/* =========================================================
+   LIGHT MODE — EXPLICIT OVERRIDES
+========================================================= */
+
+.yearly-progress-card[data-yearly-theme="light"] {
+    --yr-bg: #ffffff;
+    --yr-surface: #f7f9fc;
+    --yr-surface-hover: #eef3f9;
+    --yr-border: #e1e7f0;
+    --yr-heading: #06245f;
+    --yr-text: #273449;
+    --yr-muted: #68778d;
+    --yr-green: #218838;
+    --yr-green-bg: #e9f8ee;
+    --yr-red: #c62828;
+    --yr-red-bg: #fff0f1;
+    --yr-blue: #1769aa;
+    --yr-blue-bg: #eaf4ff;
+    --yr-purple: #6246b5;
+    --yr-purple-bg: #f1edff;
+    --yr-track: #e5eaf2;
+    --yr-total-start: #effaf1;
+    --yr-total-end: #ffffff;
+    --yr-total-border: #c7e8ce;
+
+    color: var(--yr-text);
+    background: var(--yr-bg);
+    border-color: var(--yr-border);
+    color-scheme: light;
+    box-shadow: 0 5px 22px rgba(6, 36, 95, .07);
+}
+
+/* =========================================================
+   DARK MODE — EXPLICIT OVERRIDES
+========================================================= */
+
+.yearly-progress-card[data-yearly-theme="dark"] {
+    --yr-bg: #151a27;
+    --yr-surface: #1c2332;
+    --yr-surface-hover: #263146;
+    --yr-border: #30394b;
+    --yr-heading: #f0f4ff;
+    --yr-text: #dce3ef;
+    --yr-muted: #aab6c8;
+    --yr-green: #72e39a;
+    --yr-green-bg: rgba(50, 183, 58, .14);
+    --yr-red: #ff9ba7;
+    --yr-red-bg: rgba(239, 68, 68, .14);
+    --yr-blue: #8bc5ff;
+    --yr-blue-bg: rgba(59, 130, 246, .16);
+    --yr-purple: #c5b4ff;
+    --yr-purple-bg: rgba(139, 92, 246, .16);
+    --yr-track: #30394b;
+    --yr-total-start: rgba(50, 183, 58, .16);
+    --yr-total-end: #1c2332;
+    --yr-total-border: rgba(98, 217, 139, .3);
+
+    color: var(--yr-text);
+    background: var(--yr-bg);
+    border-color: var(--yr-border);
+    color-scheme: dark;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .2);
+}
+
+.yearly-progress-card[data-yearly-theme="dark"] .yearly-date-item,
+.yearly-progress-card[data-yearly-theme="dark"] .yearly-progress-section,
+.yearly-progress-card[data-yearly-theme="dark"] .yearly-financial-item {
+    background: var(--yr-surface);
+    border-color: var(--yr-border);
+}
+
+.yearly-progress-card[data-yearly-theme="dark"] .yearly-financial-item:hover {
+    background: var(--yr-surface-hover);
+}
+
+.yearly-progress-card[data-yearly-theme="dark"] .yearly-total-balance {
+    background: linear-gradient(145deg, var(--yr-total-start), var(--yr-total-end));
+    border-color: var(--yr-total-border);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 992px) {
+    .yearly-progress-card .yearly-financial-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .yearly-progress-card {
+        padding: 18px;
+    }
+
+    .yearly-progress-card .yearly-progress-dates {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .yearly-progress-card .yearly-progress-section {
+        padding: 16px;
+    }
+
+    .yearly-progress-card .yearly-progress-days {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .yearly-progress-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .yearly-progress-card .yearly-progress-header h3 {
+        font-size: 18px;
+    }
+
+    .yearly-progress-card .yearly-progress-dates,
+    .yearly-progress-card .yearly-financial-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .yearly-progress-card .yearly-progress-percentage {
+        font-size: 30px;
+    }
+
+    .yearly-progress-card .yearly-financial-item {
+        padding: 15px;
+    }
+
+    .yearly-progress-card .yearly-money {
+        font-size: 21px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .yearly-progress-card,
+    .yearly-progress-card * {
+        transition: none !important;
+    }
+
+    .yearly-progress-card .yearly-financial-item:hover {
+        transform: none;
+    }
+}
+</style>
+
+<script>
+(function () {
+    "use strict";
+
+    const CARD_SELECTOR = ".yearly-progress-card";
+    let observer = null;
+    let scheduled = false;
+
+    /*
+     * NXL templates can use different theme classes/attributes.
+     * Read the explicit theme first, then inspect common class names.
+     */
+    function getThemeFromElement(element) {
+        if (!element) return null;
+
+        const attrNames = [
+            "data-bs-theme",
+            "data-theme",
+            "data-layout-mode",
+            "data-mode",
+            "theme"
+        ];
+
+        for (const attr of attrNames) {
+            const value = (element.getAttribute(attr) || "").toLowerCase();
+
+            if (["dark", "dark-mode", "darkmode"].includes(value)) {
+                return "dark";
+            }
+
+            if (["light", "light-mode", "lightmode"].includes(value)) {
+                return "light";
+            }
+        }
+
+        const classes = element.classList;
+
+        if (
+            classes.contains("dark") ||
+            classes.contains("dark-mode") ||
+            classes.contains("darkmode") ||
+            classes.contains("theme-dark") ||
+            classes.contains("layout-mode-dark") ||
+            classes.contains("data-dark-mode")
+        ) {
+            return "dark";
+        }
+
+        if (
+            classes.contains("light") ||
+            classes.contains("light-mode") ||
+            classes.contains("lightmode") ||
+            classes.contains("theme-light") ||
+            classes.contains("layout-mode-light")
+        ) {
+            return "light";
+        }
+
+        return null;
+    }
+
+    function detectTheme() {
+        const html = document.documentElement;
+        const body = document.body;
+
+        // Prefer the application's own explicit theme setting.
+        for (const element of [html, body]) {
+            const theme = getThemeFromElement(element);
+            if (theme) return theme;
+        }
+
+        // Check common NXL/theme switcher elements and their states.
+        const darkActive = document.querySelector(
+            '.dark-button.active, .dark-button.selected, ' +
+            '.dark-light-theme.active, [data-theme="dark"].active, ' +
+            '[data-bs-theme="dark"]'
+        );
+
+        const lightActive = document.querySelector(
+            '.light-button.active, .light-button.selected, ' +
+            '[data-theme="light"].active, [data-bs-theme="light"]'
+        );
+
+        if (darkActive && !lightActive) return "dark";
+        if (lightActive && !darkActive) return "light";
+
+        /*
+         * The icon button may indicate the action to perform, not
+         * the current theme. Use visibility only as a last fallback.
+         */
+        const darkButton = document.querySelector(".dark-button");
+        const lightButton = document.querySelector(".light-button");
+
+        if (darkButton && lightButton) {
+            const darkVisible = getComputedStyle(darkButton).display !== "none";
+            const lightVisible = getComputedStyle(lightButton).display !== "none";
+
+            if (darkVisible && !lightVisible) return "light";
+            if (lightVisible && !darkVisible) return "dark";
+        }
+
+        // Default to the requested light appearance.
+        return "light";
+    }
+
+    function syncTheme() {
+        scheduled = false;
+
+        const theme = detectTheme();
+
+        document.querySelectorAll(CARD_SELECTOR).forEach(function (card) {
+            if (card.getAttribute("data-yearly-theme") !== theme) {
+                card.setAttribute("data-yearly-theme", theme);
+            }
+        });
+    }
+
+    function scheduleSync() {
+        if (scheduled) return;
+
+        scheduled = true;
+        requestAnimationFrame(syncTheme);
+    }
+
+    function initialize() {
+        syncTheme();
+
+        if (observer) observer.disconnect();
+
+        observer = new MutationObserver(function (mutations) {
+            const relevantChange = mutations.some(function (mutation) {
+                if (mutation.type === "attributes") {
+                    return mutation.target !== mutation.target.closest(CARD_SELECTOR);
+                }
+                return true;
+            });
+
+            if (relevantChange) scheduleSync();
+        });
+
+        [document.documentElement, document.body].filter(Boolean).forEach(
+            function (element) {
+                observer.observe(element, {
+                    attributes: true,
+                    attributeFilter: [
+                        "class",
+                        "data-theme",
+                        "data-bs-theme",
+                        "data-layout-mode",
+                        "data-mode",
+                        "style"
+                    ],
+                    childList: true,
+                    subtree: true
+                });
+            }
+        );
+
+        // Recheck after NXL theme controls are clicked.
+        document.addEventListener("click", function (event) {
+            const target = event.target;
+
+            if (!target || !target.closest) return;
+
+            if (
+                target.closest(
+                    ".dark-button, .light-button, .dark-light-theme, " +
+                    "[data-theme], [data-bs-theme], " +
+                    "[data-layout-mode], [data-mode]"
+                )
+            ) {
+                setTimeout(scheduleSync, 0);
+                setTimeout(scheduleSync, 100);
+                setTimeout(scheduleSync, 300);
+            }
+        });
+
+        // Some templates dispatch a theme-change event.
+        document.addEventListener("themeChanged", scheduleSync);
+        document.addEventListener("theme-change", scheduleSync);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initialize, { once: true });
+    } else {
+        initialize();
+    }
+})();
+</script>
+
+
 
 
 <!-- ============================================================
