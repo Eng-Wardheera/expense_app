@@ -16580,6 +16580,13 @@ def api_personal_timeline(timeline_id):
 # ACTIVE + ENDED RECORDS
 # ============================================================
 
+
+# ============================================================
+# PERSONAL TIMELINE — FULL DYNAMIC RECORD UPDATER
+# FIX: DUPLICATE DURATION TEXT
+# ACTIVE + ENDED RECORDS
+# ============================================================
+
 def update_personal_timeline_durations():
     """
     Recalculate and repair Personal Timeline records.
@@ -16588,7 +16595,7 @@ def update_personal_timeline_durations():
       - Removes repeated duration strings.
       - Preserves event names before the duration.
       - Synchronizes title, display_name, description,
-        event_type_other and import_days_text.
+        event_type_other, notes and import_days_text.
       - Recalculates duration using actual dates.
       - Updates active and ended records.
       - Uses Africa/Mogadishu local date.
@@ -16618,6 +16625,9 @@ def update_personal_timeline_durations():
         def get_day(value):
             """Convert MongoDB date/datetime or ISO date string to date."""
 
+            if value is None or value == "":
+                return None
+
             if isinstance(value, datetime):
                 if value.tzinfo is None:
                     value = value.replace(tzinfo=timezone.utc)
@@ -16639,7 +16649,9 @@ def update_personal_timeline_durations():
                         )
 
                         if parsed.tzinfo is None:
-                            parsed = parsed.replace(tzinfo=timezone.utc)
+                            parsed = parsed.replace(
+                                tzinfo=timezone.utc
+                            )
 
                         return parsed.astimezone(local_tz).date()
 
@@ -16679,21 +16691,8 @@ def update_personal_timeline_durations():
             return f"{years} Yrs {months} Mnths {days} Dys"
 
         # --------------------------------------------------------
-        # DURATION TEXT REPAIR — MAIN FIX
+        # DURATION TEXT REPAIR
         # --------------------------------------------------------
-
-        # Matches the FIRST duration unit, whether or not the
-        # complete duration is valid or duplicated.
-        #
-        # Examples:
-        #   2 Yrs 2 Yrs 5 Mnths 13 Dys
-        #   -> calculated duration only
-        #
-        #   Salman Mhmd Comes 0 Yrs 0 Yrs 0 Mnths 5 Dys
-        #   -> Salman Mhmd Comes + calculated duration
-        #
-        #   Samiro 0 Yrs 0 Mnths 9 Dys
-        #   -> Samiro + calculated duration
 
         duration_token = re.compile(
             r"\b\d+\s*(?:yrs?|years?|mnths?|months?|dys?|days?)\b",
@@ -16703,23 +16702,19 @@ def update_personal_timeline_durations():
         def sync_text(value, new_text):
             """
             Preserve text before the first duration token.
-            Replace ALL old/repeated duration content with new_text.
+            Replace all old/repeated duration content.
             """
 
             if not isinstance(value, str) or not value.strip():
                 return value
 
             original = value.strip()
-
             first_match = duration_token.search(original)
 
             if not first_match:
-                # Do not append duration to unrelated text.
+                # Do not append duration to unrelated existing text.
                 return value
 
-            # Everything before the FIRST duration token is the
-            # event name/label. Nothing from the old duration area
-            # is retained.
             prefix = original[:first_match.start()].strip()
             prefix = prefix.rstrip(" \t\r\n,;:|-")
 
@@ -16734,8 +16729,8 @@ def update_personal_timeline_durations():
 
         def sync_import_days_text(value, total_days):
             """
-            Update a trailing 'N Days' or 'N Dys' value while
-            preserving a meaningful prefix.
+            Update a trailing N Days / N Dys value while preserving
+            any meaningful prefix.
             """
 
             if not isinstance(value, str) or not value.strip():
@@ -16753,6 +16748,7 @@ def update_personal_timeline_durations():
                 return value
 
             prefix = match.group(1).strip()
+
             weekdays = {
                 "monday", "tuesday", "wednesday", "thursday",
                 "friday", "saturday", "sunday"
@@ -16808,20 +16804,16 @@ def update_personal_timeline_durations():
                 # ------------------------------------------------
 
                 if end_day is None:
-                    # No saved end date means ongoing.
                     is_ongoing = True
-                    effective_end = today
+                    effective_end = max(today, start_day)
 
                 elif end_day <= today:
-                    # Preserve the actual saved end date.
-                    # An event ending today is treated as ended.
                     is_ongoing = False
-                    effective_end = end_day
+                    effective_end = max(end_day, start_day)
 
                 else:
-                    # Future end date: currently ongoing.
                     is_ongoing = True
-                    effective_end = today
+                    effective_end = max(today, start_day)
 
                 if start_day > effective_end:
                     skipped_count += 1
@@ -16870,18 +16862,12 @@ def update_personal_timeline_durations():
                 }
 
                 # ------------------------------------------------
-                # REPAIR TEXT FIELDS
+                # REPAIR EXISTING TEXT FIELDS
                 # ------------------------------------------------
 
-                # Include title/display_name because the Event
-                # column may itself contain an appended duration.
-                # parent_title and group IDs are intentionally
-                # untouched to preserve timeline grouping.
                 text_fields = (
                     "title",
                     "display_name",
-                    "description",
-                    "event_type_other",
                 )
 
                 for field in text_fields:
@@ -16893,6 +16879,32 @@ def update_personal_timeline_durations():
                     if not old_value.strip():
                         continue
 
+                    new_value = sync_text(
+                        old_value,
+                        legacy_duration
+                    )
+
+                    if new_value != old_value:
+                        update_data[field] = new_value
+
+                # ------------------------------------------------
+                # UPDATE event_type_other, description AND notes
+                # ------------------------------------------------
+
+                for field in (
+                    "event_type_other",
+                    "description",
+                    "notes",
+                ):
+                    old_value = timeline.get(field)
+
+                    # Empty or null fields receive the current duration.
+                    if not isinstance(old_value, str) or not old_value.strip():
+                        update_data[field] = duration_text
+                        continue
+
+                    # Existing duration text is replaced with the
+                    # newly calculated duration, avoiding duplicates.
                     new_value = sync_text(
                         old_value,
                         legacy_duration
@@ -16939,15 +16951,6 @@ def update_personal_timeline_durations():
                 if result.modified_count:
                     modified_count += 1
 
-                    # print(
-                    #     "[PersonalTimeline] Updated | "
-                    #     f"title={timeline.get('title', '')} | "
-                    #     f"status={update_data['status']} | "
-                    #     f"duration={duration_text} | "
-                    #     f"legacy={legacy_duration} | "
-                    #     f"total_days={total_days}"
-                    # )
-
             except Exception as item_error:
                 error_count += 1
 
@@ -16960,13 +16963,13 @@ def update_personal_timeline_durations():
         # FINAL REPORT
         # --------------------------------------------------------
 
-        # print(
-        #     "[PersonalTimeline] Finished | "
-        #     f"Date={today} | "
-        #     f"Modified={modified_count} | "
-        #     f"Skipped={skipped_count} | "
-        #     f"Errors={error_count}"
-        # )
+        print(
+            "[PersonalTimeline] Finished | "
+            f"Date={today} | "
+            f"Modified={modified_count} | "
+            f"Skipped={skipped_count} | "
+            f"Errors={error_count}"
+        )
 
         return modified_count
 
@@ -16976,7 +16979,6 @@ def update_personal_timeline_durations():
             f"{error}"
         )
         return 0
-
 
 
 
