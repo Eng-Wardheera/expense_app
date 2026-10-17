@@ -325,78 +325,417 @@
 
                 </div>
 
-                <!-- YEARLY PROGRESS -->
-                <div class="yearly-progress-section">
+{# ======================================================
+   YEARLY PROGRESS — SHARED DYNAMIC VALUES
+   ====================================================== #}
 
-                    <div class="yearly-progress-summary">
-                        <div class="yearly-progress-main">
-                            <span class="yearly-section-label">
-                                FINANCIAL YEAR PROGRESS
-                            </span>
+{% set year_status = active_year_progress.status|default('active', true)|lower %}
+{% set elapsed = active_year_progress.elapsed_percent|default(0, true)|float %}
+{% set remaining = active_year_progress.progress_percent|default(0, true)|float %}
 
-                            <div class="yearly-progress-percentage">
-                                {{ "%.1f"|format(progress) }}<span>%</span>
-                            </div>
+{% set elapsed = [100, [0, elapsed]|max]|min %}
+{% set remaining = [100, [0, remaining]|max]|min %}
 
-                            <span class="yearly-progress-label {{ progress_color }}">
-                                <span class="yearly-status-dot"></span>
-                                {{ progress_label }}
-                            </span>
-                        </div>
+{# Use today's month for monthly accent colors #}
+{% set current_month = active_year_progress.today.month if active_year_progress.today else 1 %}
 
-                        <div class="yearly-progress-side">
-                            <div class="yearly-progress-side-icon">
-                                <i class="feather-trending-up"></i>
-                            </div>
-                            <div>
-                                <strong>Annual Overview</strong>
-                                <small>Financial year timeline</small>
-                            </div>
-                        </div>
-                    </div>
+{# Month-specific accent colors #}
+{% set month_colors = {
+    1: '#2563eb',
+    2: '#7c3aed',
+    3: '#0891b2',
+    4: '#0d9488',
+    5: '#65a30d',
+    6: '#ca8a04',
+    7: '#ea580c',
+    8: '#e11d48',
+    9: '#9333ea',
+    10: '#0284c7',
+    11: '#4f46e5',
+    12: '#0f766e'
+} %}
 
-                    <div
-                        class="yearly-progress-track"
-                        role="progressbar"
-                        aria-label="Financial year progress"
-                        aria-valuemin="0"
-                        aria-valuemax="100"
-                        aria-valuenow="{{ progress }}"
-                    >
-                        <div
-                            class="yearly-progress-fill {{ progress_color }}"
-                            style="width: {{ progress }}%;"
-                        ></div>
-                    </div>
+{% set month_color = month_colors.get(current_month, '#16a34a') %}
 
-                    <div class="yearly-progress-days">
-                        <div class="yearly-day-stat">
-                            <span class="yearly-day-dot elapsed-dot"></span>
-                            <span>
-                                <strong>{{ active_year_progress.elapsed_days|default(0, true) }}</strong>
-                                days elapsed
-                            </span>
-                        </div>
 
-                        <div class="yearly-day-stat">
-                            <span class="yearly-day-dot remaining-dot"></span>
-                            <span>
-                                <strong>{{ active_year_progress.remaining_days|default(0, true) }}</strong>
-                                days remaining
-                            </span>
-                        </div>
+{# ======================================================
+   1. FORWARD PROGRESS — 0% -> 100%
+   ====================================================== #}
 
-                        <div class="yearly-day-stat yearly-total-days">
-                            <i class="feather-calendar"></i>
-                            <span>
-                                <strong>{{ active_year_progress.total_days|default(0, true) }}</strong>
-                                total days
-                            </span>
-                        </div>
-                    </div>
+{% if year_status == 'upcoming' %}
+    {% set forward_color = 'yearly-upcoming' %}
+    {% set forward_label = 'Not Started Yet' %}
+{% elif year_status == 'completed' %}
+    {% set forward_color = 'yearly-completed' %}
+    {% set forward_label = 'Year Completed' %}
+{% elif elapsed >= 90 %}
+    {% set forward_color = 'yearly-near-complete' %}
+    {% set forward_label = 'Almost Complete' %}
+{% elif elapsed >= 50 %}
+    {% set forward_color = 'yearly-halfway' %}
+    {% set forward_label = 'More Than Halfway' %}
+{% else %}
+    {% set forward_color = 'yearly-forward' %}
+    {% set forward_label = 'Year in Progress' %}
+{% endif %}
 
-                </div>
+<div
+    class="yearly-progress-section yearly-forward-section"
+    data-progress-level="{{ 1 if elapsed < 50 else (2 if elapsed < 80 else 3) }}"
+    data-month="{{ current_month }}"
+    style="--month-accent: {{ month_color }};"
+>
+    <div class="yearly-progress-summary">
+        <div class="yearly-progress-main">
+            <span class="yearly-section-label">
+                FINANCIAL YEAR ELAPSED
+            </span>
 
+            <div class="yearly-progress-percentage">
+                {{ "%.1f"|format(elapsed) }}<span>%</span>
+            </div>
+
+            <span class="yearly-progress-label {{ forward_color }}">
+                <span class="yearly-status-dot"></span>
+                {{ forward_label }}
+            </span>
+        </div>
+
+        <div class="yearly-progress-side">
+            <div class="yearly-progress-side-icon {{ forward_color }}">
+                <i class="feather-trending-up"></i>
+            </div>
+            <div>
+                <strong>Annual Overview</strong>
+                <small>Elapsed time · Forward</small>
+            </div>
+        </div>
+    </div>
+
+    <div
+        class="yearly-progress-track"
+        role="progressbar"
+        aria-label="Financial year elapsed progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ elapsed }}"
+    >
+        <div
+            class="yearly-progress-fill {{ forward_color }}"
+            style="width: {{ elapsed }}%;"
+        ></div>
+    </div>
+
+    <div class="yearly-progress-days">
+        <div class="yearly-day-stat">
+            <span class="yearly-day-dot elapsed-dot"></span>
+            <span>
+                <strong>{{ active_year_progress.elapsed_days|default(0, true) }}</strong>
+                days elapsed
+            </span>
+        </div>
+
+        <div class="yearly-day-stat">
+            <span class="yearly-day-dot remaining-dot"></span>
+            <span>
+                <strong>{{ active_year_progress.remaining_days|default(0, true) }}</strong>
+                days remaining
+            </span>
+        </div>
+
+        <div class="yearly-day-stat yearly-total-days">
+            <i class="feather-calendar"></i>
+            <span>
+                <strong>{{ active_year_progress.total_days|default(0, true) }}</strong>
+                total days
+            </span>
+        </div>
+    </div>
+</div>
+
+<br>
+
+{# ======================================================
+   2. BACKWARD COUNTDOWN — 100% -> 0%
+   ====================================================== #}
+
+{% if year_status == 'upcoming' %}
+    {% set backward_color = 'yearly-upcoming' %}
+    {% set backward_label = 'Starts Soon' %}
+{% elif year_status == 'completed' %}
+    {% set backward_color = 'yearly-completed' %}
+    {% set backward_label = 'Countdown Finished' %}
+{% elif remaining <= 10 %}
+    {% set backward_color = 'yearly-deadline' %}
+    {% set backward_label = 'Deadline Approaching' %}
+{% elif remaining <= 50 %}
+    {% set backward_color = 'yearly-countdown-mid' %}
+    {% set backward_label = 'Time Running Out' %}
+{% else %}
+    {% set backward_color = 'yearly-countdown' %}
+    {% set backward_label = 'Time Remaining' %}
+{% endif %}
+
+<div
+    class="yearly-progress-section yearly-backward-section"
+    data-progress-level="{{ 1 if remaining > 50 else (2 if remaining > 25 else 3) }}"
+    data-month="{{ current_month }}"
+    style="--month-accent: {{ month_color }};"
+>
+    <div class="yearly-progress-summary">
+        <div class="yearly-progress-main">
+            <span class="yearly-section-label">
+                FINANCIAL YEAR COUNTDOWN
+            </span>
+
+            <div class="yearly-progress-percentage">
+                {{ "%.1f"|format(remaining) }}<span>%</span>
+            </div>
+
+            <span class="yearly-progress-label {{ backward_color }}">
+                <span class="yearly-status-dot"></span>
+                {{ backward_label }}
+            </span>
+        </div>
+
+        <div class="yearly-progress-side">
+            <div class="yearly-progress-side-icon {{ backward_color }}">
+                <i class="feather-trending-down"></i>
+            </div>
+            <div>
+                <strong>Annual Overview</strong>
+                <small>Remaining time · Countdown</small>
+            </div>
+        </div>
+    </div>
+
+    <div
+        class="yearly-progress-track"
+        role="progressbar"
+        aria-label="Financial year remaining progress"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-valuenow="{{ remaining }}"
+    >
+        <div
+            class="yearly-progress-fill {{ backward_color }}"
+            style="width: {{ remaining }}%;"
+        ></div>
+    </div>
+
+    <div class="yearly-progress-days">
+        <div class="yearly-day-stat">
+            <span class="yearly-day-dot remaining-dot"></span>
+            <span>
+                <strong>{{ active_year_progress.remaining_days|default(0, true) }}</strong>
+                days remaining
+            </span>
+        </div>
+
+        <div class="yearly-day-stat">
+            <span class="yearly-day-dot elapsed-dot"></span>
+            <span>
+                <strong>{{ active_year_progress.elapsed_days|default(0, true) }}</strong>
+                days elapsed
+            </span>
+        </div>
+
+        <div class="yearly-day-stat yearly-total-days">
+            <i class="feather-calendar"></i>
+            <span>
+                <strong>{{ active_year_progress.total_days|default(0, true) }}</strong>
+                total days
+            </span>
+        </div>
+    </div>
+</div>
+
+
+<style>
+/* ======================================================
+   YEARLY PROGRESS — DYNAMIC MONTHLY COLORS
+   ====================================================== */
+
+.yearly-forward-section,
+.yearly-backward-section {
+    --month-accent: #16a34a;
+}
+
+/* Smooth transitions */
+.yearly-progress-fill,
+.yearly-progress-side-icon {
+    transition:
+        width 700ms ease,
+        background 450ms ease,
+        color 300ms ease,
+        box-shadow 450ms ease;
+}
+
+/* Progress tracks */
+.yearly-progress-track {
+    overflow: hidden;
+    border-radius: 999px;
+}
+
+/* ======================================================
+   FORWARD — GREEN GETS STRONGER
+   ====================================================== */
+
+.yearly-forward-section .yearly-progress-fill.yearly-forward {
+    background: linear-gradient(
+        90deg,
+        color-mix(in srgb, #4ade80 55%, var(--month-accent)),
+        #16a34a
+    );
+    box-shadow: 0 0 6px rgba(22, 163, 74, 0.15);
+}
+
+.yearly-forward-section[data-progress-level="2"] .yearly-progress-fill {
+    background: linear-gradient(90deg, #4ade80, #15803d);
+    box-shadow: 0 0 9px rgba(21, 128, 61, 0.22);
+}
+
+.yearly-forward-section[data-progress-level="3"] .yearly-progress-fill {
+    background: linear-gradient(90deg, #22c55e, #14532d);
+    box-shadow: 0 0 13px rgba(20, 83, 45, 0.28);
+}
+
+.yearly-progress-label.yearly-forward .yearly-status-dot {
+    background: #22c55e;
+}
+
+.yearly-progress-label.yearly-halfway .yearly-status-dot {
+    background: #3b82f6;
+}
+
+.yearly-progress-label.yearly-near-complete .yearly-status-dot {
+    background: #a855f7;
+}
+
+.yearly-progress-side-icon.yearly-forward {
+    color: #15803d;
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.yearly-progress-side-icon.yearly-halfway {
+    color: #2563eb;
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.yearly-progress-side-icon.yearly-near-complete {
+    color: #9333ea;
+    background: rgba(168, 85, 247, 0.12);
+}
+
+/* ======================================================
+   BACKWARD — RED GETS STRONGER AS TIME RUNS OUT
+   ====================================================== */
+
+.yearly-backward-section .yearly-progress-fill.yearly-countdown {
+    background: linear-gradient(90deg, #fecaca, #f87171);
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.12);
+}
+
+.yearly-backward-section[data-progress-level="2"] .yearly-progress-fill {
+    background: linear-gradient(90deg, #f87171, #dc2626);
+    box-shadow: 0 0 9px rgba(220, 38, 38, 0.22);
+}
+
+.yearly-backward-section[data-progress-level="3"] .yearly-progress-fill {
+    background: linear-gradient(90deg, #ef4444, #991b1b);
+    box-shadow: 0 0 13px rgba(153, 27, 27, 0.30);
+}
+
+.yearly-progress-label.yearly-countdown .yearly-status-dot {
+    background: #06b6d4;
+}
+
+.yearly-progress-label.yearly-countdown-mid .yearly-status-dot {
+    background: #f59e0b;
+}
+
+.yearly-progress-label.yearly-deadline .yearly-status-dot {
+    background: #ef4444;
+}
+
+.yearly-progress-side-icon.yearly-countdown {
+    color: #0891b2;
+    background: rgba(6, 182, 212, 0.12);
+}
+
+.yearly-progress-side-icon.yearly-countdown-mid {
+    color: #d97706;
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.yearly-progress-side-icon.yearly-deadline {
+    color: #dc2626;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+/* ======================================================
+   MONTHLY ACCENT — BASED ON TODAY'S MONTH
+   ====================================================== */
+
+.yearly-progress-section[data-month="1"]  { --month-accent: #2563eb; }
+.yearly-progress-section[data-month="2"]  { --month-accent: #7c3aed; }
+.yearly-progress-section[data-month="3"]  { --month-accent: #0891b2; }
+.yearly-progress-section[data-month="4"]  { --month-accent: #0d9488; }
+.yearly-progress-section[data-month="5"]  { --month-accent: #65a30d; }
+.yearly-progress-section[data-month="6"]  { --month-accent: #ca8a04; }
+.yearly-progress-section[data-month="7"]  { --month-accent: #ea580c; }
+.yearly-progress-section[data-month="8"]  { --month-accent: #e11d48; }
+.yearly-progress-section[data-month="9"]  { --month-accent: #9333ea; }
+.yearly-progress-section[data-month="10"] { --month-accent: #0284c7; }
+.yearly-progress-section[data-month="11"] { --month-accent: #4f46e5; }
+.yearly-progress-section[data-month="12"] { --month-accent: #0f766e; }
+
+.yearly-progress-section[data-month] .yearly-progress-side-icon {
+    border: 1px solid color-mix(
+        in srgb,
+        var(--month-accent) 25%,
+        transparent
+    );
+}
+
+/* ======================================================
+   UPCOMING / COMPLETED
+   ====================================================== */
+
+.yearly-progress-fill.yearly-upcoming,
+.yearly-progress-fill.yearly-completed {
+    background: linear-gradient(90deg, #94a3b8, #64748b);
+    box-shadow: none;
+}
+
+.yearly-progress-label.yearly-upcoming .yearly-status-dot,
+.yearly-progress-label.yearly-completed .yearly-status-dot {
+    background: #94a3b8;
+}
+
+.yearly-progress-side-icon.yearly-upcoming,
+.yearly-progress-side-icon.yearly-completed {
+    color: #64748b;
+    background: rgba(148, 163, 184, 0.15);
+}
+
+/* Status labels */
+.yearly-progress-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+    .yearly-progress-fill,
+    .yearly-progress-side-icon {
+        transition: none;
+    }
+}
+</style>
+
+                
                 <!-- FINANCIAL SUMMARY HEADING -->
                 <div class="yearly-financial-heading">
                     <div>
@@ -514,6 +853,8 @@
             {% endif %}
 
         </div>
+
+        
     </div>
 </div>
 
@@ -1420,6 +1761,7 @@
     }
 })();
 </script>
+
 
 
 
