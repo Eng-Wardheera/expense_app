@@ -1049,106 +1049,1033 @@
 
 
                 
-                <!-- FINANCIAL SUMMARY HEADING -->
-                <div class="yearly-financial-heading">
+
+<!-- =========================================================
+     YEARLY FINANCIAL SUMMARY
+     TOTAL GAINED + TOTAL SEND
+     NET PROFIT / LOSS + SAVING BALANCE + NET CASH
+     WITH RED + GREEN NET BALANCE PROGRESS
+========================================================= -->
+
+{% set yp = active_year_progress|default({}, true) %}
+
+{# 1. INCOME AND EXPENSES #}
+{% set income = yp.get('total_gained', 0)|default(0, true)|float %}
+{% set expenses = yp.get('total_send', 0)|default(0, true)|float %}
+{% set net_profit = (income - expenses)|round(2) %}
+
+{# 2. SAVINGS BALANCE: SUPPORT ALTERNATIVE FIELD NAMES #}
+{% set saving_raw = yp.get('saving_net_balance') %}
+
+{% if saving_raw is none %}
+    {% set saving_raw = yp.get('saving_balance') %}
+{% endif %}
+{% if saving_raw is none %}
+    {% set saving_raw = yp.get('current_savings_balance') %}
+{% endif %}
+{% if saving_raw is none %}
+    {% set saving_raw = yp.get('savings_balance', 0) %}
+{% endif %}
+
+{% set saving_net_balance = saving_raw|default(0, true)|float %}
+
+{# 3. NET CASH: KEEP THE ORIGINAL FORMULA #}
+{% set net_cash = (net_profit + saving_net_balance)|round(2) %}
+
+{# 4. PERCENTAGES #}
+{% set income_bar = 100 if income > 0 else 0 %}
+{% set expense_bar = ((expenses / income * 100) if income > 0 else 0)|round(2) %}
+{% set profit_margin = ((net_profit / income * 100) if income > 0 else 0)|round(2) %}
+
+{% set expense_width = [100, [0, expense_bar]|max]|min %}
+{% set profit_width = [100, [0, profit_margin|abs]|max]|min %}
+{% set saving_width = 100 if saving_net_balance > 0 else 0 %}
+{% set cash_width = 100 if net_cash > 0 else 0 %}
+
+{# 5. NET BALANCE BAR: GREEN + RED FILL THE WHOLE BAR #}
+{% set net_balance = net_profit %}
+{% set net_balance_percent = ((net_balance / income * 100) if income > 0 else 0)|round(2) %}
+
+{% set balance_red_width = (
+    [100, [0, expense_bar]|max]|min
+) if income > 0 else (100 if expenses > 0 else 0) %}
+
+{% set balance_green_width = (
+    100 - balance_red_width
+) if income > 0 else 0 %}
+
+{% set result_status = (
+    'profit' if net_profit > 0
+    else ('loss' if net_profit < 0 else 'break-even')
+) %}
+
+{% set cash_status = (
+    'positive' if net_cash > 0
+    else ('negative' if net_cash < 0 else 'zero')
+) %}
+
+<section class="financial-summary">
+
+    <!-- HEADER -->
+    <header class="fs-heading">
+        <div class="fs-heading-copy">
+            <span class="fs-eyebrow">YEARLY OVERVIEW</span>
+            <h3>Financial Summary</h3>
+            <p>Income, expenses, savings and net cash overview.</p>
+        </div>
+
+        <div class="fs-heading-icon" aria-hidden="true">
+            <i class="feather-bar-chart-2"></i>
+        </div>
+    </header>
+
+    <!-- FINANCIAL YEAR -->
+    <div class="fs-period">
+        <i class="feather-calendar" aria-hidden="true"></i>
+        <span>
+            {{ yp.get('year_label') or yp.get('title') or 'Current Financial Year' }}
+        </span>
+    </div>
+
+    <!-- SUMMARY CARDS -->
+    <div class="fs-cards">
+
+        <!-- TOTAL GAINED -->
+        <article class="fs-card fs-income">
+            <div class="fs-card-top">
+                <div class="fs-icon">
+                    <i class="feather-trending-up" aria-hidden="true"></i>
+                </div>
+                <span class="fs-label">TOTAL GAINED</span>
+            </div>
+
+            <p class="fs-description">Total income received</p>
+
+            <div class="fs-amount">${{ "{:,.2f}".format(income) }}</div>
+
+            <div class="fs-track">
+                <span style="width: {{ income_bar }}%;"></span>
+            </div>
+
+            <div class="fs-card-bottom">
+                <span>Income baseline</span>
+                <strong>{{ income_bar }}%</strong>
+            </div>
+        </article>
+
+        <!-- TOTAL SEND -->
+        <article class="fs-card fs-expense">
+            <div class="fs-card-top">
+                <div class="fs-icon">
+                    <i class="feather-trending-down" aria-hidden="true"></i>
+                </div>
+                <span class="fs-label">TOTAL SEND</span>
+            </div>
+
+            <p class="fs-description">Total expenses paid</p>
+
+            <div class="fs-amount">${{ "{:,.2f}".format(expenses) }}</div>
+
+            <div class="fs-track">
+                <span style="width: {{ expense_width }}%;"></span>
+            </div>
+
+            <div class="fs-card-bottom">
+                <span>Income spent</span>
+                <strong>
+                    {% if income > 0 %}
+                        {{ "{:,.2f}".format(expense_bar) }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </strong>
+            </div>
+        </article>
+
+        <!-- NET PROFIT / LOSS -->
+        <article class="fs-card fs-net {{ result_status }}">
+            <div class="fs-card-top">
+                <div class="fs-icon">
+                    {% if net_profit > 0 %}
+                        <i class="feather-check-circle" aria-hidden="true"></i>
+                    {% elif net_profit < 0 %}
+                        <i class="feather-alert-circle" aria-hidden="true"></i>
+                    {% else %}
+                        <i class="feather-minus-circle" aria-hidden="true"></i>
+                    {% endif %}
+                </div>
+                <span class="fs-label">NET RESULT</span>
+            </div>
+
+            <p class="fs-description">Income minus expenses</p>
+
+            <div class="fs-amount">
+                {% if net_profit < 0 %}-{% endif %}${{ "{:,.2f}".format(net_profit|abs) }}
+            </div>
+
+            <div class="fs-track">
+                <span style="width: {{ profit_width }}%;"></span>
+            </div>
+
+            <div class="fs-card-bottom">
+                <span>
+                    {% if net_profit > 0 %}
+                        Net profit
+                    {% elif net_profit < 0 %}
+                        Net loss
+                    {% else %}
+                        Break-even
+                    {% endif %}
+                </span>
+
+                <strong>
+                    {% if income > 0 %}
+                        {{ "{:,.2f}".format(profit_margin) }}%
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </strong>
+            </div>
+        </article>
+
+        <!-- SAVING BALANCE -->
+        <article class="fs-card fs-savings">
+            <div class="fs-card-top">
+                <div class="fs-icon">
+                    <i class="feather-piggy-bank" aria-hidden="true"></i>
+                </div>
+                <span class="fs-label">SAVING BALANCE</span>
+            </div>
+
+            <p class="fs-description">Current savings balance</p>
+
+            <div class="fs-amount">
+                {% if saving_net_balance < 0 %}-{% endif %}${{ "{:,.2f}".format(saving_net_balance|abs) }}
+            </div>
+
+            <div class="fs-track">
+                <span style="width: {{ saving_width }}%;"></span>
+            </div>
+
+            <div class="fs-card-bottom">
+                <span>Saved funds</span>
+                <strong>
+                    {% if saving_net_balance > 0 %}
+                        Saved
+                    {% elif saving_net_balance < 0 %}
+                        Negative
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </strong>
+            </div>
+        </article>
+
+        <!-- NET CASH -->
+        <article class="fs-card fs-cash {{ cash_status }}">
+            <div class="fs-card-top">
+                <div class="fs-icon">
+                    <i class="feather-wallet" aria-hidden="true"></i>
+                </div>
+                <span class="fs-label">NET CASH</span>
+            </div>
+
+            <p class="fs-description">Net result + savings balance</p>
+
+            <div class="fs-amount">
+                {% if net_cash < 0 %}-{% endif %}${{ "{:,.2f}".format(net_cash|abs) }}
+            </div>
+
+            <div class="fs-track">
+                <span style="width: {{ cash_width }}%;"></span>
+            </div>
+
+            <div class="fs-card-bottom">
+                <span>Combined calculation</span>
+                <strong>
+                    {% if net_cash > 0 %}
+                        Positive
+                    {% elif net_cash < 0 %}
+                        Negative
+                    {% else %}
+                        $0.00
+                    {% endif %}
+                </strong>
+            </div>
+        </article>
+
+    </div>
+
+    <!-- INCOME VS EXPENSES -->
+    <section class="fs-details">
+
+        <div class="fs-details-heading">
+            <div>
+                <span class="fs-eyebrow">PERFORMANCE</span>
+                <h4>Income vs Expenses</h4>
+                <p>Compare spending with the income received.</p>
+            </div>
+
+            <div class="fs-details-icon">
+                <i class="feather-activity" aria-hidden="true"></i>
+            </div>
+        </div>
+
+        <!-- TOTAL INCOME -->
+        <div class="fs-metric">
+            <div class="fs-metric-heading">
+                <span class="fs-metric-name">
+                    <i class="fs-dot income-dot"></i>
+                    Total Gained
+                </span>
+
+                <strong>
+                    ${{ "{:,.2f}".format(income) }}
+                    <small>({{ income_bar }}%)</small>
+                </strong>
+            </div>
+
+            <div class="fs-track fs-track-large">
+                <span style="width: {{ income_bar }}%;"></span>
+            </div>
+        </div>
+
+        <!-- TOTAL EXPENSES -->
+        <div class="fs-metric">
+            <div class="fs-metric-heading">
+                <span class="fs-metric-name">
+                    <i class="fs-dot expense-dot"></i>
+                    Total Send
+                </span>
+
+                <strong>
+                    ${{ "{:,.2f}".format(expenses) }}
+                    <small>
+                        {% if income > 0 %}
+                            ({{ "{:,.2f}".format(expense_bar) }}%)
+                        {% else %}
+                            (N/A)
+                        {% endif %}
+                    </small>
+                </strong>
+            </div>
+
+            <div class="fs-track fs-track-large">
+                <span class="fs-expense-fill"
+                      style="width: {{ expense_width }}%;"></span>
+            </div>
+
+            {% if income > 0 and expenses > income %}
+                <p class="fs-warning">
+                    <i class="feather-alert-triangle" aria-hidden="true"></i>
+                    Expenses exceed income by
+                    ${{ "{:,.2f}".format(expenses - income) }}.
+                </p>
+            {% elif income == 0 and expenses > 0 %}
+                <p class="fs-warning">
+                    <i class="feather-alert-triangle" aria-hidden="true"></i>
+                    Income is zero, so the expense percentage cannot be calculated.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- NET BALANCE: RED + GREEN PROGRESS BAR -->
+        <div class="fs-net-balance">
+
+            <div class="fs-net-balance-heading">
+                <div>
+                    <span class="fs-eyebrow">NET BALANCE</span>
+                    <h4>Remaining vs Spent</h4>
+                    <p>Green represents the remaining share; red represents expenses.</p>
+                </div>
+
+                <strong class="fs-balance-total {{ result_status }}">
+                    {% if net_balance < 0 %}-{% endif %}${{ "{:,.2f}".format(net_balance|abs) }}
+                </strong>
+            </div>
+
+            <div class="fs-balance-progress"
+                 role="img"
+                 aria-label="Remaining {{ balance_green_width }} percent and expenses {{ balance_red_width }} percent">
+
+                <span class="fs-balance-green"
+                      style="width: {{ balance_green_width }}%;"></span>
+
+                <span class="fs-balance-red"
+                      style="width: {{ balance_red_width }}%;"></span>
+            </div>
+
+            <div class="fs-balance-legend">
+
+                <div class="fs-legend-item">
+                    <span class="fs-legend-dot fs-green-dot"></span>
                     <div>
-                        <h4>Financial Summary</h4>
-                        <p>Your financial position for this financial year</p>
-                    </div>
-                    <div class="yearly-financial-heading-icon">
-                        <i class="feather-bar-chart-2"></i>
+                        <span>Net Balance</span>
+                        <strong>
+                            {% if net_balance < 0 %}-{% endif %}${{ "{:,.2f}".format(net_balance|abs) }}
+                            ({{ "{:,.2f}".format(net_balance_percent) }}%)
+                        </strong>
                     </div>
                 </div>
 
-                <!-- FINANCIAL CARDS -->
-                <div class="yearly-financial-grid">
-
-                    <div class="yearly-financial-item income-item">
-                        <div class="yearly-financial-top">
-                            <div class="yearly-financial-icon">
-                                <i class="feather-trending-up"></i>
-                            </div>
-                            <span class="yearly-financial-label">INCOME</span>
-                        </div>
-                        <small>Total Income</small>
-                        <strong class="yearly-money">
-                            ${{ "{:,.2f}".format(active_year_progress.total_gained|default(0, true)|float) }}
+                <div class="fs-legend-item">
+                    <span class="fs-legend-dot fs-red-dot"></span>
+                    <div>
+                        <span>Total Send</span>
+                        <strong>
+                            ${{ "{:,.2f}".format(expenses) }}
+                            ({% if income > 0 %}{{ "{:,.2f}".format(expense_bar) }}%{% else %}N/A{% endif %})
                         </strong>
-                        <div class="yearly-financial-footer">
-                            <i class="feather-plus-circle"></i>
-                            <span>Money received</span>
-                        </div>
                     </div>
-
-                    <div class="yearly-financial-item expense-item">
-                        <div class="yearly-financial-top">
-                            <div class="yearly-financial-icon">
-                                <i class="feather-trending-down"></i>
-                            </div>
-                            <span class="yearly-financial-label">EXPENSES</span>
-                        </div>
-                        <small>Total Expenses</small>
-                        <strong class="yearly-money">
-                            ${{ "{:,.2f}".format(active_year_progress.total_send|default(0, true)|float) }}
-                        </strong>
-                        <div class="yearly-financial-footer">
-                            <i class="feather-minus-circle"></i>
-                            <span>Money spent</span>
-                        </div>
-                    </div>
-
-                    <div class="yearly-financial-item cash-item">
-                        <div class="yearly-financial-top">
-                            <div class="yearly-financial-icon">
-                                <i class="feather-dollar-sign"></i>
-                            </div>
-                            <span class="yearly-financial-label">CASH</span>
-                        </div>
-                        <small>Cash Balance</small>
-                        <strong class="yearly-money">
-                            ${{ "{:,.2f}".format(active_year_progress.cash_rest|default(0, true)|float) }}
-                        </strong>
-                        <div class="yearly-financial-footer">
-                            <i class="feather-credit-card"></i>
-                            <span>Available cash</span>
-                        </div>
-                    </div>
-
-                    <div class="yearly-financial-item savings-item">
-                        <div class="yearly-financial-top">
-                            <div class="yearly-financial-icon">
-                                <i class="feather-pie-chart"></i>
-                            </div>
-                            <span class="yearly-financial-label">SAVINGS</span>
-                        </div>
-                        <small>Savings Balance</small>
-                        <strong class="yearly-money">
-                            ${{ "{:,.2f}".format(active_year_progress.saving_balance|default(0, true)|float) }}
-                        </strong>
-                        <div class="yearly-financial-footer">
-                            <i class="feather-shield"></i>
-                            <span>Saved money</span>
-                        </div>
-                    </div>
-
-                    <div class="yearly-financial-item yearly-total-balance">
-                        <div class="yearly-financial-top">
-                            <div class="yearly-financial-icon">
-                                <i class="feather-bar-chart-2"></i>
-                            </div>
-                            <span class="yearly-financial-label">TOTAL</span>
-                        </div>
-                        <small>Total Balance</small>
-                        <strong class="yearly-money">
-                            ${{ "{:,.2f}".format(active_year_progress.total_balance|default(0, true)|float) }}
-                        </strong>
-                        <div class="yearly-financial-footer">
-                            <i class="feather-check-circle"></i>
-                            <span>Cash + savings</span>
-                        </div>
-                    </div>
-
                 </div>
+            </div>
+
+            {% if income > 0 and expenses > income %}
+                <p class="fs-warning">
+                    <i class="feather-alert-triangle" aria-hidden="true"></i>
+                    Expenses exceed income. The progress bar is capped at 100%.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- NET PROFIT / LOSS CALCULATION -->
+        <div class="fs-result-panel {{ result_status }}">
+            <div class="fs-result-icon">
+                {% if net_profit > 0 %}
+                    <i class="feather-trending-up" aria-hidden="true"></i>
+                {% elif net_profit < 0 %}
+                    <i class="feather-trending-down" aria-hidden="true"></i>
+                {% else %}
+                    <i class="feather-minus" aria-hidden="true"></i>
+                {% endif %}
+            </div>
+
+            <div class="fs-result-content">
+                <span class="fs-result-label">
+                    {% if net_profit > 0 %}
+                        Net Profit
+                    {% elif net_profit < 0 %}
+                        Net Loss
+                    {% else %}
+                        Break-even
+                    {% endif %}
+                </span>
+
+                <strong class="fs-result-equation">
+                    ${{ "{:,.2f}".format(income) }}
+                    <span>−</span>
+                    ${{ "{:,.2f}".format(expenses) }}
+                    <span>=</span>
+                    {% if net_profit < 0 %}-{% endif %}${{ "{:,.2f}".format(net_profit|abs) }}
+                </strong>
+
+                <small>Net result = total gained minus total send.</small>
+            </div>
+        </div>
+
+        <!-- NET CASH CALCULATION -->
+        <div class="fs-result-panel fs-cash-panel {{ cash_status }}">
+            <div class="fs-result-icon">
+                <i class="feather-wallet" aria-hidden="true"></i>
+            </div>
+
+            <div class="fs-result-content">
+                <span class="fs-result-label">Net Cash</span>
+
+                <strong class="fs-result-equation">
+                    {% if net_profit < 0 %}-{% endif %}${{ "{:,.2f}".format(net_profit|abs) }}
+                    <span>+</span>
+                    {% if saving_net_balance < 0 %}-{% endif %}${{ "{:,.2f}".format(saving_net_balance|abs) }}
+                    <span>=</span>
+                    {% if net_cash < 0 %}-{% endif %}${{ "{:,.2f}".format(net_cash|abs) }}
+                </strong>
+
+                <small>Net Cash = Net Profit/Loss + Saving Net Balance.</small>
+            </div>
+        </div>
+
+    </section>
+</section>
+
+<style>
+.financial-summary,
+.financial-summary * {
+    box-sizing: border-box;
+}
+
+.financial-summary {
+    width: 100%;
+    min-width: 0;
+    color: inherit;
+}
+
+/* HEADER */
+.fs-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.fs-heading-copy {
+    min-width: 0;
+}
+
+.fs-eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: #3985e8;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+}
+
+.fs-heading h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.fs-heading p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    opacity: .7;
+}
+
+.fs-heading-icon,
+.fs-details-icon {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.25));
+    border-radius: 14px;
+    font-size: 20px;
+}
+
+/* PERIOD */
+.fs-period {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    max-width: 100%;
+    margin-bottom: 18px;
+    padding: 8px 12px;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.22));
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.fs-period i {
+    color: #3985e8;
+}
+
+/* CARDS */
+.fs-cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.fs-card {
+    --fs-accent: #3985e8;
+
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 19px;
+    overflow: hidden;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.23));
+    border-radius: 16px;
+    background: var(--yearly-card-bg, transparent);
+    transition: transform .2s ease, border-color .2s ease;
+}
+
+.fs-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--fs-accent);
+}
+
+.fs-income,
+.fs-net.profit,
+.fs-savings {
+    --fs-accent: #22a06b;
+}
+
+.fs-expense,
+.fs-net.loss,
+.fs-cash.negative {
+    --fs-accent: #e05260;
+}
+
+.fs-net.break-even,
+.fs-cash.zero {
+    --fs-accent: #3985e8;
+}
+
+.fs-cash.positive {
+    --fs-accent: #22a06b;
+}
+
+.fs-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+
+.fs-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    border-radius: 12px;
+    color: var(--fs-accent);
+    background: color-mix(in srgb, var(--fs-accent) 12%, transparent);
+    font-size: 18px;
+}
+
+.fs-label {
+    color: var(--fs-accent);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-align: right;
+}
+
+.fs-description {
+    margin: 0 0 7px;
+    font-size: 12px;
+    line-height: 1.6;
+    opacity: .72;
+}
+
+.fs-amount {
+    max-width: 100%;
+    font-size: clamp(21px, 1.8vw, 29px);
+    font-weight: 850;
+    letter-spacing: -.6px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-track {
+    width: 100%;
+    height: 7px;
+    margin: 17px 0 12px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.fs-track > span {
+    display: block;
+    height: 100%;
+    max-width: 100%;
+    border-radius: inherit;
+    background: var(--fs-accent, #22a06b);
+    transition: width .35s ease;
+}
+
+.fs-expense-fill {
+    background: #e05260 !important;
+}
+
+.fs-card-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: auto;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.fs-card-bottom span {
+    opacity: .72;
+}
+
+.fs-card-bottom strong {
+    color: var(--fs-accent);
+    font-weight: 800;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+/* PERFORMANCE DETAILS */
+.fs-details {
+    min-width: 0;
+    padding: 22px;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.23));
+    border-radius: 18px;
+    background: var(--yearly-card-bg, transparent);
+}
+
+.fs-details-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.fs-details-heading h4 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.fs-details-heading p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    line-height: 1.7;
+    opacity: .7;
+}
+
+.fs-details-icon {
+    width: 40px;
+    height: 40px;
+    flex-basis: 40px;
+    font-size: 18px;
+    opacity: .75;
+}
+
+.fs-metric {
+    margin-top: 20px;
+}
+
+.fs-metric-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+}
+
+.fs-metric-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.fs-metric-heading > strong {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-metric-heading > strong small {
+    font-size: 11px;
+    opacity: .7;
+}
+
+.fs-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    flex: 0 0 9px;
+    border-radius: 50%;
+}
+
+.income-dot {
+    background: #22a06b;
+}
+
+.expense-dot {
+    background: #e05260;
+}
+
+.fs-track-large {
+    height: 12px;
+    margin: 0;
+}
+
+.fs-track-large > span {
+    background: #22a06b;
+}
+
+.fs-track-large > .fs-expense-fill {
+    background: #e05260 !important;
+}
+
+.fs-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 10px 0 0;
+    color: #e05260;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+/* NET BALANCE PROGRESS */
+.fs-net-balance {
+    margin-top: 24px;
+    padding: 20px;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.23));
+    border-radius: 16px;
+    background: var(--yearly-card-bg, transparent);
+}
+
+.fs-net-balance-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.fs-net-balance-heading h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.fs-net-balance-heading p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    opacity: .7;
+}
+
+.fs-balance-total {
+    flex-shrink: 0;
+    font-size: clamp(20px, 2vw, 28px);
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-balance-total.profit {
+    color: #22a06b;
+}
+
+.fs-balance-total.loss {
+    color: #e05260;
+}
+
+.fs-balance-total.break-even {
+    color: #3985e8;
+}
+
+.fs-balance-progress {
+    display: flex;
+    width: 100%;
+    height: 16px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(128,128,128,.12);
+}
+
+.fs-balance-green,
+.fs-balance-red {
+    display: block;
+    height: 100%;
+    flex: 0 0 auto;
+    transition: width .35s ease;
+}
+
+.fs-balance-green {
+    background: #22a06b;
+}
+
+.fs-balance-red {
+    background: #e05260;
+}
+
+.fs-balance-legend {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 17px;
+}
+
+.fs-legend-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-width: 0;
+}
+
+.fs-legend-dot {
+    width: 10px;
+    height: 10px;
+    flex: 0 0 10px;
+    margin-top: 5px;
+    border-radius: 50%;
+}
+
+.fs-green-dot {
+    background: #22a06b;
+}
+
+.fs-red-dot {
+    background: #e05260;
+}
+
+.fs-legend-item > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.fs-legend-item > div > span {
+    font-size: 12px;
+    opacity: .7;
+}
+
+.fs-legend-item strong {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-result-panel {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-top: 23px;
+    padding: 16px;
+    border: 1px solid var(--yearly-card-border, rgba(128,128,128,.22));
+    border-radius: 13px;
+    background: color-mix(in srgb, var(--fs-result-color, #3985e8) 5%, transparent);
+}
+
+.fs-result-panel.profit {
+    --fs-result-color: #22a06b;
+}
+
+.fs-result-panel.loss,
+.fs-result-panel.negative {
+    --fs-result-color: #e05260;
+}
+
+.fs-result-panel.break-even,
+.fs-result-panel.zero {
+    --fs-result-color: #3985e8;
+}
+
+.fs-result-panel.positive {
+    --fs-result-color: #22a06b;
+}
+
+.fs-result-icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 11px;
+    color: var(--fs-result-color, #3985e8);
+    background: color-mix(in srgb, var(--fs-result-color, #3985e8) 12%, transparent);
+}
+
+.fs-result-content {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.fs-result-label {
+    color: var(--fs-result-color, #3985e8);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.fs-result-equation {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: clamp(15px, 1.8vw, 21px);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    font-variant-numeric: tabular-nums;
+}
+
+.fs-result-equation > span {
+    opacity: .6;
+}
+
+.fs-result-content > small {
+    font-size: 11px;
+    line-height: 1.8;
+    opacity: .72;
+}
+
+/* RESPONSIVE */
+@media (max-width: 1100px) {
+    .fs-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .fs-cards {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fs-card {
+        padding: 17px;
+    }
+
+    .fs-details {
+        padding: 15px;
+    }
+
+    .fs-heading h3 {
+        font-size: 19px;
+    }
+
+    .fs-heading p {
+        font-size: 12px;
+    }
+
+    .fs-result-panel {
+        padding: 13px;
+    }
+
+    .fs-net-balance {
+        padding: 15px;
+    }
+
+    .fs-net-balance-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .fs-balance-legend {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 13px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fs-card,
+    .fs-track > span,
+    .fs-balance-green,
+    .fs-balance-red {
+        transition: none;
+    }
+}
+</style>
 
             {% else %}
 
