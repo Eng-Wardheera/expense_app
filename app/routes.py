@@ -5596,12 +5596,18 @@ def dashboard():
         total_transfer_amount = 0.0
 
     #
-    
+
     # ============================================================
     # YEARLY RATE — ACTIVE YEAR PROGRESS
-    # Dynamic | Current user only | MongoDB
+    # Forward:   0% -> 100%
+    # Backward: 100% -> 0%
+    # Current user only | MongoDB | Read-only
     # Timezone: Africa/Mogadishu
     # ============================================================
+
+  
+    YEARLY_RATE_TZ = ZoneInfo("Africa/Mogadishu")
+
 
     # ============================================================
     # DATE NORMALIZER
@@ -5610,8 +5616,6 @@ def dashboard():
     def yearly_progress_date(value):
         """Convert MongoDB datetime, date, or ISO string to local date."""
 
-        tz = ZoneInfo("Africa/Mogadishu")
-
         if value is None or value == "":
             return None
 
@@ -5619,7 +5623,7 @@ def dashboard():
             if value.tzinfo is None:
                 value = value.replace(tzinfo=timezone.utc)
 
-            return value.astimezone(tz).date()
+            return value.astimezone(YEARLY_RATE_TZ).date()
 
         if isinstance(value, date):
             return value
@@ -5627,7 +5631,7 @@ def dashboard():
         if isinstance(value, str):
             value = value.strip()
 
-            # Date-only string
+            # Date-only string: YYYY-MM-DD
             try:
                 return date.fromisoformat(value[:10])
             except (ValueError, TypeError):
@@ -5642,7 +5646,7 @@ def dashboard():
                 if parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
 
-                return parsed.astimezone(tz).date()
+                return parsed.astimezone(YEARLY_RATE_TZ).date()
 
             except (ValueError, TypeError):
                 return None
@@ -5656,19 +5660,28 @@ def dashboard():
 
     def get_active_year_progress(user_id):
         """
-        Get yearly_rates information for the specified logged-in user.
+        Read the most relevant financial year for one user.
 
         Priority:
         1. Active record covering today.
         2. Latest record marked active.
         3. Latest valid record belonging to this user.
 
-        Read-only: does not update MongoDB.
+        MongoDB is read-only.
+
+        progress_percent:
+            Countdown from 100% to 0%.
+
+        elapsed_percent:
+            Elapsed time from 0% to 100%.
         """
 
         try:
-            tz = ZoneInfo("Africa/Mogadishu")
-            today = datetime.now(tz).date()
+            today = datetime.now(YEARLY_RATE_TZ).date()
+
+            # ----------------------------------------------------
+            # VALIDATE USER ID
+            # ----------------------------------------------------
 
             if user_id is None or not str(user_id).strip():
                 print("[YEARLY RATE] Missing user ID.")
@@ -5677,7 +5690,7 @@ def dashboard():
             user_id_str = str(user_id).strip()
 
             # ----------------------------------------------------
-            # USER ID: ObjectId OR string
+            # MATCH OBJECTID OR STRING USER ID
             # ----------------------------------------------------
 
             user_conditions = [
@@ -5696,7 +5709,7 @@ def dashboard():
             collection = mongo.db.yearly_rates
 
             # ----------------------------------------------------
-            # GET ONLY THIS USER'S RECORDS
+            # READ ONLY THIS USER'S RECORDS
             # ----------------------------------------------------
 
             records = list(
@@ -5752,17 +5765,19 @@ def dashboard():
                 return None
 
             # ----------------------------------------------------
-            # SELECT THE MOST RELEVANT FINANCIAL YEAR
+            # SELECT RELEVANT FINANCIAL YEAR
             # ----------------------------------------------------
 
             active_records = [
-                record for record in valid_records
+                record
+                for record in valid_records
                 if str(record.get("status", "")).strip().lower()
                 == "active"
             ]
 
             covering_records = [
-                record for record in active_records
+                record
+                for record in active_records
                 if (
                     record["_progress_start"] <= today
                     and today < record["_progress_end"]
@@ -5791,11 +5806,15 @@ def dashboard():
             end_date = active_year["_progress_end"]
 
             # ----------------------------------------------------
-            # CALCULATE YEARLY PROGRESS
+            # CALCULATE DAYS
             # End date is exclusive.
             # ----------------------------------------------------
 
             total_days = (end_date - start_date).days
+
+            if total_days <= 0:
+                print("[YEARLY RATE] Total days must be positive.")
+                return None
 
             if today < start_date:
                 elapsed_days = 0
@@ -5812,10 +5831,27 @@ def dashboard():
                 remaining_days = (end_date - today).days
                 progress_status = "active"
 
-            progress_percent = round(
-                elapsed_days / total_days * 100,
+            # ----------------------------------------------------
+            # FORWARD PROGRESS: 0% -> 100%
+            # ----------------------------------------------------
+
+            elapsed_percent = round(
+                (elapsed_days / total_days) * 100,
                 1
             )
+
+            # ----------------------------------------------------
+            # BACKWARD COUNTDOWN: 100% -> 0%
+            # ----------------------------------------------------
+
+            progress_percent = round(
+                (remaining_days / total_days) * 100,
+                1
+            )
+
+            # Prevent floating-point or boundary overflow.
+            elapsed_percent = max(0.0, min(100.0, elapsed_percent))
+            progress_percent = max(0.0, min(100.0, progress_percent))
 
             # ----------------------------------------------------
             # FINANCIAL VALUES
@@ -5848,7 +5884,7 @@ def dashboard():
                 total_balance = cash_rest + saving_balance
 
             # ----------------------------------------------------
-            # RETURN DATA FOR THE TEMPLATE
+            # RETURN DATA FOR TEMPLATE
             # ----------------------------------------------------
 
             result = {
@@ -5856,33 +5892,50 @@ def dashboard():
                     "title",
                     "Active Financial Year"
                 ),
+
                 "year_label": active_year.get(
                     "year_label",
                     ""
                 ),
+
                 "start_date": start_date,
                 "end_date": end_date,
                 "today": today,
+
                 "total_days": total_days,
                 "elapsed_days": elapsed_days,
                 "remaining_days": remaining_days,
+
+                # Backward: 100% -> 0%
                 "progress_percent": progress_percent,
+
+                # Forward: 0% -> 100%
+                "elapsed_percent": elapsed_percent,
+
                 "status": progress_status,
+
                 "total_gained": total_gained,
                 "total_send": total_send,
                 "cash_rest": cash_rest,
                 "saving_balance": saving_balance,
                 "total_balance": total_balance,
+
+                "read_only": True,
             }
 
             print(
                 "[YEARLY RATE] Loaded:",
-                result["year_label"],
+                result["year_label"] or result["title"],
                 "| User:",
                 user_id_str,
-                "| Progress:",
+                "| Elapsed:",
+                elapsed_percent,
+                "%",
+                "| Remaining:",
                 progress_percent,
-                "%"
+                "%",
+                "| Status:",
+                progress_status,
             )
 
             return result
@@ -5893,9 +5946,20 @@ def dashboard():
                 repr(exc)
             )
             return None
-            # YEARLY RATE
     active_year_progress = get_active_year_progress(
         current_user.id
+    )
+
+    # Backward progress: 100% -> 0%
+    progress = (
+        active_year_progress["progress_percent"]
+        if active_year_progress else 0
+    )
+
+    # Forward progress: 0% -> 100%
+    elapsed_percent = (
+        active_year_progress["elapsed_percent"]
+        if active_year_progress else 0
     )
 
     return render_template(
@@ -5916,6 +5980,10 @@ def dashboard():
         saving_progress=saving_progress,
 
         active_year_progress=active_year_progress,
+         progress=progress,
+    elapsed_percent=elapsed_percent,
+
+
         
    
         chart_labels=chart_labels,
