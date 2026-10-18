@@ -1,0 +1,523 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Add New Debt | Maareeye{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Debt Management</h5>
+        </div>
+
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.all_debts') }}">All Debts</a>
+            </li>
+            <li class="breadcrumb-item">Add New Debt</li>
+        </ul>
+    </div>
+
+    <div class="page-header-right ms-auto">
+        <a href="{{ url_for('main.all_debts') }}"
+           class="btn btn-light">
+            <i class="feather-arrow-left me-2"></i>
+            Back to Debts
+        </a>
+    </div>
+</div>
+
+<div class="main-content mt-4">
+
+ 
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-xxl-10">
+
+            <form method="POST"
+                  action="{{ url_for('main.add_debt') }}"
+                  id="addDebtForm">
+
+                <!-- DEBT INFORMATION -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                <i class="feather-file-text text-primary fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Add New Debt</h5>
+                                <small class="text-muted">
+                                    Enter the basic information about your debt.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <!-- DEBT TYPE -->
+                            <div class="col-md-6">
+                                <label for="debt_type"
+                                       class="form-label fw-bold">
+                                    Debt Type <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="debt_type"
+                                        id="debt_type"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="">-- Select Debt Type --</option>
+
+                                    <option value="payable">
+                                        Payable — I Owe Money
+                                    </option>
+
+                                    <option value="receivable">
+                                        Receivable — Money Owed to Me
+                                    </option>
+
+                                </select>
+
+                                <small class="text-muted">
+                                    Choose whether you owe money or expect to receive it.
+                                </small>
+                            </div>
+
+                            <!-- CATEGORY -->
+                            <div class="col-md-6">
+                                <label for="category"
+                                       class="form-label fw-bold">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="category"
+                                        id="category"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="">-- Select Category --</option>
+
+                                    <option value="shopping"
+                                            data-label="Shopping">
+                                        Shopping
+                                    </option>
+
+                                    <option value="education"
+                                            data-label="Education">
+                                        Education
+                                    </option>
+
+                                    <option value="food"
+                                            data-label="Food & Dining">
+                                        Food & Dining
+                                    </option>
+
+                                    <option value="health"
+                                            data-label="Health">
+                                        Health
+                                    </option>
+
+                                    <option value="transport"
+                                            data-label="Utility & Transport">
+                                        Utility & Transport
+                                    </option>
+
+                                    <option value="business"
+                                            data-label="Business">
+                                        Business
+                                    </option>
+
+                                    <option value="rent"
+                                            data-label="Rent & Housing">
+                                        Rent & Housing
+                                    </option>
+
+                                    <option value="personal"
+                                            data-label="Personal">
+                                        Personal
+                                    </option>
+
+                                    <option value="other"
+                                            data-label="Other">
+                                        Other
+                                    </option>
+
+                                </select>
+
+                                <input type="hidden"
+                                       name="category_name"
+                                       id="category_name">
+
+                                <small class="text-muted">
+                                    Select the category that best describes this debt.
+                                </small>
+                            </div>
+
+                            <!-- TITLE -->
+                            <div class="col-12">
+                                <label for="title"
+                                       class="form-label fw-bold">
+                                    Debt Title <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="title"
+                                       id="title"
+                                       class="form-control"
+                                       placeholder="e.g. Shopping debt"
+                                       maxlength="150"
+                                       required>
+
+                            </div>
+
+                            <!-- DESCRIPTION -->
+                            <div class="col-12">
+                                <label for="description"
+                                       class="form-label fw-bold">
+                                    Description
+                                </label>
+
+                                <textarea name="description"
+                                          id="description"
+                                          class="form-control"
+                                          rows="3"
+                                          maxlength="1000"
+                                          placeholder="Enter details about this debt..."></textarea>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- FINANCIAL INFORMATION -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="feather-dollar-sign text-success fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Financial Information</h5>
+                                <small class="text-muted">
+                                    Enter the total amount and currency.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <!-- PRINCIPAL -->
+                            <div class="col-md-6">
+                                <label for="principal_amount"
+                                       class="form-label fw-bold">
+                                    Total Debt Amount <span class="text-danger">*</span>
+                                </label>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">USD</span>
+
+                                    <input type="number"
+                                           name="principal_amount"
+                                           id="principal_amount"
+                                           class="form-control"
+                                           min="0.01"
+                                           max="999999999999"
+                                           step="0.01"
+                                           placeholder="0.00"
+                                           required>
+                                </div>
+
+                                <small class="text-muted">
+                                    Enter the original total debt amount.
+                                </small>
+                            </div>
+
+                            <!-- CURRENCY -->
+                            <div class="col-md-6">
+                                <label for="currency"
+                                       class="form-label fw-bold">
+                                    Currency
+                                </label>
+
+                                <select name="currency"
+                                        id="currency"
+                                        class="form-select"
+                                        required>
+
+                                    <option value="USD" selected>
+                                        USD — US Dollar
+                                    </option>
+
+                                </select>
+
+                                <small class="text-muted">
+                                    This form currently supports USD.
+                                </small>
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE CALCULATION -->
+                        <div class="rounded border bg-light p-3 mt-4">
+                            <div class="row g-3">
+
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-1">
+                                        Total Debt
+                                    </small>
+
+                                    <h4 class="mb-0 text-primary"
+                                        id="previewPrincipal">
+                                        $0.00
+                                    </h4>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-1">
+                                        Initial Remaining Balance
+                                    </small>
+
+                                    <h4 class="mb-0 text-danger"
+                                        id="previewRemaining">
+                                        $0.00
+                                    </h4>
+                                </div>
+
+                            </div>
+
+                            <small class="text-muted d-block mt-3">
+                                A new debt starts with zero paid and the full amount remaining.
+                            </small>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- DATES -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="feather-calendar text-warning fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Debt Dates</h5>
+                                <small class="text-muted">
+                                    Set the debt date and optional due date.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <!-- DEBT DATE -->
+                            <div class="col-md-6">
+                                <label for="debt_date"
+                                       class="form-label fw-bold">
+                                    Debt Date <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="date"
+                                       name="debt_date"
+                                       id="debt_date"
+                                       class="form-control"
+                                       value="{{ request.form.get('debt_date', '') }}"
+                                       required>
+                            </div>
+
+                            <!-- DUE DATE -->
+                            <div class="col-md-6">
+                                <label for="due_date"
+                                       class="form-label fw-bold">
+                                    Due Date
+                                </label>
+
+                                <input type="date"
+                                       name="due_date"
+                                       id="due_date"
+                                       class="form-control"
+                                       value="{{ request.form.get('due_date', '') }}">
+
+                                <small class="text-muted">
+                                    Optional: the date the debt should be settled.
+                                </small>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- NOTES -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="feather-edit-3 me-2"></i>
+                            Additional Notes
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+
+                        <label for="notes"
+                               class="form-label fw-bold">
+                            Notes
+                        </label>
+
+                        <textarea name="notes"
+                                  id="notes"
+                                  class="form-control"
+                                  rows="4"
+                                  maxlength="3000"
+                                  placeholder="Add any additional notes...">{{ request.form.get('notes', '') }}</textarea>
+
+                    </div>
+                </div>
+
+                <!-- FORM ACTIONS -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                        <a href="{{ url_for('main.all_debts') }}"
+                           class="btn btn-light border">
+                            <i class="feather-x me-2"></i>
+                            Cancel
+                        </a>
+
+                        <div class="d-flex gap-2">
+
+                            <button type="reset"
+                                    class="btn btn-outline-secondary"
+                                    id="resetDebtForm">
+                                <i class="feather-refresh-cw me-2"></i>
+                                Reset
+                            </button>
+
+                            <button type="submit"
+                                    class="btn btn-primary px-4">
+                                <i class="feather-save me-2"></i>
+                                Save Debt
+                            </button>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+<!-- FORM JAVASCRIPT -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("addDebtForm");
+
+    const category = document.getElementById("category");
+    const categoryName = document.getElementById("category_name");
+
+    const principalInput = document.getElementById("principal_amount");
+    const debtDate = document.getElementById("debt_date");
+    const dueDate = document.getElementById("due_date");
+
+    const previewPrincipal = document.getElementById("previewPrincipal");
+    const previewRemaining = document.getElementById("previewRemaining");
+
+    function updateCategoryName() {
+        const option = category.options[category.selectedIndex];
+
+        categoryName.value = option
+            ? (option.dataset.label || "")
+            : "";
+    }
+
+    function updateAmountPreview() {
+        const amount = Math.max(
+            0,
+            Number(principalInput.value) || 0
+        );
+
+        const formatted = amount.toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        previewPrincipal.textContent = "$" + formatted;
+        previewRemaining.textContent = "$" + formatted;
+    }
+
+    function updateDueDateMinimum() {
+        dueDate.min = debtDate.value || "";
+
+        if (dueDate.value && debtDate.value &&
+            dueDate.value < debtDate.value) {
+            dueDate.setCustomValidity(
+                "Due date cannot be earlier than the debt date."
+            );
+        } else {
+            dueDate.setCustomValidity("");
+        }
+    }
+
+    category.addEventListener("change", updateCategoryName);
+    principalInput.addEventListener("input", updateAmountPreview);
+
+    debtDate.addEventListener("change", updateDueDateMinimum);
+    dueDate.addEventListener("change", updateDueDateMinimum);
+
+    form.addEventListener("submit", function (event) {
+        updateCategoryName();
+        updateDueDateMinimum();
+
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+        }
+    });
+
+    document.getElementById("resetDebtForm").addEventListener(
+        "click",
+        function () {
+            setTimeout(function () {
+                updateCategoryName();
+                updateAmountPreview();
+                updateDueDateMinimum();
+            }, 0);
+        }
+    );
+
+    updateCategoryName();
+    updateAmountPreview();
+    updateDueDateMinimum();
+
+});
+</script>
+
+{% endblock %}

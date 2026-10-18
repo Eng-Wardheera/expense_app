@@ -1,0 +1,561 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Pay Debt | Maareeye{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Pay Debt</h5>
+        </div>
+
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.all_debts') }}">Debts</a>
+            </li>
+            <li class="breadcrumb-item">Record Payment</li>
+        </ul>
+    </div>
+
+    <div class="page-header-right ms-auto">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+               class="btn btn-light-brand">
+                <i class="feather-eye me-2"></i>
+                Debt Details
+            </a>
+
+            <a href="{{ url_for('main.all_debts') }}"
+               class="btn btn-light">
+                <i class="feather-arrow-left me-2"></i>
+                Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content mt-4">
+
+ 
+
+    {% set principal = debt.principal_amount.to_decimal() if debt.principal_amount is not none and debt.principal_amount.to_decimal is defined else debt.principal_amount|float %}
+    {% set paid = debt.paid_amount.to_decimal() if debt.paid_amount is not none and debt.paid_amount.to_decimal is defined else debt.paid_amount|float %}
+    {% set remaining = debt.remaining_amount.to_decimal() if debt.remaining_amount is not none and debt.remaining_amount.to_decimal is defined else debt.remaining_amount|float %}
+
+    <div class="row">
+
+        <!-- PAYMENT FORM -->
+        <div class="col-lg-8">
+
+            <div class="card shadow-sm payment-card">
+
+                <div class="card-header bg-white d-flex align-items-center">
+                    <div class="payment-icon me-3">
+                        <i class="feather-dollar-sign"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="mb-1">Record Debt Payment</h5>
+                        <p class="text-muted mb-0 small">
+                            Geli lacagta aad hadda bixinayso ama ka bixinayso dayntan.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="debt-info-box mb-4">
+                        <div>
+                            <span class="info-label">Debt Title</span>
+                            <h6 class="mb-1">{{ debt.title or 'Untitled Debt' }}</h6>
+                            <span class="text-muted small">
+                                {{ debt.category_name or debt.category or 'Other' }}
+                            </span>
+                        </div>
+
+                        <div class="text-lg-end mt-3 mt-lg-0">
+                            {% if debt.debt_type == 'payable' %}
+                                <span class="badge bg-danger-subtle text-danger">
+                                    <i class="feather-arrow-up-right me-1"></i>
+                                    Payable
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success-subtle text-success">
+                                    <i class="feather-arrow-down-left me-1"></i>
+                                    Receivable
+                                </span>
+                            {% endif %}
+
+                            {% if debt.status == 'partial' %}
+                                <span class="badge bg-warning-subtle text-warning ms-1">
+                                    Partially Paid
+                                </span>
+                            {% elif debt.status == 'unpaid' %}
+                                <span class="badge bg-danger-subtle text-danger ms-1">
+                                    Unpaid
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <form method="POST"
+                          action="{{ url_for('main.pay_debt', debt_id=debt._id|string) }}"
+                          id="payDebtForm">
+
+                        {# Haddii app-kaagu isticmaalo Flask-WTF CSRFProtect,
+                           geli hidden CSRF token-kaaga halkan. #}
+
+                        <!-- AMOUNT -->
+                        <div class="mb-4">
+                            <label for="payment_amount" class="form-label fw-bold">
+                                Payment Amount
+                                <span class="text-danger">*</span>
+                            </label>
+
+                            <div class="input-group input-group-lg">
+                                <span class="input-group-text">$</span>
+
+                                <input type="number"
+                                       name="payment_amount"
+                                       id="payment_amount"
+                                       class="form-control"
+                                       placeholder="0.00"
+                                       min="0.01"
+                                       max="{{ '%.2f'|format(remaining) }}"
+                                       step="0.01"
+                                       inputmode="decimal"
+                                       required
+                                       autofocus>
+                            </div>
+
+                            <div class="d-flex justify-content-between flex-wrap gap-2 mt-2">
+                                <small class="text-muted">
+                                    Lacagta ugu badan ee la bixin karo:
+                                    <strong>{{ "%.2f"|format(remaining) }} {{ debt.currency or 'USD' }}</strong>
+                                </small>
+
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-primary"
+                                        id="payFullAmount">
+                                    Pay Full Balance
+                                </button>
+                            </div>
+
+                            <div class="invalid-feedback" id="amountError">
+                                Geli lacag sax ah oo aan ka badnayn lacagta harsan.
+                            </div>
+                        </div>
+
+                        <!-- LIVE PREVIEW -->
+                        <div class="payment-preview mb-4">
+                            <div class="preview-item">
+                                <span>Current Balance</span>
+                                <strong>
+                                    {{ "%.2f"|format(remaining) }}
+                                    {{ debt.currency or 'USD' }}
+                                </strong>
+                            </div>
+
+                            <div class="preview-divider"></div>
+
+                            <div class="preview-item">
+                                <span>This Payment</span>
+                                <strong class="text-primary" id="paymentPreview">
+                                    0.00 {{ debt.currency or 'USD' }}
+                                </strong>
+                            </div>
+
+                            <div class="preview-divider"></div>
+
+                            <div class="preview-item">
+                                <span>Balance After Payment</span>
+                                <strong class="text-danger" id="newBalancePreview">
+                                    {{ "%.2f"|format(remaining) }}
+                                    {{ debt.currency or 'USD' }}
+                                </strong>
+                            </div>
+                        </div>
+
+                        <!-- PROGRESS -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="small text-muted">Payment Progress</span>
+                                <strong class="small" id="progressText">
+                                    {% if principal > 0 %}
+                                        {{ "%.1f"|format((paid / principal) * 100) }}%
+                                    {% else %}
+                                        0.0%
+                                    {% endif %}
+                                </strong>
+                            </div>
+
+                            <div class="progress" style="height: 9px;">
+                                <div class="progress-bar bg-success"
+                                     id="paymentProgress"
+                                     role="progressbar"
+                                     style="width: {% if principal > 0 %}{{ (paid / principal * 100)|round(1) }}{% else %}0{% endif %}%"
+                                     aria-valuenow="{{ (paid / principal * 100)|round(1) if principal > 0 else 0 }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"></div>
+                            </div>
+                        </div>
+
+                        <!-- PAYMENT NOTE -->
+                        <div class="mb-4">
+                            <label for="payment_note" class="form-label fw-bold">
+                                Payment Note
+                                <span class="text-muted fw-normal">(Optional)</span>
+                            </label>
+
+                            <textarea name="payment_note"
+                                      id="payment_note"
+                                      class="form-control"
+                                      rows="3"
+                                      maxlength="1000"
+                                      placeholder="Qoraal ku saabsan lacag-bixintan..."></textarea>
+                        </div>
+
+                        <!-- WARNING -->
+                        <div class="alert alert-info d-flex align-items-start gap-2">
+                            <i class="feather-info mt-1"></i>
+                            <div class="small">
+                                <strong>Fiiro gaar ah</strong>
+                                <p class="mb-0 mt-1">
+                                    Marka aad xaqiijiso, lacagta waxaa lagu dari doonaa
+                                    lacagta hore loo bixiyey, waxaana dib loo xisaabin
+                                    doonaa lacagta harsan.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- BUTTONS -->
+                        <div class="d-flex flex-wrap justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+                               class="btn btn-light">
+                                Cancel
+                            </a>
+
+                            <button type="submit"
+                                    class="btn btn-primary px-4"
+                                    id="submitPayment">
+                                <i class="feather-check-circle me-2"></i>
+                                Confirm Payment
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUMMARY SIDEBAR -->
+        <div class="col-lg-4">
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h6 class="mb-0">Debt Summary</h6>
+                </div>
+
+                <div class="card-body">
+                    <div class="summary-row">
+                        <span>Original Amount</span>
+                        <strong>
+                            {{ "%.2f"|format(principal) }}
+                            {{ debt.currency or 'USD' }}
+                        </strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Previously Paid</span>
+                        <strong class="text-success">
+                            {{ "%.2f"|format(paid) }}
+                            {{ debt.currency or 'USD' }}
+                        </strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Remaining Amount</span>
+                        <strong class="text-danger">
+                            {{ "%.2f"|format(remaining) }}
+                            {{ debt.currency or 'USD' }}
+                        </strong>
+                    </div>
+
+                    <hr>
+
+                    <div class="summary-row">
+                        <span>Debt Date</span>
+                        <strong>
+                            {{ debt.debt_date.strftime('%d %b %Y') if debt.debt_date else '—' }}
+                        </strong>
+                    </div>
+
+                    <div class="summary-row">
+                        <span>Due Date</span>
+                        <strong>
+                            {{ debt.due_date.strftime('%d %b %Y') if debt.due_date else 'Not set' }}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="help-icon mb-3">
+                        <i class="feather-shield"></i>
+                    </div>
+
+                    <h6>Safe Payment Recording</h6>
+
+                    <p class="text-muted small mb-0">
+                        Hubi lacagta ka hor intaadan xaqiijin. Lacag-bixintu
+                        ma beddelayso daynta qof kale, waxayna khusaysaa
+                        dayntan oo keliya.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-card {
+    border: 1px solid #e9edf4;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.payment-card .card-header {
+    padding: 20px;
+}
+
+.payment-icon,
+.help-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    background: #edf2ff;
+    color: #06245f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.debt-info-box {
+    padding: 17px;
+    border: 1px solid #e7ebf3;
+    border-radius: 10px;
+    background: #f9faff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.info-label {
+    display: block;
+    font-size: 11px;
+    color: #7b8497;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.payment-preview {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 15px;
+    background: #f8f9fc;
+    border: 1px solid #e9edf4;
+    border-radius: 10px;
+    padding: 17px;
+}
+
+.preview-item {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.preview-item span {
+    color: #788196;
+    font-size: 11px;
+}
+
+.preview-item strong {
+    font-size: 17px;
+    overflow-wrap: anywhere;
+}
+
+.preview-divider {
+    width: 1px;
+    height: 40px;
+    background: #dfe5ef;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f2f6;
+    font-size: 13px;
+}
+
+.summary-row:last-child {
+    border-bottom: 0;
+}
+
+.summary-row span {
+    color: #788196;
+}
+
+.summary-row strong {
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+
+.btn-primary {
+    background-color: #06245f;
+    border-color: #06245f;
+}
+
+.btn-primary:hover {
+    background-color: #33206f;
+    border-color: #33206f;
+}
+
+@media (max-width: 767px) {
+    .payment-preview {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .preview-divider {
+        height: 1px;
+        width: 100%;
+    }
+
+    .debt-info-box {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const amountInput = document.getElementById("payment_amount");
+    const paymentPreview = document.getElementById("paymentPreview");
+    const newBalancePreview = document.getElementById("newBalancePreview");
+    const payFullButton = document.getElementById("payFullAmount");
+    const form = document.getElementById("payDebtForm");
+    const submitButton = document.getElementById("submitPayment");
+    const progressBar = document.getElementById("paymentProgress");
+    const progressText = document.getElementById("progressText");
+    const amountError = document.getElementById("amountError");
+
+    const currentRemaining = Number({{ remaining|float }});
+    const currentPaid = Number({{ paid|float }});
+    const principal = Number({{ principal|float }});
+    const currency = {{ (debt.currency or 'USD')|tojson }};
+
+    function money(value) {
+        return Number(value).toFixed(2) + " " + currency;
+    }
+
+    function updatePreview() {
+        const rawValue = amountInput.value.trim();
+        const payment = Number(rawValue);
+        const hasValue = rawValue !== "";
+        const valid = hasValue &&
+            Number.isFinite(payment) &&
+            payment > 0 &&
+            payment <= currentRemaining;
+
+        const safePayment = Number.isFinite(payment) ? payment : 0;
+        const newRemaining = Math.max(0, currentRemaining - safePayment);
+        const newPaid = currentPaid + safePayment;
+
+        paymentPreview.textContent = money(safePayment);
+        newBalancePreview.textContent = money(newRemaining);
+
+        const progress = principal > 0
+            ? Math.min(100, Math.max(0, (newPaid / principal) * 100))
+            : 0;
+
+        progressBar.style.width = progress.toFixed(1) + "%";
+        progressBar.setAttribute("aria-valuenow", progress.toFixed(1));
+        progressText.textContent = progress.toFixed(1) + "%";
+
+        newBalancePreview.classList.toggle("text-success", valid && newRemaining === 0);
+        newBalancePreview.classList.toggle("text-danger", !(valid && newRemaining === 0));
+
+        if (hasValue && !valid) {
+            amountInput.setCustomValidity(
+                payment <= 0
+                    ? "Geli lacag ka weyn eber."
+                    : "Lacagtu kama badnaan karto lacagta harsan."
+            );
+            amountError.style.display = "block";
+        } else {
+            amountInput.setCustomValidity("");
+            amountError.style.display = "none";
+        }
+
+        submitButton.disabled = !valid;
+    }
+
+    payFullButton.addEventListener("click", function () {
+        amountInput.value = currentRemaining.toFixed(2);
+        updatePreview();
+        amountInput.focus();
+    });
+
+    amountInput.addEventListener("input", updatePreview);
+
+    form.addEventListener("submit", function (event) {
+        updatePreview();
+
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+            return;
+        }
+
+        const payment = Number(amountInput.value);
+
+        if (payment <= 0 || payment > currentRemaining) {
+            event.preventDefault();
+            amountInput.setCustomValidity(
+                "Lacagta la bixinayo waa inay ka weyn tahay eber kana yaraan kartaa ama la mid noqon kartaa lacagta harsan."
+            );
+            form.reportValidity();
+            return;
+        }
+
+        if (!window.confirm(
+            "Ma xaqiijinaysaa lacag-bixinta " + money(payment) + "?"
+        )) {
+            event.preventDefault();
+        }
+    });
+
+    amountError.style.display = "none";
+    updatePreview();
+});
+</script>
+
+{% endblock %}

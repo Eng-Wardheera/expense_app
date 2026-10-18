@@ -1,0 +1,451 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}All Debts{% endblock %}
+
+{% block content %}
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Debt Management</h5>
+        </div>
+
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">Home</a>
+            </li>
+            <li class="breadcrumb-item">All Debts</li>
+        </ul>
+    </div>
+
+    <div class="page-header-right ms-auto">
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('main.add_debt') }}"
+               class="btn btn-primary">
+                <i class="feather-plus me-2"></i>
+                Add New Debt
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+
+
+    <!-- SUMMARY CARDS -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-2">Payable Debts</p>
+                            <h4 class="mb-0">
+                                ${{ "%.2f"|format(totals.payable) }}
+                            </h4>
+                            <small class="text-muted">You owe</small>
+                        </div>
+                        <div class="rounded-circle bg-danger bg-opacity-10 p-3">
+                            <i class="feather-arrow-up-right text-danger fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-2">Receivable Debts</p>
+                            <h4 class="mb-0">
+                                ${{ "%.2f"|format(totals.receivable) }}
+                            </h4>
+                            <small class="text-muted">Owed to you</small>
+                        </div>
+                        <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                            <i class="feather-arrow-down-left text-success fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-2">Total Paid</p>
+                            <h4 class="mb-0">
+                                ${{ "%.2f"|format(totals.paid) }}
+                            </h4>
+                            <small class="text-muted">Payments recorded</small>
+                        </div>
+                        <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                            <i class="feather-check-circle text-primary fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <p class="text-muted mb-2">Outstanding Balance</p>
+                            <h4 class="mb-0">
+                                ${{ "%.2f"|format(totals.remaining) }}
+                            </h4>
+                            <small class="text-muted">Across listed debts</small>
+                        </div>
+                        <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                            <i class="feather-wallet text-warning fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DEBTS TABLE -->
+    <div class="row">
+        <div class="col-12">
+
+            <div class="card shadow-sm">
+
+                <!-- CARD HEADER -->
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                    <div>
+                        <h5 class="mb-1">All Debts</h5>
+                        <small class="text-muted">
+                            Manage your payable and receivable debts.
+                        </small>
+                    </div>
+
+                    <div class="d-flex gap-2 flex-wrap">
+
+                        <a href="{{ url_for('main.add_debt') }}"
+                           class="btn btn-primary btn-sm">
+                            <i class="feather-plus me-1"></i>
+                            Add Debt
+                        </a>
+
+                    </div>
+                </div>
+
+                <!-- FILTERS -->
+                <div class="card-body border-bottom">
+
+                    <form method="GET"
+                          action="{{ url_for('main.all_debts') }}"
+                          class="row g-3 align-items-end">
+
+                        <div class="col-lg-3 col-md-6">
+                            <label for="debt_type"
+                                   class="form-label">Debt Type</label>
+
+                            <select name="debt_type"
+                                    id="debt_type"
+                                    class="form-select">
+
+                                <option value="">All Types</option>
+
+                                <option value="payable"
+                                    {% if selected_type == 'payable' %}selected{% endif %}>
+                                    Payable — You Owe
+                                </option>
+
+                                <option value="receivable"
+                                    {% if selected_type == 'receivable' %}selected{% endif %}>
+                                    Receivable — Owed to You
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <label for="status"
+                                   class="form-label">Status</label>
+
+                            <select name="status"
+                                    id="status"
+                                    class="form-select">
+
+                                <option value="">All Statuses</option>
+
+                                <option value="unpaid"
+                                    {% if selected_status == 'unpaid' %}selected{% endif %}>
+                                    Unpaid
+                                </option>
+
+                                <option value="partial"
+                                    {% if selected_status == 'partial' %}selected{% endif %}>
+                                    Partially Paid
+                                </option>
+
+                                <option value="paid"
+                                    {% if selected_status == 'paid' %}selected{% endif %}>
+                                    Paid
+                                </option>
+
+                            </select>
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <label for="category"
+                                   class="form-label">Category</label>
+
+                            <input type="text"
+                                   name="category"
+                                   id="category"
+                                   class="form-control"
+                                   placeholder="e.g. shopping"
+                                   value="{{ selected_category }}">
+                        </div>
+
+                        <div class="col-lg-3 col-md-6">
+                            <div class="d-flex gap-2">
+                                <button type="submit"
+                                        class="btn btn-primary">
+                                    <i class="feather-filter me-1"></i>
+                                    Filter
+                                </button>
+
+                                <a href="{{ url_for('main.all_debts') }}"
+                                   class="btn btn-light">
+                                    Reset
+                                </a>
+                            </div>
+                        </div>
+
+                    </form>
+
+                </div>
+
+                <!-- TABLE -->
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table class="table table-hover align-middle mb-0"
+                               id="debtList">
+
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Debt Title</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Principal</th>
+                                    <th>Paid</th>
+                                    <th>Remaining</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                {% for debt in debts %}
+
+                                <tr>
+
+                                    <!-- INDEX -->
+                                    <td>{{ loop.index }}</td>
+
+                                    <!-- TITLE -->
+                                    <td>
+                                        <div class="fw-bold">
+                                            {{ debt.title }}
+                                        </div>
+
+                                        {% if debt.description %}
+                                            <small class="text-muted">
+                                                {{ debt.description|truncate(55) }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- CATEGORY -->
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            {{ debt.category_name }}
+                                        </span>
+                                    </td>
+
+                                    <!-- TYPE -->
+                                    <td>
+                                        {% if debt.debt_type == 'payable' %}
+                                            <span class="badge bg-danger bg-opacity-10 text-danger">
+                                                Payable
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-success bg-opacity-10 text-success">
+                                                Receivable
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- PRINCIPAL -->
+                                    <td class="fw-semibold">
+                                        {{ debt.currency or 'USD' }}
+                                        {{ "%.2f"|format(debt.principal_amount.to_decimal() if debt.principal_amount.to_decimal is defined else debt.principal_amount|float) }}
+                                    </td>
+
+                                    <!-- PAID -->
+                                    <td class="text-success">
+                                        {{ debt.currency or 'USD' }}
+                                        {{ "%.2f"|format(debt.paid_amount.to_decimal() if debt.paid_amount.to_decimal is defined else debt.paid_amount|float) }}
+                                    </td>
+
+                                    <!-- REMAINING -->
+                                    <td class="fw-bold">
+                                        {{ debt.currency or 'USD' }}
+                                        {{ "%.2f"|format(debt.remaining_amount.to_decimal() if debt.remaining_amount.to_decimal is defined else debt.remaining_amount|float) }}
+                                    </td>
+
+                                    <!-- DUE DATE -->
+                                    <td>
+                                        {% if debt.due_date %}
+                                            {{ debt.due_date.strftime('%Y-%m-%d') }}
+                                        {% else %}
+                                            <span class="text-muted">No due date</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- STATUS -->
+                                    <td>
+                                        {% if debt.status == 'paid' %}
+                                            <span class="badge bg-success">Paid</span>
+
+                                        {% elif debt.status == 'partial' %}
+                                            <span class="badge bg-warning text-dark">
+                                                Partial
+                                            </span>
+
+                                        {% elif debt.status == 'unpaid' %}
+                                            <span class="badge bg-danger">Unpaid</span>
+
+                                        {% elif debt.status == 'void' %}
+                                            <span class="badge bg-secondary">Void</span>
+
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                {{ debt.status|title }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- ACTIONS -->
+                                    <td class="text-end text-nowrap">
+
+                                        <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+                                           class="btn btn-sm btn-info text-white"
+                                           title="View Details">
+                                            <i class="feather-eye"></i>
+                                        </a>
+
+                                        {% if debt.status != 'void' %}
+
+                                            <a href="{{ url_for('main.edit_debt', debt_id=debt._id|string) }}"
+                                               class="btn btn-sm btn-warning"
+                                               title="Edit Debt">
+                                                <i class="feather-edit"></i>
+                                            </a>
+
+                                            {% if debt.status != 'paid' %}
+
+                                                <a href="{{ url_for('main.pay_debt', debt_id=debt._id|string) }}"
+                                                   class="btn btn-sm btn-success"
+                                                   title="Record Payment">
+                                                    <i class="feather-dollar-sign"></i>
+                                                </a>
+
+                                            {% endif %}
+
+                                            <form method="POST"
+                                                  action="{{ url_for('main.delete_debt', debt_id=debt._id|string) }}"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Are you sure you want to cancel this debt?');">
+
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-danger"
+                                                        title="Cancel Debt">
+                                                    <i class="feather-x-circle"></i>
+                                                </button>
+
+                                            </form>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                </tr>
+
+                                {% else %}
+
+                                <tr>
+                                    <td colspan="10"
+                                        class="text-center py-5">
+
+                                        <div class="mb-3">
+                                            <i class="feather-inbox text-muted"
+                                               style="font-size: 42px;"></i>
+                                        </div>
+
+                                        <h6 class="mb-2">No Debts Found</h6>
+
+                                        <p class="text-muted mb-3">
+                                            You have no debts matching these filters.
+                                        </p>
+
+                                        <a href="{{ url_for('main.add_debt') }}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="feather-plus me-1"></i>
+                                            Create Your First Debt
+                                        </a>
+
+                                    </td>
+                                </tr>
+
+                                {% endfor %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+                <!-- CARD FOOTER -->
+                <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+                    <small class="text-muted">
+                        Showing {{ debts|length }} debt record(s).
+                    </small>
+
+                    <small class="text-muted">
+                        All amounts are displayed in their recorded currency.
+                    </small>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
