@@ -1,0 +1,439 @@
+
+{% extends "backend/home/base.html" %}
+
+{% block title %}Edit Debt | Maareeye{% endblock %}
+
+{% block content %}
+
+{% set principal_value = debt.principal_amount.to_decimal() if debt.principal_amount is not none and debt.principal_amount.to_decimal is defined else debt.principal_amount|default(0, true)|float %}
+{% set paid_value = debt.paid_amount.to_decimal() if debt.paid_amount is not none and debt.paid_amount.to_decimal is defined else debt.paid_amount|default(0, true)|float %}
+{% set remaining_value = debt.remaining_amount.to_decimal() if debt.remaining_amount is not none and debt.remaining_amount.to_decimal is defined else debt.remaining_amount|default(0, true)|float %}
+{% set debt_source = (debt.debt_source or 'regular')|lower %}
+{% set debt_status = (debt.status or 'unpaid')|lower %}
+{% set is_closed = debt_status in ['void', 'deleted', 'cancelled'] %}
+{% set is_fully_paid = debt_status == 'paid' or remaining_value|float <= 0 %}
+
+<style>
+.debt-page{padding:22px;color:#263248}
+.debt-page-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:25px}
+.debt-page-header h2{color:#06245f;font-size:25px;font-weight:750;margin:0 0 7px}
+.debt-page-header p{color:#778196;margin:0;font-size:13px}
+.debt-header-actions,.debt-form-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.debt-page .btn{border-radius:8px;font-weight:600}
+.debt-page .btn-primary{background:#06245f;border-color:#06245f}
+.debt-page .btn-primary:hover{background:#33206f;border-color:#33206f}
+.debt-page .btn svg{width:16px;height:16px;vertical-align:middle}
+.debt-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:24px}
+.debt-summary-item{min-width:0;background:#fff;border:1px solid #e8edf4;border-radius:12px;padding:19px;box-shadow:0 3px 14px rgba(6,36,95,.035)}
+.debt-summary-label{display:block;color:#778196;font-size:12px;margin-bottom:9px}
+.debt-summary-value{color:#06245f;font-size:20px;font-weight:750;overflow-wrap:anywhere}
+.debt-status{display:inline-block;padding:6px 11px;border-radius:20px;font-size:12px;font-weight:700}
+.debt-status-paid{background:#e4f7ec;color:#168447}
+.debt-status-partial{background:#fff3cd;color:#946200}
+.debt-status-unpaid{background:#fde8ea;color:#b42332}
+.debt-status-void{background:#edf0f4;color:#596273}
+.debt-form-card{background:#fff;border:1px solid #e8edf4;border-radius:14px;padding:25px;box-shadow:0 4px 20px rgba(6,36,95,.04)}
+.debt-form-header{display:flex;align-items:center;gap:14px;padding-bottom:21px;margin-bottom:23px;border-bottom:1px solid #edf0f5}
+.debt-form-header-icon{width:48px;height:48px;flex:0 0 48px;display:flex;align-items:center;justify-content:center;background:#eaf0ff;color:#06245f;border-radius:12px}
+.debt-form-header-icon svg{width:22px;height:22px}
+.debt-form-header h4{color:#06245f;font-size:19px;font-weight:750;margin:0 0 5px}
+.debt-form-header p{color:#778196;font-size:13px;margin:0}
+.debt-section-title{display:flex;align-items:center;gap:9px;padding-bottom:12px;margin:8px 0 20px;border-bottom:1px solid #edf0f5;color:#06245f;font-size:15px;font-weight:750}
+.debt-section-title svg{color:#32b73a;width:17px;height:17px}
+.debt-form-card .form-group{margin-bottom:20px}
+.debt-form-card label{display:block;color:#35415a;font-weight:650;font-size:13px;margin-bottom:8px}
+.debt-required{color:#dc3545}
+.debt-form-card .form-control{min-height:44px;border:1px solid #dce3ed;border-radius:8px;box-shadow:none;color:#263248}
+.debt-form-card textarea.form-control{min-height:95px}
+.debt-form-card .form-control:focus{border-color:#718bd0;box-shadow:0 0 0 3px rgba(6,36,95,.08)}
+.debt-form-card .form-text{font-size:11px;line-height:1.6;margin-top:6px}
+.debt-form-card .input-group-text{background:#f4f6fa;border-color:#dce3ed;color:#06245f;font-weight:700}
+.debt-amount-preview{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;background:#f6f8fc;border:1px solid #e7edf6;border-radius:10px;padding:17px 19px;margin:3px 0 27px}
+.debt-amount-preview>div{display:flex;flex-direction:column;gap:6px}
+.debt-amount-preview span{color:#778196;font-size:12px}
+.debt-amount-preview strong{color:#06245f;font-size:18px;font-weight:750}
+.debt-payment-warning{background:#fff5d9;border:1px solid #ffe4a1;color:#8a5700;border-radius:9px;padding:12px 14px;margin-bottom:17px;font-size:13px;line-height:1.7}
+.debt-payment-warning[hidden]{display:none!important}
+.debt-form-notice{display:flex;align-items:flex-start;gap:12px;padding:15px;margin:8px 0 23px;border:1px solid #d5eedb;border-radius:10px;background:#eef8f0;color:#245d34}
+.debt-form-notice>svg{width:20px;height:20px;flex-shrink:0;margin-top:1px}
+.debt-form-notice strong{font-size:13px}
+.debt-form-notice p{margin:5px 0 0;font-size:12px;line-height:1.7}
+.debt-source-notice{display:flex;gap:12px;align-items:flex-start;padding:15px;margin-bottom:20px;border:1px solid #d9e5ff;border-radius:10px;background:#f1f5ff;color:#193b79;font-size:13px;line-height:1.7}
+.debt-source-notice svg{width:20px;height:20px;flex-shrink:0}
+.debt-readonly-notice{padding:15px;margin-bottom:20px;border:1px solid #f3dfad;border-radius:10px;background:#fff8e7;color:#805b11;font-size:13px;line-height:1.7}
+.debt-readonly-notice strong{display:block;margin-bottom:5px}
+.debt-form-actions{border-top:1px solid #edf0f5;padding-top:20px}
+@media(max-width:991px){.debt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:576px){.debt-page{padding:12px}.debt-page-header h2{font-size:21px}.debt-header-actions{width:100%}.debt-header-actions .btn{flex:1}.debt-form-card{padding:16px}.debt-summary{gap:10px}.debt-summary-item{padding:13px}.debt-summary-value{font-size:16px}.debt-amount-preview{align-items:flex-start;flex-direction:column}}
+</style>
+
+<div class="container-fluid debt-page">
+
+    <div class="debt-page-header">
+        <div>
+            <h2><i data-feather="edit-3"></i> Edit Debt</h2>
+            <p>Wax ka beddel xogta daynta adigoo ilaalinaya xisaabta iyo lacagihii hore loo bixiyey.</p>
+        </div>
+
+        <div class="debt-header-actions">
+            <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}" class="btn btn-light border">
+                <i data-feather="eye"></i> Debt Details
+            </a>
+            <a href="{{ url_for('main.all_debts') }}" class="btn btn-outline-secondary">
+                <i data-feather="arrow-left"></i> Back to Debts
+            </a>
+        </div>
+    </div>
+
+    <div class="debt-summary">
+        <div class="debt-summary-item">
+            <span class="debt-summary-label">Original Amount</span>
+            <div class="debt-summary-value">
+                {{ debt.currency or 'USD' }} {{ "%.2f"|format(principal_value|float) }}
+            </div>
+        </div>
+
+        <div class="debt-summary-item">
+            <span class="debt-summary-label">Actually Paid</span>
+            <div class="debt-summary-value text-success">
+                {{ debt.currency or 'USD' }} {{ "%.2f"|format(paid_value|float) }}
+            </div>
+        </div>
+
+        <div class="debt-summary-item">
+            <span class="debt-summary-label">Remaining Balance</span>
+            <div class="debt-summary-value text-danger">
+                {{ debt.currency or 'USD' }} {{ "%.2f"|format(remaining_value|float) }}
+            </div>
+        </div>
+
+        <div class="debt-summary-item">
+            <span class="debt-summary-label">Current Status</span>
+            <div>
+                {% if debt_status == 'paid' %}
+                    <span class="debt-status debt-status-paid">Paid</span>
+                {% elif debt_status == 'partial' %}
+                    <span class="debt-status debt-status-partial">Partially Paid</span>
+                {% elif debt_status in ['void','deleted','cancelled'] %}
+                    <span class="debt-status debt-status-void">Cancelled</span>
+                {% else %}
+                    <span class="debt-status debt-status-unpaid">Unpaid</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if debt_source == 'savings' %}
+    <div class="debt-source-notice">
+        <i data-feather="shield-check"></i>
+        <div>
+            <strong>Savings-funded debt</strong><br>
+            Dayntan waxaa markii hore laga maalgeliyey
+            <strong>{{ debt.savings_title or 'Savings account' }}</strong>.
+            Savings waa isha maalgelinta oo keliya; ma aha lacag-bixin daynta lagu dhammeeyey.
+            Lacagta Savings mar labaad lagama jarayo marka dayntan la edit-gareeyo.
+        </div>
+    </div>
+    {% endif %}
+
+    {% if is_closed %}
+    <div class="debt-readonly-notice">
+        <strong><i data-feather="lock"></i> Dayntan waa la joojiyey.</strong>
+        Dayn la joojiyey ama la tirtiray lagama beddeli karo. Waxaad ku noqon kartaa faahfaahinta daynta ama liiska daymaha.
+    </div>
+    {% else %}
+
+    <div class="debt-form-card">
+
+        <div class="debt-form-header">
+            <div class="debt-form-header-icon"><i data-feather="file-text"></i></div>
+            <div>
+                <h4>Edit Debt Information</h4>
+                <p>Wax ka beddel xogta hoose, kadibna kaydi.</p>
+            </div>
+        </div>
+
+        <form method="POST"
+              action="{{ url_for('main.edit_debt', debt_id=debt._id|string) }}"
+              id="editDebtForm">
+
+            {# Haddii app-kaagu isticmaalo Flask-WTF CSRFProtect, ku dar token-ka CSRF ee app-kaaga. #}
+
+            <div class="debt-section-title">
+                <i data-feather="info"></i> Basic Information
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="debt_type">Debt Type <span class="debt-required">*</span></label>
+                    <select name="debt_type" id="debt_type" class="form-control" required>
+                        <option value="payable" {% if debt.debt_type == 'payable' %}selected{% endif %}>
+                            Payable — Dayn aan bixinayo
+                        </option>
+                        <option value="receivable" {% if debt.debt_type == 'receivable' %}selected{% endif %}>
+                            Receivable — Lacag aan sugayo
+                        </option>
+                    </select>
+                    <small class="form-text text-muted">Dooro nooca daynta.</small>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="category">Category <span class="debt-required">*</span></label>
+
+                    {% set categories = [
+                        ('shopping', 'Shopping'),
+                        ('education', 'Education'),
+                        ('food', 'Food & Groceries'),
+                        ('health', 'Health'),
+                        ('transport', 'Transport'),
+                        ('business', 'Business'),
+                        ('rent', 'Rent'),
+                        ('personal', 'Personal'),
+                        ('utilities', 'Utilities'),
+                        ('other', 'Other')
+                    ] %}
+
+                    <select name="category" id="category" class="form-control" required>
+                        {% for value, label in categories %}
+                        <option value="{{ value }}" {% if debt.category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+
+                        {% if debt.category and debt.category not in [
+                            'shopping','education','food','health','transport',
+                            'business','rent','personal','utilities','other'
+                        ] %}
+                        <option value="{{ debt.category }}" selected>
+                            {{ debt.category_name or debt.category|title }}
+                        </option>
+                        {% endif %}
+                    </select>
+
+                    <input type="hidden" name="category_name" id="category_name"
+                           value="{{ debt.category_name or '' }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Debt Title <span class="debt-required">*</span></label>
+                <input type="text" name="title" id="title" class="form-control"
+                       maxlength="150" value="{{ debt.title or '' }}"
+                       placeholder="Tusaale: Shopping dayn ah" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea name="description" id="description" class="form-control"
+                          rows="3" maxlength="2000"
+                          placeholder="Faahfaahinta daynta...">{{ debt.description or '' }}</textarea>
+            </div>
+
+            <div class="debt-section-title">
+                <i data-feather="dollar-sign"></i> Financial Information
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="principal_amount">
+                        Original Debt Amount <span class="debt-required">*</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="input-group-prepend"><span class="input-group-text">{{ debt.currency or 'USD' }}</span></div>
+                        <input type="number" name="principal_amount" id="principal_amount"
+                               class="form-control" min="0.01" step="0.01"
+                               inputmode="decimal"
+                               value="{{ '%.2f'|format(principal_value|float) }}" required>
+                    </div>
+                    <small class="form-text text-muted">
+                        Wadarta cusub kama yaraan karto lacagta hore loo bixiyey.
+                    </small>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="currency">Currency</label>
+                    <select name="currency" id="currency" class="form-control" required>
+                        <option value="USD" {% if (debt.currency or 'USD') == 'USD' %}selected{% endif %}>
+                            USD — US Dollar
+                        </option>
+                    </select>
+                    <small class="form-text text-muted">
+                        Currency-ga hadda jira waa la ilaalinayaa.
+                    </small>
+                </div>
+            </div>
+
+            {% if is_fully_paid %}
+            <div class="debt-readonly-notice">
+                <strong><i data-feather="lock"></i> Debt already paid</strong>
+                Dayntan waxaa loo diiwaangeliyey inay dhammaatay. Wadarta lacagta lama beddeli karo halkan si taariikhda xisaabta loo ilaaliyo. Waxaad sixi kartaa faahfaahinta kale.
+            </div>
+            {% endif %}
+
+            <div class="debt-payment-warning" id="paymentWarning" role="alert" hidden>
+                Lacagta asalka ahi kama yaraan karto lacagtii hore loo bixiyey:
+                <strong>{{ debt.currency or 'USD' }} {{ "%.2f"|format(paid_value|float) }}</strong>.
+            </div>
+
+            <div class="debt-amount-preview">
+                <div>
+                    <span>Already Paid</span>
+                    <strong>{{ debt.currency or 'USD' }} {{ "%.2f"|format(paid_value|float) }}</strong>
+                </div>
+                <div>
+                    <span>New Remaining Balance</span>
+                    <strong id="remainingPreview">
+                        {{ debt.currency or 'USD' }} {{ "%.2f"|format(remaining_value|float) }}
+                    </strong>
+                </div>
+            </div>
+
+            <div class="debt-section-title">
+                <i data-feather="calendar"></i> Debt Dates
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="debt_date">Debt Date <span class="debt-required">*</span></label>
+                    <input type="date" name="debt_date" id="debt_date" class="form-control"
+                           value="{{ debt.debt_date.strftime('%Y-%m-%d') if debt.debt_date and debt.debt_date.strftime is defined else '' }}"
+                           required>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="due_date">Due Date</label>
+                    <input type="date" name="due_date" id="due_date" class="form-control"
+                           value="{{ debt.due_date.strftime('%Y-%m-%d') if debt.due_date and debt.due_date.strftime is defined else '' }}">
+                    <small class="form-text text-muted">Taariikhda la filayo in daynta la dhammeeyo.</small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <textarea name="notes" id="notes" class="form-control" rows="3"
+                          maxlength="3000" placeholder="Qoraal dheeraad ah...">{{ debt.notes or '' }}</textarea>
+            </div>
+
+            <div class="debt-form-notice">
+                <i data-feather="shield-check"></i>
+                <div>
+                    <strong>Payment history is preserved.</strong>
+                    <p>
+                        Lacagihii hore loo bixiyey waa la ilaalinayaa.
+                        Hadhaaga cusub waxaa lagu xisaabinayaa wadarta cusub
+                        iyo lacagihii hore loo bixiyey. Haddii dayntu Savings ka timid,
+                        wax lacag ah mar labaad lagama jarayo Savings.
+                    </p>
+                </div>
+            </div>
+
+            <div class="debt-form-actions">
+                <button type="submit" class="btn btn-primary" id="saveDebtBtn">
+                    <i data-feather="save"></i> Save Changes
+                </button>
+                <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+                   class="btn btn-light border">Cancel</a>
+            </div>
+
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("editDebtForm");
+
+    if (window.feather && window.feather.replace) {
+        window.feather.replace();
+    }
+
+    if (!form) return;
+
+    const categorySelect = document.getElementById("category");
+    const categoryNameInput = document.getElementById("category_name");
+    const principalInput = document.getElementById("principal_amount");
+    const debtDateInput = document.getElementById("debt_date");
+    const dueDateInput = document.getElementById("due_date");
+    const remainingPreview = document.getElementById("remainingPreview");
+    const paymentWarning = document.getElementById("paymentWarning");
+
+    const paidAmount = Number({{ paid_value|float|tojson }}) || 0;
+    const currency = {{ (debt.currency or 'USD')|tojson }};
+    const isFullyPaid = {{ is_fully_paid|tojson }};
+
+    function updateCategoryName() {
+        const option = categorySelect.options[categorySelect.selectedIndex];
+        if (option) categoryNameInput.value = option.text.trim();
+    }
+
+    function updateRemainingPreview() {
+        const principal = Number(principalInput.value);
+        const invalid = !Number.isFinite(principal) ||
+                        principal <= 0 ||
+                        principal < paidAmount;
+
+        if (invalid) {
+            remainingPreview.textContent = currency + " —";
+            remainingPreview.style.color = "#dc3545";
+            paymentWarning.hidden = false;
+            principalInput.setCustomValidity(
+                "Wadarta dayntu kama yaraan karto lacagtii hore loo bixiyey."
+            );
+            return;
+        }
+
+        if (isFullyPaid && Math.abs(principal - Number({{ principal_value|float|tojson }})) > 0.001) {
+            remainingPreview.textContent = currency + " —";
+            remainingPreview.style.color = "#dc3545";
+            paymentWarning.hidden = false;
+            principalInput.setCustomValidity(
+                "Dayn la bixiyey wadarteeda lagama beddeli karo."
+            );
+            return;
+        }
+
+        const remaining = Math.max(0, principal - paidAmount);
+        remainingPreview.textContent = currency + " " + remaining.toFixed(2);
+        remainingPreview.style.color = "#06245f";
+        paymentWarning.hidden = true;
+        principalInput.setCustomValidity("");
+    }
+
+    function validateDates() {
+        const debtDate = debtDateInput.value;
+        const dueDate = dueDateInput.value;
+
+        if (debtDate) dueDateInput.min = debtDate;
+        else dueDateInput.removeAttribute("min");
+
+        if (debtDate && dueDate && dueDate < debtDate) {
+            dueDateInput.setCustomValidity("Due Date kama horrayn karto Debt Date.");
+        } else {
+            dueDateInput.setCustomValidity("");
+        }
+    }
+
+    categorySelect.addEventListener("change", updateCategoryName);
+    principalInput.addEventListener("input", updateRemainingPreview);
+    debtDateInput.addEventListener("change", validateDates);
+    dueDateInput.addEventListener("change", validateDates);
+
+    form.addEventListener("submit", function (event) {
+        updateCategoryName();
+        updateRemainingPreview();
+        validateDates();
+
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+        }
+    });
+
+    updateCategoryName();
+    updateRemainingPreview();
+    validateDates();
+});
+</script>
+
+{% endblock %}

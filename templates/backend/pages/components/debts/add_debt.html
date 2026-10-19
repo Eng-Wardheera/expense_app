@@ -1,0 +1,732 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}Add New Debt | Maareeye{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <div class="page-header-left d-flex align-items-center">
+        <div class="page-header-title">
+            <h5 class="m-b-10">Debt Management</h5>
+        </div>
+
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.index') }}">Home</a>
+            </li>
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('main.all_debts') }}">All Debts</a>
+            </li>
+            <li class="breadcrumb-item">Add New Debt</li>
+        </ul>
+    </div>
+
+    <div class="page-header-right ms-auto">
+        <a href="{{ url_for('main.all_debts') }}"
+           class="btn btn-light">
+            <i class="feather-arrow-left me-2"></i>
+            Back to Debts
+        </a>
+    </div>
+</div>
+
+<div class="main-content mt-4">
+
+    <div class="row justify-content-center">
+        <div class="col-12 col-xxl-10">
+
+            <form method="POST"
+                  action="{{ url_for('main.add_debt') }}"
+                  id="addDebtForm">
+
+                <!-- DEBT INFORMATION -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3">
+                                <i class="feather-file-text text-primary fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Add New Debt</h5>
+                                <small class="text-muted">
+                                    Enter the basic information about your debt.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-3">
+
+                            <!-- DEBT TYPE -->
+                            <div class="col-md-6">
+                                <label for="debt_type" class="form-label fw-bold">
+                                    Debt Type <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="debt_type"
+                                        id="debt_type"
+                                        class="form-select"
+                                        required>
+                                    <option value="">-- Select Debt Type --</option>
+
+                                    <option value="payable"
+                                        {% if request.form.get('debt_type') == 'payable' %}selected{% endif %}>
+                                        Payable — I Owe Money
+                                    </option>
+
+                                    <option value="receivable"
+                                        {% if request.form.get('debt_type') == 'receivable' %}selected{% endif %}>
+                                        Receivable — Money Owed to Me
+                                    </option>
+                                </select>
+
+                                <small class="text-muted">
+                                    Choose whether you owe money or expect to receive it.
+                                </small>
+                            </div>
+
+                            <!-- CATEGORY -->
+                            <div class="col-md-6">
+                                <label for="category" class="form-label fw-bold">
+                                    Category <span class="text-danger">*</span>
+                                </label>
+
+                                {% set categories = [
+                                    ('shopping', 'Shopping'),
+                                    ('education', 'Education'),
+                                    ('food', 'Food & Dining'),
+                                    ('health', 'Health'),
+                                    ('transport', 'Utility & Transport'),
+                                    ('business', 'Business'),
+                                    ('rent', 'Rent & Housing'),
+                                    ('personal', 'Personal'),
+                                    ('other', 'Other')
+                                ] %}
+
+                                <select name="category"
+                                        id="category"
+                                        class="form-select"
+                                        required>
+                                    <option value="">-- Select Category --</option>
+
+                                    {% for value, label in categories %}
+                                    <option value="{{ value }}"
+                                            data-label="{{ label }}"
+                                            {% if request.form.get('category') == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+
+                                <input type="hidden"
+                                       name="category_name"
+                                       id="category_name"
+                                       value="{{ request.form.get('category_name', '') }}">
+
+                                <small class="text-muted">
+                                    Select the category that best describes this debt.
+                                </small>
+                            </div>
+
+                            <!-- TITLE -->
+                            <div class="col-12">
+                                <label for="title" class="form-label fw-bold">
+                                    Debt Title <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="text"
+                                       name="title"
+                                       id="title"
+                                       class="form-control"
+                                       placeholder="e.g. Shopping debt"
+                                       maxlength="150"
+                                       value="{{ request.form.get('title', '') }}"
+                                       required>
+                            </div>
+
+                            <!-- DESCRIPTION -->
+                            <div class="col-12">
+                                <label for="description" class="form-label fw-bold">
+                                    Description
+                                </label>
+
+                                <textarea name="description"
+                                          id="description"
+                                          class="form-control"
+                                          rows="3"
+                                          maxlength="1000"
+                                          placeholder="Enter details about this debt...">{{ request.form.get('description', '') }}</textarea>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DEBT SOURCE -->
+                <div class="card shadow-sm mb-4" id="debtSourceCard">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3">
+                                <i class="feather-wallet text-info fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Debt Source</h5>
+                                <small class="text-muted">
+                                    Choose how this payable debt will be handled.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label for="debt_source" class="form-label fw-bold">
+                                    Payment Source <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="debt_source"
+                                        id="debt_source"
+                                        class="form-select"
+                                        required>
+                                    <option value="regular"
+                                        {% if request.form.get('debt_source', 'regular') == 'regular' %}selected{% endif %}>
+                                        Regular Debt — No Savings Deduction
+                                    </option>
+
+                                    <option value="savings"
+                                        {% if request.form.get('debt_source') == 'savings' %}selected{% endif %}>
+                                        Savings — Pay Directly From Savings
+                                    </option>
+                                </select>
+
+                                <small class="text-muted">
+                                    Regular debt does not deduct money from your savings.
+                                </small>
+                            </div>
+
+                            <!-- SAVINGS ACCOUNT -->
+                            <div class="col-md-6"
+                                 id="savingsAccountWrapper"
+                                 style="display:none;">
+
+                                <label for="savings_id" class="form-label fw-bold">
+                                    Savings Account <span class="text-danger">*</span>
+                                </label>
+
+                                <select name="savings_id"
+                                        id="savings_id"
+                                        class="form-select">
+
+                                    <option value="">-- Select Savings Account --</option>
+
+                                    {% for saving in savings_accounts %}
+                                    <option value="{{ saving._id }}"
+                                            data-balance="{{ saving.current_balance|default(0, true)|float }}"
+                                            {% if request.form.get('savings_id') == saving._id|string %}selected{% endif %}>
+                                        {{ saving.title }}
+                                        — Balance:
+                                        ${{ "%.2f"|format(saving.current_balance|default(0, true)|float) }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+
+                                <small class="text-muted">
+                                    The amount will be deducted from the selected savings account.
+                                </small>
+
+                                <div class="mt-3 rounded border bg-light p-3">
+                                    <small class="text-muted d-block">
+                                        Selected Savings Balance
+                                    </small>
+                                    <h5 class="mb-0 text-success"
+                                        id="selectedSavingsBalance">$0.00</h5>
+
+                                    <small class="text-muted d-block mt-2">
+                                        Balance After Payment
+                                    </small>
+                                    <h5 class="mb-0 text-primary"
+                                        id="savingsBalanceAfter">$0.00</h5>
+                                </div>
+
+                                <div class="alert alert-warning mt-3 mb-0 py-2"
+                                     id="savingsWarning"
+                                     style="display:none;">
+                                    <i class="feather-alert-triangle me-1"></i>
+                                    The debt amount exceeds the selected savings balance.
+                                </div>
+
+                                {% if not savings_accounts %}
+                                <div class="alert alert-info mt-3 mb-0">
+                                    No active savings accounts were found.
+                                    Add or activate a savings account before choosing this option.
+                                </div>
+                                {% endif %}
+                            </div>
+
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0"
+                             id="regularDebtInfo">
+                            <i class="feather-info me-1"></i>
+                            <strong>Regular Debt:</strong>
+                            Your savings balance will not be deducted.
+                        </div>
+
+                        <div class="alert alert-warning mt-3 mb-0"
+                             id="savingsDebtInfo"
+                             style="display:none;">
+                            <i class="feather-info me-1"></i>
+                            <strong>Savings Payment:</strong>
+                            Saving this record will deduct the debt amount from the selected savings account and mark this debt as paid.
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- FINANCIAL INFORMATION -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3">
+                                <i class="feather-dollar-sign text-success fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Financial Information</h5>
+                                <small class="text-muted">
+                                    Enter the total amount and currency.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label for="principal_amount" class="form-label fw-bold">
+                                    Total Debt Amount <span class="text-danger">*</span>
+                                </label>
+
+                                <div class="input-group">
+                                    <span class="input-group-text">USD</span>
+
+                                    <input type="number"
+                                           name="principal_amount"
+                                           id="principal_amount"
+                                           class="form-control"
+                                           min="0.01"
+                                           max="999999999999"
+                                           step="0.01"
+                                           placeholder="0.00"
+                                           value="{{ request.form.get('principal_amount', '') }}"
+                                           required>
+                                </div>
+
+                                <small class="text-muted">
+                                    Enter the original total debt amount.
+                                </small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="currency" class="form-label fw-bold">
+                                    Currency
+                                </label>
+
+                                <select name="currency"
+                                        id="currency"
+                                        class="form-select"
+                                        required>
+                                    <option value="USD" selected>USD — US Dollar</option>
+                                </select>
+
+                                <small class="text-muted">
+                                    This form currently supports USD.
+                                </small>
+                            </div>
+
+                        </div>
+
+                        <!-- LIVE CALCULATION -->
+                        <div class="rounded border bg-light p-3 mt-4">
+                            <div class="row g-3">
+
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-1">
+                                        Total Debt
+                                    </small>
+                                    <h4 class="mb-0 text-primary"
+                                        id="previewPrincipal">$0.00</h4>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <small class="text-muted d-block mb-1">
+                                        Initial Remaining Balance
+                                    </small>
+                                    <h4 class="mb-0 text-danger"
+                                        id="previewRemaining">$0.00</h4>
+                                </div>
+
+                            </div>
+
+                            <small class="text-muted d-block mt-3"
+                                   id="amountPreviewNote">
+                                A regular new debt starts with zero paid and the full amount remaining.
+                            </small>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- DATES -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3">
+                                <i class="feather-calendar text-warning fs-4"></i>
+                            </div>
+
+                            <div>
+                                <h5 class="mb-1">Debt Dates</h5>
+                                <small class="text-muted">
+                                    Set the debt date and optional due date.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label for="debt_date" class="form-label fw-bold">
+                                    Debt Date <span class="text-danger">*</span>
+                                </label>
+
+                                <input type="date"
+                                       name="debt_date"
+                                       id="debt_date"
+                                       class="form-control"
+                                       value="{{ request.form.get('debt_date', '') }}"
+                                       required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="due_date" class="form-label fw-bold">
+                                    Due Date
+                                </label>
+
+                                <input type="date"
+                                       name="due_date"
+                                       id="due_date"
+                                       class="form-control"
+                                       value="{{ request.form.get('due_date', '') }}">
+
+                                <small class="text-muted">
+                                    Optional: the date the debt should be settled.
+                                </small>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NOTES -->
+                <div class="card shadow-sm mb-4">
+
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="feather-edit-3 me-2"></i>
+                            Additional Notes
+                        </h5>
+                    </div>
+
+                    <div class="card-body">
+                        <label for="notes" class="form-label fw-bold">Notes</label>
+
+                        <textarea name="notes"
+                                  id="notes"
+                                  class="form-control"
+                                  rows="4"
+                                  maxlength="3000"
+                                  placeholder="Add any additional notes...">{{ request.form.get('notes', '') }}</textarea>
+                    </div>
+                </div>
+
+                <!-- FORM ACTIONS -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                        <a href="{{ url_for('main.all_debts') }}"
+                           class="btn btn-light border">
+                            <i class="feather-x me-2"></i>
+                            Cancel
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            <button type="reset"
+                                    class="btn btn-outline-secondary"
+                                    id="resetDebtForm">
+                                <i class="feather-refresh-cw me-2"></i>
+                                Reset
+                            </button>
+
+                            <button type="submit"
+                                    class="btn btn-primary px-4"
+                                    id="saveDebtButton">
+                                <i class="feather-save me-2"></i>
+                                <span id="saveDebtButtonText">Save Debt</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("addDebtForm");
+
+    const debtType = document.getElementById("debt_type");
+    const debtSource = document.getElementById("debt_source");
+
+    const category = document.getElementById("category");
+    const categoryName = document.getElementById("category_name");
+
+    const principalInput = document.getElementById("principal_amount");
+    const debtDate = document.getElementById("debt_date");
+    const dueDate = document.getElementById("due_date");
+
+    const savingsSelect = document.getElementById("savings_id");
+    const savingsWrapper = document.getElementById("savingsAccountWrapper");
+
+    const regularDebtInfo = document.getElementById("regularDebtInfo");
+    const savingsDebtInfo = document.getElementById("savingsDebtInfo");
+
+    const selectedSavingsBalance = document.getElementById("selectedSavingsBalance");
+    const savingsBalanceAfter = document.getElementById("savingsBalanceAfter");
+    const savingsWarning = document.getElementById("savingsWarning");
+
+    const previewPrincipal = document.getElementById("previewPrincipal");
+    const previewRemaining = document.getElementById("previewRemaining");
+    const amountPreviewNote = document.getElementById("amountPreviewNote");
+
+    const saveDebtButton = document.getElementById("saveDebtButton");
+    const saveDebtButtonText = document.getElementById("saveDebtButtonText");
+
+    function money(value) {
+        return "$" + (Number(value) || 0).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function amount() {
+        return Math.max(0, Number(principalInput.value) || 0);
+    }
+
+    function updateCategoryName() {
+        const option = category.options[category.selectedIndex];
+        categoryName.value = option ? (option.dataset.label || "") : "";
+    }
+
+    function getSelectedSavingsBalance() {
+        if (!savingsSelect || !savingsSelect.value) {
+            return null;
+        }
+
+        const option = savingsSelect.options[savingsSelect.selectedIndex];
+        const balance = Number(option?.dataset.balance);
+
+        return Number.isFinite(balance) ? balance : 0;
+    }
+
+    function updateSavingsPreview() {
+        if (!savingsSelect) return;
+
+        const balance = getSelectedSavingsBalance();
+        const debtAmount = amount();
+
+        if (balance === null) {
+            selectedSavingsBalance.textContent = money(0);
+            savingsBalanceAfter.textContent = money(0);
+            savingsWarning.style.display = "none";
+            return;
+        }
+
+        const remaining = balance - debtAmount;
+
+        selectedSavingsBalance.textContent = money(balance);
+        savingsBalanceAfter.textContent = money(Math.max(0, remaining));
+
+        const insufficient = debtAmount > balance + 0.000001;
+
+        savingsWarning.style.display = insufficient ? "block" : "none";
+
+        if (insufficient) {
+            savingsBalanceAfter.textContent = "-" + money(Math.abs(remaining));
+        }
+    }
+
+    function updateDebtSourceFields() {
+        const isPayable = debtType.value === "payable";
+        const isSavings = debtSource.value === "savings";
+        const showSavings = isPayable && isSavings;
+
+        savingsWrapper.style.display = showSavings ? "block" : "none";
+        regularDebtInfo.style.display = showSavings ? "none" : "block";
+        savingsDebtInfo.style.display = showSavings ? "block" : "none";
+
+        debtSource.required = isPayable;
+
+        if (savingsSelect) {
+            savingsSelect.required = showSavings;
+            savingsSelect.disabled = !showSavings;
+
+            if (!showSavings) {
+                savingsSelect.value = "";
+            }
+        }
+
+        if (!isPayable && isSavings) {
+            debtSource.value = "regular";
+        }
+
+        if (!isPayable) {
+            document.getElementById("debtSourceCard").style.display = "none";
+        } else {
+            document.getElementById("debtSourceCard").style.display = "block";
+        }
+
+        saveDebtButtonText.textContent = showSavings
+            ? "Pay From Savings"
+            : "Save Debt";
+
+        amountPreviewNote.textContent = showSavings
+            ? "This debt will be marked paid after the savings deduction succeeds."
+            : "A regular new debt starts with zero paid and the full amount remaining.";
+
+        updateSavingsPreview();
+    }
+
+    function updateAmountPreview() {
+        const value = amount();
+        const isSavingsPayment =
+            debtType.value === "payable" &&
+            debtSource.value === "savings";
+
+        previewPrincipal.textContent = money(value);
+        previewRemaining.textContent = money(isSavingsPayment ? 0 : value);
+
+        previewRemaining.classList.toggle("text-success", isSavingsPayment);
+        previewRemaining.classList.toggle("text-danger", !isSavingsPayment);
+
+        updateSavingsPreview();
+    }
+
+    function updateDueDateMinimum() {
+        dueDate.min = debtDate.value || "";
+
+        if (dueDate.value && debtDate.value && dueDate.value < debtDate.value) {
+            dueDate.setCustomValidity(
+                "Due date cannot be earlier than the debt date."
+            );
+        } else {
+            dueDate.setCustomValidity("");
+        }
+    }
+
+    debtType.addEventListener("change", function () {
+        updateDebtSourceFields();
+        updateAmountPreview();
+    });
+
+    debtSource.addEventListener("change", function () {
+        updateDebtSourceFields();
+        updateAmountPreview();
+    });
+
+    category.addEventListener("change", updateCategoryName);
+    principalInput.addEventListener("input", updateAmountPreview);
+
+    if (savingsSelect) {
+        savingsSelect.addEventListener("change", updateSavingsPreview);
+    }
+
+    debtDate.addEventListener("change", updateDueDateMinimum);
+    dueDate.addEventListener("change", updateDueDateMinimum);
+
+    form.addEventListener("submit", function (event) {
+        updateCategoryName();
+        updateDueDateMinimum();
+        updateSavingsPreview();
+
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            form.reportValidity();
+            return;
+        }
+
+        if (
+            debtType.value === "payable" &&
+            debtSource.value === "savings"
+        ) {
+            const balance = getSelectedSavingsBalance();
+
+            if (balance === null) {
+                event.preventDefault();
+                alert("Fadlan dooro savings account.");
+                savingsSelect?.focus();
+                return;
+            }
+
+            if (amount() > balance + 0.000001) {
+                event.preventDefault();
+                alert("Lacagta dayntu way ka badan tahay balance-ka savings-ka.");
+                principalInput.focus();
+                return;
+            }
+
+            const confirmed = window.confirm(
+                "Ma hubtaa inaad bixiso " + money(amount()) +
+                " adigoo ka jaraya savings account-kan? Daynta waxaa loo calaamadayn doonaa Paid."
+            );
+
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        }
+    });
+
+    document.getElementById("resetDebtForm").addEventListener("click", function () {
+        setTimeout(function () {
+            updateCategoryName();
+            updateAmountPreview();
+            updateDebtSourceFields();
+            updateDueDateMinimum();
+        }, 0);
+    });
+
+    updateCategoryName();
+    updateDebtSourceFields();
+    updateAmountPreview();
+    updateDueDateMinimum();
+});
+</script>
+
+{% endblock %}

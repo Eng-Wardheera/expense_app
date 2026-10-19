@@ -1,0 +1,794 @@
+
+{% extends 'backend/home/base.html' %}
+
+{% block title %}All Debts | Maareeye{% endblock %}
+
+{% block content %}
+<style>
+.debt-page {
+    --primary: #06245f;
+    --border: #e8edf4;
+    --muted: #718096;
+    color: #243047;
+}
+.debt-page .page-header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:16px;
+    margin-bottom:24px;
+}
+.debt-page .page-header h5 {
+    font-weight:750;
+    margin:0 0 8px;
+}
+.debt-page .summary-card {
+    height:100%;
+    border:1px solid var(--border);
+    border-radius:14px;
+    box-shadow:0 3px 12px rgba(20,35,65,.035);
+    transition:transform .2s,box-shadow .2s;
+}
+.debt-page .summary-card:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 22px rgba(20,35,65,.08);
+}
+.debt-page .summary-label {
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:8px;
+}
+.debt-page .summary-value {
+    font-size:clamp(20px,2vw,26px);
+    font-weight:800;
+    line-height:1.3;
+    overflow-wrap:anywhere;
+}
+.debt-page .summary-icon {
+    width:45px;
+    height:45px;
+    flex:0 0 45px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.debt-page .summary-icon svg {
+    width:21px;
+    height:21px;
+}
+.debt-page .panel {
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+}
+.debt-page .panel-heading {
+    padding:20px;
+    border-bottom:1px solid var(--border);
+}
+.debt-page .filter-label {
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:7px;
+}
+.debt-page .filter-control {
+    min-height:42px;
+    border-radius:9px;
+    border-color:#dce3ed;
+}
+.debt-page .filter-control:focus {
+    border-color:#7894c8;
+    box-shadow:0 0 0 .2rem rgba(6,36,95,.08);
+}
+.debt-page .debt-table {
+    margin:0;
+}
+.debt-page .debt-table th {
+    padding:13px 12px;
+    white-space:nowrap;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:.35px;
+    color:#64748b;
+    background:#f7f9fc;
+    border-bottom:1px solid var(--border);
+}
+.debt-page .debt-table td {
+    padding:14px 12px;
+    vertical-align:middle;
+}
+.debt-page .debt-table tbody tr:hover {
+    background:#fafcff;
+}
+.debt-page .debt-title {
+    min-width:130px;
+    max-width:240px;
+    overflow-wrap:anywhere;
+}
+.debt-page .debt-title-main {
+    font-weight:750;
+    color:#25334a;
+}
+.debt-page .debt-subtitle {
+    display:block;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:4px;
+    overflow-wrap:anywhere;
+}
+.debt-page .money-cell {
+    white-space:nowrap;
+    font-variant-numeric:tabular-nums;
+}
+.debt-page .money-paid {
+    color:#16804a;
+}
+.debt-page .money-remaining {
+    font-weight:750;
+}
+.debt-page .type-badge,
+.debt-page .source-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+}
+.debt-page .type-badge svg,
+.debt-page .source-badge svg {
+    width:13px;
+    height:13px;
+    flex-shrink:0;
+}
+.debt-page .status-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:5px 9px;
+    border-radius:20px;
+    font-size:11px;
+    font-weight:750;
+    white-space:nowrap;
+}
+.debt-page .status-badge svg {
+    width:13px;
+    height:13px;
+}
+.debt-page .status-paid {
+    color:#147d48;
+    background:#e8f8ef;
+}
+.debt-page .status-partial {
+    color:#875b00;
+    background:#fff3cd;
+}
+.debt-page .status-unpaid {
+    color:#b42318;
+    background:#fff0ee;
+}
+.debt-page .status-void {
+    color:#596579;
+    background:#edf0f4;
+}
+.debt-page .action-group {
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+}
+.debt-page .action-btn {
+    width:33px;
+    height:33px;
+    padding:0;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+}
+.debt-page .action-btn svg {
+    width:15px;
+    height:15px;
+}
+.debt-page .empty-state {
+    padding:50px 20px;
+    text-align:center;
+}
+.debt-page .empty-icon {
+    width:60px;
+    height:60px;
+    margin:0 auto 14px;
+    border-radius:17px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:#f0f4fa;
+    color:#61718b;
+}
+.debt-page .empty-icon svg {
+    width:28px;
+    height:28px;
+}
+.debt-page .table-footer {
+    border-top:1px solid var(--border);
+    padding:14px 18px;
+}
+.debt-page .savings-note {
+    font-size:11px;
+    color:#087e8b;
+    font-weight:650;
+}
+.debt-page .action-hint {
+    display:block;
+    font-size:10px;
+    color:var(--muted);
+    margin-top:5px;
+}
+.debt-page .source-description {
+    font-size:11px;
+    color:#087e8b;
+    margin-top:5px;
+}
+@media(max-width:767px) {
+    .debt-page .page-header-right {
+        width:100%;
+    }
+    .debt-page .page-header-right .btn {
+        width:100%;
+    }
+    .debt-page .panel-heading {
+        padding:15px;
+    }
+    .debt-page .summary-value {
+        font-size:21px;
+    }
+    .debt-page .debt-title {
+        max-width:170px;
+    }
+}
+</style>
+
+<div class="debt-page">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <div>
+            <h5>Debt Management</h5>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('main.index') }}">Home</a>
+                    </li>
+                    <li class="breadcrumb-item active">All Debts</li>
+                </ol>
+            </nav>
+        </div>
+
+        <div class="page-header-right">
+            <a href="{{ url_for('main.add_debt') }}" class="btn btn-primary">
+                <i data-feather="plus" class="me-1"></i>
+                Add New Debt
+            </a>
+        </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="row g-3 mb-4">
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="summary-label">Payable Debts</div>
+                            <div class="summary-value text-danger">
+                                {{ "%.2f"|format(totals.payable|default(0)|float) }}
+                            </div>
+                            <small class="text-muted">Amount you still owe</small>
+                        </div>
+                        <div class="summary-icon bg-danger bg-opacity-10 text-danger">
+                            <i data-feather="arrow-up-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="summary-label">Receivable Debts</div>
+                            <div class="summary-value text-success">
+                                {{ "%.2f"|format(totals.receivable|default(0)|float) }}
+                            </div>
+                            <small class="text-muted">Amount others owe you</small>
+                        </div>
+                        <div class="summary-icon bg-success bg-opacity-10 text-success">
+                            <i data-feather="arrow-down-left"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="summary-label">Total Paid</div>
+                            <div class="summary-value text-primary">
+                                {{ "%.2f"|format(totals.paid|default(0)|float) }}
+                            </div>
+                            <small class="text-muted">Actual debt payments recorded</small>
+                        </div>
+                        <div class="summary-icon bg-primary bg-opacity-10 text-primary">
+                            <i data-feather="check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center gap-3">
+                        <div class="min-w-0">
+                            <div class="summary-label">Outstanding Balance</div>
+                            <div class="summary-value text-warning">
+                                {{ "%.2f"|format(totals.remaining|default(0)|float) }}
+                            </div>
+                            <small class="text-muted">Remaining across all active debts</small>
+                        </div>
+                        <div class="summary-icon bg-warning bg-opacity-10 text-warning">
+                            <i data-feather="wallet"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- DEBT TABLE -->
+    <div class="card panel shadow-sm">
+
+        <div class="panel-heading d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h5 class="mb-1">All Debts</h5>
+                <small class="text-muted">
+                    Review, filter and manage your payable and receivable debts.
+                    Savings-funded debts follow the same payment rules as regular debts.
+                </small>
+            </div>
+
+            <a href="{{ url_for('main.add_debt') }}" class="btn btn-primary btn-sm">
+                <i data-feather="plus" class="me-1"></i>
+                Add Debt
+            </a>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="card-body border-bottom">
+            <form method="GET"
+                  action="{{ url_for('main.all_debts') }}"
+                  class="row g-3 align-items-end">
+
+                <div class="col-lg-3 col-md-6">
+                    <label for="debt_type" class="form-label filter-label">
+                        Debt Type
+                    </label>
+
+                    <select name="debt_type"
+                            id="debt_type"
+                            class="form-select filter-control">
+                        <option value="">All Types</option>
+                        <option value="payable"
+                            {% if selected_type == 'payable' %}selected{% endif %}>
+                            Payable — You Owe
+                        </option>
+                        <option value="receivable"
+                            {% if selected_type == 'receivable' %}selected{% endif %}>
+                            Receivable — Owed to You
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label for="status" class="form-label filter-label">
+                        Payment Status
+                    </label>
+
+                    <select name="status"
+                            id="status"
+                            class="form-select filter-control">
+                        <option value="">All Statuses</option>
+                        <option value="unpaid"
+                            {% if selected_status == 'unpaid' %}selected{% endif %}>
+                            Unpaid
+                        </option>
+                        <option value="partial"
+                            {% if selected_status == 'partial' %}selected{% endif %}>
+                            Partially Paid
+                        </option>
+                        <option value="paid"
+                            {% if selected_status == 'paid' %}selected{% endif %}>
+                            Paid
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label for="category" class="form-label filter-label">
+                        Category
+                    </label>
+
+                    <input type="text"
+                           name="category"
+                           id="category"
+                           class="form-control filter-control"
+                           placeholder="Search category..."
+                           value="{{ selected_category or '' }}">
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-primary flex-grow-1">
+                            <i data-feather="filter" class="me-1"></i>
+                            Filter
+                        </button>
+
+                        <a href="{{ url_for('main.all_debts') }}"
+                           class="btn btn-light border">
+                            <i data-feather="rotate-ccw"></i>
+                            Reset
+                        </a>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- RESPONSIVE TABLE -->
+        <div class="table-responsive">
+            <table class="table table-hover debt-table">
+
+                <thead>
+                    <tr>
+                        <th class="ps-3">#</th>
+                        <th>Debt Details</th>
+                        <th>Category</th>
+                        <th>Type / Source</th>
+                        <th>Principal</th>
+                        <th>Paid</th>
+                        <th>Remaining</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for debt in debts %}
+                    <tr>
+
+                        <td class="ps-3 text-muted">
+                            {{ loop.index }}
+                        </td>
+
+                        <!-- DETAILS -->
+                        <td>
+                            <div class="debt-title">
+
+                                <div class="debt-title-main">
+                                    {{ debt.title or 'Untitled Debt' }}
+                                </div>
+
+                                {% if debt.person_name %}
+                                    <small class="debt-subtitle">
+                                        <i data-feather="user"></i>
+                                        {{ debt.person_name }}
+                                    </small>
+                                {% endif %}
+
+                                {% if debt.description %}
+                                    <small class="debt-subtitle">
+                                        {{ debt.description|truncate(65, true, '...') }}
+                                    </small>
+                                {% endif %}
+
+                                {% if debt.debt_source == 'savings' %}
+                                    <small class="debt-subtitle savings-note">
+                                        <i data-feather="database"></i>
+                                        Source: {{ debt.savings_title or 'Savings account' }}
+                                    </small>
+                                    <small class="debt-subtitle">
+                                        Savings is the funding source, not a debt payment.
+                                    </small>
+                                {% endif %}
+
+                            </div>
+                        </td>
+
+                        <!-- CATEGORY -->
+                        <td>
+                            <span class="badge bg-light text-dark border">
+                                {{ debt.category_name or (debt.category|default('Other', true)|title) }}
+                            </span>
+                        </td>
+
+                        <!-- TYPE / SOURCE -->
+                        <td>
+                            {% if debt.debt_type == 'payable' %}
+                                <span class="badge bg-danger bg-opacity-10 text-danger type-badge">
+                                    <i data-feather="arrow-up-right"></i>
+                                    Payable
+                                </span>
+                            {% elif debt.debt_type == 'receivable' %}
+                                <span class="badge bg-success bg-opacity-10 text-success type-badge">
+                                    <i data-feather="arrow-down-left"></i>
+                                    Receivable
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    {{ debt.debt_type|default('Unknown')|title }}
+                                </span>
+                            {% endif %}
+
+                            <div class="mt-2">
+                                {% if debt.debt_source == 'savings' %}
+                                    <span class="badge bg-info bg-opacity-10 text-info source-badge">
+                                        <i data-feather="database"></i>
+                                        Savings
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border source-badge">
+                                        <i data-feather="credit-card"></i>
+                                        Regular
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- PRINCIPAL -->
+                        <td class="money-cell">
+                            {{ debt.currency or 'USD' }}
+                            {{ "%.2f"|format(debt.principal_display|default(0)|float) }}
+                        </td>
+
+                        <!-- ACTUAL PAYMENTS -->
+                        <td class="money-cell money-paid">
+                            {{ debt.currency or 'USD' }}
+                            {{ "%.2f"|format(debt.paid_display|default(0)|float) }}
+                        </td>
+
+                        <!-- REMAINING -->
+                        <td class="money-cell money-remaining">
+                            {{ debt.currency or 'USD' }}
+                            {{ "%.2f"|format(debt.remaining_display|default(0)|float) }}
+                        </td>
+
+                        <!-- DUE DATE -->
+                        <td class="text-nowrap">
+                            {% if debt.due_date %}
+                                {% if debt.due_date.strftime is defined %}
+                                    {{ debt.due_date.strftime('%d %b %Y') }}
+                                {% else %}
+                                    {{ debt.due_date }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">No due date</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- STATUS -->
+                        <td>
+                            {% if debt.status == 'paid' %}
+                                <span class="status-badge status-paid">
+                                    <i data-feather="check-circle"></i>
+                                    Paid
+                                </span>
+                            {% elif debt.status == 'partial' %}
+                                <span class="status-badge status-partial">
+                                    <i data-feather="clock"></i>
+                                    Partial
+                                </span>
+                            {% elif debt.status == 'unpaid' %}
+                                <span class="status-badge status-unpaid">
+                                    <i data-feather="alert-circle"></i>
+                                    Unpaid
+                                </span>
+                            {% elif debt.status == 'void' %}
+                                <span class="status-badge status-void">
+                                    Void
+                                </span>
+                            {% else %}
+                                <span class="status-badge status-void">
+                                    {{ debt.status|default('Unknown')|title }}
+                                </span>
+                            {% endif %}
+                        </td>
+
+                     
+<!-- ACTIONS: REGULAR + SAVINGS-FUNDED DEBTS -->
+<td class="text-end text-nowrap pe-3">
+    <div class="action-group">
+
+        <!-- VIEW DETAILS -->
+        <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+           class="btn btn-sm btn-info text-white action-btn"
+           title="View details"
+           aria-label="View details">
+            <i data-feather="eye"></i>
+        </a>
+
+        {% set debt_status = (debt.status or 'unpaid')|lower %}
+        {% set debt_source = (debt.debt_source or 'regular')|lower %}
+
+        {% if debt_status not in ('void', 'deleted', 'cancelled') %}
+
+            <!-- EDIT -->
+            <a href="{{ url_for('main.edit_debt', debt_id=debt._id|string) }}"
+               class="btn btn-sm btn-warning action-btn"
+               title="Edit debt"
+               aria-label="Edit debt">
+                <i data-feather="edit-3"></i>
+            </a>
+
+            <!-- RECORD PAYMENT -->
+            {% if debt_status in ('unpaid', 'partial') %}
+                <a href="{{ url_for('main.pay_debt', debt_id=debt._id|string) }}"
+                   class="btn btn-sm btn-success action-btn"
+                   title="Record debt payment"
+                   aria-label="Record debt payment">
+                    <i data-feather="dollar-sign"></i>
+                </a>
+            {% endif %}
+
+            <!-- CANCEL DEBT -->
+          
+<!-- CANCEL DEBT -->
+<form method="POST"
+      action="{{ url_for('main.delete_debt', debt_id=debt._id|string) }}"
+      class="d-inline cancel-debt-form"
+      data-debt-title="{{ debt.title|default('this debt', true)|e }}"
+      data-debt-source="{{ debt_source|e }}">
+
+    <button type="submit"
+            class="btn btn-sm btn-outline-danger action-btn"
+            title="Cancel debt"
+            aria-label="Cancel debt">
+        <i data-feather="x-circle"></i>
+    </button>
+</form>
+
+
+        {% endif %}
+    </div>
+
+    {% if debt_source == 'savings' and debt_status in ('unpaid', 'partial') %}
+        <small class="action-hint">
+            Savings-funded · Payment still required
+        </small>
+    {% endif %}
+</td>
+
+
+                    </tr>
+
+                {% else %}
+                    <tr>
+                        <td colspan="10">
+                            <div class="empty-state">
+
+                                <div class="empty-icon">
+                                    <i data-feather="inbox"></i>
+                                </div>
+
+                                <h6 class="mb-2">No Debts Found</h6>
+
+                                <p class="text-muted mb-3">
+                                    No debt records match your current filters.
+                                </p>
+
+                                {% if selected_type or selected_status or selected_category %}
+                                    <a href="{{ url_for('main.all_debts') }}"
+                                       class="btn btn-light border btn-sm me-2">
+                                        <i data-feather="rotate-ccw"></i>
+                                        Clear Filters
+                                    </a>
+                                {% endif %}
+
+                                <a href="{{ url_for('main.add_debt') }}"
+                                   class="btn btn-primary btn-sm">
+                                    <i data-feather="plus"></i>
+                                    Add Your First Debt
+                                </a>
+
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="table-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <small class="text-muted">
+                Showing {{ debts|length }} debt record(s).
+            </small>
+            <small class="text-muted">
+                Summary totals include all active debts, regardless of filters.
+            </small>
+        </div>
+
+    </div>
+</div>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".cancel-debt-form").forEach(function (form) {
+        form.addEventListener("submit", function (event) {
+            const button = form.querySelector('button[type="submit"]');
+            const title = form.dataset.debtTitle || "this debt";
+            const source = form.dataset.debtSource || "regular";
+
+            let message =
+                `Are you sure you want to cancel "${title}"?\n\n` +
+                "The debt will be marked as void.";
+
+            if (source === "savings") {
+                message +=
+                    "\n\nThis debt was funded from Savings. " +
+                    "The server must verify the refund before completing cancellation.";
+            }
+
+            if (!window.confirm(message)) {
+                event.preventDefault();
+                return;
+            }
+
+            // Ka hortag double-click
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = "Processing...";
+            }
+        });
+    });
+
+    if (window.feather) {
+        window.feather.replace();
+    }
+});
+</script>
+
+
+
+<!-- FEATHER ICONS -->
+<script>
+(function () {
+    function renderDebtIcons() {
+        if (window.feather && typeof window.feather.replace === "function") {
+            window.feather.replace({
+                width: 16,
+                height: 16,
+                "stroke-width": 2
+            });
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", renderDebtIcons);
+    } else {
+        renderDebtIcons();
+    }
+})();
+</script>
+
+{% endblock %}
