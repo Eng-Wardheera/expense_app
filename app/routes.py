@@ -10277,7 +10277,7 @@ def all_users():
 # `mongo` to be provided by your application. Import them from the
 # project's existing blueprint/database module before registering
 # these routes; their module paths are project-specific.
-#
+
 
 # ============================================================
 # DEBT MANAGEMENT — HELPERS
@@ -10803,6 +10803,7 @@ def _refresh_savings_fields(saving, current_balance, now=None):
         weekly_required = remaining
         monthly_required = remaining
 
+
     return {
         "current_balance": float(balance),
         "remaining_amount": float(remaining),
@@ -10814,6 +10815,245 @@ def _refresh_savings_fields(saving, current_balance, now=None):
         "updated_at": now,
     }
 
+
+# ============================================================
+# YEARLY RATES — ACTIVE ANNUAL SUMMARY SYNC
+# ============================================================
+
+def _yearly_rate_date(value):
+    """Convert MongoDB/date-like value to a Python date."""
+    if isinstance(value, datetime):
+        return value.date()
+    if hasattr(value, "year") and hasattr(value, "month") and hasattr(value, "day"):
+        return value
+    return None
+
+
+def _yearly_rate_number(value):
+    """Safely convert MongoDB numeric values into Decimal."""
+    if isinstance(value, Decimal128):
+        value = value.to_decimal()
+
+    try:
+        amount = Decimal(str(value if value is not None else "0"))
+    except (ValueError, TypeError, InvalidOperation):
+        amount = Decimal("0")
+
+    if not amount.is_finite():
+        return Decimal("0")
+
+    return amount.quantize(Decimal("0.01"))
+
+
+def _sync_active_yearly_rates_for_savings(
+    user_id,
+    now=None,
+    session=None,
+):
+    """
+    Keep the active yearly_rates record synchronized with Savings-funded
+    debt activity.
+
+    Live values:
+      - saving_balance = sum of current balances of non-closed Savings
+      - transfers_from_savings = principal of Savings-funded debts created
+        inside the annual period
+      - transfers_to_savings = non-voided repayments of those debts inside
+        the annual period
+      - total_savings_transfers = from + to
+      - total_balance / total_rest = cash_rest + saving_balance
+
+    Income/expense fields are intentionally left unchanged because these
+    operations are Savings transfers, not ordinary income/expense entries.
+    """
+    now = now or datetime.now(timezone.utc)
+    user_ids = _debt_user_ids(user_id)
+
+    yearly_records = list(
+        mongo.db.yearly_rates.find(
+            {
+                "user_id": {"$in": user_ids},
+                "status": "active",
+            },
+            session=session,
+        ).sort([
+            ("start_date", -1),
+            ("updated_at", -1),
+            ("created_at", -1),
+            ("_id", -1),
+        ])
+    )
+
+    if not yearly_records:
+        raise RuntimeError(
+            "Ma jiro yearly_rates record ACTIVE ah oo user-kan leeyahay."
+        )
+
+    today = now.date()
+    active_records = []
+
+    for yearly in yearly_records:
+        start = _yearly_rate_date(yearly.get("start_date"))
+        end = _yearly_rate_date(yearly.get("end_date"))
+
+        if start and today < start:
+            continue
+        if end and today > end:
+            continue
+
+        active_records.append(yearly)
+
+    if not active_records:
+        raise RuntimeError(
+            "ACTIVE yearly_rates record-ka lama waafajin karo taariikhda maanta."
+        )
+
+    # Always derive the current Savings total from live Savings documents.
+    savings_records = list(
+        mongo.db.savings.find(
+            {
+                "user_id": {"$in": user_ids},
+                "status": {"$nin": ["deleted", "cancelled", "void"]},
+            },
+            {
+                "_id": 1,
+                "current_balance": 1,
+            },
+            session=session,
+        )
+    )
+
+    saving_balance = sum(
+        (
+            _yearly_rate_number(item.get("current_balance"))
+            for item in savings_records
+        ),
+        Decimal("0.00"),
+    ).quantize(Decimal("0.01"))
+
+    # Active Savings-funded debts represent money that left Savings.
+    savings_debts = list(
+        mongo.db.debts.find(
+            {
+                "user_id": {"$in": user_ids},
+                "debt_source": "savings",
+                "status": {"$nin": ["void", "deleted", "cancelled"]},
+            },
+            {
+                "_id": 1,
+                "principal_amount": 1,
+                "debt_date": 1,
+            },
+            session=session,
+        )
+    )
+
+    for yearly in active_records:
+        start = _yearly_rate_date(yearly.get("start_date"))
+        end = _yearly_rate_date(yearly.get("end_date"))
+
+        def in_period(value):
+            event_date = _yearly_rate_date(value)
+            if event_date is None:
+                return False
+            if start and event_date < start:
+                return False
+            if end and event_date > end:
+                return False
+            return True
+
+        annual_debts = [
+            debt for debt in savings_debts
+            if in_period(debt.get("debt_date"))
+        ]
+
+        transfers_from_savings = sum(
+            (
+                _yearly_rate_number(debt.get("principal_amount"))
+                for debt in annual_debts
+            ),
+            Decimal("0.00"),
+        ).quantize(Decimal("0.01"))
+
+        # Payments point to the parent debt. A debt may have been created
+        # in an earlier annual period but repaid during the current one,
+        # so repayment transfers are calculated from ALL Savings-funded
+        # debt IDs and filtered by payment_date below.
+        annual_debt_ids = []
+        for debt in savings_debts:
+            debt_id = debt.get("_id")
+            if debt_id is None:
+                continue
+            annual_debt_ids.extend([debt_id, str(debt_id)])
+
+        transfers_to_savings = Decimal("0.00")
+
+        if annual_debt_ids:
+            payment_docs = mongo.db.debt_payments.find(
+                {
+                    "user_id": {"$in": user_ids},
+                    "debt_id": {"$in": annual_debt_ids},
+                    "voided": {"$ne": True},
+                },
+                {
+                    "amount": 1,
+                    "payment_date": 1,
+                },
+                session=session,
+            )
+
+            transfers_to_savings = sum(
+                (
+                    _yearly_rate_number(payment.get("amount"))
+                    for payment in payment_docs
+                    if in_period(payment.get("payment_date"))
+                ),
+                Decimal("0.00"),
+            ).quantize(Decimal("0.01"))
+
+        total_savings_transfers = (
+            transfers_from_savings + transfers_to_savings
+        ).quantize(Decimal("0.01"))
+
+        # Preserve the annual record's existing cash_rest. Only the
+        # Savings side and the resulting combined balance are changed.
+        cash_rest = _yearly_rate_number(
+            yearly.get("cash_rest", 0)
+        )
+
+        total_balance = (
+            cash_rest + saving_balance
+        ).quantize(Decimal("0.01"))
+
+        updates = {
+            "saving_balance": float(saving_balance),
+            "transfers_from_savings": float(transfers_from_savings),
+            "transfers_to_savings": float(transfers_to_savings),
+            "total_savings_transfers": float(total_savings_transfers),
+            "total_rest": float(total_balance),
+            "total_balance": float(total_balance),
+            "updated_at": now,
+        }
+
+        result = mongo.db.yearly_rates.update_one(
+            {
+                "_id": yearly["_id"],
+                "user_id": {"$in": user_ids},
+                "status": "active",
+            },
+            {"$set": updates},
+            session=session,
+        )
+
+        if result.matched_count != 1:
+            raise RuntimeError(
+                "ACTIVE yearly_rates record-ka lama cusboonaysiin karin."
+            )
+
+    return {
+        "saving_balance": float(saving_balance),
+        "active_yearly_rates_count": len(active_records),
+    }
 
 
 @bp.route("/add-debt", methods=["GET", "POST"])
@@ -10842,17 +11082,25 @@ def add_debt():
             """
             Restore Savings if debt creation fails.
 
-            Refreshes all derived Savings fields after restoring
-            the actual current_balance.
+            If the debt was already inserted, remove that debt first.
+            Then restore the exact Savings amount and synchronize the
+            active yearly_rates record from the resulting live state.
             """
-            nonlocal savings_deducted
+            nonlocal savings_deducted, debt_inserted
 
-            if not savings_deducted or debt_inserted:
+            if not savings_deducted:
                 return True
 
             now = datetime.now(timezone.utc)
 
             try:
+                if debt_inserted and debt_id is not None:
+                    mongo.db.debts.delete_one({
+                        "_id": debt_id,
+                        "user_id": user_id,
+                    })
+                    debt_inserted = False
+
                 restored_saving = mongo.db.savings.find_one_and_update(
                     {
                         "_id": savings_id,
@@ -10907,6 +11155,11 @@ def add_debt():
                         savings_id,
                     )
                     return False
+
+                _sync_active_yearly_rates_for_savings(
+                    user_id,
+                    now=now,
+                )
 
                 savings_deducted = False
                 return True
@@ -11110,6 +11363,10 @@ def add_debt():
                     "savings_title": (
                         savings_account.get("title") or ""
                     ),
+                    "savings_funded_amount": Decimal128(
+                        str(principal)
+                    ),
+                    "savings_funded_full_principal": True,
                     "paid_amount": Decimal128("0.00"),
                     "remaining_amount": Decimal128(str(principal)),
                     "status": "unpaid",
@@ -11120,6 +11377,14 @@ def add_debt():
             # -----------------------------------------------
             mongo.db.debts.insert_one(debt_data)
             debt_inserted = True
+
+            # The debt now exists, so yearly_rates can be rebuilt from
+            # the live debt + Savings state without double counting.
+            if debt_source == "savings":
+                _sync_active_yearly_rates_for_savings(
+                    user_id,
+                    now=now,
+                )
 
             # -----------------------------------------------
             # 6. SUCCESS MESSAGE
@@ -11218,8 +11483,6 @@ def edit_debt(debt_id):
     # --------------------------------------------------------
     # 2. BLOCK EDITING FINANCIAL TOTALS AFTER FULL PAYMENT
     # --------------------------------------------------------
-    # A fully paid debt should not be reopened by editing its
-    # principal. Metadata edits can still be permitted below.
     is_fully_paid = (
         debt_status == "paid"
         or (
@@ -11238,8 +11501,6 @@ def edit_debt(debt_id):
                 existing=debt,
             )
 
-            # Never allow the user to switch a debt's funding source
-            # through the edit form.
             requested_source = str(
                 request.form.get("debt_source")
                 or debt_source
@@ -11301,17 +11562,11 @@ def edit_debt(debt_id):
                     f"{paid:.2f}."
                 )
 
-            # ------------------------------------------------
-            # 6. CALCULATE REMAINING AMOUNT
-            # ------------------------------------------------
             remaining = max(
                 Decimal("0.00"),
                 principal - paid,
             ).quantize(Decimal("0.01"))
 
-            # ------------------------------------------------
-            # 7. DETERMINE STATUS
-            # ------------------------------------------------
             if remaining == Decimal("0.00"):
                 new_status = "paid"
             elif paid > Decimal("0.00"):
@@ -11320,7 +11575,7 @@ def edit_debt(debt_id):
                 new_status = "unpaid"
 
             # ------------------------------------------------
-            # 8. PROTECT FINANCIAL AND OWNERSHIP FIELDS
+            # 6. PROTECT FINANCIAL AND OWNERSHIP FIELDS
             # ------------------------------------------------
             protected_fields = {
                 "_id",
@@ -11337,6 +11592,8 @@ def edit_debt(debt_id):
                 "last_payment_at",
                 "savings_refunded_at",
                 "savings_refund_amount",
+                "savings_funded_amount",
+                "savings_funded_full_principal",
             }
 
             safe_update = {
@@ -11345,36 +11602,37 @@ def edit_debt(debt_id):
                 if key not in protected_fields
             }
 
-            # Do not permit arbitrary form fields to overwrite
-            # account linkage or financial history.
+            now = datetime.now(timezone.utc)
+
             safe_update.update({
                 "principal_amount": _debt_decimal128(principal),
                 "paid_amount": _debt_decimal128(paid),
                 "remaining_amount": _debt_decimal128(remaining),
                 "status": new_status,
-                "updated_at": datetime.now(timezone.utc),
+                "updated_at": now,
             })
 
             # Preserve the original source and Savings relationship.
             if debt_source == "savings":
                 safe_update["debt_source"] = "savings"
-
-                if "savings_id" in debt:
-                    safe_update["savings_id"] = debt["savings_id"]
-
-                if "savings_title" in debt:
-                    safe_update["savings_title"] = debt["savings_title"]
-
+                safe_update["savings_id"] = debt.get("savings_id")
+                safe_update["savings_title"] = debt.get(
+                    "savings_title",
+                    "",
+                )
+                safe_update["savings_funded_amount"] = _debt_decimal128(
+                    principal
+                )
+                safe_update["savings_funded_full_principal"] = True
             else:
                 safe_update["debt_source"] = debt.get(
-                    "debt_source", "regular"
+                    "debt_source",
+                    "regular",
                 )
 
             # ------------------------------------------------
-            # 9. UPDATE WITH OWNERSHIP + CONCURRENCY CHECK
+            # 7. CONCURRENCY FILTER
             # ------------------------------------------------
-            # Match the original stored values so another concurrent
-            # edit/payment is not silently overwritten.
             old_paid = debt.get("paid_amount", 0)
             old_remaining = debt.get("remaining_amount")
 
@@ -11387,7 +11645,6 @@ def edit_debt(debt_id):
                 "$and": [],
             }
 
-            # Legacy regular debts may not have debt_source.
             if "debt_source" not in debt:
                 update_filter.pop("debt_source", None)
                 update_filter["$and"].append({
@@ -11410,10 +11667,233 @@ def edit_debt(debt_id):
                     "remaining_amount": old_remaining
                 })
 
-            # Avoid an empty $and clause.
             if not update_filter["$and"]:
                 update_filter.pop("$and")
 
+            # ------------------------------------------------
+            # 8. SAVINGS-FUNDED DEBT EDIT
+            # ------------------------------------------------
+            if debt_source == "savings":
+                savings_id = debt.get("savings_id")
+
+                if not savings_id:
+                    raise ValueError(
+                        "Dayntan Savings ayay ku xiran tahay, laakiin "
+                        "savings_id kuma jiro document-ka."
+                    )
+
+                savings_oid = _debt_object_id(savings_id)
+                principal_delta = (
+                    principal - principal_before
+                ).quantize(Decimal("0.01"))
+
+                with mongo.cx.start_session() as session:
+                    with session.start_transaction():
+                        latest_debt = mongo.db.debts.find_one(
+                            {
+                                "_id": debt["_id"],
+                                "user_id": {"$in": _debt_user_ids(user_id)},
+                            },
+                            session=session,
+                        )
+
+                        if not latest_debt:
+                            raise ValueError("Daynta lama helin.")
+
+                        latest_status = str(
+                            latest_debt.get("status") or "unpaid"
+                        ).strip().lower()
+
+                        if latest_status in (
+                            "void",
+                            "deleted",
+                            "cancelled",
+                        ):
+                            raise ValueError(
+                                "Dayntan hadda lama beddeli karo."
+                            )
+
+                        latest_principal = _debt_money(
+                            latest_debt.get("principal_amount", 0)
+                        )
+                        latest_paid = _debt_money(
+                            latest_debt.get("paid_amount", 0)
+                        )
+                        latest_remaining = (
+                            latest_principal - latest_paid
+                        ).quantize(Decimal("0.01"))
+
+                        latest_source = str(
+                            latest_debt.get("debt_source") or "regular"
+                        ).strip().lower()
+
+                        if latest_source != "savings":
+                            raise ValueError(
+                                "Nooca maalgelinta daynta waa isbeddelay."
+                            )
+
+                        if latest_principal != principal_before:
+                            raise ValueError(
+                                "Daynta waxaa wax ka beddelay hawl kale. "
+                                "Dib u fur bogga oo mar kale isku day."
+                            )
+
+                        if latest_paid != paid:
+                            raise ValueError(
+                                "Lacag-bixinta daynta ayaa isbeddelay. "
+                                "Dib u fur bogga oo mar kale isku day."
+                            )
+
+                        if latest_remaining != (
+                            _debt_money(old_remaining)
+                            if old_remaining is not None
+                            else latest_remaining
+                        ):
+                            raise ValueError(
+                                "Hadhaaga daynta ayaa isbeddelay. "
+                                "Dib u fur bogga oo mar kale isku day."
+                            )
+
+                        saving = mongo.db.savings.find_one(
+                            {
+                                "_id": savings_oid,
+                                "user_id": {
+                                    "$in": _debt_user_ids(user_id)
+                                },
+                                "status": {
+                                    "$nin": [
+                                        "deleted",
+                                        "cancelled",
+                                        "void",
+                                    ]
+                                },
+                            },
+                            session=session,
+                        )
+
+                        if not saving:
+                            raise ValueError(
+                                "Saving-ka ku xiran dayntan lama helin."
+                            )
+
+                        current_saving_balance = _debt_money(
+                            saving.get("current_balance", 0)
+                        )
+
+                        # Increasing the debt means taking more from
+                        # Savings; decreasing it refunds the difference.
+                        if principal_delta > Decimal("0.00"):
+                            if current_saving_balance < principal_delta:
+                                raise ValueError(
+                                    "Savings balance-ku kuma filna "
+                                    "kororka cusub ee daynta."
+                                )
+
+                        new_saving_balance = (
+                            current_saving_balance - principal_delta
+                        ).quantize(Decimal("0.01"))
+
+                        if new_saving_balance < Decimal("0.00"):
+                            raise ValueError(
+                                "Savings balance ma noqon karo tiro taban."
+                            )
+
+                        if principal_delta != Decimal("0.00"):
+                            updated_saving = mongo.db.savings.find_one_and_update(
+                                {
+                                    "_id": savings_oid,
+                                    "user_id": {
+                                        "$in": _debt_user_ids(user_id)
+                                    },
+                                    "current_balance": saving.get(
+                                        "current_balance"
+                                    ),
+                                },
+                                {
+                                    "$inc": {
+                                        "current_balance": float(
+                                            -principal_delta
+                                        ),
+                                    },
+                                    "$set": {
+                                        "updated_at": now,
+                                    },
+                                },
+                                return_document=ReturnDocument.AFTER,
+                                session=session,
+                            )
+
+                            if updated_saving is None:
+                                raise ValueError(
+                                    "Savings balance-ka waxaa wax ka beddelay "
+                                    "hawl kale. Dib u fur bogga oo isku day mar kale."
+                                )
+
+                            refreshed = _refresh_savings_fields(
+                                saving=updated_saving,
+                                current_balance=updated_saving.get(
+                                    "current_balance",
+                                    0,
+                                ),
+                                now=now,
+                            )
+
+                            refresh_result = mongo.db.savings.update_one(
+                                {
+                                    "_id": savings_oid,
+                                    "user_id": {
+                                        "$in": _debt_user_ids(user_id)
+                                    },
+                                    "current_balance": updated_saving.get(
+                                        "current_balance"
+                                    ),
+                                },
+                                {"$set": refreshed},
+                                session=session,
+                            )
+
+                            if refresh_result.matched_count != 1:
+                                raise RuntimeError(
+                                    "Savings fields lama cusboonaysiin."
+                                )
+
+                        result = mongo.db.debts.update_one(
+                            update_filter,
+                            {"$set": safe_update},
+                            session=session,
+                        )
+
+                        if result.matched_count != 1:
+                            raise ValueError(
+                                "Daynta waa la beddelay ama lacag-bixin ayaa "
+                                "dhacday. Dib u fur bogga oo isku day mar kale."
+                            )
+
+                        # Rebuild the active annual summary from live state.
+                        _sync_active_yearly_rates_for_savings(
+                            user_id,
+                            now=now,
+                            session=session,
+                        )
+
+                flash(
+                    "Daynta Savings-ka si guul leh ayaa loo cusbooneysiiyey. "
+                    "Haddii wadarta daynta la beddelay, farqiga waxaa si ammaan ah "
+                    "looga jaray ama loogu celiyey Savings-ka; yearly_rates-na "
+                    "waa la cusboonaysiiyey.",
+                    "success",
+                )
+
+                return redirect(
+                    url_for(
+                        "main.debt_details",
+                        debt_id=str(debt["_id"]),
+                    )
+                )
+
+            # ------------------------------------------------
+            # 9. REGULAR DEBT EDIT
+            # ------------------------------------------------
             result = mongo.db.debts.update_one(
                 update_filter,
                 {"$set": safe_update},
@@ -11429,7 +11909,7 @@ def edit_debt(debt_id):
 
             flash(
                 "Daynta si guul leh ayaa loo cusbooneysiiyey. "
-                "Lacag-bixinnadii hore iyo xiriirka Savings waa la ilaaliyey.",
+                "Lacag-bixinnadii hore waa la ilaaliyey.",
                 "success",
             )
 
@@ -11454,86 +11934,12 @@ def edit_debt(debt_id):
                 "danger",
             )
 
-        # Refresh current record after validation/update errors.
         debt = _debt_get_owned(debt_id)
 
-    # --------------------------------------------------------
-    # 10. RENDER EDIT PAGE
-    # --------------------------------------------------------
     return render_template(
         "backend/pages/components/debts/edit_debt.html",
         debt=debt,
     )
-
-
-
-
-def _refresh_savings_metrics(savings_id, user_id):
-    """
-    Dib u xisaabi fields-ka laga soo saaro balance-ka Savings.
-    Waxay ilaalinaysaa fields kale oo aan xisaabta ku jirin.
-    """
-    savings = mongo.db.savings.find_one({
-        "_id": savings_id,
-        "user_id": user_id,
-    })
-
-    if not savings:
-        raise ValueError("Savings account lama helin.")
-
-    now = datetime.now(timezone.utc)
-
-    def number(value):
-        if isinstance(value, Decimal128):
-            value = value.to_decimal()
-        return Decimal(str(value if value is not None else 0))
-
-    target = max(Decimal("0"), number(savings.get("target_amount")))
-    balance = max(Decimal("0"), number(savings.get("current_balance")))
-    remaining = max(Decimal("0"), target - balance)
-
-    progress = Decimal("0")
-    if target > 0:
-        progress = min(Decimal("100"), balance / target * 100)
-
-    maturity = savings.get("maturity_date")
-    if maturity and isinstance(maturity, datetime):
-        maturity_date = maturity.date()
-        today = now.date()
-        days_remaining = max(0, (maturity_date - today).days)
-    else:
-        days_remaining = 0
-
-    daily_required = Decimal("0")
-    weekly_required = Decimal("0")
-    monthly_required = Decimal("0")
-
-    if days_remaining > 0 and remaining > 0:
-        daily_required = remaining / Decimal(days_remaining)
-        weekly_required = remaining / Decimal(days_remaining) * Decimal("7")
-        months_remaining = max(
-            Decimal("1"),
-            Decimal(days_remaining) / Decimal("30.4375"),
-        )
-        monthly_required = remaining / months_remaining
-
-    updates = {
-        "current_balance": float(balance),
-        "remaining_amount": float(remaining),
-        "progress": round(float(progress), 2),
-        "days_remaining": int(days_remaining),
-        "daily_required": round(float(daily_required), 2),
-        "weekly_required": round(float(weekly_required), 2),
-        "monthly_required": round(float(monthly_required), 2),
-        "updated_at": now,
-    }
-
-    mongo.db.savings.update_one(
-        {"_id": savings_id, "user_id": user_id},
-        {"$set": updates},
-    )
-
-    return updates
 
 
 # ============================================================
@@ -12164,6 +12570,11 @@ def delete_debt(debt_id):
                         debt_oid,
                     )
 
+                _sync_active_yearly_rates_for_savings(
+                    user_oid,
+                    now=datetime.now(timezone.utc),
+                )
+
                 permanently_remove_debt(debt_oid)
                 flash(
                     f"Refund-ka waa la xaqiijiyey: "
@@ -12327,81 +12738,59 @@ def delete_debt(debt_id):
 
     savings_oid = savings["_id"]
 
-    # Refund ONLY the unpaid remainder.
-    #
-    # The add-debt route deducts the principal from Savings, while the
-    # pay-debt route now credits each repayment back to that same Savings
-    # account. Therefore a later delete must refund the outstanding amount,
-    # not the original principal, otherwise partial repayments are credited
-    # twice.
-    raw_refund = debt.get("remaining_amount")
+    # Refund only what is still outstanding. The original Savings
+    # deduction is the principal, but any repayments have already been
+    # credited back to Savings, so deleting a partially-paid debt must
+    # never refund the principal a second time.
+    principal_for_refund = _debt_money(
+        debt.get("principal_amount", 0)
+    )
+    paid_for_refund = _debt_money(
+        debt.get("paid_amount", 0)
+    )
+    calculated_refund = max(
+        Decimal("0.00"),
+        principal_for_refund - paid_for_refund,
+    ).quantize(Decimal("0.01"))
+
+    stored_remaining = debt.get("remaining_amount")
+    raw_refund = stored_remaining
+
+    # Prefer the stored remaining_amount only when it agrees with the
+    # authoritative principal-paid calculation.
+    if stored_remaining is not None:
+        try:
+            if _debt_money(stored_remaining) != calculated_refund:
+                raw_refund = calculated_refund
+        except (ValueError, TypeError, InvalidOperation):
+            raw_refund = calculated_refund
 
     if raw_refund is None:
-        principal_raw = debt.get("principal_amount", 0)
-        paid_raw = debt.get("paid_amount", 0)
-        raw_refund = max(
-            Decimal("0.00"),
-            _debt_money(principal_raw) - _debt_money(paid_raw),
-        )
+        raw_refund = calculated_refund
 
-    # Compatibility with older documents that may have missing or stale
-    # remaining_amount fields: derive the amount from principal - paid.
+    # Legacy fallback for old records that did not store remaining_amount.
+    if raw_refund is None:
+        raw_refund = debt.get("savings_funded_amount")
+
+    if raw_refund is None:
+        raw_refund = debt.get("funded_from_savings_amount")
+
     try:
         refund_amount = _debt_money(raw_refund)
-    except (ValueError, TypeError, InvalidOperation):
-        refund_amount = max(
-            Decimal("0.00"),
-            _debt_money(debt.get("principal_amount", 0))
-            - _debt_money(debt.get("paid_amount", 0)),
-        )
 
-    if refund_amount <= Decimal("0.00"):
-        # Nothing remains to refund if all repayments have already been
-        # credited to Savings. Complete deletion without another credit.
-        now_done = datetime.now(timezone.utc)
-        marked = mongo.db.debts.update_one(
-            {
-                "_id": debt_oid,
-                "user_id": {"$in": user_ids},
-                "status": status,
-                "savings_refund_pending": {"$ne": True},
-            },
-            {
-                "$set": {
-                    "status": "deleted",
-                    "savings_refunded": True,
-                    "savings_refund_pending": False,
-                    "savings_refund_amount": Decimal128("0.00"),
-                    "deleted_at": now_done,
-                    "updated_at": now_done,
-                }
-            },
+        if refund_amount < Decimal("0.00"):
+            raise ValueError(
+                "Refund amount cannot be negative."
+            )
+
+    except (ValueError, TypeError, InvalidOperation):
+        current_app.logger.exception(
+            "DELETE DEBT: invalid refund amount; debt=%s",
+            debt_oid,
         )
-        if marked.modified_count != 1:
-            flash(
-                "Daynta lama tirtiri karin; xogteedu way is beddeshay. "
-                "Bogga dib u cusboonaysii oo isku day mar kale.",
-                "warning",
-            )
-            return redirect(back_url)
-        try:
-            _void_debt_payment_history(debt_oid, user_ids, now_done)
-            permanently_remove_debt(debt_oid)
-        except Exception:
-            current_app.logger.exception(
-                "Savings-funded fully repaid debt cleanup failed: %s",
-                debt_oid,
-            )
-            flash(
-                "Daynta waa la calaamadeeyey deleted, laakiin dhammeystirka "
-                "delete-ka wuu fashilmay. Hubi server logs-ka.",
-                "danger",
-            )
-            return redirect(back_url)
         flash(
-            "Daynta waa la tirtiray. Lacag kale laguma darin Savings-ka, "
-            "maadaama dhammaan lacagihii la bixiyey hore loogu celiyey.",
-            "success",
+            "Qadarka refund-ka sax ma aha.",
+            "danger",
         )
         return redirect(back_url)
 
@@ -12425,6 +12814,70 @@ def delete_debt(debt_id):
         )
         return redirect(back_url)
 
+    # A fully repaid Savings-funded debt has already returned the whole
+    # principal through its payment history. There is no additional
+    # refund to apply, but the debt still needs normal deletion cleanup
+    # and yearly_rates synchronization.
+    if refund_amount == Decimal("0.00"):
+        zero_refund_now = datetime.now(timezone.utc)
+
+        finalized = mongo.db.debts.update_one(
+            {
+                "_id": debt_oid,
+                "user_id": {"$in": user_ids},
+                "status": latest_debt.get("status"),
+                "savings_refunded": {"$ne": True},
+                "savings_refund_pending": {"$ne": True},
+            },
+            {
+                "$set": {
+                    "status": "deleted",
+                    "savings_refunded": True,
+                    "savings_refund_pending": False,
+                    "savings_refund_amount": Decimal128("0.00"),
+                    "deleted_at": zero_refund_now,
+                    "updated_at": zero_refund_now,
+                }
+            },
+        )
+
+        if finalized.modified_count != 1:
+            flash(
+                "Daynta waxaa beddelay codsi kale. Dib u cusboonaysii.",
+                "warning",
+            )
+            return redirect(back_url)
+
+        try:
+            _void_debt_payment_history(
+                debt_oid,
+                user_ids,
+                zero_refund_now,
+            )
+            _sync_active_yearly_rates_for_savings(
+                user_oid,
+                now=zero_refund_now,
+            )
+            permanently_remove_debt(debt_oid)
+        except Exception:
+            current_app.logger.exception(
+                "Fully repaid Savings debt cleanup failed; debt=%s",
+                debt_oid,
+            )
+            flash(
+                "Daynta waa la calaamadeeyey deleted, laakiin cleanup "
+                "ama yearly_rates sync ayaa u baahan hubin.",
+                "danger",
+            )
+            return redirect(back_url)
+
+        flash(
+            "Dayntan hore ayaa si buuxda loo bixiyey; lacag dheeraad ah "
+            "Savings laguma darin. Daynta iyo yearly_rates waa la nadiifiyey.",
+            "success",
+        )
+        return redirect(back_url)
+
     if _savings_has_refund(latest_savings, debt_oid):
         # Ledger exists: don't credit again. Repair metrics and
         # complete the debt only if it is still marked pending.
@@ -12434,6 +12887,20 @@ def delete_debt(debt_id):
                     debt_oid,
                     savings_oid,
                 )
+
+                # Void payment history before rebuilding yearly_rates so
+                # the deleted debt cannot contribute repayments twice.
+                _void_debt_payment_history(
+                    debt_oid,
+                    user_ids,
+                    datetime.now(timezone.utc),
+                )
+
+                _sync_active_yearly_rates_for_savings(
+                    user_oid,
+                    now=datetime.now(timezone.utc),
+                )
+
                 permanently_remove_debt(debt_oid)
                 flash(
                     "Refund-kii hore ayaa la xaqiijiyey. "
@@ -12572,6 +13039,26 @@ def delete_debt(debt_id):
         )
         return redirect(back_url)
 
+    # Rebuild the active annual summary only after the refund and
+    # payment-history void are both confirmed.
+    try:
+        _sync_active_yearly_rates_for_savings(
+            user_oid,
+            now=datetime.now(timezone.utc),
+        )
+    except Exception:
+        current_app.logger.exception(
+            "Savings refund completed but yearly_rates sync failed; "
+            "debt=%s",
+            debt_oid,
+        )
+        flash(
+            "Refund-ka Savings-ka waa la xaqiijiyey, laakiin yearly_rates "
+            "lama cusboonaysiin karin. Hubi server logs-ka.",
+            "warning",
+        )
+        return redirect(back_url)
+
     # --------------------------------------------------------
     # 12. SUCCESS
     # --------------------------------------------------------
@@ -12672,14 +13159,6 @@ def _refresh_saving_metrics_after_debt_payment(saving, new_balance, now):
 @bp.route("/pay-debt/<debt_id>", methods=["GET", "POST"])
 @login_required
 def pay_debt(debt_id):
-    from datetime import datetime, timezone
-    from decimal import Decimal, InvalidOperation
-    from bson import ObjectId
-    from flask import (
-        request, redirect, url_for, render_template,
-        flash, current_app, abort
-    )
-
     user_id = _debt_user_id()
     user_ids = _debt_user_ids()
     debt = _debt_get_owned(debt_id)
@@ -12690,34 +13169,60 @@ def pay_debt(debt_id):
         debt_id=str(parent_debt_id)
     )
 
-    currency = str(debt.get("currency") or "USD").strip().upper()
-    debt_source = str(debt.get("debt_source") or "regular").strip().lower()
-    debt_status = str(debt.get("status") or "unpaid").strip().lower()
+    currency = str(
+        debt.get("currency") or "USD"
+    ).strip().upper()
+
+    debt_source = str(
+        debt.get("debt_source") or "regular"
+    ).strip().lower()
+
+    debt_status = str(
+        debt.get("status") or "unpaid"
+    ).strip().lower()
 
     if debt_status in ("paid", "void", "deleted", "cancelled"):
-        flash("Dayntan lacag dambe lagama diiwaangelin karo.", "warning")
+        flash(
+            "Dayntan lacag dambe lagama diiwaangelin karo.",
+            "warning",
+        )
         return redirect(details_url)
 
     try:
-        principal = _debt_money(debt.get("principal_amount", 0))
-        paid_before = _debt_money(debt.get("paid_amount", 0))
-        remaining_before = principal - paid_before
+        principal = _debt_money(
+            debt.get("principal_amount", 0)
+        )
+        paid_before = _debt_money(
+            debt.get("paid_amount", 0)
+        )
+        remaining_before = (
+            principal - paid_before
+        ).quantize(Decimal("0.01"))
 
         if principal <= 0:
-            raise ValueError("Wadarta dayntu waa inay ka weyn tahay eber.")
+            raise ValueError(
+                "Wadarta dayntu waa inay ka weyn tahay eber."
+            )
 
         if paid_before < 0 or paid_before > principal:
-            raise ValueError("Xogta lacagta daynta sax ma aha.")
+            raise ValueError(
+                "Xogta lacagta daynta sax ma aha."
+            )
 
         if remaining_before <= 0:
-            flash("Dayntan wax hadhaag ah kuma harin.", "warning")
+            flash(
+                "Dayntan wax hadhaag ah kuma harin.",
+                "warning",
+            )
             return redirect(details_url)
 
         stored_remaining = debt.get("remaining_amount")
+
         if stored_remaining is not None:
             if _debt_money(stored_remaining) != remaining_before:
                 flash(
-                    "Hadhaaga daynta iyo lacagihii la bixiyey isma waafaqsana.",
+                    "Hadhaaga daynta iyo lacagihii la bixiyey "
+                    "isma waafaqsana.",
                     "danger",
                 )
                 return redirect(details_url)
@@ -12736,9 +13241,6 @@ def pay_debt(debt_id):
             remaining_before=remaining_before,
         )
 
-    # ---------------------------------------------------------
-    # POST: process payment atomically
-    # ---------------------------------------------------------
     payment_id = ObjectId()
     now = datetime.now(timezone.utc)
 
@@ -12746,39 +13248,44 @@ def pay_debt(debt_id):
         payment_amount = _debt_money(
             request.form.get("payment_amount")
         )
-        payment_note = (request.form.get("note") or "").strip()
+        payment_note = (
+            request.form.get("note") or ""
+        ).strip()
 
         if payment_amount <= 0:
-            raise ValueError("Lacagta la bixinayo waa inay ka weyn tahay eber.")
+            raise ValueError(
+                "Lacagta la bixinayo waa inay ka weyn tahay eber."
+            )
 
         if payment_amount > remaining_before:
             raise ValueError(
-                f"Lacagta ugu badan waa {remaining_before:.2f} {currency}."
+                f"Lacagta ugu badan waa "
+                f"{remaining_before:.2f} {currency}."
             )
 
-        paid_after = paid_before + payment_amount
-        remaining_after = max(Decimal("0.00"), principal - paid_after)
+        paid_after = (
+            paid_before + payment_amount
+        ).quantize(Decimal("0.01"))
 
-        if remaining_after == 0:
+        remaining_after = max(
+            Decimal("0.00"),
+            principal - paid_after,
+        ).quantize(Decimal("0.01"))
+
+        if remaining_after == Decimal("0.00"):
             new_status = "paid"
-        elif paid_after > 0:
+        elif paid_after > Decimal("0.00"):
             new_status = "partial"
         else:
             new_status = "unpaid"
 
-        # For savings-funded debts, the debt must explicitly identify
-        # the saving document. Do not guess using refund_debt_ids.
-        saving_id = (
-            debt.get("saving_id")
-            or debt.get("savings_id")
-            or debt.get("saving_ref_id")
-        )
-        saving_id = ObjectId(str(saving_id)) if saving_id else None
-
+        # -----------------------------------------------------
+        # ALL SAVINGS-FUNDED PAYMENT CHANGES ARE TRANSACTIONAL.
+        # The Savings balance, debt, payment history and yearly_rates
+        # must either all succeed or all roll back together.
+        # -----------------------------------------------------
         with mongo.cx.start_session() as session:
             with session.start_transaction():
-
-                # Reload latest debt inside transaction.
                 latest_debt = mongo.db.debts.find_one(
                     {
                         "_id": parent_debt_id,
@@ -12788,14 +13295,23 @@ def pay_debt(debt_id):
                 )
 
                 if not latest_debt:
-                    raise ValueError("Daynta lama helin.")
+                    raise ValueError(
+                        "Daynta lama helin."
+                    )
 
                 latest_status = str(
                     latest_debt.get("status") or "unpaid"
-                ).lower()
+                ).strip().lower()
 
-                if latest_status in ("paid", "void", "deleted", "cancelled"):
-                    raise ValueError("Dayntan hadda lacag lagama bixin karo.")
+                if latest_status in (
+                    "paid",
+                    "void",
+                    "deleted",
+                    "cancelled",
+                ):
+                    raise ValueError(
+                        "Dayntan hadda lacag lagama bixin karo."
+                    )
 
                 latest_principal = _debt_money(
                     latest_debt.get("principal_amount", 0)
@@ -12803,32 +13319,64 @@ def pay_debt(debt_id):
                 latest_paid = _debt_money(
                     latest_debt.get("paid_amount", 0)
                 )
-                latest_remaining = latest_principal - latest_paid
+                latest_remaining = (
+                    latest_principal - latest_paid
+                ).quantize(Decimal("0.01"))
+
+                if latest_principal != principal:
+                    raise ValueError(
+                        "Wadarta daynta waxaa wax ka beddelay "
+                        "hawl kale. Dib u fur bogga oo mar kale isku day."
+                    )
+
+                if latest_paid != paid_before:
+                    raise ValueError(
+                        "Lacag-bixinta daynta waxaa wax ka beddelay "
+                        "hawl kale. Dib u fur bogga oo mar kale isku day."
+                    )
 
                 if latest_remaining != remaining_before:
                     raise ValueError(
-                        "Daynta waxaa wax ka beddelay hawl kale. "
-                        "Dib u fur bogga oo mar kale isku day."
+                        "Hadhaaga daynta waxaa wax ka beddelay "
+                        "hawl kale. Dib u fur bogga oo mar kale isku day."
                     )
 
-                # ---------------------------------------------
+                saving_id = (
+                    latest_debt.get("saving_id")
+                    or latest_debt.get("savings_id")
+                    or latest_debt.get("saving_ref_id")
+                )
+
+                if saving_id:
+                    try:
+                        saving_id = ObjectId(str(saving_id))
+                    except Exception:
+                        raise ValueError(
+                            "savings_id-ga daynta sax ma aha."
+                        )
+
+                # -------------------------------------------------
                 # SAVINGS PAYMENT
-                # ---------------------------------------------
-                saving_update_fields = None
+                # -------------------------------------------------
                 if debt_source == "savings":
                     if not saving_id:
                         raise ValueError(
                             "Dayntan waxaa lagu calaamadeeyey savings, "
                             "laakiin saving_id/savings_id kuma jiro "
-                            "document-ka daynta. Marka hore ku xir Saving-ka "
-                            "saxda ah; lama adeegsanayo payment ID."
+                            "document-ka daynta."
                         )
 
                     saving = mongo.db.savings.find_one(
                         {
                             "_id": saving_id,
                             "user_id": {"$in": user_ids},
-                            "status": {"$nin": ["deleted", "cancelled", "void"]},
+                            "status": {
+                                "$nin": [
+                                    "deleted",
+                                    "cancelled",
+                                    "void",
+                                ]
+                            },
                         },
                         session=session,
                     )
@@ -12842,10 +13390,11 @@ def pay_debt(debt_id):
                         saving.get("current_balance", 0)
                     )
 
-                    # The Savings balance was reduced when this debt
-                    # was created. Paying this debt back must restore
-                    # the same Savings account, not deduct from it again.
-                    new_saving_balance = saving_balance + payment_amount
+                    # The debt was funded by Savings, so every repayment
+                    # returns money to this exact Savings account.
+                    new_saving_balance = (
+                        saving_balance + payment_amount
+                    ).quantize(Decimal("0.01"))
 
                     saving_update_fields = (
                         _refresh_saving_metrics_after_debt_payment(
@@ -12859,7 +13408,9 @@ def pay_debt(debt_id):
                         {
                             "_id": saving_id,
                             "user_id": {"$in": user_ids},
-                            "current_balance": saving.get("current_balance"),
+                            "current_balance": saving.get(
+                                "current_balance"
+                            ),
                         },
                         {"$set": saving_update_fields},
                         session=session,
@@ -12868,12 +13419,12 @@ def pay_debt(debt_id):
                     if saving_result.modified_count != 1:
                         raise ValueError(
                             "Saving-ka waa la beddelay ama balance-kiisu "
-                            "waa isbeddelay. Dib u fur bogga oo isku day mar kale."
+                            "waa isbeddelay. Dib u fur bogga oo mar kale isku day."
                         )
 
-                # ---------------------------------------------
+                # -------------------------------------------------
                 # UPDATE PARENT DEBT
-                # ---------------------------------------------
+                # -------------------------------------------------
                 old_paid = latest_debt.get("paid_amount")
                 old_remaining = latest_debt.get("remaining_amount")
                 old_status = latest_debt.get("status")
@@ -12891,7 +13442,9 @@ def pay_debt(debt_id):
                         ]
                     })
                 else:
-                    conditions.append({"paid_amount": old_paid})
+                    conditions.append({
+                        "paid_amount": old_paid
+                    })
 
                 if old_remaining is None:
                     conditions.append({
@@ -12901,7 +13454,9 @@ def pay_debt(debt_id):
                         ]
                     })
                 else:
-                    conditions.append({"remaining_amount": old_remaining})
+                    conditions.append({
+                        "remaining_amount": old_remaining
+                    })
 
                 if old_status is None:
                     conditions.append({
@@ -12911,11 +13466,18 @@ def pay_debt(debt_id):
                         ]
                     })
                 else:
-                    conditions.append({"status": old_status})
+                    conditions.append({
+                        "status": old_status
+                    })
 
                 conditions.append({
                     "status": {
-                        "$nin": ["paid", "void", "deleted", "cancelled"]
+                        "$nin": [
+                            "paid",
+                            "void",
+                            "deleted",
+                            "cancelled",
+                        ]
                     }
                 })
 
@@ -12923,8 +13485,12 @@ def pay_debt(debt_id):
                     {"$and": conditions},
                     {
                         "$set": {
-                            "paid_amount": _debt_decimal128(paid_after),
-                            "remaining_amount": _debt_decimal128(remaining_after),
+                            "paid_amount": _debt_decimal128(
+                                paid_after
+                            ),
+                            "remaining_amount": _debt_decimal128(
+                                remaining_after
+                            ),
                             "status": new_status,
                             "last_payment_at": now,
                             "updated_at": now,
@@ -12935,14 +13501,13 @@ def pay_debt(debt_id):
 
                 if debt_result.modified_count != 1:
                     raise ValueError(
-                        "Daynta lama cusboonaysiin; dib u fur bogga oo isku day mar kale."
+                        "Daynta lama cusboonaysiin; dib u fur bogga "
+                        "oo isku day mar kale."
                     )
 
-                # ---------------------------------------------
+                # -------------------------------------------------
                 # INSERT PAYMENT HISTORY
-                # ---------------------------------------------
-                # Every payment has its own _id.
-                # Every payment points to the same parent debt_id.
+                # -------------------------------------------------
                 payment_doc = {
                     "_id": payment_id,
                     "user_id": user_id,
@@ -12962,23 +13527,34 @@ def pay_debt(debt_id):
                     session=session,
                 )
 
-                # Do NOT add payment_id to refund_debt_ids.
-                # Do NOT append duplicate parent IDs on each payment.
-                # Do NOT refund savings when status becomes "paid".
+                # -------------------------------------------------
+                # YEARLY RATES
+                # -------------------------------------------------
+                if debt_source == "savings":
+                    _sync_active_yearly_rates_for_savings(
+                        user_id,
+                        now=now,
+                        session=session,
+                    )
 
         if debt_source == "savings":
             flash(
-                f"Waxaa Savings-ka dib loogu celiyey {payment_amount:.2f} {currency}. "
-                f"Balance-ka Savings-ka waa la kordhiyey, fields-kiisana waa la "
-                f"cusboonaysiiyey. Hadhaaga daynta waa {remaining_after:.2f} {currency}.",
+                f"Waxaa Savings-ka dib loogu celiyey "
+                f"{payment_amount:.2f} {currency}. "
+                f"Balance-ka Savings-ka waa la kordhiyey, "
+                f"fields-kiisana iyo yearly_rates waa la "
+                f"cusboonaysiiyey. Hadhaaga daynta waa "
+                f"{remaining_after:.2f} {currency}.",
                 "success",
             )
         else:
             flash(
-                f"Lacag-bixinta {payment_amount:.2f} {currency} waa la diiwaangeliyey. "
-                f"Hadhaaga daynta waa {remaining_after:.2f} {currency}.",
+                f"Lacag-bixinta {payment_amount:.2f} {currency} "
+                f"waa la diiwaangeliyey. Hadhaaga daynta waa "
+                f"{remaining_after:.2f} {currency}.",
                 "success",
             )
+
         return redirect(details_url)
 
     except (ValueError, InvalidOperation) as exc:
@@ -12997,9 +13573,6 @@ def pay_debt(debt_id):
             "danger",
         )
         return redirect(details_url)
-
-
-
 
 
 # ============================================================
@@ -13167,65 +13740,481 @@ def _recalculate_debt_from_payments(debt):
 @login_required
 def edit_latest_debt_payment(debt_id):
     user_oid = _payment_user_id()
+    user_ids = _debt_user_ids(user_oid)
     debt = _payment_owned_debt(debt_id)
 
-    if str(debt.get("status") or "").strip().lower() in ("void", "deleted", "cancelled"):
-        flash("Dayntan waa la tirtiray ama la joojiyey; lacag-bixinteeda lama beddeli karo.", "warning")
-        return redirect(url_for("main.debt_details", debt_id=str(debt["_id"])))
+    if str(
+        debt.get("status") or ""
+    ).strip().lower() in (
+        "void",
+        "deleted",
+        "cancelled",
+    ):
+        flash(
+            "Dayntan waa la tirtiray ama la joojiyey; "
+            "lacag-bixinteeda lama beddeli karo.",
+            "warning",
+        )
+        return redirect(
+            url_for(
+                "main.debt_details",
+                debt_id=str(debt["_id"]),
+            )
+        )
 
-    # Hel lacag-bixintii ugu dambaysay ee aan la kansalin.
     latest_payment = mongo.db.debt_payments.find_one(
         {
             "user_id": user_oid,
             "debt_id": debt["_id"],
-            "voided": {"$ne": True}
+            "voided": {"$ne": True},
         },
-        sort=[("payment_date", -1), ("created_at", -1), ("_id", -1)]
+        sort=[
+            ("payment_date", -1),
+            ("created_at", -1),
+            ("_id", -1),
+        ],
     )
 
     if not latest_payment:
         flash(
             "Lacag-bixin hore oo la beddeli karo lama helin. "
-            "Lacag-bixinnadii hore ee aan ledger-ka lagu kaydin si gaar ah looma tafatiri karo.",
-            "warning"
+            "Lacag-bixinnadii hore ee aan ledger-ka lagu kaydin "
+            "si gaar ah looma tafatiri karo.",
+            "warning",
         )
-        return redirect(url_for("main.pay_debt", debt_id=str(debt["_id"])))
+        return redirect(
+            url_for(
+                "main.pay_debt",
+                debt_id=str(debt["_id"]),
+            )
+        )
 
     if request.method == "POST":
         try:
-            new_amount = _payment_decimal(request.form.get("payment_amount"))
-            new_note = (request.form.get("payment_note") or "").strip()
+            new_amount = _payment_decimal(
+                request.form.get("payment_amount")
+            )
+            new_note = (
+                request.form.get("payment_note") or ""
+            ).strip()
 
             if new_amount <= 0:
-                raise ValueError("Lacagta la bixinayo waa inay ka weyn tahay eber.")
+                raise ValueError(
+                    "Lacagta la bixinayo waa inay ka weyn tahay eber."
+                )
 
             if len(new_note) > 1000:
-                raise ValueError("Qoraalka lacag-bixintu kama badnaan karo 1000 xaraf.")
-
-            # Isku day inaad hubiso in lacagta cusub aysan ka badnaan karin
-            # principal-ka marka lacag-bixinta la tafatirayo.
-            principal = _payment_decimal(debt.get("principal_amount", 0))
-            old_amount = _payment_decimal(latest_payment.get("amount", 0))
-
-            other_payments = mongo.db.debt_payments.find({
-                "user_id": user_oid,
-                "debt_id": debt["_id"],
-                "_id": {"$ne": latest_payment["_id"]},
-                "voided": {"$ne": True}
-            })
-
-            other_total = sum(
-                (_payment_decimal(item.get("amount", 0)) for item in other_payments),
-                Decimal("0.00")
-            ).quantize(Decimal("0.01"))
-
-            if other_total + new_amount > principal:
-                available = max(Decimal("0.00"), principal - other_total)
                 raise ValueError(
-                    f"Lacagta ugu badan ee la gelin karo waa {available:.2f}."
+                    "Qoraalka lacag-bixintu kama badnaan karo "
+                    "1000 xaraf."
                 )
 
             now = datetime.now(timezone.utc)
+            debt_source = str(
+                debt.get("debt_source") or "regular"
+            ).strip().lower()
+
+            # -----------------------------------------------------
+            # SAVINGS-FUNDED PAYMENT EDIT
+            # -----------------------------------------------------
+            if debt_source == "savings":
+                with mongo.cx.start_session() as session:
+                    with session.start_transaction():
+                        latest_debt = mongo.db.debts.find_one(
+                            {
+                                "_id": debt["_id"],
+                                "user_id": {
+                                    "$in": user_ids
+                                },
+                            },
+                            session=session,
+                        )
+
+                        if not latest_debt:
+                            raise ValueError(
+                                "Daynta lama helin."
+                            )
+
+                        latest_status = str(
+                            latest_debt.get("status") or "unpaid"
+                        ).strip().lower()
+
+                        if latest_status in (
+                            "void",
+                            "deleted",
+                            "cancelled",
+                        ):
+                            raise ValueError(
+                                "Dayntan hadda lacag-bixin "
+                                "lagama beddeli karo."
+                            )
+
+                        latest_payment = mongo.db.debt_payments.find_one(
+                            {
+                                "_id": latest_payment["_id"],
+                                "user_id": user_oid,
+                                "debt_id": latest_debt["_id"],
+                                "voided": {"$ne": True},
+                            },
+                            session=session,
+                        )
+
+                        if not latest_payment:
+                            raise ValueError(
+                                "Lacag-bixintii ugu dambaysay "
+                                "lama helin."
+                            )
+
+                        principal = _payment_decimal(
+                            latest_debt.get(
+                                "principal_amount",
+                                0,
+                            )
+                        )
+                        old_amount = _payment_decimal(
+                            latest_payment.get("amount", 0)
+                        )
+
+                        other_payments = mongo.db.debt_payments.find(
+                            {
+                                "user_id": user_oid,
+                                "debt_id": latest_debt["_id"],
+                                "_id": {
+                                    "$ne": latest_payment["_id"]
+                                },
+                                "voided": {"$ne": True},
+                            },
+                            {
+                                "amount": 1,
+                            },
+                            session=session,
+                        )
+
+                        other_total = sum(
+                            (
+                                _payment_decimal(
+                                    item.get("amount", 0)
+                                )
+                                for item in other_payments
+                            ),
+                            Decimal("0.00"),
+                        ).quantize(Decimal("0.01"))
+
+                        if other_total + new_amount > principal:
+                            available = max(
+                                Decimal("0.00"),
+                                principal - other_total,
+                            )
+                            raise ValueError(
+                                "Lacagta ugu badan ee la gelin karo waa "
+                                f"{available:.2f}."
+                            )
+
+                        total_paid = (
+                            other_total + new_amount
+                        ).quantize(Decimal("0.01"))
+
+                        remaining = max(
+                            Decimal("0.00"),
+                            principal - total_paid,
+                        ).quantize(Decimal("0.01"))
+
+                        if remaining == Decimal("0.00"):
+                            new_status = "paid"
+                        elif total_paid > Decimal("0.00"):
+                            new_status = "partial"
+                        else:
+                            new_status = "unpaid"
+
+                        saving_id = (
+                            latest_debt.get("saving_id")
+                            or latest_debt.get("savings_id")
+                            or latest_debt.get("saving_ref_id")
+                        )
+
+                        if not saving_id:
+                            raise ValueError(
+                                "Dayntan Savings ayay ku xiran tahay, "
+                                "laakiin savings_id kuma jiro document-ka."
+                            )
+
+                        try:
+                            saving_id = ObjectId(
+                                str(saving_id)
+                            )
+                        except Exception:
+                            raise ValueError(
+                                "savings_id-ga daynta sax ma aha."
+                            )
+
+                        saving = mongo.db.savings.find_one(
+                            {
+                                "_id": saving_id,
+                                "user_id": {
+                                    "$in": user_ids
+                                },
+                                "status": {
+                                    "$nin": [
+                                        "deleted",
+                                        "cancelled",
+                                        "void",
+                                    ]
+                                },
+                            },
+                            session=session,
+                        )
+
+                        if not saving:
+                            raise ValueError(
+                                "Saving-ka ku xiran dayntan lama helin."
+                            )
+
+                        # If the payment is increased, more money must
+                        # be returned to Savings. If it is decreased,
+                        # the difference must be taken back from Savings.
+                        payment_delta = (
+                            new_amount - old_amount
+                        ).quantize(Decimal("0.01"))
+
+                        saving_balance = _debt_money(
+                            saving.get("current_balance", 0)
+                        )
+
+                        new_saving_balance = (
+                            saving_balance + payment_delta
+                        ).quantize(Decimal("0.01"))
+
+                        if new_saving_balance < Decimal("0.00"):
+                            raise ValueError(
+                                "Savings balance-ku kuma filna "
+                                "qadarka payment-ka la dhimay."
+                            )
+
+                        if payment_delta != Decimal("0.00"):
+                            updated_saving = mongo.db.savings.find_one_and_update(
+                                {
+                                    "_id": saving_id,
+                                    "user_id": {
+                                        "$in": user_ids
+                                    },
+                                    "current_balance": saving.get(
+                                        "current_balance"
+                                    ),
+                                },
+                                {
+                                    "$inc": {
+                                        "current_balance": float(
+                                            payment_delta
+                                        ),
+                                    },
+                                    "$set": {
+                                        "updated_at": now,
+                                    },
+                                },
+                                return_document=ReturnDocument.AFTER,
+                                session=session,
+                            )
+
+                            if updated_saving is None:
+                                raise ValueError(
+                                    "Savings balance-ka waxaa wax ka beddelay "
+                                    "hawl kale. Dib u fur bogga oo mar kale isku day."
+                                )
+
+                            refreshed = _refresh_savings_fields(
+                                saving=updated_saving,
+                                current_balance=updated_saving.get(
+                                    "current_balance",
+                                    0,
+                                ),
+                                now=now,
+                            )
+
+                            refresh_result = mongo.db.savings.update_one(
+                                {
+                                    "_id": saving_id,
+                                    "user_id": {
+                                        "$in": user_ids
+                                    },
+                                    "current_balance": updated_saving.get(
+                                        "current_balance"
+                                    ),
+                                },
+                                {"$set": refreshed},
+                                session=session,
+                            )
+
+                            if refresh_result.matched_count != 1:
+                                raise RuntimeError(
+                                    "Savings fields lama cusboonaysiin."
+                                )
+
+                        payment_result = mongo.db.debt_payments.update_one(
+                            {
+                                "_id": latest_payment["_id"],
+                                "user_id": user_oid,
+                                "debt_id": latest_debt["_id"],
+                                "voided": {"$ne": True},
+                                "amount": latest_payment.get("amount"),
+                            },
+                            {
+                                "$set": {
+                                    "amount": _debt_decimal128(
+                                        new_amount
+                                    ),
+                                    "note": new_note,
+                                    "updated_at": now,
+                                }
+                            },
+                            session=session,
+                        )
+
+                        if payment_result.matched_count != 1:
+                            raise ValueError(
+                                "Lacag-bixintan waa la beddelay "
+                                "ama lama helin. Bogga dib u fur."
+                            )
+
+                        old_paid = latest_debt.get("paid_amount")
+                        old_remaining = latest_debt.get(
+                            "remaining_amount"
+                        )
+                        old_status = latest_debt.get("status")
+
+                        conditions = [
+                            {"_id": latest_debt["_id"]},
+                            {"user_id": {"$in": user_ids}},
+                        ]
+
+                        if old_paid is None:
+                            conditions.append({
+                                "$or": [
+                                    {"paid_amount": None},
+                                    {
+                                        "paid_amount": {
+                                            "$exists": False
+                                        }
+                                    },
+                                ]
+                            })
+                        else:
+                            conditions.append({
+                                "paid_amount": old_paid
+                            })
+
+                        if old_remaining is None:
+                            conditions.append({
+                                "$or": [
+                                    {"remaining_amount": None},
+                                    {
+                                        "remaining_amount": {
+                                            "$exists": False
+                                        }
+                                    },
+                                ]
+                            })
+                        else:
+                            conditions.append({
+                                "remaining_amount": old_remaining
+                            })
+
+                        if old_status is None:
+                            conditions.append({
+                                "$or": [
+                                    {"status": None},
+                                    {
+                                        "status": {
+                                            "$exists": False
+                                        }
+                                    },
+                                ]
+                            })
+                        else:
+                            conditions.append({
+                                "status": old_status
+                            })
+
+                        debt_result = mongo.db.debts.update_one(
+                            {"$and": conditions},
+                            {
+                                "$set": {
+                                    "paid_amount": _debt_decimal128(
+                                        total_paid
+                                    ),
+                                    "remaining_amount": _debt_decimal128(
+                                        remaining
+                                    ),
+                                    "status": new_status,
+                                    "last_payment_at": now,
+                                    "updated_at": now,
+                                }
+                            },
+                            session=session,
+                        )
+
+                        if debt_result.matched_count != 1:
+                            raise ValueError(
+                                "Daynta lama cusboonaysiin; "
+                                "dib u fur bogga oo isku day mar kale."
+                            )
+
+                        _sync_active_yearly_rates_for_savings(
+                            user_oid,
+                            now=now,
+                            session=session,
+                        )
+
+                flash(
+                    "Lacag-bixintii Savings-funded debt-ka si guul leh "
+                    "ayaa loo beddelay. Savings balance-ka iyo "
+                    "yearly_rates-na waa la waafajiyey.",
+                    "success",
+                )
+                return redirect(
+                    url_for(
+                        "main.debt_details",
+                        debt_id=str(debt["_id"]),
+                    )
+                )
+
+            # -----------------------------------------------------
+            # REGULAR DEBT PAYMENT EDIT
+            # -----------------------------------------------------
+            principal = _payment_decimal(
+                debt.get("principal_amount", 0)
+            )
+            old_amount = _payment_decimal(
+                latest_payment.get("amount", 0)
+            )
+
+            other_payments = mongo.db.debt_payments.find(
+                {
+                    "user_id": user_oid,
+                    "debt_id": debt["_id"],
+                    "_id": {"$ne": latest_payment["_id"]},
+                    "voided": {"$ne": True},
+                }
+            )
+
+            other_total = sum(
+                (
+                    _payment_decimal(
+                        item.get("amount", 0)
+                    )
+                    for item in other_payments
+                ),
+                Decimal("0.00"),
+            ).quantize(Decimal("0.01"))
+
+            if other_total + new_amount > principal:
+                available = max(
+                    Decimal("0.00"),
+                    principal - other_total,
+                )
+                raise ValueError(
+                    f"Lacagta ugu badan ee la gelin karo waa "
+                    f"{available:.2f}."
+                )
 
             result = mongo.db.debt_payments.update_one(
                 {
@@ -13233,60 +14222,85 @@ def edit_latest_debt_payment(debt_id):
                     "user_id": user_oid,
                     "debt_id": debt["_id"],
                     "voided": {"$ne": True},
-                    "amount": latest_payment["amount"]
+                    "amount": latest_payment["amount"],
                 },
                 {
                     "$set": {
-                        "amount": Decimal128(str(new_amount)),
+                        "amount": Decimal128(
+                            str(new_amount)
+                        ),
                         "note": new_note,
-                        "updated_at": now
+                        "updated_at": now,
                     }
                 }
             )
 
             if result.modified_count == 0:
-                # Haddii qiimuhu is beddelin, weli hubi inuu jiro.
                 still_exists = mongo.db.debt_payments.find_one({
                     "_id": latest_payment["_id"],
                     "user_id": user_oid,
                     "debt_id": debt["_id"],
-                    "voided": {"$ne": True}
+                    "voided": {"$ne": True},
                 })
 
                 if not still_exists:
                     flash(
                         "Lacag-bixintan waa la beddelay ama lama helin. "
                         "Bogga dib u fur.",
-                        "warning"
+                        "warning",
                     )
                     return redirect(
-                        url_for("main.debt_details", debt_id=str(debt["_id"]))
+                        url_for(
+                            "main.debt_details",
+                            debt_id=str(debt["_id"]),
+                        )
                     )
 
             debt = _payment_owned_debt(debt_id)
             _recalculate_debt_from_payments(debt)
 
-            flash("Lacag-bixintii ugu dambaysay si guul leh ayaa loo beddelay.", "success")
+            flash(
+                "Lacag-bixintii ugu dambaysay si guul leh "
+                "ayaa loo beddelay.",
+                "success",
+            )
             return redirect(
-                url_for("main.debt_details", debt_id=str(debt["_id"]))
+                url_for(
+                    "main.debt_details",
+                    debt_id=str(debt["_id"]),
+                )
             )
 
         except (ValueError, TypeError, ArithmeticError) as exc:
             flash(str(exc), "danger")
 
-            # Dib u soo qaado xogta lacag-bixinta haddii form-ku dib u muuqdo.
             latest_payment = mongo.db.debt_payments.find_one({
                 "_id": latest_payment["_id"],
                 "user_id": user_oid,
                 "debt_id": debt["_id"],
-                "voided": {"$ne": True}
+                "voided": {"$ne": True},
             }) or latest_payment
+
+        except Exception:
+            current_app.logger.exception(
+                "Failed to edit latest debt payment: debt_id=%s",
+                debt_id,
+            )
+            flash(
+                "Lacag-bixintii lama beddeli karin sababo farsamo awgood. "
+                "Haddii dayntu Savings-funded tahay, hubi Savings balance "
+                "iyo yearly_rates.",
+                "danger",
+            )
 
     return render_template(
         "backend/pages/components/debts/edit_latest_debt_payment.html",
         debt=debt,
-        payment=latest_payment
+        payment=latest_payment,
     )
+
+
+
 
 
 
