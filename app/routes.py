@@ -138022,9 +138022,80 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
                 ),
             })
 
-    active_debts = [row for row in debt_rows if str(row.get("status", "")).lower() not in {"paid", "settled", "closed", "completed", "fully_paid"}]
-    payable_remaining = round(sum(row["remaining_amount"] for row in active_debts if row["debt_type"] in {"payable", "owed", "debt"}), 2)
-    receivable_remaining = round(sum(row["remaining_amount"] for row in active_debts if row["debt_type"] in {"receivable", "owed_to_me", "credit"}), 2)
+    active_debts = [row for row in debt_rows if str(row.get("status", "")).strip().lower() not in {"paid", "settled", "closed", "completed", "fully_paid", "cancelled", "canceled", "deleted", "void", "archived"}]
+    payable_types = {"payable", "owed", "debt"}
+    receivable_types = {"receivable", "owed_to_me", "credit"}
+    payable_debts = [
+        row for row in active_debts
+        if row.get("debt_type") in payable_types and money_value(row.get("remaining_amount", 0)) > 0
+    ]
+    payable_remaining = round(sum(money_value(row.get("remaining_amount", 0)) for row in payable_debts), 2)
+    receivable_remaining = round(sum(row["remaining_amount"] for row in active_debts if row["debt_type"] in receivable_types), 2)
+
+    # A separate coaching alert for every real, outstanding payable debt.
+    # Only use live records belonging to the authenticated user. Due-date labels
+    # are informational; do not claim overdue unless the date parses reliably.
+    from datetime import date as _date, datetime as _datetime
+    today_utc = _date.today()
+    payable_debt_alerts = []
+    for row in payable_debts:
+        due_raw = row.get("due_date")
+        due_day = None
+        if isinstance(due_raw, _datetime):
+            due_day = due_raw.date()
+        elif isinstance(due_raw, _date):
+            due_day = due_raw
+        elif isinstance(due_raw, str) and due_raw.strip():
+            try:
+                due_day = _datetime.fromisoformat(due_raw.strip().replace("Z", "+00:00")).date()
+            except Exception:
+                try:
+                    due_day = _date.fromisoformat(due_raw.strip()[:10])
+                except Exception:
+                    due_day = None
+        days_until_due = (due_day - today_utc).days if due_day else None
+        if days_until_due is not None and days_until_due < 0:
+            urgency = "overdue"
+            urgency_somali = "WAQTIGII BIXINTU WUU DHAAFAY"
+        elif days_until_due is not None and days_until_due <= 3:
+            urgency = "due_soon"
+            urgency_somali = "BIXINTU AAD BAY U SOO DHOWDAHAY"
+        else:
+            urgency = "outstanding"
+            urgency_somali = "DAYN WELI KUGU TAAGAN"
+        payable_debt_alerts.append({
+            "title": row.get("title") or "Dayn la bixinayo",
+            "category": row.get("category_name") or row.get("category") or "",
+            "principal_amount": money_value(row.get("principal_amount", 0)),
+            "paid_amount": money_value(row.get("paid_amount", 0)),
+            "remaining_amount": money_value(row.get("remaining_amount", 0)),
+            "currency": row.get("currency") or "USD",
+            "status": row.get("status") or "open",
+            "due_date": due_raw,
+            "days_until_due": days_until_due,
+            "urgency": urgency,
+            "urgency_somali": urgency_somali,
+            "alert_required": True,
+            "alert_message_somali": (
+                "DIGNIIN DAYN: Waxaa jira lacag weli lagugu leeyahay oo u baahan qorshe bixineed. "
+                "Ha iska indhatirin, hana qaadan dayn kale oo aan daruuri ahayn inta tan taagan tahay."
+            ),
+        })
+
+    payable_debt_alert_summary = {
+        "alert_required": bool(payable_debt_alerts),
+        "outstanding_count": len(payable_debt_alerts),
+        "outstanding_total": payable_remaining,
+        "currency_note": "Amounts retain the currency recorded on each debt; totals assume compatible currencies.",
+        "overdue_count": sum(1 for item in payable_debt_alerts if item["urgency"] == "overdue"),
+        "due_soon_count": sum(1 for item in payable_debt_alerts if item["urgency"] == "due_soon"),
+        "items": payable_debt_alerts,
+        "alert_message_somali": (
+            f"DIGNIIN ADAG: Waxaad leedahay {len(payable_debt_alerts)} dayn oo weli furan, "
+            f"wadartooda hadhayna waa {payable_remaining:.2f}. Daynta ha iska indhatirin; "
+            "jooji dayn cusub oo aan daruuri ahayn, samee jadwal bixineed, oo ilaali kharashaadka aasaasiga ah."
+        ) if payable_debt_alerts else "Ma jiraan daymo payable oo furan oo lacag ka dhiman tahay xogta live-ka.",
+    }
 
     return {
         "source": "LIVE_MONGODB_READ_ON_EVERY_AI_REQUEST",
@@ -138041,6 +138112,9 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
         "debts_count": len(debt_rows),
         "active_debts_count": len(active_debts),
         "payable_remaining_total": payable_remaining,
+        "payable_debt_alerts": payable_debt_alerts,
+        "payable_debt_alert_summary": payable_debt_alert_summary,
+        "payable_debt_alerts_count": len(payable_debt_alerts),
         "receivable_remaining_total": receivable_remaining,
         "account_balance_total": round(sum(
             float(row["balance"]) for row in account_rows
@@ -143728,6 +143802,8 @@ REAL-TIME MULTI-TAB RULE:
   Calculate remaining debt as max(0, principal_amount - paid_amount), and do not blindly trust stored remaining_amount.
   Respect currency, due_date, and status; exclude deleted/cancelled/void/archived records and do not call a debt paid unless its status or remaining amount supports that conclusion.
   If the current user's live debts list is empty, say no active debt records were found rather than inventing a debt calculation.
+- Inspect live_realtime_snapshot.payable_debt_alert_summary and payable_debt_alerts whenever discussing budgeting, financial health, borrowing, repayment, or debt. If an outstanding payable debt exists, give a firm, prominent Somali warning; state the live outstanding amount, debt title, status, and due date/urgency when available. Distinguish overdue debts from debts merely still outstanding. Never imply overdue when the due date is missing or cannot be parsed. Give a concrete repayment step and advise against avoidable new borrowing. Do not insult, shame, or invent penalties/interest.
+- If the payable-debt alert list is empty, do not fabricate a payable debt or show a debt warning as if one exists.
 - Its refreshed_at_utc and records are fetched anew for this request; prefer them over any
   older assistant answer, conversation history, remembered balance, or stale calculated field.
 - Never claim a current balance from chat history if the live snapshot contains the account.
@@ -144736,6 +144812,13 @@ build savings consistently, protect essential needs, reduce avoidable
 spending, avoid unnecessary debt, and make measurable progress toward
 the user's goals. Do not optimize for making the user feel good at the
 expense of financial accuracy. Be respectful, but honest and direct.
+
+PAYABLE DEBTS — STRONG MANDATORY ALERT:
+- If live_realtime_snapshot.payable_debt_alert_summary.alert_required is true, do not hide or soften the existence of payable debt when the user asks about money, budgeting, financial discipline, or debt. Start with a clear, strong Somali warning such as "⚠️ DIGNIIN ADAG: Waxaa weli lagugu leeyahay lacag; iska indhatiriddeedu ma tirtirayso daynta. Waa inaad hadda samaysataa qorshe bixineed oo la fulin karo." 
+- State the verified outstanding total and list each relevant debt's title, remaining amount, status, and due date. If overdue_count is positive, explicitly identify only the records whose urgency is "overdue" as overdue; if due_soon_count is positive, warn that those deadlines are near. Do not claim a due date, interest, fee, legal consequence, or default that is not in the live data.
+- Be direct and constructively critical: explain that taking new nonessential debt before handling existing payable debt can deepen financial pressure. Tell the user to pause avoidable borrowing, contact the creditor if a deadline cannot be met, set a realistic payment amount/date, and protect food, housing, medicine, essential transport, and dependants' needs.
+- Do not tell the user to pay all debt immediately if that would jeopardize essentials. If the debt currency differs, show per-debt amounts in their own currencies and do not combine unlike currencies into a misleading total.
+- If no outstanding payable debt is present in the live alert list, do not produce a payable-debt warning.
 
 SAVINGS USED FOR DEBT — MANDATORY ALERT AND FIRM CRITICISM:
 - If live_realtime_snapshot.savings_debt_alerts contains a confirmed link, do not ignore it.
@@ -146528,7 +146611,6 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
