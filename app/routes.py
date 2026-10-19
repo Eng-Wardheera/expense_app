@@ -137489,7 +137489,6 @@ def ai_is_person_ledger_question(message, financial_context=None):
 #--- AI ASSICANCE
 #===============================
 
-
 # ---------------------------------------------------------------------------
 # MAAREYE AI MONGODB ID POLICY
 # Every document created by this AI module receives a BSON ObjectId _id.
@@ -137560,28 +137559,6 @@ def _maareye_ai_detect_bookkeeping_action(message, data=None):
     data = data if isinstance(data, dict) else {}
     text = str(message or "").strip().lower()
     explicit = str(data.get("bookkeeping_action") or data.get("action") or "").strip().lower()
-
-    # Debt actions must be classified before generic transaction deletion.
-    # They require a debt ID or an explicit payload action; no fuzzy financial mutation.
-    debt_delete_phrases = (
-        "delete debt", "remove debt", "cancel debt", "tirtir daynta",
-        "tirtir dayn", "daynta tirtir", "dayntan tirtir", "ka saar daynta",
-        "ii tirtir daynta", "tirtir deynta", "daynta iga tirtir",
-    )
-    debt_payment_phrases = (
-        "pay debt", "make debt payment", "repay debt", "bixi daynta",
-        "daynta ka bixi", "dayn ka bixi", "lacag ku bixi daynta",
-        "lacagta daynta bixi", "u bixi daynta", "iska bixi daynta",
-        "bixi lacagta daynta", "dayntan ka bixi",
-    )
-    if explicit in {"debt_delete", "delete_debt", "debt_remove"} or any(
-        phrase in text for phrase in debt_delete_phrases
-    ):
-        return "debt_delete"
-    if explicit in {"debt_payment", "pay_debt", "repay_debt", "debt_repayment"} or any(
-        phrase in text for phrase in debt_payment_phrases
-    ):
-        return "debt_payment"
 
     # Delete only when the user clearly requests deletion/cancellation. The
     # executor validates the transaction ID and authenticated user ownership.
@@ -137797,8 +137774,18 @@ def _maareye_ai_bookkeeping_user_query(user_ids):
                 continue
     if not normalized:
         # Never return an unscoped query when the authenticated user ID is absent.
-        return {"user_id": {"$in": ["__NO_MATCHING_USER_ID__"]}}
-    return {"user_id": {"$in": normalized}}
+        return {"$or": [
+            {"user_id": {"$in": ["__NO_MATCHING_USER_ID__"]}},
+            {"user_id_str": {"$in": ["__NO_MATCHING_USER_ID__"]}},
+        ]}
+
+    # Some older Maareye collections store the owner in user_id_str instead of
+    # user_id. Match both schemas, but ONLY against this authenticated user's IDs.
+    string_ids = list(dict.fromkeys(str(value).strip() for value in normalized if value is not None))
+    return {"$or": [
+        {"user_id": {"$in": normalized}},
+        {"user_id_str": {"$in": string_ids}},
+    ]}
 
 
 def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
@@ -137818,6 +137805,13 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
             return str(value)
         if isinstance(value, (datetime, date)):
             return value.isoformat()
+        # BSON Decimal128 is not JSON serializable; normalize it before the
+        # financial context reaches the model or Flask JSON response.
+        if hasattr(value, "to_decimal"):
+            try:
+                value = float(value.to_decimal())
+            except Exception:
+                return None
         if isinstance(value, dict):
             return {str(k): safe_value(v) for k, v in value.items() if k != "_id"}
         if isinstance(value, (list, tuple)):
@@ -137849,9 +137843,18 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     try:
         savings = list(mongo.db.savings.find(
             user_query,
-            {"_id": 1, "title": 1, "target_amount": 1, "current_balance": 1,
-             "account_id": 1, "status": 1, "updated_at": 1}
-        ).limit(200))
+            {"_id": 1, "user_id": 1, "user_id_str": 1, "title": 1,
+             "description": 1, "target_amount": 1, "current_balance": 1,
+             "remaining_amount": 1, "progress": 1, "daily_required": 1,
+             "weekly_required": 1, "monthly_required": 1, "days_remaining": 1,
+             "start_date": 1, "maturity_date": 1, "account_id": 1,
+             "refund_debt_ids": 1, "status": 1, "created_at": 1, "updated_at": 1}
+        ).limit(500))
+        excluded_savings_statuses = {
+            "deleted", "cancelled", "canceled", "void", "inactive", "archived", "removed"
+        }
+        savings = [doc for doc in savings if str(doc.get("status", "active") or "active").strip().lower()
+                   not in excluded_savings_statuses and doc.get("status") is not False]
     except Exception as exc:
         print("MAAREYE LIVE SNAPSHOT SAVINGS ERROR:", repr(exc))
 
@@ -137864,6 +137867,7 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
              "title": 1, "description": 1, "principal_amount": 1,
              "paid_amount": 1, "remaining_amount": 1, "currency": 1,
              "debt_date": 1, "due_date": 1, "status": 1, "notes": 1,
+             "saving_id": 1, "source_saving_id": 1, "funding_source": 1,
              "updated_at": 1, "created_at": 1}
         ).sort([("due_date", 1), ("created_at", -1)]).limit(500))
     except Exception as exc:
@@ -137912,13 +137916,34 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
 
     savings_rows = []
     for doc in savings:
+        target_amount = money_value(doc.get("target_amount", 0))
+        current_balance = money_value(doc.get("current_balance", 0))
+        # Calculate remaining/progress from current target and balance rather
+        # than trusting cached fields which may be stale after a deposit.
+        remaining_amount = round(max(target_amount - current_balance, 0.0), 2) if target_amount > 0 else None
+        progress = min(round((current_balance / target_amount) * 100, 2), 100.0) if target_amount > 0 else None
         savings_rows.append({
             "id": str(doc.get("_id", "")),
             "title": str(doc.get("title") or ""),
-            "target_amount": money_value(doc.get("target_amount", 0)),
-            "current_balance": money_value(doc.get("current_balance", 0)),
+            "description": str(doc.get("description") or ""),
+            "target_amount": target_amount if target_amount > 0 else None,
+            "current_balance": current_balance,
+            "remaining_amount_calculated": remaining_amount,
+            "progress_calculated": progress,
+            "stored_remaining_amount": money_value(doc.get("remaining_amount", 0)),
+            "stored_progress": safe_value(doc.get("progress")),
+            "daily_required": money_value(doc.get("daily_required", 0)),
+            "weekly_required": money_value(doc.get("weekly_required", 0)),
+            "monthly_required": money_value(doc.get("monthly_required", 0)),
+            "days_remaining_stored": safe_value(doc.get("days_remaining")),
+            "start_date": safe_value(doc.get("start_date")),
+            "maturity_date": safe_value(doc.get("maturity_date")),
             "account_id": safe_value(doc.get("account_id")),
+            # Some debt workflows explicitly link debts to the savings record
+            # through refund_debt_ids. Preserve these links in the live snapshot.
+            "refund_debt_ids": [str(x) for x in (doc.get("refund_debt_ids") or [])],
             "status": safe_value(doc.get("status", "active")),
+            "created_at": safe_value(doc.get("created_at")),
             "updated_at": safe_value(doc.get("updated_at")),
         })
 
@@ -137941,9 +137966,61 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
             "due_date": safe_value(doc.get("due_date")),
             "status": safe_value(doc.get("status", "open")),
             "notes": str(doc.get("notes") or ""),
+            "saving_id": safe_value(doc.get("saving_id")),
+            "source_saving_id": safe_value(doc.get("source_saving_id")),
+            "funding_source": str(doc.get("funding_source") or ""),
             "created_at": safe_value(doc.get("created_at")),
             "updated_at": safe_value(doc.get("updated_at")),
         })
+
+    # Match only explicit MongoDB links between this user's savings and debts.
+    # In this schema refund_debt_ids on a saving records debt IDs associated with
+    # money taken/used in relation to that saving. Also honor explicit saving_id
+    # and source_saving_id fields if a debt document uses those legacy fields.
+    debt_by_id = {str(row.get("id")): row for row in debt_rows if row.get("id")}
+    savings_debt_alerts = []
+    for saving_row in savings_rows:
+        linked_ids = set(str(x) for x in (saving_row.get("refund_debt_ids") or []) if x)
+        saving_id = str(saving_row.get("id") or "")
+        linked_debts = [
+            row for row in debt_rows
+            if row.get("id") in linked_ids
+            or str(row.get("saving_id") or "") == saving_id
+            or str(row.get("source_saving_id") or "") == saving_id
+        ]
+        # Keep only IDs actually present in the authenticated user's debt query;
+        # stale references alone are not evidence of a currently recorded debt.
+        if linked_debts:
+            linked_debt_total = round(sum(
+                row.get("remaining_amount", 0.0) for row in linked_debts
+                if str(row.get("status", "")).lower() not in {"paid", "settled", "closed", "completed", "fully_paid"}
+            ), 2)
+            savings_debt_alerts.append({
+                "saving_id": saving_id,
+                "saving_title": saving_row.get("title") or "Savings",
+                "target_amount": saving_row.get("target_amount"),
+                "current_balance": saving_row.get("current_balance", 0.0),
+                "remaining_to_target": saving_row.get("remaining_amount_calculated"),
+                "linked_debt_count": len(linked_debts),
+                "linked_debts": [{
+                    "title": debt.get("title"),
+                    "debt_type": debt.get("debt_type"),
+                    "principal_amount": debt.get("principal_amount"),
+                    "paid_amount": debt.get("paid_amount"),
+                    "remaining_amount": debt.get("remaining_amount"),
+                    "status": debt.get("status"),
+                    "due_date": debt.get("due_date"),
+                } for debt in linked_debts],
+                "active_linked_debt_remaining_total": linked_debt_total,
+                "alert_required": True,
+                "alert_message_somali": (
+                    "DIGNIIN ADAG: Waxaa jira daymo si toos ah ugu xiran kaydkan. "
+                    "Ha u qaadan kaydka lacag firaaqo ah; isticmaalka kaydka si dayn loo daboolo "
+                    "wuxuu dib u dhigaa yoolka, wuxuuna halis gelin karaa qorshahaaga. "
+                    "Jooji dayn cusub oo aan daruuri ahayn, samee qorshe bixineed, "
+                    "kuna celi kaydka lacagta laga isticmaalay haddii ay suurtagal tahay."
+                ),
+            })
 
     active_debts = [row for row in debt_rows if str(row.get("status", "")).lower() not in {"paid", "settled", "closed", "completed", "fully_paid"}]
     payable_remaining = round(sum(row["remaining_amount"] for row in active_debts if row["debt_type"] in {"payable", "owed", "debt"}), 2)
@@ -137958,6 +138035,8 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
         "transactions_count_returned": len(transaction_rows),
         "savings": savings_rows,
         "savings_count": len(savings_rows),
+        "savings_debt_alerts": savings_debt_alerts,
+        "savings_debt_alerts_count": len(savings_debt_alerts),
         "debts": debt_rows,
         "debts_count": len(debt_rows),
         "active_debts_count": len(active_debts),
@@ -138175,296 +138254,6 @@ def _maareye_ai_prepare_savings_deposit(user_id, user_ids, message, data, histor
     }, 200
 
 
-
-def _maareye_ai_execute_debt_action(action, message, data, user_id, user_ids):
-    """
-    Apply the debt-management update used by Maareye's debt routes:
-    - Savings-funded debt payments are credited back to the same Savings plan.
-    - Deleting a Savings-funded debt refunds only its outstanding principal.
-    - All reads/writes are restricted to the authenticated user's records.
-    - Mongo transaction keeps debt, payment history, and Savings in sync.
-    """
-    import re
-    import math
-    from datetime import datetime, timezone
-    from bson import ObjectId
-    from bson.decimal128 import Decimal128
-
-    data = data if isinstance(data, dict) else {}
-    user_query = _maareye_ai_bookkeeping_user_query(user_ids)
-    raw_id = str(
-        data.get("debt_id") or data.get("debtId") or
-        (data.get("id") if action in {"debt_delete", "debt_payment"} else "") or ""
-    ).strip()
-    if not raw_id:
-        match = re.search(r"(?<![0-9a-fA-F])[0-9a-fA-F]{24}(?![0-9a-fA-F])", str(message or ""))
-        raw_id = match.group(0) if match else ""
-    try:
-        debt_oid = ObjectId(raw_id)
-    except Exception:
-        return {
-            "success": False, "action_required": True,
-            "financial_action": action.upper(), "status": "NEEDS_DEBT_ID",
-            "answer": "Fadlan ku dar Debt ID-ga 24 xaraf ee daynta saxda ah. Wax xog ah lama beddelin."
-        }, 400
-
-    debt = mongo.db.debts.find_one({"_id": debt_oid, **user_query})
-    if not debt:
-        return {
-            "success": False, "financial_action": action.upper(),
-            "status": "DEBT_NOT_FOUND",
-            "answer": "Dayntan lagama helin akoonkaaga. Wax xog ah lama beddelin."
-        }, 404
-
-    def money(value):
-        try:
-            number = float(value or 0)
-            return round(number, 2) if math.isfinite(number) else 0.0
-        except (TypeError, ValueError, OverflowError):
-            return 0.0
-
-    source = str(debt.get("debt_source") or "regular").strip().lower()
-    status = str(debt.get("status") or "unpaid").strip().lower()
-    principal = money(debt.get("principal_amount"))
-    paid = money(debt.get("paid_amount"))
-    remaining = round(max(principal - paid, 0.0), 2)
-    now = datetime.now(timezone.utc)
-
-    if action == "debt_payment":
-        amount = _maareye_ai_bookkeeping_amount(message, data)
-        if amount is None:
-            return {
-                "success": False, "action_required": True,
-                "financial_action": "DEBT_PAYMENT", "status": "NEEDS_AMOUNT",
-                "debt_id": str(debt_oid), "remaining_amount": remaining,
-                "answer": f"Daynta waxaa ka haray ${remaining:,.2f}. Fadlan sheeg lacagta saxda ah ee aad rabto inaad bixiso."
-            }, 400
-        if status in {"paid", "settled", "closed", "completed", "fully_paid", "void", "deleted", "cancelled", "canceled"}:
-            return {
-                "success": False, "financial_action": "DEBT_PAYMENT",
-                "status": "DEBT_NOT_PAYABLE",
-                "answer": "Dayntan waa la dhammeeyey ama waa la tirtiray; lacag dambe lagama diiwaangelin karo."
-            }, 409
-        if amount <= 0 or amount > remaining:
-            return {
-                "success": False, "financial_action": "DEBT_PAYMENT",
-                "status": "INVALID_AMOUNT", "remaining_amount": remaining,
-                "answer": f"Qadarka sax ma aha. Hadhaaga dayntu waa ${remaining:,.2f}; waxba lama beddelin."
-            }, 400
-
-        saving_id = debt.get("saving_id") or debt.get("savings_id") or debt.get("saving_ref_id")
-        saving = None
-        if source == "savings":
-            if not saving_id:
-                return {
-                    "success": False, "financial_action": "DEBT_PAYMENT",
-                    "status": "SAVING_LINK_MISSING",
-                    "answer": "Dayntan Savings ayay ku xiran tahay, laakiin saving_id/savings_id kuma jiro diiwaanka. Ku xir Savings-ka saxda ah marka hore; waxba lama beddelin."
-                }, 409
-            try:
-                saving_oid = saving_id if isinstance(saving_id, ObjectId) else ObjectId(str(saving_id))
-            except Exception:
-                return {
-                    "success": False, "financial_action": "DEBT_PAYMENT",
-                    "status": "INVALID_SAVING_ID",
-                    "answer": "ID-ga Savings-ka ku xiran dayntan ma saxna; waxba lama beddelin."
-                }, 409
-            saving = mongo.db.savings.find_one({
-                "_id": saving_oid, **user_query,
-                "status": {"$nin": ["deleted", "cancelled", "void"]}
-            })
-            if not saving:
-                return {
-                    "success": False, "financial_action": "DEBT_PAYMENT",
-                    "status": "SAVING_NOT_FOUND",
-                    "answer": "Saving-kii dayntan ku xirnaa lama helin ama kuma laha akoonkaaga. Waxba lama beddelin."
-                }, 409
-
-        paid_after = round(paid + amount, 2)
-        remaining_after = round(max(principal - paid_after, 0.0), 2)
-        new_status = "paid" if remaining_after == 0 else ("partial" if paid_after > 0 else "unpaid")
-        payment_oid = ObjectId()
-        try:
-            with mongo.cx.start_session() as session:
-                with session.start_transaction():
-                    latest = mongo.db.debts.find_one(
-                        {"_id": debt_oid, **user_query}, session=session
-                    )
-                    if not latest or money(latest.get("principal_amount")) != principal or money(latest.get("paid_amount")) != paid:
-                        raise ValueError("Daynta waa la beddelay intii hawshu socotay. Dib u eeg oo mar kale isku day.")
-                    if source == "savings":
-                        latest_saving = mongo.db.savings.find_one(
-                            {"_id": saving["_id"], **user_query}, session=session
-                        )
-                        if not latest_saving:
-                            raise ValueError("Saving-ka ku xiran dayntan lama helin.")
-                        old_balance = money(latest_saving.get("current_balance"))
-                        new_balance = round(old_balance + amount, 2)
-                        target = money(latest_saving.get("target_amount"))
-                        remaining_target = max(round(target - new_balance, 2), 0.0) if target > 0 else 0.0
-                        progress = min(round(new_balance / target * 100, 2), 100.0) if target > 0 else 0.0
-                        maturity = latest_saving.get("maturity_date")
-                        try:
-                            maturity_date = maturity.date() if isinstance(maturity, datetime) else maturity
-                            days = max((maturity_date - now.date()).days, 0) if maturity_date else 0
-                        except Exception:
-                            days = 0
-                        divisor = days if days > 0 else 1
-                        saving_fields = {
-                            "current_balance": new_balance,
-                            "remaining_amount": remaining_target,
-                            "progress": progress,
-                            "days_remaining": days,
-                            "daily_required": round(remaining_target / divisor, 2),
-                            "weekly_required": round(remaining_target / divisor * 7, 2),
-                            "monthly_required": round(remaining_target / divisor * 30.4375, 2),
-                            "updated_at": now,
-                        }
-                        updated_saving = mongo.db.savings.update_one(
-                            {"_id": saving["_id"], **user_query, "current_balance": latest_saving.get("current_balance")},
-                            {"$set": saving_fields}, session=session
-                        )
-                        if updated_saving.matched_count != 1:
-                            raise ValueError("Saving balance-ku wuu isbeddelay; dib u fur oo isku day mar kale.")
-                    updated_debt = mongo.db.debts.update_one(
-                        {"_id": debt_oid, **user_query, "paid_amount": latest.get("paid_amount")},
-                        {"$set": {
-                            "paid_amount": Decimal128(str(paid_after)),
-                            "remaining_amount": Decimal128(str(remaining_after)),
-                            "status": new_status, "last_payment_at": now, "updated_at": now,
-                        }}, session=session
-                    )
-                    if updated_debt.matched_count != 1:
-                        raise ValueError("Daynta lama cusboonaysiin; dib u fur oo isku day mar kale.")
-                    mongo.db.debt_payments.insert_one({
-                        "_id": payment_oid, "user_id": user_id, "debt_id": debt_oid,
-                        "amount": Decimal128(str(amount)),
-                        "currency": str(debt.get("currency") or "USD").upper(),
-                        "note": "Payment recorded through Maareye AI",
-                        "payment_date": now, "created_at": now, "updated_at": now,
-                        "voided": False, "debt_source": source,
-                    }, session=session)
-        except Exception as exc:
-            print("MAAREYE AI DEBT PAYMENT ERROR:", repr(exc))
-            return {
-                "success": False, "financial_action": "DEBT_PAYMENT",
-                "status": "PAYMENT_FAILED",
-                "answer": f"Lacag-bixinta lama dhammaystirin: {str(exc)}. Wax xog ah lama xaqiijin in la beddelay; hubi diiwaanka ka hor isku-day kale."
-            }, 409
-
-        answer = (
-            f"✅ Lacag-bixinta daynta waa la diiwaangeliyey. Qadar: ${amount:,.2f}; "
-            f"hadhaaga daynta: ${remaining_after:,.2f}."
-        )
-        if source == "savings":
-            answer += (
-                f" Lacagta ${amount:,.2f} waxaa dib loogu celiyey Savings-ka "
-                f"**{saving.get('title') or 'Kaydka ku xiran'}**; "
-                f"balance-ka cusub waa ${round(money(saving.get('current_balance')) + amount, 2):,.2f}."
-            )
-        try:
-            chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
-        except Exception:
-            chat_id = None
-        return {
-            "success": True, "financial_action": "DEBT_PAYMENT", "status": "COMPLETED",
-            "debt_id": str(debt_oid), "payment_id": str(payment_oid), "amount": amount,
-            "paid_amount": paid_after, "remaining_amount": remaining_after,
-            "debt_status": new_status, "message_id": chat_id, "answer": answer,
-        }, 200
-
-    # Delete debt. Savings-funded debt refunds only the unpaid remainder:
-    # earlier repayments have already been credited back into Savings.
-    if action == "debt_delete":
-        if status in {"deleted", "void", "cancelled", "canceled"}:
-            # An already voided record may still need physical cleanup, but never
-            # repeat a Savings refund without checking the idempotency ledger.
-            pass
-        saving_id = debt.get("saving_id") or debt.get("savings_id") or debt.get("saving_ref_id")
-        refund_amount = remaining if source == "savings" else 0.0
-        try:
-            with mongo.cx.start_session() as session:
-                with session.start_transaction():
-                    latest = mongo.db.debts.find_one({"_id": debt_oid, **user_query}, session=session)
-                    if not latest:
-                        raise ValueError("Daynta lama helin.")
-                    latest_source = str(latest.get("debt_source") or "regular").strip().lower()
-                    latest_principal = money(latest.get("principal_amount"))
-                    latest_paid = money(latest.get("paid_amount"))
-                    outstanding = round(max(latest_principal - latest_paid, 0.0), 2)
-                    if latest_source == "savings" and outstanding > 0:
-                        latest_saving_id = latest.get("saving_id") or latest.get("savings_id") or latest.get("saving_ref_id")
-                        if not latest_saving_id:
-                            raise ValueError("Dayntan Savings ayay ku xiran tahay, laakiin saving_id lama helin; refund lama samayn, dayntana lama tirtirin.")
-                        try:
-                            latest_saving_oid = latest_saving_id if isinstance(latest_saving_id, ObjectId) else ObjectId(str(latest_saving_id))
-                        except Exception:
-                            raise ValueError("Saving ID-ga daynta ku xiran ma saxna; waxba lama beddelin.")
-                        latest_saving = mongo.db.savings.find_one({"_id": latest_saving_oid, **user_query}, session=session)
-                        if not latest_saving:
-                            raise ValueError("Saving-kii daynta ku xirnaa lama helin; waxba lama beddelin.")
-                        refund_ids = latest_saving.get("refund_debt_ids") or []
-                        already_refunded = any(str(x) == str(debt_oid) for x in refund_ids)
-                        if not already_refunded:
-                            old_balance = money(latest_saving.get("current_balance"))
-                            new_balance = round(old_balance + outstanding, 2)
-                            target = money(latest_saving.get("target_amount"))
-                            target_remaining = max(round(target - new_balance, 2), 0.0) if target > 0 else 0.0
-                            progress = min(round(new_balance / target * 100, 2), 100.0) if target > 0 else 0.0
-                            maturity = latest_saving.get("maturity_date")
-                            try:
-                                maturity_date = maturity.date() if isinstance(maturity, datetime) else maturity
-                                days = max((maturity_date - now.date()).days, 0) if maturity_date else 0
-                            except Exception:
-                                days = 0
-                            divisor = days if days > 0 else 1
-                            saving_result = mongo.db.savings.update_one(
-                                {"_id": latest_saving_oid, **user_query, "current_balance": latest_saving.get("current_balance"),
-                                 "refund_debt_ids": {"$nin": [debt_oid, str(debt_oid)]}},
-                                {"$inc": {"current_balance": outstanding},
-                                 "$addToSet": {"refund_debt_ids": debt_oid},
-                                 "$set": {
-                                     "remaining_amount": target_remaining, "progress": progress,
-                                     "days_remaining": days,
-                                     "daily_required": round(target_remaining / divisor, 2),
-                                     "weekly_required": round(target_remaining / divisor * 7, 2),
-                                     "monthly_required": round(target_remaining / divisor * 30.4375, 2),
-                                     "updated_at": now,
-                                 }}, session=session
-                            )
-                            if saving_result.matched_count != 1:
-                                raise ValueError("Savings refund lama xaqiijin; daynta lama tirtirin si lacagtu laba jeer uusan u dhaqaaqin.")
-                    mongo.db.debt_payments.update_many(
-                        {"debt_id": debt_oid, **user_query},
-                        {"$set": {"voided": True, "updated_at": now}}, session=session
-                    )
-                    deleted = mongo.db.debts.delete_one({"_id": debt_oid, **user_query}, session=session)
-                    if deleted.deleted_count != 1:
-                        raise ValueError("MongoDB ma xaqiijin tirtirka daynta.")
-        except Exception as exc:
-            print("MAAREYE AI DEBT DELETE ERROR:", repr(exc))
-            return {
-                "success": False, "financial_action": "DEBT_DELETE",
-                "status": "DELETE_FAILED",
-                "answer": f"Daynta lama tirtirin: {str(exc)}. Hubi xogta ka hor intaadan mar kale isku dayin."
-            }, 409
-
-        answer = "✅ Daynta si joogto ah ayaa looga tirtiray database-kaaga."
-        if source == "savings":
-            answer += f" Refund-ka waxaa lagu xisaabiyey hadhaaga aan weli la bixin oo ah ${refund_amount:,.2f}; lacagihii hore loo bixiyey mar labaad lama celin."
-        try:
-            chat_id = _maareye_ai_bookkeeping_save_chat(user_id, message, answer)
-        except Exception:
-            chat_id = None
-        return {
-            "success": True, "financial_action": "DEBT_DELETE", "status": "COMPLETED",
-            "debt_id": str(debt_oid), "refund_amount": refund_amount if source == "savings" else 0.0,
-            "message_id": chat_id, "answer": answer,
-        }, 200
-
-    return None
-
-
 def _maareye_ai_execute_bookkeeping_action(
     action, message, data, user_id, user_ids, financial_context
 ):
@@ -138480,9 +138269,6 @@ def _maareye_ai_execute_bookkeeping_action(
     data = data if isinstance(data, dict) else {}
     user_query = _maareye_ai_bookkeeping_user_query(user_ids)
     now = datetime.now(timezone.utc)
-
-    if action in {"debt_delete", "debt_payment"}:
-        return _maareye_ai_execute_debt_action(action, message, data, user_id, user_ids)
 
     if action == "transaction_delete":
         # Accept an explicit transaction_id field or a 24-character MongoDB
@@ -141991,19 +141777,18 @@ def ai_assistant():
 
             if savings_context_allowed:
 
+                savings_documents = []
+
                 try:
 
                     # =================================================
                     # SAVINGS — RAW SOURCE DATA
                     # =================================================
 
-                    savings_query = {
-
-                        "user_id": {
-                            "$in": user_ids
-                        }
-
-                    }
+                    # Always query the authenticated user's live records.
+                    # The helper matches BSON ObjectId, string user_id, and
+                    # legacy user_id_str schemas without ever becoming global.
+                    savings_query = _maareye_ai_bookkeeping_user_query(user_ids)
 
                     savings_projection = {
 
@@ -142097,28 +141882,34 @@ def ai_assistant():
                         # DYNAMIC ANALYSIS
                         # =============================================
 
-                        calculated_analysis = (
-
-                            ai_calculate_saving_analysis(
-
+                        try:
+                            calculated_analysis = ai_calculate_saving_analysis(
                                 saving,
-
-                                today=analysis_today
-
+                                today=analysis_today,
                             )
-
-                        )
+                            if not isinstance(calculated_analysis, dict):
+                                calculated_analysis = {}
+                        except Exception as _saving_analysis_error:
+                            # A calculation-helper failure must not erase a real
+                            # Savings record from the current user's live context.
+                            print(
+                                "MAAREYE AI SINGLE SAVINGS ANALYSIS ERROR:",
+                                str(saving.get("_id", "")),
+                                repr(_saving_analysis_error),
+                            )
+                            calculated_analysis = {
+                                "analysis": {},
+                                "calculated": {},
+                                "analysis_error": "dynamic_analysis_unavailable",
+                            }
 
                         # -------------------------------------------------
                         # RECONCILE SAVINGS NUMBERS AGAINST LIVE RAW FACTS
                         # Never trust cached remaining_amount/progress.
                         # Target minus current balance is authoritative.
                         # -------------------------------------------------
-                        try:
-                            _live_target = round(float(saving.get("target_amount", 0) or 0), 2)
-                            _live_balance = round(float(saving.get("current_balance", 0) or 0), 2)
-                        except (TypeError, ValueError, OverflowError):
-                            _live_target, _live_balance = 0.0, 0.0
+                        _live_target = round(ai_safe_float(saving.get("target_amount", 0)), 2)
+                        _live_balance = round(ai_safe_float(saving.get("current_balance", 0)), 2)
                         _live_remaining = round(max(_live_target - _live_balance, 0.0), 2)
                         _live_progress = min(round((_live_balance / _live_target) * 100, 2), 100.0) if _live_target > 0 else 0.0
 
@@ -142158,7 +141949,7 @@ def ai_assistant():
                                 _live_days = 0
                         if _live_days == 0:
                             try:
-                                _live_days = max(int(float(saving.get("days_remaining", 0) or 0)), 0)
+                                _live_days = max(int(ai_safe_float(saving.get("days_remaining", 0))), 0)
                             except (TypeError, ValueError, OverflowError):
                                 _live_days = 0
 
@@ -142171,7 +141962,7 @@ def ai_assistant():
                         _planned_amount = 0.0
                         for _planned_key in ("planned_amount", "planned_contribution", "planned_deposit", "scheduled_amount", "pending_deposit_amount"):
                             try:
-                                _planned_amount = max(float(saving.get(_planned_key, 0) or 0), 0.0)
+                                _planned_amount = max(ai_safe_float(saving.get(_planned_key, 0)), 0.0)
                             except (TypeError, ValueError, OverflowError):
                                 _planned_amount = 0.0
                             if _planned_amount > 0:
@@ -142179,7 +141970,7 @@ def ai_assistant():
 
                         _recorded_remaining = saving.get("remaining_amount")
                         try:
-                            _remaining_stale = abs(float(_recorded_remaining) - _live_remaining) > 0.009
+                            _remaining_stale = abs(ai_safe_float(_recorded_remaining) - _live_remaining) > 0.009
                         except (TypeError, ValueError, OverflowError):
                             _remaining_stale = True
 
@@ -142744,11 +142535,46 @@ def ai_assistant():
                         "=" * 80
                     )
 
+                    # Preserve trustworthy raw Savings facts even if a later
+                    # optional analysis step failed. Never convert a valid live
+                    # MongoDB record into a false "no savings" answer.
                     savings_context = []
-
                     savings_analysis_context = []
-
-                    savings_summary = {}
+                    _fallback_total_balance = 0.0
+                    _fallback_total_target = 0.0
+                    for _fallback_doc in (savings_documents or []):
+                        _fallback_balance = round(ai_safe_float(_fallback_doc.get("current_balance", 0)), 2)
+                        _fallback_target = round(ai_safe_float(_fallback_doc.get("target_amount", 0)), 2)
+                        _fallback_row = {
+                            "_id": str(_fallback_doc.get("_id", "")),
+                            "user_id": str(_fallback_doc.get("user_id", "")),
+                            "title": str(_fallback_doc.get("title") or "Savings account"),
+                            "description": str(_fallback_doc.get("description") or ""),
+                            "current_balance": _fallback_balance,
+                            "target_amount": _fallback_target,
+                            "remaining_amount": round(max(_fallback_target - _fallback_balance, 0.0), 2) if _fallback_target > 0 else None,
+                            "status": str(_fallback_doc.get("status") or "unknown"),
+                            "analysis_status": "raw_live_data_only",
+                        }
+                        savings_context.append(_fallback_row)
+                        savings_analysis_context.append(dict(_fallback_row))
+                        _fallback_total_balance += _fallback_balance
+                        _fallback_total_target += _fallback_target
+                    savings_summary = {
+                        "count": len(savings_analysis_context),
+                        "total_target_amount": round(_fallback_total_target, 2),
+                        "total_current_balance": round(_fallback_total_balance, 2),
+                        "analysis_status": "partial_due_to_calculation_error",
+                    }
+                    if savings_context_allowed and savings_analysis_context:
+                        financial_context = dict(financial_context or {})
+                        financial_context["savings"] = savings_analysis_context
+                        financial_context["savings_summary"] = savings_summary
+                        financial_context["savings_analysis"] = {
+                            "source": "MongoDB live savings records; partial fallback after analysis error",
+                            "records": savings_analysis_context,
+                            "summary": savings_summary,
+                        }
 
             else:
 
@@ -143908,6 +143734,18 @@ REAL-TIME MULTI-TAB RULE:
 - If a required live record is missing or the snapshot could not be fetched, say it cannot be
   verified now; do not invent a balance or pretend the data is current.
 - Old chat history is for conversational continuity only, not the source of current financial facts.
+- Inspect live_realtime_snapshot.savings_debt_alerts on every financial-coaching answer.
+  If it contains a record, clearly alert the user that the savings record is explicitly linked
+  to one or more debt records. Name the saving plan, show the linked debt amount/status when
+  available, explain that using planned savings for debt disrupts the target, and recommend
+  stopping avoidable new borrowing, making a realistic repayment plan, and rebuilding the
+  savings balance. Use firm Somali wording that combines a warning and constructive criticism;
+  do not insult, shame, or claim a debt is linked unless the live snapshot explicitly confirms it.
+  Example tone: "⚠️ DIGNIIN ADAG: Kaydkaaga waxaa lala xiriiriyey daymo. Tani waxay dhaawacaysaa
+  yoolka kaydka; waa inaad si dhab ah u joojisaa dayn aan daruuri ahayn oo aad samaysaa qorshe
+  bixineed." Do not repeat the alert in unrelated answers unless relevant.
+- If savings_debt_alerts is empty, do not infer that savings were used for debt based only on
+  general debt presence or chat history.
 
 MongoDB is the source of truth for RECORDED values.
 
@@ -144899,6 +144737,21 @@ spending, avoid unnecessary debt, and make measurable progress toward
 the user's goals. Do not optimize for making the user feel good at the
 expense of financial accuracy. Be respectful, but honest and direct.
 
+SAVINGS USED FOR DEBT — MANDATORY ALERT AND FIRM CRITICISM:
+- If live_realtime_snapshot.savings_debt_alerts contains a confirmed link, do not ignore it.
+  Start with a clear warning in Somali, then explain the actual impact using live figures.
+- Be firm and constructively critical: say plainly that repeatedly taking from a goal-based
+  saving to cover avoidable debt undermines discipline and delays the target. Do not insult,
+  humiliate, threaten, or moralize about the user's worth.
+- Show the savings title, current balance, target, remaining amount, linked debt names/statuses,
+  and outstanding linked amount when those fields are present. Never expose raw database IDs.
+- Give concrete next steps: pause nonessential borrowing, prioritize urgent/interest-bearing
+  debts based on verified details, agree on a realistic repayment amount, and resume regular
+  saving only after essentials are covered. Do not recommend repaying debt from savings if that
+  would leave food, housing, medicine, transport to work, or dependants' essentials uncovered.
+- Do not state that a debt came from savings unless a live explicit link in savings_debt_alerts
+  supports it. A debt existing at the same time as a saving is not enough evidence by itself.
+
 WHEN THE USER ASKS ABOUT THEIR OWN MONEY OR TRANSACTIONS:
 - Base the answer first on the authenticated user's current live
   financial_context, savings_context, savings_analysis_context,
@@ -144979,21 +144832,32 @@ actually reports success.
         # This is appended after live MongoDB savings loading so it reflects
         # the current request, not old assistant messages or cached context.
         if is_logged_in and savings_context_allowed and savings_records_loaded and not savings_analysis_context:
-            savings_instruction += """
+            if savings_documents:
+                savings_instruction += """
 
-# STRICT LIVE-DATABASE GUARD — THIS USER HAS NO SAVINGS RECORDS
+# LIVE SAVINGS RECORD EXISTS — DO NOT CLAIM ZERO SAVINGS
+The live MongoDB query returned one or more valid savings documents for the
+authenticated user, but detailed analysis could not be completed.
+- Never say that no savings record exists.
+- Acknowledge the existence of the saved record/account using only available
+  live fields such as title, current_balance, target_amount and status.
+- Do not invent missing target, progress, deadline, or required contribution.
+- Explain that the detailed calculation could not be completed if needed.
+- Do not reuse figures from another user or stale chat history.
+"""
+            else:
+                savings_instruction += """
+
+# STRICT LIVE-DATABASE GUARD — NO VALID SAVINGS RECORDS
 The current request's live MongoDB query returned ZERO valid savings records.
 Therefore:
 - Do not calculate or report any savings target, saved amount, remaining amount,
   progress percentage, daily/weekly/monthly requirement, or savings plan.
 - Do not reuse savings numbers from previous chat messages, prior assistant
   answers, remembered context, stale summaries, or another user's records.
-- Say clearly in Somali: "Xogta MongoDB ee hadda jirta kuma jiro qorshe kayd oo
-  kuu diiwaangashan, sidaas darteed ma jiro xisaab kayd oo aan hadda kuu
-  samayn karo." You may offer to help create a savings plan if the user wants.
+- Say clearly in Somali that no valid savings plan was found in the current live
+  query. Distinguish this from ordinary wallet/account balances.
 - Keep ordinary account balances and transactions separate; they are not savings.
-- Only calculate savings after a valid savings record for the logged-in user is
-  present in the current MongoDB result.
 """
 
         # ============================================================
@@ -146664,7 +146528,6 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
-
 
 
 
