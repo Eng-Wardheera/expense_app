@@ -10317,6 +10317,75 @@ def _debt_status(principal, paid):
 
     return "unpaid"
 
+
+def _refresh_savings_metrics(savings_id, user_id):
+    """
+    Dib u xisaabi fields-ka laga soo saaro balance-ka Savings.
+    Waxay ilaalinaysaa fields kale oo aan xisaabta ku jirin.
+    """
+    savings = mongo.db.savings.find_one({
+        "_id": savings_id,
+        "user_id": user_id,
+    })
+
+    if not savings:
+        raise ValueError("Savings account lama helin.")
+
+    now = datetime.now(timezone.utc)
+
+    def number(value):
+        if isinstance(value, Decimal128):
+            value = value.to_decimal()
+        return Decimal(str(value if value is not None else 0))
+
+    target = max(Decimal("0"), number(savings.get("target_amount")))
+    balance = max(Decimal("0"), number(savings.get("current_balance")))
+    remaining = max(Decimal("0"), target - balance)
+
+    progress = Decimal("0")
+    if target > 0:
+        progress = min(Decimal("100"), balance / target * 100)
+
+    maturity = savings.get("maturity_date")
+    if maturity and isinstance(maturity, datetime):
+        maturity_date = maturity.date()
+        today = now.date()
+        days_remaining = max(0, (maturity_date - today).days)
+    else:
+        days_remaining = 0
+
+    daily_required = Decimal("0")
+    weekly_required = Decimal("0")
+    monthly_required = Decimal("0")
+
+    if days_remaining > 0 and remaining > 0:
+        daily_required = remaining / Decimal(days_remaining)
+        weekly_required = remaining / Decimal(days_remaining) * Decimal("7")
+        months_remaining = max(
+            Decimal("1"),
+            Decimal(days_remaining) / Decimal("30.4375"),
+        )
+        monthly_required = remaining / months_remaining
+
+    updates = {
+        "current_balance": float(balance),
+        "remaining_amount": float(remaining),
+        "progress": round(float(progress), 2),
+        "days_remaining": int(days_remaining),
+        "daily_required": round(float(daily_required), 2),
+        "weekly_required": round(float(weekly_required), 2),
+        "monthly_required": round(float(monthly_required), 2),
+        "updated_at": now,
+    }
+
+    mongo.db.savings.update_one(
+        {"_id": savings_id, "user_id": user_id},
+        {"$set": updates},
+    )
+
+    return updates
+
+
 # ============================================================
 # DEBT FORM DATA — REGULAR OR SAVINGS
 # ============================================================
