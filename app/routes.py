@@ -23955,6 +23955,7 @@ from datetime import datetime, date, time, timezone, timedelta
 from zoneinfo import ZoneInfo
 
 from bson import ObjectId
+from bson.decimal128 import Decimal128
 
 # Change this import if your Mongo extension is elsewhere.
 
@@ -24862,6 +24863,113 @@ def _yr_normalize_totals(source):
 
 
 # ============================================================
+# 6B. LIVE DEBT SUMMARY — CURRENT USER ONLY
+# ============================================================
+
+def _yr_debt_amount(value):
+    """Safely read standard MongoDB numeric values and Decimal128."""
+    try:
+        if isinstance(value, Decimal128):
+            value = value.to_decimal()
+        return _yr_money(value)
+    except Exception:
+        return 0.00
+
+
+def _yr_get_debt_summary(user_id, start=None, end=None, today=None):
+    """Return live payable/receivable balances and period debt payments.
+
+    Debt totals are reported separately from transaction income/expenses so
+    the same debt or repayment is not accidentally double-counted.
+    """
+    user_ids = _yr_user_ids(user_id)
+    today = _yr_as_date(today) if today else datetime.now(YEARLY_RATE_TZ).date()
+    start_date = _yr_as_date(start) if start else None
+    end_date = _yr_as_date(end) if end else None
+    summary = {
+        "debt_payable_principal": 0.0, "debt_payable_paid": 0.0,
+        "debt_payable_remaining": 0.0, "debt_receivable_principal": 0.0,
+        "debt_receivable_received": 0.0, "debt_receivable_remaining": 0.0,
+        "debt_total_outstanding": 0.0, "debt_overdue_payable_remaining": 0.0,
+        "debt_payable_count": 0, "debt_receivable_count": 0,
+        "debt_unpaid_count": 0, "debt_partial_count": 0, "debt_overdue_count": 0,
+        "debt_new_payable_this_year": 0.0, "debt_new_receivable_this_year": 0.0,
+        "debt_payable_paid_this_year": 0.0, "debt_receivable_received_this_year": 0.0,
+    }
+    excluded = {"void", "deleted", "cancelled", "canceled", "archived", "inactive"}
+    debt_by_id = {}
+    try:
+        for doc in mongo.db.debts.find({"user_id": {"$in": user_ids}}):
+            status = str(doc.get("status") or "unpaid").strip().lower()
+            if status in excluded or doc.get("status") is False:
+                continue
+            kind = str(doc.get("debt_type") or "").strip().lower()
+            if kind not in {"payable", "receivable"}:
+                continue
+            principal = _yr_debt_amount(doc.get("principal_amount"))
+            paid = min(principal, _yr_debt_amount(doc.get("paid_amount")))
+            remaining = max(0.0, principal - paid)
+            if status == "paid":
+                remaining = 0.0
+            debt_by_id[str(doc.get("_id", ""))] = kind
+            if kind == "payable":
+                summary["debt_payable_principal"] += principal
+                summary["debt_payable_paid"] += paid
+                summary["debt_payable_remaining"] += remaining
+                summary["debt_payable_count"] += 1
+            else:
+                summary["debt_receivable_principal"] += principal
+                summary["debt_receivable_received"] += paid
+                summary["debt_receivable_remaining"] += remaining
+                summary["debt_receivable_count"] += 1
+            if status == "unpaid":
+                summary["debt_unpaid_count"] += 1
+            elif status == "partial":
+                summary["debt_partial_count"] += 1
+            due = _yr_as_date(doc.get("due_date"))
+            if kind == "payable" and remaining > 0 and due and due < today:
+                summary["debt_overdue_payable_remaining"] += remaining
+                summary["debt_overdue_count"] += 1
+            debt_date = _yr_as_date(doc.get("debt_date") or doc.get("created_at"))
+            if start_date and end_date and debt_date and start_date <= debt_date < end_date:
+                key = "debt_new_payable_this_year" if kind == "payable" else "debt_new_receivable_this_year"
+                summary[key] += principal
+    except Exception:
+        # Optional collection/schema issues must not break the yearly report.
+        pass
+
+    # Payments are classified by their parent debt and exclude voided entries.
+    if start_date and end_date:
+        try:
+            for payment in mongo.db.debt_payments.find({
+                "user_id": {"$in": user_ids}, "voided": {"$ne": True}
+            }):
+                payment_date = _yr_as_date(payment.get("payment_date") or payment.get("created_at"))
+                if not payment_date or not (start_date <= payment_date < end_date):
+                    continue
+                parent_id = str(payment.get("debt_id", ""))
+                kind = debt_by_id.get(parent_id)
+                if not kind and ObjectId.is_valid(parent_id):
+                    parent = mongo.db.debts.find_one({
+                        "_id": ObjectId(parent_id), "user_id": {"$in": user_ids}
+                    })
+                    if parent and str(parent.get("status") or "").lower() not in excluded:
+                        kind = str(parent.get("debt_type") or "").lower()
+                amount = _yr_debt_amount(payment.get("amount"))
+                if kind == "payable":
+                    summary["debt_payable_paid_this_year"] += amount
+                elif kind == "receivable":
+                    summary["debt_receivable_received_this_year"] += amount
+        except Exception:
+            pass
+
+    summary["debt_total_outstanding"] = summary["debt_payable_remaining"] + summary["debt_receivable_remaining"]
+    for key, value in list(summary.items()):
+        summary[key] = int(value) if key.endswith("_count") else _yr_money(value)
+    return summary
+
+
+# ============================================================
 # 7. FIND A YEAR RECORD
 # ============================================================
 
@@ -24997,6 +25105,13 @@ def sync_yearly_rates_for_user(
        transactions = _yr_get_transactions(user_id)
        savings_balance = _yr_get_savings_balance(user_id)
 
+
+       live_debt_summary = _yr_get_debt_summary(
+           user_id=user_id,
+           start=current_start,
+           end=today + timedelta(days=1),
+           today=today,
+       )
        # The configured account retains imported history from 2021.
        # Every other account begins on its registration date and uses that
        # anniversary for each complete financial year. Earliest transactions
@@ -25159,39 +25274,35 @@ def sync_yearly_rates_for_user(
            # CURRENT YEAR: CASH + SAVINGS
            # ----------------------------------------------------
            if is_current:
-               # Start with the previous year's closing savings balance,
-               # then apply only this year's deposits/withdrawals.
-               # Do not sum savings documents here: some schemas contain
-               # both a running balance and individual deposit amounts,
-               # which can count the same deposit twice.
-               savings_to_add = _yr_money(
-                   totals.get("transfers_to_savings")
-               )
-               savings_to_remove = _yr_money(
-                   totals.get("transfers_from_savings")
-               )
-
+               # The live savings collection is the source of truth for the
+               # CURRENT savings balance. A withdrawal used to pay a debt may
+               # update savings.current_balance without being recorded as a
+               # normal savings-transfer transaction. Rebuilding from last
+               # year's $300 alone would therefore incorrectly keep $300 and
+               # overstate this year's Recorded Balance by $10.
+               #
+               # Keep last year's closing savings as the opening/reference
+               # amount, but use the live current_balance (e.g. $290) for the
+               # current-year closing balance. Do not apply transfers a second
+               # time because the live balance already includes them.
                if previous and previous.get("saving_balance") is not None:
-                   # Normal rollover: begin with last year's closing savings,
-                   # then apply only transfers dated in the new financial year.
                    opening_savings = _yr_money(
                        previous.get("saving_balance")
                    )
-                   calculated_savings_balance = _yr_money(
-                       opening_savings + savings_to_add - savings_to_remove
-                   )
                else:
-                   # First run / missing previous snapshot: the live savings
-                   # balance already reflects recorded deposits/withdrawals.
-                   # Treat it as the current balance instead of adding the same
-                   # transfers again (which would double-count deposits).
-                   calculated_savings_balance = _yr_money(savings_balance)
+                   savings_to_add = _yr_money(
+                       totals.get("transfers_to_savings")
+                   )
+                   savings_to_remove = _yr_money(
+                       totals.get("transfers_from_savings")
+                   )
                    opening_savings = _yr_money(
-                       calculated_savings_balance
+                       _yr_money(savings_balance)
                        - savings_to_add
                        + savings_to_remove
                    )
 
+               calculated_savings_balance = _yr_money(savings_balance)
                totals["opening_savings_balance"] = opening_savings
 
                totals = _yr_calculate_year_balances(
@@ -25212,6 +25323,19 @@ def sync_yearly_rates_for_user(
                )
 
            # ----------------------------------------------------
+           # Current-year debt balances are a separate live snapshot.
+           # They are not mixed into transaction income/expense totals.
+           if is_current:
+               totals.update(live_debt_summary)
+               # Approximate liquid position after known debts. This is kept
+               # separate from cash_rest/total_balance to avoid rewriting the
+               # existing cash-and-savings accounting formula.
+               totals["financial_position_after_debt"] = _yr_money(
+                   _yr_money(totals.get("total_balance"))
+                   - _yr_money(live_debt_summary.get("debt_payable_remaining"))
+                   + _yr_money(live_debt_summary.get("debt_receivable_remaining"))
+               )
+
            # BUILD DOCUMENT
            # ----------------------------------------------------
            document = {
@@ -25317,6 +25441,7 @@ def sync_yearly_rates_for_user(
            ),
 
            "live_savings_balance": savings_balance,
+            "debt_summary": live_debt_summary,
 
            "transfers_to_savings": _yr_money(
                current_record.get("transfers_to_savings")
@@ -25574,6 +25699,12 @@ def yearly_rate(rate_id=None):
             start=current_start,
             end=current_end,
         )
+        debt_summary = _yr_get_debt_summary(
+            user_id=user_id,
+            start=current_start,
+            end=today + timedelta(days=1),
+            today=today,
+        )
 
         # --------------------------------------------------
         # 5. DATE FORMATTING HELPERS
@@ -25788,6 +25919,7 @@ def yearly_rate(rate_id=None):
             ),
             sync_result=sync_result,
             diagnostic_result=diagnostic_result,
+            debt_summary=debt_summary,
         )
 
     except HTTPException:
