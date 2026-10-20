@@ -39,7 +39,8 @@ else:
 
 
 TIMEZONE = ZoneInfo("Africa/Mogadishu")
-TARGET_USER_ID = "6a3fb30b7e3a09592080f815"
+DEFAULT_TARGET_USER_ID = "6a3fb30b7e3a09592080f815"
+TARGET_USER_ID = DEFAULT_TARGET_USER_ID  # Backward-compatible default
 SCHEDULER_JOB_ID = "yearly_rate_sync"
 SYNC_INTERVAL_HOURS = 6
 
@@ -50,6 +51,23 @@ _sync_execution_lock = threading.Lock()
 
 def _scheduler_logger():
     return logging.getLogger("yearly_rate_scheduler")
+
+
+def _configured_user_id(app):
+    """Resolve the configured user without hard-coding it throughout the job.
+
+    Configuration precedence: Flask config, environment variable, default ID.
+    The scheduler intentionally syncs one configured user per process.
+    """
+    value = (
+        app.config.get("YEARLY_RATE_TARGET_USER_ID")
+        or os.environ.get("YEARLY_RATE_TARGET_USER_ID")
+        or DEFAULT_TARGET_USER_ID
+    )
+    value = str(value).strip()
+    if not value:
+        raise ValueError("YEARLY_RATE_TARGET_USER_ID cannot be empty.")
+    return value
 
 
 def _scheduler_event_listener(event):
@@ -81,16 +99,31 @@ def _load_yearly_rate_functions():
         sync_yearly_rates_for_user,
     )
 
+    # Newer yearlyrate.py supports account-specific anniversary years. Older
+    # versions only expose the October-10 helpers, so retain that fallback.
+    try:
+        from app.routes import (
+            _yr_financial_start_for_user,
+            _yr_next_year_for_user,
+            _yr_year_label_for_user,
+        )
+    except ImportError:
+        _yr_financial_start_for_user = None
+        _yr_next_year_for_user = None
+        _yr_year_label_for_user = None
+
     return (
         sync_yearly_rates_for_user,
         diagnose_yearly_rate_transactions,
         _yr_financial_start,
         _yr_next_year,
         _yr_year_label,
+        _yr_financial_start_for_user,
+        _yr_next_year_for_user,
+        _yr_year_label_for_user,
     )
 
-
-def _get_current_financial_period():
+def _get_current_financial_period(user_id=DEFAULT_TARGET_USER_ID):
     """Return [October 10, next October 10) for today's Mogadishu date."""
     (
         _sync_function,
@@ -98,54 +131,60 @@ def _get_current_financial_period():
         financial_start,
         next_year,
         year_label,
+        financial_start_for_user,
+        next_year_for_user,
+        year_label_for_user,
     ) = _load_yearly_rate_functions()
 
     today = datetime.now(TIMEZONE).date()
-    start = financial_start(today)
-    end = next_year(start)
+    if financial_start_for_user and next_year_for_user and year_label_for_user:
+        start = financial_start_for_user(today, str(user_id))
+        end = next_year_for_user(start, str(user_id))
+        label = year_label_for_user(start, str(user_id))
+    else:
+        start = financial_start(today)
+        end = next_year(start)
+        label = year_label(start)
 
-    # Guard against an accidental helper change that reintroduces October 9.
-    expected_start_day = 10
-    if start.month != 10 or start.day != expected_start_day:
-        raise ValueError(
-            f"Financial-year start must be October 10; received {start.isoformat()}"
-        )
-    if end.month != 10 or end.day != expected_start_day or end <= start:
-        raise ValueError(
-            f"Financial-year end must be October 10 of the following year; "
-            f"received {end.isoformat()}"
-        )
+    if start is None or end is None or end <= start:
+        raise ValueError(f"Invalid financial-year range: {start!r} -> {end!r}")
 
-    return {
-        "today": today,
-        "start": start,
-        "end": end,
-        "year_label": year_label(start),
-    }
+    # The imported legacy account is strictly October 10 to October 10.
+    # Other accounts may use their account-opening anniversary.
+    target_id = str(user_id).strip()
+    if target_id == DEFAULT_TARGET_USER_ID:
+        if start.month != 10 or start.day != 10 or end.month != 10 or end.day != 10:
+            raise ValueError(
+                f"Target financial year must run October 10 to October 10; "
+                f"received {start.isoformat()} -> {end.isoformat()}"
+            )
+
+    return {"today": today, "start": start, "end": end, "year_label": label}
 
 
 def run_yearly_rate_sync(app):
     """Synchronize yearly-rate records and diagnose the current financial year."""
     logger = getattr(app, "logger", _scheduler_logger())
     started_at = datetime.now(TIMEZONE)
+    target_user_id = _configured_user_id(app)
 
     if not _sync_execution_lock.acquire(blocking=False):
         logger.warning(
             "Yearly-rate sync skipped because another sync is running. User=%s",
-            TARGET_USER_ID,
+            target_user_id,
         )
         return {
             "success": False,
             "skipped": True,
             "reason": "sync_already_running",
-            "user_id": TARGET_USER_ID,
+            "user_id": target_user_id,
         }
 
     try:
         with app.app_context():
             logger.info(
                 "Starting yearly-rate synchronization. User=%s Started=%s",
-                TARGET_USER_ID,
+                target_user_id,
                 started_at.isoformat(),
             )
 
@@ -155,16 +194,19 @@ def run_yearly_rate_sync(app):
                 _financial_start,
                 _next_year,
                 _year_label,
+                _financial_start_for_user,
+                _next_year_for_user,
+                _year_label_for_user,
             ) = _load_yearly_rate_functions()
 
-            sync_result = sync_function(user_id=TARGET_USER_ID)
+            sync_result = sync_function(user_id=target_user_id)
             if not isinstance(sync_result, dict):
                 raise RuntimeError(
                     "sync_yearly_rates_for_user() must return a dictionary."
                 )
 
             returned_user_id = str(sync_result.get("user_id", ""))
-            if returned_user_id != TARGET_USER_ID:
+            if returned_user_id != target_user_id:
                 raise RuntimeError(
                     "Yearly-rate sync returned an unexpected user ID: "
                     f"{returned_user_id!r}"
@@ -173,18 +215,48 @@ def run_yearly_rate_sync(app):
             logger.info(
                 "Yearly-rate synchronization completed. User=%s Created=%s "
                 "Updated=%s Unchanged=%s CurrentYear=%s",
-                TARGET_USER_ID,
+                target_user_id,
                 sync_result.get("created", 0),
                 sync_result.get("updated", 0),
                 sync_result.get("unchanged", 0),
                 sync_result.get("current_year"),
             )
+            # Debt figures are separate from income/expense totals. The yearly
+            # sync helper supplies this live snapshot when debt support is enabled.
+            debt_summary = sync_result.get("debt_summary")
+            if not isinstance(debt_summary, dict):
+                debt_summary = {
+                    key: sync_result.get(key, 0)
+                    for key in (
+                        "debt_payable_remaining",
+                        "debt_receivable_remaining",
+                        "debt_overdue_payable_remaining",
+                        "debt_unpaid_count",
+                        "debt_partial_count",
+                        "debt_payable_paid_this_year",
+                        "debt_receivable_received_this_year",
+                    )
+                    if key in sync_result
+                }
+            logger.info(
+                "Yearly-rate debt snapshot. User=%s PayableRemaining=%s "
+                "ReceivableRemaining=%s OverduePayable=%s PayableCount=%s "
+                "ReceivableCount=%s PaymentsThisYear=%s ReceiptsThisYear=%s",
+                target_user_id,
+                debt_summary.get("debt_payable_remaining", 0),
+                debt_summary.get("debt_receivable_remaining", 0),
+                debt_summary.get("debt_overdue_payable_remaining", 0),
+                debt_summary.get("debt_payable_count", 0),
+                debt_summary.get("debt_receivable_count", 0),
+                debt_summary.get("debt_payable_paid_this_year", 0),
+                debt_summary.get("debt_receivable_received_this_year", 0),
+            )
 
             # Reuse the same authoritative helpers as the routes. The end date
             # is exclusive: Oct 10 next year is the boundary, not an extra day.
-            period = _get_current_financial_period()
+            period = _get_current_financial_period(target_user_id)
             diagnostic_result = diagnose_function(
-                user_id=TARGET_USER_ID,
+                user_id=target_user_id,
                 start=period["start"],
                 end=period["end"],
             )
@@ -197,7 +269,7 @@ def run_yearly_rate_sync(app):
                 "Yearly-rate diagnostics. User=%s Year=%s Start=%s EndExclusive=%s "
                 "Income=%s Expenses=%s SavingsDeposits=%s SavingsWithdrawals=%s "
                 "UnknownTransfers=%s Unclassified=%s",
-                TARGET_USER_ID,
+                target_user_id,
                 period["year_label"],
                 period["start"].isoformat(),
                 period["end"].isoformat(),
@@ -212,7 +284,7 @@ def run_yearly_rate_sync(app):
             completed_at = datetime.now(TIMEZONE)
             result = {
                 "success": True,
-                "user_id": TARGET_USER_ID,
+                "user_id": target_user_id,
                 "started_at": started_at.isoformat(),
                 "completed_at": completed_at.isoformat(),
                 "current_year": period["year_label"],
@@ -223,11 +295,12 @@ def run_yearly_rate_sync(app):
                 },
                 "sync": sync_result,
                 "diagnostics": diagnostic_result,
+                "debt_summary": debt_summary,
             }
 
             logger.info(
                 "Yearly-rate scheduler task completed. User=%s DurationSeconds=%.2f",
-                TARGET_USER_ID,
+                target_user_id,
                 (completed_at - started_at).total_seconds(),
             )
             return result
@@ -235,7 +308,7 @@ def run_yearly_rate_sync(app):
     except Exception:
         logger.exception(
             "Yearly-rate synchronization failed. User=%s Started=%s",
-            TARGET_USER_ID,
+            target_user_id,
             started_at.isoformat(),
         )
         raise
@@ -293,7 +366,7 @@ def init_yearly_rate_scheduler(app):
             hours=SYNC_INTERVAL_HOURS,
             args=[app],
             id=SCHEDULER_JOB_ID,
-            name="Sync configured user's yearly rates",
+            name="Sync configured user's yearly rates and debt snapshot",
             replace_existing=True,
             max_instances=1,
             coalesce=True,
@@ -322,7 +395,7 @@ def init_yearly_rate_scheduler(app):
             "Yearly-rate scheduler started. Timezone=%s IntervalHours=%s TargetUser=%s",
             TIMEZONE,
             SYNC_INTERVAL_HOURS,
-            TARGET_USER_ID,
+            _configured_user_id(app),
         )
 
     # Run immediately outside the scheduler lock. The execution lock prevents
@@ -363,20 +436,21 @@ def get_yearly_rate_scheduler_status():
             "running": False,
             "timezone": str(TIMEZONE),
             "interval_hours": SYNC_INTERVAL_HOURS,
-            "target_user_id": TARGET_USER_ID,
+            "target_user_id": DEFAULT_TARGET_USER_ID,
             "next_run_time": None,
             "job_id": SCHEDULER_JOB_ID,
         }
 
     job = scheduler.get_job(SCHEDULER_JOB_ID)
-    next_run_time = (
-        job.next_run_time.isoformat() if job and job.next_run_time else None
-    )
+    next_run_time = job.next_run_time.isoformat() if job and job.next_run_time else None
+    job_app = job.args[0] if job and job.args else None
+    configured_user_id = _configured_user_id(job_app) if job_app is not None else DEFAULT_TARGET_USER_ID
     return {
         "running": scheduler.running,
         "timezone": str(TIMEZONE),
         "interval_hours": SYNC_INTERVAL_HOURS,
-        "target_user_id": TARGET_USER_ID,
+        "target_user_id": configured_user_id,
         "next_run_time": next_run_time,
         "job_id": SCHEDULER_JOB_ID,
     }
+
