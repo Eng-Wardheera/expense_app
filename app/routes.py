@@ -10317,75 +10317,6 @@ def _debt_status(principal, paid):
 
     return "unpaid"
 
-
-def _refresh_savings_metrics(savings_id, user_id):
-    """
-    Dib u xisaabi fields-ka laga soo saaro balance-ka Savings.
-    Waxay ilaalinaysaa fields kale oo aan xisaabta ku jirin.
-    """
-    savings = mongo.db.savings.find_one({
-        "_id": savings_id,
-        "user_id": user_id,
-    })
-
-    if not savings:
-        raise ValueError("Savings account lama helin.")
-
-    now = datetime.now(timezone.utc)
-
-    def number(value):
-        if isinstance(value, Decimal128):
-            value = value.to_decimal()
-        return Decimal(str(value if value is not None else 0))
-
-    target = max(Decimal("0"), number(savings.get("target_amount")))
-    balance = max(Decimal("0"), number(savings.get("current_balance")))
-    remaining = max(Decimal("0"), target - balance)
-
-    progress = Decimal("0")
-    if target > 0:
-        progress = min(Decimal("100"), balance / target * 100)
-
-    maturity = savings.get("maturity_date")
-    if maturity and isinstance(maturity, datetime):
-        maturity_date = maturity.date()
-        today = now.date()
-        days_remaining = max(0, (maturity_date - today).days)
-    else:
-        days_remaining = 0
-
-    daily_required = Decimal("0")
-    weekly_required = Decimal("0")
-    monthly_required = Decimal("0")
-
-    if days_remaining > 0 and remaining > 0:
-        daily_required = remaining / Decimal(days_remaining)
-        weekly_required = remaining / Decimal(days_remaining) * Decimal("7")
-        months_remaining = max(
-            Decimal("1"),
-            Decimal(days_remaining) / Decimal("30.4375"),
-        )
-        monthly_required = remaining / months_remaining
-
-    updates = {
-        "current_balance": float(balance),
-        "remaining_amount": float(remaining),
-        "progress": round(float(progress), 2),
-        "days_remaining": int(days_remaining),
-        "daily_required": round(float(daily_required), 2),
-        "weekly_required": round(float(weekly_required), 2),
-        "monthly_required": round(float(monthly_required), 2),
-        "updated_at": now,
-    }
-
-    mongo.db.savings.update_one(
-        {"_id": savings_id, "user_id": user_id},
-        {"$set": updates},
-    )
-
-    return updates
-
-
 # ============================================================
 # DEBT FORM DATA — REGULAR OR SAVINGS
 # ============================================================
@@ -10885,6 +10816,76 @@ def _refresh_savings_fields(saving, current_balance, now=None):
     }
 
 
+
+def _refresh_savings_metrics(savings_id, user_id):
+    """
+    Dib u xisaabi fields-ka laga soo saaro balance-ka Savings.
+    Waxay ilaalinaysaa fields kale oo aan xisaabta ku jirin.
+    """
+    savings = mongo.db.savings.find_one({
+        "_id": savings_id,
+        "user_id": user_id,
+    })
+
+    if not savings:
+        raise ValueError("Savings account lama helin.")
+
+    now = datetime.now(timezone.utc)
+
+    def number(value):
+        if isinstance(value, Decimal128):
+            value = value.to_decimal()
+        return Decimal(str(value if value is not None else 0))
+
+    target = max(Decimal("0"), number(savings.get("target_amount")))
+    balance = max(Decimal("0"), number(savings.get("current_balance")))
+    remaining = max(Decimal("0"), target - balance)
+
+    progress = Decimal("0")
+    if target > 0:
+        progress = min(Decimal("100"), balance / target * 100)
+
+    maturity = savings.get("maturity_date")
+    if maturity and isinstance(maturity, datetime):
+        maturity_date = maturity.date()
+        today = now.date()
+        days_remaining = max(0, (maturity_date - today).days)
+    else:
+        days_remaining = 0
+
+    daily_required = Decimal("0")
+    weekly_required = Decimal("0")
+    monthly_required = Decimal("0")
+
+    if days_remaining > 0 and remaining > 0:
+        daily_required = remaining / Decimal(days_remaining)
+        weekly_required = remaining / Decimal(days_remaining) * Decimal("7")
+        months_remaining = max(
+            Decimal("1"),
+            Decimal(days_remaining) / Decimal("30.4375"),
+        )
+        monthly_required = remaining / months_remaining
+
+    updates = {
+        "current_balance": float(balance),
+        "remaining_amount": float(remaining),
+        "progress": round(float(progress), 2),
+        "days_remaining": int(days_remaining),
+        "daily_required": round(float(daily_required), 2),
+        "weekly_required": round(float(weekly_required), 2),
+        "monthly_required": round(float(monthly_required), 2),
+        "updated_at": now,
+    }
+
+    mongo.db.savings.update_one(
+        {"_id": savings_id, "user_id": user_id},
+        {"$set": updates},
+    )
+
+    return updates
+
+
+
 # ============================================================
 # YEARLY RATES — ACTIVE ANNUAL SUMMARY SYNC
 # ============================================================
@@ -11123,6 +11124,119 @@ def _sync_active_yearly_rates_for_savings(
         "saving_balance": float(saving_balance),
         "active_yearly_rates_count": len(active_records),
     }
+
+
+def _sync_debt_yearly_rates(user_id, now=None, session=None):
+    """
+    Rebuild debt-related yearly_rates fields from live debts and payment ledger.
+    This is deliberately idempotent: edits/deletes/payments are reflected from
+    current database state rather than incrementing old yearly totals.
+    """
+    now = now or datetime.now(timezone.utc)
+    user_ids = _debt_user_ids(user_id)
+    yearly_records = list(
+        mongo.db.yearly_rates.find(
+            {"user_id": {"$in": user_ids}, "status": "active"},
+            session=session,
+        )
+    )
+    if not yearly_records:
+        return {"active_yearly_rates_count": 0}
+
+    debts = list(mongo.db.debts.find(
+        {"user_id": {"$in": user_ids},
+         "status": {"$nin": ["void", "deleted", "cancelled", "inactive", "archived"]}},
+        session=session,
+    ))
+    payments = list(mongo.db.debt_payments.find(
+        {"user_id": {"$in": user_ids}, "voided": {"$ne": True}},
+        session=session,
+    ))
+
+    def in_period(value, start, end):
+        d = _yearly_rate_date(value)
+        return bool(d and (not start or d >= start) and (not end or d <= end))
+
+    def debt_date(d):
+        return d.get("debt_date") or d.get("created_at") or d.get("date")
+
+    for yearly in yearly_records:
+        start = _yearly_rate_date(yearly.get("start_date"))
+        end = _yearly_rate_date(yearly.get("end_date"))
+        annual_debts = [d for d in debts if in_period(debt_date(d), start, end)]
+        annual_ids = {str(d.get("_id")) for d in debts}
+        annual_payments = [
+            p for p in payments
+            if str(p.get("debt_id")) in annual_ids
+            and in_period(p.get("payment_date") or p.get("created_at"), start, end)
+        ]
+
+        payable = [d for d in debts if str(d.get("debt_type") or "").lower() == "payable"]
+        receivable = [d for d in debts if str(d.get("debt_type") or "").lower() == "receivable"]
+        payable_annual = [d for d in annual_debts if str(d.get("debt_type") or "").lower() == "payable"]
+        receivable_annual = [d for d in annual_debts if str(d.get("debt_type") or "").lower() == "receivable"]
+
+        def amount(value):
+            return _yearly_rate_number(value or 0)
+
+        def remaining(d):
+            # Use current remaining_amount if available; otherwise principal less paid.
+            principal = amount(d.get("principal_amount"))
+            paid = amount(d.get("paid_amount"))
+            return max(Decimal("0.00"), amount(d.get("remaining_amount", principal - paid)))
+
+        payable_paid = sum((amount(d.get("paid_amount")) for d in payable), Decimal("0.00"))
+        receivable_received = sum((amount(d.get("paid_amount")) for d in receivable), Decimal("0.00"))
+        payable_remaining = sum((remaining(d) for d in payable), Decimal("0.00"))
+        receivable_remaining = sum((remaining(d) for d in receivable), Decimal("0.00"))
+        payable_principal = sum((amount(d.get("principal_amount")) for d in payable), Decimal("0.00"))
+        receivable_principal = sum((amount(d.get("principal_amount")) for d in receivable), Decimal("0.00"))
+        payable_paid_this_year = sum((
+            amount(p.get("amount")) for p in annual_payments
+            if any(str(d.get("_id")) == str(p.get("debt_id")) and str(d.get("debt_type") or "").lower() == "payable" for d in debts)
+        ), Decimal("0.00"))
+        receivable_received_this_year = sum((
+            amount(p.get("amount")) for p in annual_payments
+            if any(str(d.get("_id")) == str(p.get("debt_id")) and str(d.get("debt_type") or "").lower() == "receivable" for d in debts)
+        ), Decimal("0.00"))
+        overdue = [
+            d for d in debts
+            if d.get("due_date") and _yearly_rate_date(d.get("due_date"))
+            and _yearly_rate_date(d.get("due_date")) < now.date()
+            and remaining(d) > 0
+        ]
+        partial = [d for d in debts if amount(d.get("paid_amount")) > 0 and remaining(d) > 0]
+        unpaid = [d for d in debts if remaining(d) > 0]
+        total_balance = amount(yearly.get("total_balance", yearly.get("total_rest", 0)))
+        updates = {
+            "debt_new_payable_this_year": float(sum((amount(d.get("principal_amount")) for d in payable_annual), Decimal("0.00"))),
+            "debt_new_receivable_this_year": float(sum((amount(d.get("principal_amount")) for d in receivable_annual), Decimal("0.00"))),
+            "debt_payable_count": len(payable),
+            "debt_payable_principal": float(payable_principal),
+            "debt_payable_paid": float(payable_paid),
+            "debt_payable_paid_this_year": float(payable_paid_this_year),
+            "debt_payable_remaining": float(payable_remaining),
+            "debt_receivable_count": len(receivable),
+            "debt_receivable_principal": float(receivable_principal),
+            "debt_receivable_received": float(receivable_received),
+            "debt_receivable_received_this_year": float(receivable_received_this_year),
+            "debt_receivable_remaining": float(receivable_remaining),
+            "debt_overdue_count": len(overdue),
+            "debt_overdue_payable_remaining": float(sum((remaining(d) for d in overdue if str(d.get("debt_type") or "").lower() == "payable"), Decimal("0.00"))),
+            "debt_partial_count": len(partial),
+            "debt_unpaid_count": len(unpaid),
+            "debt_total_outstanding": float(payable_remaining + receivable_remaining),
+            "financial_position_after_debt": float(total_balance + receivable_remaining - payable_remaining),
+            "updated_at": now,
+        }
+        result = mongo.db.yearly_rates.update_one(
+            {"_id": yearly["_id"], "user_id": {"$in": user_ids}, "status": "active"},
+            {"$set": updates},
+            session=session,
+        )
+        if result.matched_count != 1:
+            raise RuntimeError("Yearly_rates debt fields lama cusboonaysiin karin.")
+    return {"active_yearly_rates_count": len(yearly_records)}
 
 
 @bp.route("/add-debt", methods=["GET", "POST"])
@@ -11446,6 +11560,8 @@ def add_debt():
             # -----------------------------------------------
             mongo.db.debts.insert_one(debt_data)
             debt_inserted = True
+
+            _sync_debt_yearly_rates(user_id, now=now)
 
             # The debt now exists, so yearly_rates can be rebuilt from
             # the live debt + Savings state without double counting.
@@ -11975,6 +12091,8 @@ def edit_debt(debt_id):
                     "warning",
                 )
                 return redirect(url_for("main.all_debts"))
+
+            _sync_debt_yearly_rates(user_id, now=datetime.now(timezone.utc))
 
             flash(
                 "Daynta si guul leh ayaa loo cusbooneysiiyey. "
@@ -13146,6 +13264,8 @@ def delete_debt(debt_id):
         )
         return redirect(back_url)
 
+    _sync_debt_yearly_rates(user_oid, now=datetime.now(timezone.utc))
+
     flash(
         f"Daynta database-ka waa laga saaray. "
         f"{refund_amount:.2f} {currency} ayaa dib loogu celiyey "
@@ -13599,6 +13719,11 @@ def pay_debt(debt_id):
                 # -------------------------------------------------
                 # YEARLY RATES
                 # -------------------------------------------------
+                _sync_debt_yearly_rates(
+                    user_id,
+                    now=now,
+                    session=session,
+                )
                 if debt_source == "savings":
                     _sync_active_yearly_rates_for_savings(
                         user_id,
@@ -14232,6 +14357,11 @@ def edit_latest_debt_payment(debt_id):
                             now=now,
                             session=session,
                         )
+                        _sync_debt_yearly_rates(
+                            user_oid,
+                            now=now,
+                            session=session,
+                        )
 
                 flash(
                     "Lacag-bixintii Savings-funded debt-ka si guul leh "
@@ -14327,6 +14457,7 @@ def edit_latest_debt_payment(debt_id):
 
             debt = _payment_owned_debt(debt_id)
             _recalculate_debt_from_payments(debt)
+            _sync_debt_yearly_rates(user_oid, now=now)
 
             flash(
                 "Lacag-bixintii ugu dambaysay si guul leh "
@@ -14367,6 +14498,7 @@ def edit_latest_debt_payment(debt_id):
         debt=debt,
         payment=latest_payment,
     )
+
 
 
 
