@@ -13963,9 +13963,18 @@ def _recalculate_debt_from_payments(debt):
     return total_paid, remaining, status
 
 
-@bp.route("/edit-latest-debt-payment/<debt_id>", methods=["GET", "POST"])
+@bp.route(
+    "/edit-latest-debt-payment/<debt_id>",
+    methods=["GET", "POST"],
+    endpoint="edit_latest_debt_payment",
+)
+@bp.route(
+    "/debt/<debt_id>/payment/<payment_id>/edit",
+    methods=["GET", "POST"],
+    endpoint="edit_debt_payment",
+)
 @login_required
-def edit_latest_debt_payment(debt_id):
+def edit_latest_debt_payment(debt_id, payment_id=None):
     user_oid = _payment_user_id()
     user_ids = _debt_user_ids(user_oid)
     debt = _payment_owned_debt(debt_id)
@@ -13989,12 +13998,25 @@ def edit_latest_debt_payment(debt_id):
             )
         )
 
+    # Find the selected payment when payment_id is supplied.
+    # The legacy URL still edits the latest active payment.
+    payment_query = {
+        "user_id": {"$in": user_ids},
+        "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
+        "voided": {"$ne": True},
+    }
+
+    if payment_id:
+        try:
+            payment_query["_id"] = _debt_object_id(payment_id)
+        except (ValueError, TypeError, InvalidOperation):
+            flash("Payment ID-ga sax ma aha.", "warning")
+            return redirect(
+                url_for("main.debt_details", debt_id=str(debt["_id"]))
+            )
+
     latest_payment = mongo.db.debt_payments.find_one(
-        {
-            "user_id": {"$in": _debt_user_ids(user_oid)},
-            "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
-            "voided": {"$ne": True},
-        },
+        payment_query,
         sort=[
             ("payment_date", -1),
             ("created_at", -1),
@@ -14020,9 +14042,12 @@ def edit_latest_debt_payment(debt_id):
         try:
             new_amount = _payment_decimal(
                 request.form.get("payment_amount")
+                or request.form.get("amount")
             )
             new_note = (
-                request.form.get("payment_note") or ""
+                request.form.get("payment_note")
+                or request.form.get("note")
+                or ""
             ).strip()
 
             if new_amount <= 0:
@@ -14526,11 +14551,28 @@ def edit_latest_debt_payment(debt_id):
                 "danger",
             )
 
+    # Include all active historical payments. IDs may be stored as ObjectId
+    # or string in older records, so query both debt_id representations.
+    payments = list(
+        mongo.db.debt_payments.find({
+            "user_id": {"$in": user_ids},
+            "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
+            "voided": {"$ne": True},
+        }).sort([
+            ("payment_date", -1),
+            ("created_at", -1),
+            ("_id", -1),
+        ])
+    )
+
     return render_template(
         "backend/pages/components/debts/edit_latest_debt_payment.html",
         debt=debt,
         payment=latest_payment,
+        payments=payments,
     )
+
+
 
 
 # ============================================================
@@ -14660,6 +14702,209 @@ def delete_latest_debt_payment(debt_id):
         flash("Lacag-bixinta lama tirtiri karin. Hubi server logs-ka.", "danger")
 
     return redirect(url_for("main.debt_details", debt_id=str(debt_id)))
+
+
+
+@bp.route(
+    "/debt/<debt_id>/payment/<payment_id>/delete",
+    methods=["POST"],
+    endpoint="delete_debt_payment",
+)
+@login_required
+def delete_debt_payment(debt_id, payment_id):
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    from decimal import Decimal, InvalidOperation
+    from flask import flash, redirect, url_for, abort
+
+    # 1. Hubi user-ka iyo daynta uu leeyahay
+    user_oid = _payment_user_id()
+    user_ids = _debt_user_ids(user_oid)
+
+    debt = _payment_owned_debt(debt_id)
+    if not debt:
+        abort(404)
+
+    try:
+        payment_oid = ObjectId(payment_id)
+    except (InvalidId, TypeError):
+        abort(404)
+
+    # 2. Soo hel payment-ka user-kan iyo dayntan oo keliya
+    payment = mongo.db.debt_payments.find_one({
+        "_id": payment_oid,
+        "user_id": {"$in": user_ids},
+        "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
+        "voided": {"$ne": True},
+    })
+
+    if not payment:
+        flash("Payment-ka lama helin ama hore ayaa loo tirtiray.", "warning")
+        return redirect(url_for("main.edit_latest_debt_payment", debt_id=debt_id))
+
+    def money(value):
+        try:
+            if hasattr(value, "to_decimal"):
+                value = value.to_decimal()
+            return Decimal(str(value or 0))
+        except (InvalidOperation, TypeError, ValueError):
+            return Decimal("0")
+
+    amount = money(
+        payment.get("amount", payment.get("payment_amount", 0))
+    )
+
+    now = datetime.now(timezone.utc)
+
+    # 3. Haddii payment-ku Savings ka baxay, lacagta dib ugu celi
+    savings_id = (
+        payment.get("savings_id")
+        or payment.get("saving_id")
+        or payment.get("savings_account_id")
+    )
+
+    savings_funded = bool(
+        payment.get("from_savings")
+        or payment.get("paid_from_savings")
+        or payment.get("savings_funded")
+        or savings_id
+    )
+
+    if savings_funded and savings_id:
+        try:
+            savings_oid = (
+                savings_id
+                if isinstance(savings_id, ObjectId)
+                else ObjectId(str(savings_id))
+            )
+        except (InvalidId, TypeError):
+            savings_oid = None
+
+        if savings_oid:
+            saving = mongo.db.savings.find_one({
+                "_id": savings_oid,
+                "user_id": {"$in": user_ids},
+            })
+
+            if saving:
+                current_balance = money(saving.get("current_balance", 0))
+                new_balance = current_balance + amount
+
+                mongo.db.savings.update_one(
+                    {
+                        "_id": saving["_id"],
+                        "user_id": {"$in": user_ids},
+                    },
+                    {
+                        "$set": {
+                            "current_balance": float(new_balance),
+                            "updated_at": now,
+                        }
+                    },
+                )
+
+                # Haddii helper-kaagu jiro, dib u xisaabi fields-ka Savings
+                if "_refresh_savings_fields" in globals():
+                    refreshed = mongo.db.savings.find_one({
+                        "_id": saving["_id"],
+                        "user_id": {"$in": user_ids},
+                    })
+                    if refreshed:
+                        _refresh_savings_fields(
+                            refreshed,
+                            float(new_balance),
+                            now=now,
+                        )
+                        mongo.db.savings.update_one(
+                            {
+                                "_id": saving["_id"],
+                                "user_id": {"$in": user_ids},
+                            },
+                            {
+                                "$set": {
+                                    key: value
+                                    for key, value in refreshed.items()
+                                    if key not in ("_id", "user_id")
+                                }
+                            },
+                        )
+
+    # 4. Calaamadee payment-ka inuu tirtirmay
+    # Soft-delete wuxuu ilaaliyaa taariikhda audit-ka.
+    result = mongo.db.debt_payments.update_one(
+        {
+            "_id": payment_oid,
+            "user_id": {"$in": user_ids},
+            "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
+            "voided": {"$ne": True},
+        },
+        {
+            "$set": {
+                "voided": True,
+                "deleted": True,
+                "deleted_at": now,
+                "updated_at": now,
+            }
+        },
+    )
+
+    if result.modified_count == 0:
+        flash("Payment-ka lama tirtirin. Fadlan mar kale isku day.", "danger")
+        return redirect(url_for("main.edit_latest_debt_payment", debt_id=debt_id))
+
+    # 5. Dib uga xisaabi wadarta payments-ka firfircoon
+    active_payments = mongo.db.debt_payments.find({
+        "user_id": {"$in": user_ids},
+        "debt_id": {"$in": [debt["_id"], str(debt["_id"])]},
+        "voided": {"$ne": True},
+    })
+
+    total_paid = sum(
+        (
+            money(p.get("amount", p.get("payment_amount", 0)))
+            for p in active_payments
+        ),
+        Decimal("0"),
+    )
+
+    principal = money(debt.get("principal", debt.get("amount", 0)))
+    remaining = max(Decimal("0"), principal - total_paid)
+
+    if remaining <= 0:
+        status = "paid"
+    elif total_paid > 0:
+        status = "partial"
+    else:
+        status = "unpaid"
+
+    mongo.db.debts.update_one(
+        {
+            "_id": debt["_id"],
+            "user_id": {"$in": user_ids},
+        },
+        {
+            "$set": {
+                "paid": float(total_paid),
+                "total_paid": float(total_paid),
+                "remaining": float(remaining),
+                "status": status,
+                "updated_at": now,
+            }
+        },
+    )
+
+    # 6. Isku waafaji yearly_rates haddii helper-kaagu jiro
+    if "sync_yearly_rates_for_user" in globals():
+        try:
+            sync_yearly_rates_for_user(user_oid)
+        except Exception:
+            current_app.logger.exception(
+                "yearly_rates sync failed after debt payment deletion"
+            )
+
+    flash("Payment-ka waa la tirtiray, wadarta dayntana waa la cusboonaysiiyey.", "success")
+    return redirect(url_for("main.edit_latest_debt_payment", debt_id=debt_id))
 
 
 
