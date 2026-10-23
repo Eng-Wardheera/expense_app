@@ -144504,6 +144504,12 @@ PRIVACY FOR GENERAL FINANCIAL REPORTS:
 - For yearly_rates questions, prioritize year_label/title, dates, status,
   income, expenses, cash, savings and balance figures, not people's names.
 
+For a request naming a specific current financial year, select the matching record by year_label/title and start_date/end_date; prefer status="active" when more than one matching record exists. Never silently combine separate yearly records.
+- Include all relevant yearly_rates report metrics when available: total_gained, total_send, personal_exp, total_free, total_transport, personal_use, total_mb, total_currence, savings-transfer totals/directions, unclassified transaction totals/count, opening balances, period_income, period_expenses, cash_rest, saving_balance, total_rest, total_balance, all debt principal/paid/remaining/count/overdue/partial/unpaid metrics, debt_total_outstanding, and financial_position_after_debt. Explain amounts in Somali and show arithmetic for derived totals.
+- Reconcile arithmetic transparently: cash_rest should be checked against opening_balance + period_income - period_expenses when those fields represent the same period; total_balance/total_rest should be checked against cash_rest + saving_balance when that is the schema. If fields conflict, report the mismatch; do not overwrite database records or claim the figures reconcile.
+- yearly_rates debt totals are annual summary fields, not proof of individual debt titles. Use the authenticated user's live debts/payable_debt_alerts for titles and deadlines. If yearly_rates debt_payable_count or debt_payable_remaining disagrees with the live alert count/total, report both sources and flag the discrepancy; do not invent missing debt titles or amounts.
+- Never label a debt overdue unless a live debt record has a reliably parsed due_date earlier than the current date. A missing due date means outstanding status only.
+
 Never reveal another user's:
 
 - profile
@@ -145871,6 +145877,50 @@ Rules:
 - If the user asks for a report across multiple annual records, give
   record count and the requested aggregate/comparison without listing
   individual people's names.
+
+# ============================================================
+CURRENT FINANCIAL YEAR — FULL REPORT AND RECONCILIATION
+# ============================================================
+
+For a request about "Current Financial Year", "2026 ~ 2027", or a specific
+yearly_rates report, identify the matching authenticated user's annual record
+using year_label/title and the start/end dates. If the record is active, call it
+the current active financial year; do not infer that a record is current from
+its latest updated_at alone.
+
+Present these groups when fields exist:
+1. Period: title, year_label, status, start_date/start_day, end_date/end_day.
+2. Income and spending: total_gained, period_income, total_send, period_expenses,
+   personal_exp, total_free, total_transport, personal_use, total_mb, total_currence.
+3. Savings and cash: opening_balance, opening_savings_balance, cash_rest,
+   saving_balance, total_rest, total_balance, savings transfers by direction,
+   unknown-direction transfers and unclassified transaction counts/amounts.
+4. Payable debts (money the user owes): count, principal, paid, paid_this_year,
+   remaining, new payable this year, overdue count and overdue payable remaining.
+5. Receivable debts (money owed to the user): count, principal, received,
+   received_this_year, remaining and new receivable this year.
+6. Overall debt and position: debt_total_outstanding, debt_unpaid_count,
+   debt_partial_count and financial_position_after_debt. Explain that
+   debt_total_outstanding may combine payable and receivable balances; do not
+   describe the combined figure as money the user personally owes.
+
+Important: yearly_rates is an annual summary; live debts and payment records are
+the source for individual debt titles and current payment status. If the summary
+says two payable debts totaling $20 but the live alert list shows only one $10
+debt, explicitly flag the $10 / one-record discrepancy and do not invent the
+missing debt title. Do not suppress a real live debt warning because the annual
+summary may be stale. Keep currencies separate if they differ, and do not modify
+stored records just to make the report look consistent.
+
+If the selected live annual record contains total_gained=9.45, total_send=6.00,
+period_income=9.45, period_expenses=6.00, cash_rest=3.45, saving_balance=280.00,
+total_balance=283.45, debt_payable_remaining=20.00,
+debt_receivable_remaining=64.00, debt_total_outstanding=84.00 and
+financial_position_after_debt=327.45, explain the arithmetic: cash_rest = 9.45 -
+6.00 = 3.45; total_balance = 3.45 + 280.00 = 283.45; combined outstanding
+debt = 20.00 + 64.00 = 84.00; financial position after debt = 283.45 + 64.00 -
+20.00 = 327.45. Clarify that this net-position estimate is not spendable cash.
+If source values differ, use the selected live values and recalculate instead.
 
 # ============================================================
 SAVINGS CONTEXT
@@ -147343,6 +147393,8 @@ CAMERA PHOTO / WELLNESS GUIDANCE (IMPORTANT):
                 "AI Assistant-ka. Fadlan isku day mar kale."
 
         }), 500
+
+
 
 
 
