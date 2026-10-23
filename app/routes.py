@@ -138467,7 +138467,6 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     """
     from datetime import date, datetime
     from bson import ObjectId
-    import re
 
     user_query = _maareye_ai_bookkeeping_user_query(user_ids)
 
@@ -138495,7 +138494,6 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     accounts = []
     transactions = []
     savings = []
-    saving_transactions = []
     debts = []
     debt_payments = []
     try:
@@ -138531,27 +138529,6 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     except Exception as exc:
         print("MAAREYE LIVE SNAPSHOT SAVINGS ERROR:", repr(exc))
 
-    # Saving movements are a separate ledger from ordinary transactions.
-    # Load them explicitly so questions about deposits/withdrawals can be answered
-    # from actual saving transaction records rather than inferred from balance alone.
-    try:
-        saving_transactions = list(mongo.db.saving_transactions.find(
-            user_query,
-            {"_id": 1, "saving_id": 1, "account_id": 1, "transaction_type": 1,
-             "amount": 1, "description": 1, "note": 1, "reference_no": 1,
-             "date": 1, "status": 1, "created_at": 1, "updated_at": 1}
-        ).sort([("date", -1), ("created_at", -1)]).limit(500))
-        excluded_saving_tx_statuses = {
-            "deleted", "cancelled", "canceled", "void", "inactive", "archived", "removed"
-        }
-        saving_transactions = [
-            doc for doc in saving_transactions
-            if doc.get("status") is not False
-            and str(doc.get("status", True) or True).strip().lower() not in excluded_saving_tx_statuses
-        ]
-    except Exception as exc:
-        print("MAAREYE LIVE SNAPSHOT SAVING TRANSACTIONS ERROR:", repr(exc))
-
     # Debt payments are a separate source collection in this schema. Read them
     # live for the authenticated user so the AI can reconcile actual payments
     # with the annual `yearly_rates` aggregates.
@@ -138570,14 +138547,11 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     try:
         debts = list(mongo.db.debts.find(
             {**user_query, "status": {"$nin": ["deleted", "cancelled", "canceled", "void", "inactive", "archived"]}},
-            {"_id": 1, "debt_type": 1, "type": 1, "direction": 1,
-             "category": 1, "category_name": 1, "title": 1, "name": 1,
-             "description": 1, "principal_amount": 1, "amount": 1,
-             "total_amount": 1, "principal": 1, "paid_amount": 1,
-             "amount_paid": 1, "paid": 1, "remaining_amount": 1,
-             "remaining_balance": 1, "currency": 1, "debt_date": 1,
-             "due_date": 1, "status": 1, "notes": 1, "saving_id": 1,
-             "source_saving_id": 1, "funding_source": 1,
+            {"_id": 1, "debt_type": 1, "category": 1, "category_name": 1,
+             "title": 1, "description": 1, "principal_amount": 1,
+             "paid_amount": 1, "remaining_amount": 1, "currency": 1,
+             "debt_date": 1, "due_date": 1, "status": 1, "notes": 1,
+             "saving_id": 1, "source_saving_id": 1, "funding_source": 1,
              "updated_at": 1, "created_at": 1}
         ).sort([("due_date", 1), ("created_at", -1)]).limit(500))
     except Exception as exc:
@@ -138657,23 +138631,6 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
             "updated_at": safe_value(doc.get("updated_at")),
         })
 
-    saving_transaction_rows = []
-    for doc in saving_transactions:
-        saving_transaction_rows.append({
-            "id": str(doc.get("_id", "")),
-            "saving_id": safe_value(doc.get("saving_id")),
-            "account_id": safe_value(doc.get("account_id")),
-            "transaction_type": str(doc.get("transaction_type") or "").strip().lower(),
-            "amount": money_value(doc.get("amount", 0)),
-            "description": str(doc.get("description") or ""),
-            "note": str(doc.get("note") or ""),
-            "reference_no": str(doc.get("reference_no") or ""),
-            "date": safe_value(doc.get("date") or doc.get("created_at")),
-            "status": safe_value(doc.get("status", True)),
-            "created_at": safe_value(doc.get("created_at")),
-            "updated_at": safe_value(doc.get("updated_at")),
-        })
-
     debt_payment_rows = []
     for doc in debt_payments:
         debt_payment_rows.append({
@@ -138693,59 +138650,18 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
 
     debt_rows = []
     for doc in debts:
-        # Support current and legacy field names without silently treating a
-        # missing amount as a verified zero-value debt.
-        raw_principal = next(
-            (doc.get(key) for key in ("principal_amount", "total_amount", "amount", "principal")
-             if doc.get(key) not in (None, "")),
-            None
-        )
-        raw_paid = next(
-            (doc.get(key) for key in ("paid_amount", "amount_paid", "paid")
-             if doc.get(key) not in (None, "")),
-            0
-        )
-        raw_remaining = next(
-            (doc.get(key) for key in ("remaining_amount", "remaining_balance")
-             if doc.get(key) not in (None, "")),
-            None
-        )
-        principal = money_value(raw_principal) if raw_principal is not None else None
-        paid = money_value(raw_paid)
-        stored_remaining = money_value(raw_remaining) if raw_remaining is not None else None
-        # Prefer a calculable principal-minus-paid value. If principal is absent,
-        # use a stored remaining field only as a fallback and flag its provenance.
-        if principal is not None:
-            remaining = round(max(0.0, principal - paid), 2)
-            remaining_source = "calculated_from_principal_minus_paid"
-        elif stored_remaining is not None:
-            remaining = max(0.0, stored_remaining)
-            remaining_source = "stored_remaining_fallback_principal_missing"
-        else:
-            remaining = None
-            remaining_source = "unverified_missing_amount_fields"
-
-        raw_type = str(doc.get("debt_type") or doc.get("type") or doc.get("direction") or "unknown").strip().lower()
-        type_key = re.sub(r"[^a-z0-9]+", "_", raw_type).strip("_")
-        if type_key in {"payable_debt", "payable_debts", "debt_payable", "debts_payable", "i_owe", "owed_by_me", "to_pay", "outgoing_debt"}:
-            normalized_type = "payable"
-        elif type_key in {"receivable_debt", "receivable_debts", "debt_receivable", "debts_receivable", "owed_to_me", "someone_owes_me", "incoming_debt"}:
-            normalized_type = "receivable"
-        else:
-            normalized_type = type_key or "unknown"
         debt_rows.append({
             "id": str(doc.get("_id", "")),
-            "debt_type": normalized_type,
-            "debt_type_raw": raw_type,
+            "debt_type": str(doc.get("debt_type") or "unknown").strip().lower(),
             "category": str(doc.get("category") or ""),
             "category_name": str(doc.get("category_name") or ""),
-            "title": str(doc.get("title") or doc.get("name") or "Debt"),
+            "title": str(doc.get("title") or "Debt"),
             "description": str(doc.get("description") or ""),
-            "principal_amount": principal,
-            "paid_amount": paid,
-            "remaining_amount": remaining,
-            "remaining_amount_source": remaining_source,
-            "stored_remaining_amount": stored_remaining,
+            "principal_amount": money_value(doc.get("principal_amount", 0)),
+            "paid_amount": money_value(doc.get("paid_amount", 0)),
+            # Recalculate from principal minus paid to avoid stale remaining_amount.
+            "remaining_amount": round(max(0.0, money_value(doc.get("principal_amount", 0)) - money_value(doc.get("paid_amount", 0))), 2),
+            "stored_remaining_amount": money_value(doc.get("remaining_amount", 0)),
             "currency": str(doc.get("currency") or "USD"),
             "debt_date": safe_value(doc.get("debt_date")),
             "due_date": safe_value(doc.get("due_date")),
@@ -138777,9 +138693,8 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
         # stale references alone are not evidence of a currently recorded debt.
         if linked_debts:
             linked_debt_total = round(sum(
-                (row.get("remaining_amount") or 0.0) for row in linked_debts
-                if row.get("remaining_amount") is not None
-                and str(row.get("status", "")).lower() not in {"paid", "settled", "closed", "completed", "fully_paid"}
+                row.get("remaining_amount", 0.0) for row in linked_debts
+                if str(row.get("status", "")).lower() not in {"paid", "settled", "closed", "completed", "fully_paid"}
             ), 2)
             savings_debt_alerts.append({
                 "saving_id": saving_id,
@@ -138813,18 +138728,10 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
     receivable_types = {"receivable", "owed_to_me", "credit"}
     payable_debts = [
         row for row in active_debts
-        if row.get("debt_type") in payable_types
-        and row.get("remaining_amount") is not None
-        and money_value(row.get("remaining_amount")) > 0
+        if row.get("debt_type") in payable_types and money_value(row.get("remaining_amount", 0)) > 0
     ]
-    payable_remaining = round(sum(
-        money_value(row.get("remaining_amount")) for row in payable_debts
-        if row.get("remaining_amount") is not None
-    ), 2)
-    receivable_remaining = round(sum(
-        money_value(row.get("remaining_amount")) for row in active_debts
-        if row.get("debt_type") in receivable_types and row.get("remaining_amount") is not None
-    ), 2)
+    payable_remaining = round(sum(money_value(row.get("remaining_amount", 0)) for row in payable_debts), 2)
+    receivable_remaining = round(sum(row["remaining_amount"] for row in active_debts if row["debt_type"] in receivable_types), 2)
 
     # A separate coaching alert for every real, outstanding payable debt.
     # Only use live records belonging to the authenticated user. Due-date labels
@@ -138900,8 +138807,6 @@ def _maareye_ai_live_mongodb_snapshot(user_ids, limit=100):
         "transactions_count_returned": len(transaction_rows),
         "savings": savings_rows,
         "savings_count": len(savings_rows),
-        "saving_transactions": saving_transaction_rows,
-        "saving_transactions_count": len(saving_transaction_rows),
         "savings_debt_alerts": savings_debt_alerts,
         "savings_debt_alerts_count": len(savings_debt_alerts),
         "debts": debt_rows,
@@ -144630,10 +144535,6 @@ MONGODB SOURCE OF TRUTH
 REAL-TIME MULTI-TAB RULE:
 - For every new user message, use financial_context.live_realtime_snapshot as the newest
   server-fetched MongoDB snapshot for accounts, balances, recent transactions, savings, and debts.
-- For savings deposit/withdrawal/history questions, use live_realtime_snapshot.saving_transactions
-  together with live_realtime_snapshot.savings. A saving's current_balance is the current stored
-  balance; individual saving_transactions prove recorded movements only. Do not assume one
-  transaction equals the current balance, and flag any mismatch rather than guessing.
 - For debt questions, use only live_realtime_snapshot.debts from the authenticated current user.
   Treat debt_type=payable as money the user still owes; treat debt_type=receivable as money owed to the user.
   Calculate remaining debt as max(0, principal_amount - paid_amount), and do not blindly trust stored remaining_amount.
@@ -145781,73 +145682,6 @@ Therefore:
 """
 
         # ============================================================
-        # ADVANCED ANSWER QUALITY — INTENT, EVIDENCE, AND RELEVANCE
-        # ============================================================
-
-        answer_quality_instruction = """
-MAAREYE AI — ADVANCED CORRECT-ANSWER CONTRACT (APPLIES TO EVERY QUESTION)
-
-1. ANSWER THE ACTUAL QUESTION FIRST:
-- Identify the user's precise intent before responding. Give the direct answer in the
-  first sentence, then the explanation or steps that are actually useful.
-- Use the language of the user's message (Somali by default when the user writes Somali).
-  Keep the answer clear, respectful, specific, and well structured.
-- Do not turn every question into a financial warning, savings lecture, or yearly report.
-  Include debt/savings alerts only when they are materially relevant to the current question
-  or when the user explicitly asks for alerts or a complete financial-health review.
-- If the user asks a follow-up, preserve the established subject and change only the part
-  they corrected or asked about.
-
-2. EVIDENCE AND FRESHNESS:
-- For private/current Maareye facts, use the authenticated user's freshly loaded live
-  MongoDB context. Do not treat old chat messages, old AI answers, personal timeline text,
-  session records, or an annual summary as proof of a current balance or debt.
-- Separate VERIFIED LIVE FACTS, ANNUAL SUMMARY VALUES, and CALCULATIONS when they differ.
-  State the source/date and the discrepancy plainly; never silently choose the convenient
-  number, average values, or invent a missing record.
-- If data is absent, ambiguous, malformed, stale, or unavailable, say exactly what cannot
-  be verified and ask one focused follow-up only if needed. Never fill gaps by guessing.
-- Do not expose Mongo IDs, session tokens, passwords, security secrets, or another user's data.
-
-3. DEBT AND ALERT CORRECTNESS:
-- Live debt records and their normalized types determine the current individual debt list.
-  A yearly_rates count/total is an annual aggregate, not proof that the same number of
-  currently open individual debts exists.
-- Calculate each verified debt's remaining amount from a valid principal minus paid amount.
-  If principal is absent, a stored remaining value may be shown only as an explicitly
-  labelled fallback; if both are missing, say the amount is unverified and exclude it from
-  monetary totals. Never convert missing amounts to a factual $0 debt.
-- Do not call an item payable or receivable unless its stored direction/type supports that
-  classification. Do not infer debt type from a title, timeline event, savings link, or
-  category name alone.
-- For a discrepancy such as yearly summary = 2 payable debts / $20 while live payable
-  records = 1 / $10, report both values and state that the live source currently verifies
-  only one $10 record; do not invent the other debt or silently show $20 as live debt.
-- A saving's refund_debt_ids link means only that the saved document references those debt
-  IDs. Raise a linked-debt warning only for IDs that resolve to real debt documents owned
-  by this user; do not say a debt was paid from savings unless a matching transaction proves it.
-- Mention urgency/overdue only when a real live due date is valid and earlier than the
-  current date. Otherwise use "still outstanding" rather than "overdue".
-
-4. FINANCIAL MATH:
-- Show the formula for important totals and round money to two decimals.
-- Keep currencies separate; do not add incompatible currencies.
-- Do not call total debt outstanding all payable debt if it combines payable and receivable.
-- Savings are not spendable cash unless the user specifically asks about savings.
-- Never claim a transaction, payment, deletion, transfer, or balance change succeeded unless
-  the trusted backend confirms success.
-
-5. RESPONSE FORMAT:
-- For a simple factual question, answer briefly and directly.
-- For analysis, include the key facts, transparent calculations, any meaningful mismatch,
-  and one practical next step.
-- For instructions or coding questions, provide complete, applicable steps and preserve
-  the user's existing architecture where possible.
-- Do not repeat large context blocks, raw database records, irrelevant warnings, or the same
-  advice multiple times.
-"""
-
-        # ============================================================
         # COMBINE SYSTEM INSTRUCTIONS
         # ============================================================
 
@@ -145890,10 +145724,6 @@ MAAREYE AI — ADVANCED CORRECT-ANSWER CONTRACT (APPLIES TO EVERY QUESTION)
             + "\n\n"
 
             + visual_instruction
-
-            + "\n\n"
-
-            + answer_quality_instruction
 
         )
 
