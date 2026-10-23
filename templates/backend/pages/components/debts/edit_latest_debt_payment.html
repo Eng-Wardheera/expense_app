@@ -1,198 +1,540 @@
 
 {% extends 'backend/home/base.html' %}
 
-{% block title %}Edit Latest Payment | Maareeye{% endblock %}
+{% block title %}Debt Payment History | Maareeye{% endblock %}
 
 {% block content %}
-{% set old_amount = payment.amount.to_decimal() if payment.amount is not none and payment.amount.to_decimal is defined else payment.amount|default(0, true)|float %}
+{% set old_amount = payment.amount.to_decimal() if payment and payment.amount is not none and payment.amount.to_decimal is defined else (payment.amount|default(0, true)|float if payment else 0) %}
 
-<div class="page-header">
-    <div class="page-header-left">
-        <div class="page-header-title">
-            <h5>Edit Latest Payment</h5>
-            <p class="text-muted mb-0">Wax ka beddel lacag-bixintii ugu dambaysay.</p>
+<style>
+    .dp-page {
+        max-width: 1250px;
+        margin: 24px auto;
+        padding: 0 16px 40px;
+        color: #172033;
+    }
+
+    .dp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .dp-title h2 {
+        margin: 0 0 6px;
+        font-size: 25px;
+        font-weight: 800;
+    }
+
+    .dp-title p {
+        margin: 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+
+    .dp-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 38px;
+        padding: 9px 13px;
+        border: 0;
+        border-radius: 9px;
+        text-decoration: none;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+        box-sizing: border-box;
+        white-space: nowrap;
+    }
+
+    .dp-btn-back {
+        background: #edf1f7;
+        color: #263449;
+    }
+
+    .dp-btn-edit {
+        background: #eaf1ff;
+        color: #1645a3;
+    }
+
+    .dp-btn-delete {
+        background: #fff0f0;
+        color: #b42318;
+    }
+
+    .dp-btn-save {
+        background: #06245f;
+        color: #fff;
+    }
+
+    .dp-btn:hover {
+        filter: brightness(.96);
+    }
+
+    .dp-card {
+        margin-bottom: 22px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid #e5eaf2;
+        border-radius: 16px;
+        box-shadow: 0 6px 25px rgba(15, 23, 42, .045);
+    }
+
+    .dp-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 19px 22px;
+        border-bottom: 1px solid #edf0f5;
+    }
+
+    .dp-card-head h3 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+    }
+
+    .dp-card-head p {
+        margin: 5px 0 0;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .dp-card-body {
+        padding: 22px;
+    }
+
+    .dp-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 13px;
+        margin-bottom: 22px;
+    }
+
+    .dp-summary-item {
+        min-width: 0;
+        padding: 15px;
+        border: 1px solid #e6ebf3;
+        border-radius: 12px;
+        background: #f7f9fc;
+    }
+
+    .dp-summary-item span {
+        display: block;
+        margin-bottom: 7px;
+        color: #64748b;
+        font-size: 12px;
+    }
+
+    .dp-summary-item strong {
+        display: block;
+        overflow-wrap: anywhere;
+        font-size: 15px;
+    }
+
+    .dp-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px;
+    }
+
+    .dp-field {
+        min-width: 0;
+    }
+
+    .dp-field-full {
+        grid-column: 1 / -1;
+    }
+
+    .dp-field label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .dp-field input,
+    .dp-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 12px 13px;
+        border: 1px solid #d7deea;
+        border-radius: 10px;
+        background: #fff;
+        color: #172033;
+        font: inherit;
+        outline: none;
+    }
+
+    .dp-field input:focus,
+    .dp-field textarea:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+    }
+
+    .dp-field textarea {
+        min-height: 85px;
+        resize: vertical;
+    }
+
+    .dp-form-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 20px;
+    }
+
+    .dp-count {
+        padding: 6px 11px;
+        border-radius: 20px;
+        background: #eaf1ff;
+        color: #06245f;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .dp-table-wrap {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .dp-table {
+        width: 100%;
+        min-width: 850px;
+        border-collapse: collapse;
+    }
+
+    .dp-table th {
+        padding: 13px 15px;
+        background: #f6f8fc;
+        color: #64748b;
+        text-align: left;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .dp-table td {
+        padding: 15px;
+        border-bottom: 1px solid #edf0f5;
+        vertical-align: middle;
+        font-size: 13px;
+    }
+
+    .dp-table tbody tr:hover {
+        background: #fbfcff;
+    }
+
+    .dp-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+
+    .dp-amount {
+        color: #087443;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+
+    .dp-note {
+        max-width: 240px;
+        overflow-wrap: anywhere;
+        color: #64748b;
+    }
+
+    .dp-actions {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    .dp-actions form {
+        margin: 0;
+    }
+
+    .dp-empty {
+        padding: 45px 20px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .dp-empty strong {
+        display: block;
+        margin-bottom: 7px;
+        color: #263449;
+        font-size: 16px;
+    }
+
+    @media (max-width: 700px) {
+        .dp-page {
+            margin-top: 14px;
+            padding: 0 10px 25px;
+        }
+
+        .dp-title h2 {
+            font-size: 21px;
+        }
+
+        .dp-card-body {
+            padding: 16px;
+        }
+
+        .dp-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .dp-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dp-field-full {
+            grid-column: auto;
+        }
+
+        .dp-form-actions {
+            flex-direction: column;
+        }
+
+        .dp-form-actions .dp-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="dp-page">
+
+    <div class="dp-header">
+        <div class="dp-title">
+            <h2>Debt Payments</h2>
+            <p>Maamul, wax ka beddel, oo tirtir payment-yada deyntan.</p>
         </div>
-    </div>
 
-    <div class="page-header-right ms-auto">
-        <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
-           class="btn btn-light">
-            <i data-feather="arrow-left"></i> Back to Debt
+        <a
+            class="dp-btn dp-btn-back"
+            href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
+        >
+            &larr; Back to Debt
         </a>
     </div>
-</div>
 
-<div class="main-content mt-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card payment-edit-card">
-                <div class="card-header">
-                    <div class="payment-edit-icon">
-                        <i data-feather="edit-3"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-1">Update Payment</h5>
-                        <p class="text-muted mb-0">
-                            {{ debt.title or 'Untitled Debt' }}
-                        </p>
-                    </div>
+    <!-- DEBT SUMMARY -->
+    <section class="dp-card">
+        <div class="dp-card-head">
+            <div>
+                <h3>Debt Information</h3>
+                <p>Faahfaahinta deynta aad maamulayso.</p>
+            </div>
+        </div>
+
+        <div class="dp-card-body">
+            <div class="dp-summary">
+                <div class="dp-summary-item">
+                    <span>Qofka / Debt</span>
+                    <strong>{{ debt.person_name or debt.title or 'Debt' }}</strong>
                 </div>
 
-                <div class="card-body">
-                    <div class="payment-current-info">
-                        <span>Current recorded payment</span>
-                        <strong>
-                            {{ "%.2f"|format(old_amount) }}
-                            {{ debt.currency or 'USD' }}
-                        </strong>
-                    </div>
+                <div class="dp-summary-item">
+                    <span>Currency</span>
+                    <strong>{{ debt.currency or 'USD' }}</strong>
+                </div>
 
-                    <form method="POST"
-                          id="editLatestPaymentForm"
-                          action="{{ url_for('main.edit_latest_debt_payment', debt_id=debt._id|string) }}">
-
-                        {# Ku dar CSRF token haddii app-kaagu isticmaalo Flask-WTF. #}
-
-                        <div class="mb-4">
-                            <label for="payment_amount" class="form-label">
-                                Payment Amount <span class="text-danger">*</span>
-                            </label>
-
-                            <div class="input-group input-group-lg">
-                                <span class="input-group-text">
-                                    {{ '$' if (debt.currency or 'USD') == 'USD' else debt.currency }}
-                                </span>
-                                <input type="number"
-                                       class="form-control"
-                                       id="payment_amount"
-                                       name="payment_amount"
-                                       min="0.01"
-                                       step="0.01"
-                                       value="{{ '%.2f'|format(old_amount) }}"
-                                       required>
-                            </div>
-                            <small class="text-muted">
-                                Geli lacagta saxda ah ee aad rabto in lagu beddelo.
-                            </small>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="payment_note" class="form-label">
-                                Payment Note
-                            </label>
-                            <textarea class="form-control"
-                                      id="payment_note"
-                                      name="payment_note"
-                                      rows="4"
-                                      maxlength="1000"
-                                      placeholder="Qoraalka lacag-bixinta...">{{ payment.note or '' }}</textarea>
-                        </div>
-
-                        <div class="alert alert-warning">
-                            <strong>Fiiro gaar ah:</strong>
-                            Marka aad kaydiso, wadarta lacagta la bixiyey iyo
-                            lacagta daynta ka harsan ayaa dib loo xisaabin doonaa.
-                        </div>
-
-                        <div class="d-flex justify-content-end flex-wrap gap-2">
-                            <a href="{{ url_for('main.debt_details', debt_id=debt._id|string) }}"
-                               class="btn btn-light">
-                                Cancel
-                            </a>
-                            <button type="submit" class="btn btn-primary" id="savePayment">
-                                <i data-feather="save"></i>
-                                Save Changes
-                            </button>
-                        </div>
-                    </form>
+                <div class="dp-summary-item">
+                    <span>Total Payments Recorded</span>
+                    <strong>{{ payments|length }}</strong>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- EDIT SELECTED PAYMENT -->
+    {% if payment %}
+    <section class="dp-card">
+        <div class="dp-card-head">
+            <div>
+                <h3>Edit Selected Payment</h3>
+                <p>Waxaad beddelaysaa payment-ka la doortay.</p>
+            </div>
+        </div>
+
+        <div class="dp-card-body">
+            <form
+                method="POST"
+                action="{{ url_for(
+                    'main.edit_debt_payment',
+                    debt_id=debt._id|string,
+                    payment_id=payment._id|string
+                ) }}"
+            >
+                {% if csrf_token is defined %}
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% endif %}
+
+                <div class="dp-form-grid">
+                    <div class="dp-field">
+                        <label for="payment_amount">Payment Amount *</label>
+                        <input
+                            id="payment_amount"
+                            name="amount"
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value="{{ '%.2f'|format(old_amount|float) }}"
+                            inputmode="decimal"
+                            required
+                        >
+                    </div>
+
+                    <div class="dp-field">
+                        <label>Payment Date</label>
+                        <input
+                            type="text"
+                            value="{% if payment.payment_date %}{{ payment.payment_date.strftime('%d %b %Y') if payment.payment_date.strftime is defined else payment.payment_date }}{% else %}—{% endif %}"
+                            readonly
+                            aria-label="Payment date (read only)"
+                        >
+                        {# Preserve the existing date value; the route reads this field. #}
+                        <input
+                            type="hidden"
+                            name="payment_date"
+                            value="{{ payment.payment_date.isoformat() if payment.payment_date and payment.payment_date.isoformat is defined else (payment.payment_date or '') }}"
+                        >
+                    </div>
+
+                    <div class="dp-field dp-field-full">
+                        <label for="payment_note">Payment Note</label>
+                        <textarea
+                            id="payment_note"
+                            name="note"
+                            placeholder="Faahfaahinta payment-ka..."
+                        >{{ payment.note or '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="dp-form-actions">
+                    <button type="submit" class="dp-btn dp-btn-save">
+                        Save Changes
+                    </button>
+
+                    <a
+                        class="dp-btn dp-btn-back"
+                        href="{{ url_for('main.edit_latest_debt_payment', debt_id=debt._id|string) }}"
+                    >
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- ALL PREVIOUS PAYMENTS -->
+    <section class="dp-card">
+        <div class="dp-card-head">
+            <div>
+                <h3>All Previous Payments</h3>
+                <p>Payment kasta wuxuu leeyahay Edit iyo Delete u gaar ah.</p>
+            </div>
+
+            <span class="dp-count">{{ payments|length }} payments</span>
+        </div>
+
+        {% if payments %}
+        <div class="dp-table-wrap">
+            <table class="dp-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Payment Date</th>
+                        <th>Amount</th>
+                        <th>Note</th>
+                        <th>Payment ID</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for item in payments %}
+                    {% set item_amount = item.amount.to_decimal() if item.amount is not none and item.amount.to_decimal is defined else item.amount|default(0, true)|float %}
+
+                    <tr>
+                        <td>{{ loop.index }}</td>
+
+                        <td>
+                            {% if item.payment_date %}
+                                {{ item.payment_date.strftime('%d %b %Y') if item.payment_date.strftime is defined else item.payment_date }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+
+                        <td class="dp-amount">
+                            {{ item.currency or debt.currency or 'USD' }}
+                            {{ '%.2f'|format(item_amount|float) }}
+                        </td>
+
+                        <td class="dp-note">
+                            {{ item.note or 'No note' }}
+                        </td>
+
+                        <td>
+                            <small>{{ item._id|string }}</small>
+                        </td>
+
+                        <td>
+                            <div class="dp-actions">
+                                <a
+                                    class="dp-btn dp-btn-edit"
+                                    href="{{ url_for(
+                                        'main.edit_debt_payment',
+                                        debt_id=debt._id|string,
+                                        payment_id=item._id|string
+                                    ) }}"
+                                >
+                                    Edit
+                                </a>
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'main.delete_debt_payment',
+                                        debt_id=debt._id|string,
+                                        payment_id=item._id|string
+                                    ) }}"
+                                    onsubmit="return confirm('Ma hubtaa inaad tirtirayso payment-kan keliya?');"
+                                >
+                                    {% if csrf_token is defined %}
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    {% endif %}
+
+                                    <button
+                                        type="submit"
+                                        class="dp-btn dp-btn-delete"
+                                    >
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="dp-empty">
+            <strong>Payment History waa madhan yahay</strong>
+            Weli wax payment ah laguma diiwaangelin deyntan.
+        </div>
+        {% endif %}
+    </section>
+
 </div>
-
-<style>
-.payment-edit-card {
-    border: 1px solid #e7ebf3;
-    border-radius: 14px;
-    overflow: hidden;
-}
-.payment-edit-card .card-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 22px;
-    background: #fff;
-}
-.payment-edit-icon {
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 12px;
-    background: #edf2ff;
-    color: #06245f;
-}
-.payment-current-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 18px;
-    margin-bottom: 25px;
-    background: #f7f9fd;
-    border: 1px solid #e8edf5;
-    border-radius: 10px;
-}
-.payment-current-info span {
-    color: #68738a;
-    font-size: 13px;
-}
-.payment-current-info strong {
-    color: #06245f;
-    font-size: 21px;
-}
-.btn-primary {
-    background: #06245f;
-    border-color: #06245f;
-}
-.btn-primary:hover {
-    background: #33206f;
-    border-color: #33206f;
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("editLatestPaymentForm");
-    const amount = document.getElementById("payment_amount");
-
-    form.addEventListener("submit", function (event) {
-        const value = Number(amount.value);
-
-        if (!Number.isFinite(value) || value <= 0) {
-            event.preventDefault();
-            amount.setCustomValidity("Geli lacag ka weyn eber.");
-            amount.reportValidity();
-            return;
-        }
-
-        amount.setCustomValidity("");
-
-        if (!window.confirm("Ma rabtaa inaad beddesho lacag-bixintan?")) {
-            event.preventDefault();
-        }
-    });
-
-    amount.addEventListener("input", function () {
-        amount.setCustomValidity("");
-    });
-
-    if (window.feather) {
-        window.feather.replace();
-    }
-});
-</script>
 {% endblock %}
