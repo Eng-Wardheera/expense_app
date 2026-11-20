@@ -31,7 +31,55 @@
 <div class="yr-year-header"><div class="yr-year-top"><div><h3 class="yr-year-title">{{ label }}</h3><div class="yr-year-subtitle">{{ r.title or 'Yearly financial report' }}</div></div><span class="yr-status {{ status|e }}">● {{ status }}</span></div><div class="yr-year-dates"><div class="yr-date-box"><span class="yr-date-label">Start date</span><span class="yr-date-value">{{ start_display }}{% if r.start_day %} · {{ r.start_day }}{% endif %}</span></div><div class="yr-date-box"><span class="yr-date-label">End date</span><span class="yr-date-value">{{ end_display }}{% if r.end_day %} · {{ r.end_day }}{% endif %}</span></div></div></div>
 <div class="yr-year-body"><div class="yr-money-grid"><div class="yr-money-item income"><span class="yr-money-label">Total Income</span><strong class="yr-money-value">{{ money(income) }}</strong></div><div class="yr-money-item expense"><span class="yr-money-label">Total Expense</span><strong class="yr-money-value">{{ money(expense) }}</strong></div><div class="yr-money-item balance"><span class="yr-money-label">Net Difference</span><strong class="yr-money-value">{{ money(income-expense) }}</strong></div><div class="yr-money-item rest"><span class="yr-money-label">Recorded Balance</span><strong class="yr-money-value">{{ money(recorded_balance) }}</strong></div></div>
 <div class="yr-mini-chart"><canvas id="yrIncome{{ loop.index0 }}" aria-label="Income expense and balance for {{ label|e }}"></canvas></div>
-<div class="yr-table-wrap"><table class="yr-table"><thead><tr><th>Category</th><th>Financial details</th><th>Amount</th></tr></thead><tbody><tr><td>Total Income</td><td>All recorded income</td><td class="positive">{{ money(income) }}</td></tr><tr><td>Total Expense</td><td>All recorded expenses</td><td class="negative">{{ money(expense) }}</td></tr><tr><td>Personal Expense</td><td>Personal expenditure</td><td>{{ money(personal) }}</td></tr><tr><td>Total Free</td><td>Free / available category total</td><td>{{ money(free) }}</td></tr><tr><td>Transport</td><td>Transportation expenses</td><td>{{ money(transport) }}</td></tr><tr><td>Personal Use</td><td>Personal-use category</td><td>{{ money(personal_use_value) }}</td></tr><tr><td>Total MB</td><td>MB category total</td><td>{{ money(mb) }}</td></tr><tr><td>Total Currency</td><td>Currency category total</td><td>{{ money(currency) }}</td></tr><tr><td><strong>Recorded Balance</strong></td><td>Balance stored in yearly record</td><td class="{{ 'positive' if recorded_balance >= 0 else 'negative' }}">{{ money(recorded_balance) }}</td></tr></tbody></table></div>
+<div class="yr-table-wrap"><table class="yr-table"><thead><tr><th>Category</th><th>Financial details</th><th>Amount</th></tr></thead><tbody>
+<tr><td>Total Income</td><td>All recorded income</td><td class="positive">{{ money(income) }}</td></tr>
+<tr><td>Total Expense</td><td>All recorded expenses</td><td class="negative">{{ money(expense) }}</td></tr>
+{% set breakdown = r.category_breakdown if r.category_breakdown is defined and r.category_breakdown else [] %}
+{% set category_totals = r.expense_category_totals if r.expense_category_totals is defined and r.expense_category_totals is mapping else {} %}
+{% set item_totals = r.expense_item_totals if r.expense_item_totals is defined and r.expense_item_totals is mapping else {} %}
+{% if breakdown %}
+{% set catns = namespace(sum=0) %}
+{% for cat in breakdown %}
+{% set cat_name = cat['category'] if cat is mapping and 'category' in cat else (cat['name'] if cat is mapping and 'name' in cat else 'Uncategorized') %}
+{% set cat_total = (cat['total'] if cat is mapping and 'total' in cat else (cat['amount'] if cat is mapping and 'amount' in cat else 0))|float %}
+{% set catns.sum = catns.sum + cat_total %}
+<tr><td><strong>{{ cat_name }}</strong></td><td>Expense category</td><td>{{ money(cat_total) }}</td></tr>
+{% set subitems = cat['items'] if cat is mapping and 'items' in cat and cat['items'] is sequence and cat['items'] is not string else [] %}
+{% for item in subitems %}
+{% set item_name = item['name'] if item is mapping and 'name' in item else (item['item'] if item is mapping and 'item' in item else 'Subcategory') %}
+{% set item_total = (item['total'] if item is mapping and 'total' in item else (item['amount'] if item is mapping and 'amount' in item else 0))|float %}
+<tr><td style="padding-left:28px">↳ {{ item_name }}</td><td>Subcategory</td><td>{{ money(item_total) }}</td></tr>
+{% endfor %}
+{% endfor %}
+{% if (expense-catns.sum)|abs > 0.005 %}<tr><td><strong>Unallocated / Reconciliation</strong></td><td>Difference between total expense and listed categories</td><td>{{ money(expense-catns.sum) }}</td></tr>{% endif %}
+{% elif category_totals %}
+{% set catns = namespace(sum=0) %}
+{% for cat_name, cat_total in category_totals|dictsort %}
+{% set catns.sum = catns.sum + (cat_total|float) %}
+<tr><td><strong>{{ cat_name }}</strong></td><td>Expense category</td><td>{{ money(cat_total) }}</td></tr>
+{% endfor %}
+{% if (expense-catns.sum)|abs > 0.005 %}<tr><td><strong>Unallocated / Reconciliation</strong></td><td>Difference between total expense and listed categories</td><td>{{ money(expense-catns.sum) }}</td></tr>{% endif %}
+{% else %}
+<tr><td>Personal Expense</td><td>Personal expenditure</td><td>{{ money(personal) }}</td></tr>
+<tr><td>Total Free</td><td>Free / available category total</td><td>{{ money(free) }}</td></tr>
+<tr><td>Transport</td><td>Transportation expenses</td><td>{{ money(transport) }}</td></tr>
+<tr><td>Personal Use</td><td>Personal-use category</td><td>{{ money(personal_use_value) }}</td></tr>
+<tr><td>Total MB</td><td>MB category total</td><td>{{ money(mb) }}</td></tr>
+<tr><td>Total Currency</td><td>Currency category total</td><td>{{ money(currency) }}</td></tr>
+{% endif %}
+{% if item_totals %}
+<tr><td colspan="3"><strong>Recorded Subcategory Totals</strong></td></tr>
+{% for item_name, item_total in item_totals|dictsort %}
+<tr><td style="padding-left:28px">↳ {{ item_name }}</td><td>Subcategory total</td><td>{{ money(item_total) }}</td></tr>
+{% endfor %}
+{% endif %}
+<tr><td><strong>Net Period Difference</strong></td><td>Total income minus total expense</td><td class="{{ 'positive' if income-expense >= 0 else 'negative' }}">{{ money(income-expense) }}</td></tr>
+<tr><td><strong>Recorded Balance</strong></td><td>Balance stored in yearly record</td><td class="{{ 'positive' if recorded_balance >= 0 else 'negative' }}">{{ money(recorded_balance) }}</td></tr>
+{% if r.opening_balance is defined and r.opening_balance is not none %}<tr><td>Opening Balance</td><td>Opening balance recorded</td><td>{{ money(r.opening_balance) }}</td></tr>{% endif %}
+{% if r.cash_rest is defined and r.cash_rest is not none %}<tr><td>Cash Rest</td><td>Recorded cash balance</td><td>{{ money(r.cash_rest) }}</td></tr>{% endif %}
+{% if r.saving_balance is defined and r.saving_balance is not none %}<tr><td>Saving Balance</td><td>Recorded savings balance</td><td>{{ money(r.saving_balance) }}</td></tr>{% endif %}
+{% if r.total_balance is defined and r.total_balance is not none %}<tr><td>Total Balance</td><td>Combined recorded balance</td><td>{{ money(r.total_balance) }}</td></tr>{% endif %}
+</tbody></table></div>
 <div class="yr-year-actions">{% if r._id is defined and r._id %}<a class="yr-btn yr-btn-primary yr-btn-small" href="{{ url_for(request.endpoint, rate_id=r._id|string) }}">View Report</a>{% endif %}<button type="button" class="yr-btn yr-btn-primary yr-btn-small" onclick="printYearCard(this)">Print Year</button><button type="button" class="yr-btn yr-btn-green yr-btn-small" onclick="exportSingleYear(this)">Export Year</button></div></div></article>
 {% endfor %}</div>
 <div class="yr-empty" id="yrNoResults"><div class="yr-empty-icon">⌕</div><h3>No matching records</h3><p>Ma jiraan diiwaanno waafaqaya raadintaada. Beddel erayga raadinta ama filter-ka.</p><button type="button" class="yr-btn yr-btn-primary" style="margin-top:15px" onclick="resetYearlyFilters()">Clear Filters</button></div>
