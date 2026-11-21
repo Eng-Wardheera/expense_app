@@ -1,8 +1,21 @@
-
 """
 Maareeye Personal Plan Notifications
 Email + Browser Web Push + Protected Cron
 Timezone: Africa/Mogadishu
+
+Cron URL:
+    /plan/notifications/cron
+
+Required Environment Variables:
+    CRON_SECRET
+    VAPID_PUBLIC_KEY
+    VAPID_PRIVATE_KEY
+    VAPID_CLAIMS_EMAIL
+    APP_BASE_URL
+
+Optional:
+    PLAN_REMINDER_WINDOW_MINUTES=10
+    PLAN_CRON_LOCK_MINUTES=15
 """
 
 from __future__ import annotations
@@ -12,12 +25,13 @@ import json
 import html
 import hmac
 import secrets
+import logging
 
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from bson import ObjectId
-from flask import Blueprint, abort, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app
 from flask_login import current_user, login_required
 from flask_mail import Message
 
@@ -26,23 +40,35 @@ from pymongo.errors import DuplicateKeyError
 
 
 TZ = ZoneInfo("Africa/Mogadishu")
+UTC = timezone.utc
+
+logger = logging.getLogger(__name__)
 
 
 # =========================================================
 # HELPERS
 # =========================================================
 
+def _now():
+    return datetime.now(TZ)
+
+
+def _utc_now():
+    return datetime.now(UTC)
+
+
 def _user_ids(user):
     raw = getattr(user, "id", None) or getattr(user, "_id", None)
 
     if raw is None:
-        abort(403)
+        return [], None
 
     text = str(raw)
 
     try:
         oid = raw if isinstance(raw, ObjectId) else ObjectId(text)
         return [oid, text], oid
+
     except Exception:
         return [text], text
 
@@ -55,8 +81,10 @@ def _owner_values(raw_owner):
 
     try:
         oid = ObjectId(str(raw_owner))
+
         if oid not in values:
             values.append(oid)
+
     except Exception:
         pass
 
@@ -77,6 +105,168 @@ def _vapid_private_key():
         or current_app.config.get("VAPID_PRIVATE_KEY")
         or ""
     ).strip()
+
+
+def _cron_secret():
+    return (
+        os.getenv("CRON_SECRET")
+        or current_app.config.get("CRON_SECRET")
+        or ""
+    ).strip()
+
+
+def _vapid_subject():
+    return (
+        os.getenv("VAPID_CLAIMS_EMAIL")
+        or current_app.config.get("VAPID_CLAIMS_EMAIL")
+        or "mailto:admin@example.com"
+    ).strip()
+
+
+def _base_url(app):
+    return (
+        os.getenv("APP_BASE_URL")
+        or app.config.get("PUBLIC_BASE_URL")
+        or "https://maareye.vercel.app"
+    ).strip().rstrip("/")
+
+
+def _get_owner_email(owner):
+    if not owner:
+        return None
+
+    email = (
+        owner.get("email")
+        or owner.get("google_email")
+        or owner.get("mail")
+        or ""
+    )
+
+    email = str(email).strip()
+
+    if not email or "@" not in email:
+        return None
+
+    return email
+
+
+def _get_plan_owner(mongo, raw_owner):
+    values = _owner_values(raw_owner)
+
+    if not values:
+        return None
+
+    return mongo.db.users.find_one({
+        "_id": {"$in": values}
+    })
+
+
+def _deadline_for(plan):
+
+    raw_date = (
+        plan.get("due_date")
+        or plan.get("plan_date")
+        or plan.get("deadline")
+    )
+
+    if not raw_date:
+        return None
+
+    raw_time = (
+        plan.get("end_time")
+        or plan.get("due_time")
+        or plan.get("start_time")
+        or "09:00"
+    )
+
+    try:
+
+        if isinstance(raw_date, datetime):
+            day = raw_date.date()
+
+        else:
+            day = datetime.strptime(
+                str(raw_date)[:10],
+                "%Y-%m-%d"
+            ).date()
+
+        if isinstance(raw_time, datetime):
+            clock = raw_time.time()
+
+        else:
+            clock = datetime.strptime(
+                str(raw_time)[:5],
+                "%H:%M"
+            ).time()
+
+        return datetime.combine(
+            day,
+            clock,
+            tzinfo=TZ
+        )
+
+    except (TypeError, ValueError):
+        return None
+
+
+# =========================================================
+# REMINDER LOGIC
+# =========================================================
+
+def _reminder_kind(delta_seconds, now, deadline):
+
+    window_minutes = int(
+        os.getenv("PLAN_REMINDER_WINDOW_MINUTES", "10")
+    )
+
+    window = window_minutes * 60
+
+    reminders = (
+        (24, "24h"),
+        (3, "3h"),
+        (1, "1h"),
+    )
+
+    for hours, label in reminders:
+
+        target = hours * 3600
+
+        if target - window <= delta_seconds <= target + 30:
+
+            if hours == 24:
+                message = (
+                    "Deadline-ka qorshahaagu waa berri."
+                )
+
+            else:
+                message = (
+                    f"Deadline-ka qorshahaaga waxaa ka "
+                    f"hararsan {hours} saac."
+                )
+
+            return label, message
+
+    # Deadline waqtigiisa
+    if -window <= delta_seconds <= 30:
+
+        return (
+            "due",
+            "Waqtigii deadline-ka qorshahaaga ayaa la gaaray."
+        )
+
+    # Overdue: hal reminder maalintii
+    if delta_seconds < -window:
+
+        overdue_key = (
+            f"overdue-{now.date().isoformat()}"
+        )
+
+        return (
+            overdue_key,
+            "Qorshahaagu wuu dhaafay waqtigii loogu talagalay."
+        )
+
+    return None, None
 
 
 # =========================================================
@@ -105,12 +295,16 @@ def create_plan_notifications_blueprint(mongo):
         key = _vapid_public_key()
 
         if not key:
+
             return jsonify({
                 "success": False,
                 "error": "VAPID_PUBLIC_KEY lama dejin."
             }), 503
 
-        return jsonify({"publicKey": key})
+        return jsonify({
+            "success": True,
+            "publicKey": key
+        }), 200
 
     # -----------------------------------------------------
     # SUBSCRIBE
@@ -124,19 +318,23 @@ def create_plan_notifications_blueprint(mongo):
 
         data = request.get_json(silent=True) or {}
 
-        endpoint = str(data.get("endpoint") or "").strip()
+        endpoint = str(
+            data.get("endpoint") or ""
+        ).strip()
+
         keys = data.get("keys") or {}
 
         p256dh = keys.get("p256dh")
         auth = keys.get("auth")
 
         if not endpoint or not p256dh or not auth:
+
             return jsonify({
                 "success": False,
                 "error": "Subscription data ma dhammaystirna."
             }), 400
 
-        now = datetime.now(TZ)
+        now = _now()
 
         subscriptions().update_one(
             {"endpoint": endpoint},
@@ -163,7 +361,7 @@ def create_plan_notifications_blueprint(mongo):
         return jsonify({
             "success": True,
             "message": "Browser notifications waa la hawlgeliyey."
-        })
+        }), 200
 
     # -----------------------------------------------------
     # UNSUBSCRIBE
@@ -176,9 +374,13 @@ def create_plan_notifications_blueprint(mongo):
         values, _ = _user_ids(current_user)
 
         data = request.get_json(silent=True) or {}
-        endpoint = str(data.get("endpoint") or "").strip()
+
+        endpoint = str(
+            data.get("endpoint") or ""
+        ).strip()
 
         if endpoint:
+
             subscriptions().delete_one({
                 "endpoint": endpoint,
                 "user_id": {"$in": values}
@@ -187,7 +389,7 @@ def create_plan_notifications_blueprint(mongo):
         return jsonify({
             "success": True,
             "message": "Browser notifications waa la damiyey."
-        })
+        }), 200
 
     # -----------------------------------------------------
     # STATUS
@@ -204,60 +406,91 @@ def create_plan_notifications_blueprint(mongo):
         })
 
         return jsonify({
+            "success": True,
             "enabled": count > 0,
+            "subscriptions": count,
             "supported": bool(_vapid_public_key())
-        })
+        }), 200
 
     # -----------------------------------------------------
-    # PROTECTED CRON ENDPOINT
+    # PROTECTED CRON
     # -----------------------------------------------------
 
     @bp.get("/cron")
     def cron_runner():
 
-        expected_secret = (
-            os.getenv("CRON_SECRET")
-            or current_app.config.get("CRON_SECRET")
-            or ""
-        ).strip()
+        expected_secret = _cron_secret()
 
-        authorization = request.headers.get("Authorization", "")
+        authorization = (
+            request.headers.get("Authorization", "").strip()
+        )
 
         if not expected_secret:
+
             current_app.logger.error(
-                "CRON_SECRET lama dejin."
+                "CRON_SECRET is missing."
             )
+
             return jsonify({
                 "success": False,
-                "error": "Cron secret lama dejin."
+                "error": "Cron secret is not configured."
             }), 503
 
-        expected_header = f"Bearer {expected_secret}"
+        expected_header = (
+            f"Bearer {expected_secret}"
+        )
 
         if not hmac.compare_digest(
-            authorization,
-            expected_header
+            authorization.encode("utf-8"),
+            expected_header.encode("utf-8")
         ):
+
+            current_app.logger.warning(
+                "Unauthorized cron request. IP=%s",
+                request.remote_addr
+            )
+
             return jsonify({
                 "success": False,
                 "error": "Unauthorized."
             }), 401
 
+        # -------------------------------------------------
+        # MONGODB JOB LOCK
+        # -------------------------------------------------
+
         lock_collection = mongo.db.job_locks
 
         lock_id = "personal_plan_reminders"
+
         lock_token = secrets.token_urlsafe(32)
 
-        now_utc = datetime.now(timezone.utc)
-        lease_until = now_utc + timedelta(minutes=15)
+        now_utc = _utc_now()
+
+        lock_minutes = int(
+            os.getenv("PLAN_CRON_LOCK_MINUTES", "15")
+        )
+
+        lease_until = (
+            now_utc + timedelta(minutes=lock_minutes)
+        )
 
         try:
-            lock_collection.find_one_and_update(
+
+            lock_doc = lock_collection.find_one_and_update(
                 {
                     "_id": lock_id,
                     "$or": [
-                        {"lease_until": {"$lte": now_utc}},
-                        {"lease_until": {"$exists": False}}
+                        {
+                            "lease_until": {
+                                "$lte": now_utc
+                            }
+                        },
+                        {
+                            "lease_until": {
+                                "$exists": False
+                            }
+                        }
                     ]
                 },
                 {
@@ -272,24 +505,57 @@ def create_plan_notifications_blueprint(mongo):
             )
 
         except DuplicateKeyError:
+
             return jsonify({
                 "success": True,
                 "skipped": True,
                 "message": "Reminder job hore ayuu u socdaa."
             }), 202
 
-        try:
-            app = current_app._get_current_object()
+        except Exception:
 
-            send_due_plan_notifications(app, mongo)
+            current_app.logger.exception(
+                "Unable to acquire cron lock."
+            )
+
+            return jsonify({
+                "success": False,
+                "error": "Could not acquire job lock."
+            }), 500
+
+        # -------------------------------------------------
+        # CONFIRM LOCK OWNERSHIP
+        # -------------------------------------------------
+
+        if (
+            not lock_doc
+            or lock_doc.get("token") != lock_token
+        ):
+
+            return jsonify({
+                "success": True,
+                "skipped": True,
+                "message": "Another cron job is running."
+            }), 202
+
+        app = current_app._get_current_object()
+
+        try:
+
+            result = send_due_plan_notifications(
+                app,
+                mongo
+            )
 
             return jsonify({
                 "success": True,
                 "message": "Personal Plan reminders waa la hubiyey.",
-                "processed_at": datetime.now(TZ).isoformat()
+                "processed_at": _now().isoformat(),
+                "results": result
             }), 200
 
         except Exception:
+
             current_app.logger.exception(
                 "Personal Plan Cron failed."
             )
@@ -300,6 +566,8 @@ def create_plan_notifications_blueprint(mongo):
             }), 500
 
         finally:
+
+            # Lock-kan waxaa tirtiraya qofka token-kiisu sax yahay
             lock_collection.delete_one({
                 "_id": lock_id,
                 "token": lock_token
@@ -309,136 +577,7 @@ def create_plan_notifications_blueprint(mongo):
 
 
 # =========================================================
-# PLAN DEADLINE
-# =========================================================
-
-def _deadline_for(plan):
-
-    raw_date = (
-        plan.get("due_date")
-        or plan.get("plan_date")
-    )
-
-    if not raw_date:
-        return None
-
-    raw_time = (
-        plan.get("end_time")
-        or plan.get("start_time")
-        or "09:00"
-    )
-
-    try:
-        day = datetime.strptime(
-            str(raw_date)[:10],
-            "%Y-%m-%d"
-        ).date()
-
-        clock = datetime.strptime(
-            str(raw_time)[:5],
-            "%H:%M"
-        ).time()
-
-        return datetime.combine(
-            day,
-            clock,
-            tzinfo=TZ
-        )
-
-    except (TypeError, ValueError):
-        return None
-
-
-# =========================================================
-# REMINDER LOGIC
-# =========================================================
-
-def _reminder_kind(delta_seconds, now, deadline):
-
-    # Cron 5 daqiiqo kasta:
-    # 10-minute window ayaa ka hortagaya in reminder la waayo.
-
-    reminders = (
-        (24, "24h"),
-        (3, "3h"),
-        (1, "1h")
-    )
-
-    for hours, label in reminders:
-
-        target = hours * 3600
-
-        if target - 600 <= delta_seconds <= target + 30:
-
-            if hours == 24:
-                message = "Deadline-ka qorshahaagu waa berri."
-
-            else:
-                message = (
-                    f"Deadline-ka qorshahaaga waxaa ka harsan "
-                    f"{hours} saac."
-                )
-
-            return label, message
-
-    # Waqtigii deadline-ka
-    if -600 <= delta_seconds <= 30:
-
-        return (
-            "due",
-            "Waqtigii deadline-ka qorshahaaga ayaa la gaaray."
-        )
-
-    # Overdue: isla maalinta deadline-ku dhaafo ayuu bilaabmaa.
-    # Hal fariin maalintii.
-
-    if delta_seconds < -600:
-
-        return (
-            f"overdue-{now.date().isoformat()}",
-            "Qorshahaagu wuu dhaafay waqtigii loogu talagalay."
-        )
-
-    return None, None
-
-
-# =========================================================
-# USER LOOKUP
-# =========================================================
-
-def _get_plan_owner(mongo, raw_owner):
-
-    values = _owner_values(raw_owner)
-
-    if not values:
-        return None
-
-    return mongo.db.users.find_one({
-        "_id": {"$in": values}
-    })
-
-
-def _get_owner_email(owner):
-
-    if not owner:
-        return None
-
-    email = (
-        owner.get("email")
-        or owner.get("google_email")
-        or ""
-    )
-
-    email = str(email).strip()
-
-    if not email or "@" not in email:
-        return None
-
-    return email
-
-
-# =========================================================
-# EMAIL
+# EMAIL NOTIFICATION
 # =========================================================
 
 def send_plan_email(
@@ -454,10 +593,12 @@ def send_plan_email(
     recipient = _get_owner_email(owner)
 
     if not recipient:
+
         app.logger.warning(
-            "Personal Plan: user has no valid email. Plan=%s",
+            "Plan has no valid email. Plan=%s",
             plan.get("_id")
         )
+
         return False
 
     fullname = (
@@ -483,17 +624,7 @@ def send_plan_email(
         or "Ma jiro faahfaahin dheeraad ah."
     )
 
-    base_url = (
-        os.getenv("APP_BASE_URL")
-        or app.config.get("PUBLIC_BASE_URL")
-        or ""
-    ).strip().rstrip("/")
-
-    if not base_url:
-        app.logger.error("APP_BASE_URL lama dejin.")
-        return False
-
-    plan_url = f"{base_url}/plan/"
+    plan_url = f"{_base_url(app)}/plan/"
 
     deadline_text = deadline.strftime(
         "%d %B %Y at %I:%M %p"
@@ -527,42 +658,84 @@ Maareeye
 """
 
     html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <body style="margin:0;padding:24px;background:#f3f5f9;
-                 font-family:Arial,sans-serif;color:#172033;">
-      <div style="max-width:560px;margin:auto;background:#ffffff;
-                  border-radius:14px;overflow:hidden;">
-        <div style="background:#06245f;padding:24px;color:white;">
-          <h2 style="margin:0;">Maareeye</h2>
-          <p style="margin:8px 0 0;">Personal Plan Reminder</p>
-        </div>
-        <div style="padding:26px;">
-          <p>Dear {safe_name},</p>
-          <div style="padding:14px;background:#fff4e5;
-                      border-radius:8px;color:#8a4b08;">
+<!DOCTYPE html>
+<html>
+<body style="
+    margin:0;
+    padding:24px;
+    background:#f3f5f9;
+    font-family:Arial,sans-serif;
+    color:#172033;
+">
+<div style="
+    max-width:560px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:14px;
+    overflow:hidden;
+">
+    <div style="
+        background:#06245f;
+        padding:24px;
+        color:white;
+    ">
+        <h2 style="margin:0;">Maareeye</h2>
+        <p style="margin:8px 0 0;">
+            Personal Plan Reminder
+        </p>
+    </div>
+
+    <div style="padding:26px;">
+        <p>Dear {safe_name},</p>
+
+        <div style="
+            padding:14px;
+            background:#fff4e5;
+            border-radius:8px;
+            color:#8a4b08;
+        ">
             <strong>{safe_message}</strong>
-          </div>
-          <h2>{safe_title}</h2>
-          <p><strong>Category:</strong> {safe_category}</p>
-          <p><strong>Deadline:</strong> {safe_deadline}</p>
-          <p>{safe_description}</p>
-          <a href="{safe_url}"
-             style="display:inline-block;background:#32b73a;
-                    color:white;padding:12px 22px;
-                    border-radius:7px;text-decoration:none;
-                    font-weight:bold;">
+        </div>
+
+        <h2>{safe_title}</h2>
+
+        <p>
+            <strong>Category:</strong>
+            {safe_category}
+        </p>
+
+        <p>
+            <strong>Deadline:</strong>
+            {safe_deadline}
+        </p>
+
+        <p>{safe_description}</p>
+
+        <a href="{safe_url}" style="
+            display:inline-block;
+            background:#32b73a;
+            color:white;
+            padding:12px 22px;
+            border-radius:7px;
+            text-decoration:none;
+            font-weight:bold;
+        ">
             Open Personal Plan
-          </a>
-        </div>
-        <div style="padding:16px;text-align:center;
-                    color:#777;background:#f7f8fa;">
-          Maareeye Personal Plan Notifications
-        </div>
-      </div>
-    </body>
-    </html>
-    """
+        </a>
+    </div>
+
+    <div style="
+        padding:16px;
+        text-align:center;
+        color:#777;
+        background:#f7f8fa;
+    ">
+        Maareeye Personal Plan Notifications
+    </div>
+</div>
+</body>
+</html>
+"""
 
     message = Message(
         subject=subject,
@@ -591,15 +764,19 @@ def send_plan_push(
 ):
 
     try:
+
         from pywebpush import webpush
 
     except ImportError:
-        app.logger.exception(
-            "pywebpush lama rakibin."
+
+        app.logger.error(
+            "pywebpush package is not installed."
         )
+
         return 0
 
     raw_owner = plan.get("user_id")
+
     owner_values = _owner_values(raw_owner)
 
     if not owner_values:
@@ -624,28 +801,33 @@ def send_plan_push(
         "title": "Maareeye — Plan Reminder",
         "body": f"{reminder_message} {title}",
         "url": "/plan/",
-        "tag": (
-            f"plan-{plan['_id']}-{reminder_kind}"
-        )
+        "tag": f"plan-{plan['_id']}-{reminder_kind}"
     }, ensure_ascii=False)
 
     delivered = 0
 
     for sub in owner_subscriptions:
 
-        info = sub.get("subscription") or {
-            "endpoint": sub.get("endpoint"),
-            "keys": sub.get("keys", {})
-        }
+        info = (
+            sub.get("subscription")
+            or {
+                "endpoint": sub.get("endpoint"),
+                "keys": sub.get("keys", {})
+            }
+        )
+
+        if not info.get("endpoint"):
+            continue
 
         try:
-            from pywebpush import WebPushException
 
             webpush(
                 subscription_info=info,
                 data=payload,
                 vapid_private_key=private_key,
-                vapid_claims={"sub": subject}
+                vapid_claims={
+                    "sub": subject
+                }
             )
 
             delivered += 1
@@ -664,7 +846,9 @@ def send_plan_push(
                 exc
             )
 
+            # Subscription expired / invalid
             if status_code in (404, 410):
+
                 subscriptions.delete_one({
                     "_id": sub["_id"]
                 })
@@ -677,14 +861,25 @@ def send_plan_push(
 # =========================================================
 
 def send_due_plan_notifications(app, mongo):
+
     """
-    Checks all active Personal Plans.
-    Sends email and push reminders separately.
+    Hubi plans-ka users-ka oo dhan.
+
+    Email iyo push waxaa loo diraa user-ka leh plan-ka.
+
+    Returns:
+        checked
+        reminders_found
+        email_sent
+        email_failed
+        push_sent
+        push_failed
+        skipped
     """
 
     with app.app_context():
 
-        now = datetime.now(TZ)
+        now = _now()
 
         plans_col = mongo.db.personal_plans
         subs_col = mongo.db.push_subscriptions
@@ -693,42 +888,66 @@ def send_due_plan_notifications(app, mongo):
         private_key = _vapid_private_key()
         public_key = _vapid_public_key()
 
-        vapid_subject = (
-            os.getenv("VAPID_CLAIMS_EMAIL")
-            or app.config.get("VAPID_CLAIMS_EMAIL")
-            or "mailto:admin@example.com"
-        ).strip()
+        vapid_subject = _vapid_subject()
 
         mail = app.extensions.get("mail")
 
         if mail is None:
+
             app.logger.error(
-                "Flask-Mail lama helin. Hubi mail.init_app(app)."
+                "Flask-Mail lama helin. "
+                "Hubi mail.init_app(app)."
             )
 
-        plans = plans_col.find({
-            "status": {
-                "$nin": [
-                    "completed",
-                    "cancelled",
-                    "deleted"
-                ]
-            }
-        })
+        plans = plans_col.find({})
 
         checked = 0
         reminders_found = 0
         email_sent = 0
+        email_failed = 0
         push_sent = 0
+        push_failed = 0
+        skipped = 0
 
         for plan in plans:
 
             checked += 1
 
             try:
+
+                # -----------------------------------------
+                # STATUS CHECK
+                # -----------------------------------------
+
+                status = str(
+                    plan.get("status") or "active"
+                ).strip().lower()
+
+                inactive_statuses = {
+                    "completed",
+                    "complete",
+                    "cancelled",
+                    "canceled",
+                    "deleted",
+                    "archived",
+                    "inactive",
+                    "void"
+                }
+
+                if status in inactive_statuses:
+
+                    skipped += 1
+                    continue
+
+                # -----------------------------------------
+                # DEADLINE
+                # -----------------------------------------
+
                 deadline = _deadline_for(plan)
 
                 if not deadline:
+
+                    skipped += 1
                     continue
 
                 delta = (
@@ -744,17 +963,26 @@ def send_due_plan_notifications(app, mongo):
                 )
 
                 if not reminder_kind:
+
+                    skipped += 1
                     continue
 
                 reminders_found += 1
 
+                # -----------------------------------------
+                # OWNER
+                # -----------------------------------------
+
                 raw_owner = plan.get("user_id")
 
                 if raw_owner is None:
+
                     app.logger.warning(
                         "Plan has no user_id: %s",
                         plan.get("_id")
                     )
+
+                    skipped += 1
                     continue
 
                 plan_id = plan["_id"]
@@ -765,9 +993,9 @@ def send_due_plan_notifications(app, mongo):
                     f"{reminder_kind}"
                 )
 
-                # ---------------------------------------------
+                # -----------------------------------------
                 # EMAIL
-                # ---------------------------------------------
+                # -----------------------------------------
 
                 email_key = f"email:{log_base}"
 
@@ -776,7 +1004,10 @@ def send_due_plan_notifications(app, mongo):
                     {"_id": 1}
                 )
 
-                if not email_exists and mail is not None:
+                if (
+                    not email_exists
+                    and mail is not None
+                ):
 
                     owner = _get_plan_owner(
                         mongo,
@@ -786,6 +1017,7 @@ def send_due_plan_notifications(app, mongo):
                     if owner:
 
                         try:
+
                             sent = send_plan_email(
                                 app=app,
                                 mail=mail,
@@ -797,6 +1029,7 @@ def send_due_plan_notifications(app, mongo):
                             )
 
                             if sent:
+
                                 logs_col.update_one(
                                     {"key": email_key},
                                     {
@@ -808,7 +1041,9 @@ def send_due_plan_notifications(app, mongo):
                                             "kind": reminder_kind,
                                             "deadline": deadline,
                                             "sent_at": now,
-                                            "recipient": _get_owner_email(owner)
+                                            "recipient": (
+                                                _get_owner_email(owner)
+                                            )
                                         }
                                     },
                                     upsert=True
@@ -816,15 +1051,31 @@ def send_due_plan_notifications(app, mongo):
 
                                 email_sent += 1
 
+                            else:
+
+                                email_failed += 1
+
                         except Exception:
+
+                            email_failed += 1
+
                             app.logger.exception(
                                 "Email failed. Plan=%s",
                                 plan_id
                             )
 
-                # ---------------------------------------------
-                # BROWSER PUSH
-                # ---------------------------------------------
+                    else:
+
+                        app.logger.warning(
+                            "Plan owner not found. Plan=%s",
+                            plan_id
+                        )
+
+                        email_failed += 1
+
+                # -----------------------------------------
+                # PUSH
+                # -----------------------------------------
 
                 push_key = f"push:{log_base}"
 
@@ -840,6 +1091,7 @@ def send_due_plan_notifications(app, mongo):
                 ):
 
                     try:
+
                         delivered = send_plan_push(
                             app=app,
                             subscriptions=subs_col,
@@ -850,7 +1102,8 @@ def send_due_plan_notifications(app, mongo):
                             subject=vapid_subject
                         )
 
-                        if delivered:
+                        if delivered > 0:
+
                             logs_col.update_one(
                                 {"key": push_key},
                                 {
@@ -870,30 +1123,49 @@ def send_due_plan_notifications(app, mongo):
 
                             push_sent += delivered
 
+                        else:
+
+                            # No active subscriptions ama push error
+                            app.logger.info(
+                                "No push delivered. Plan=%s",
+                                plan_id
+                            )
+
                     except Exception:
+
+                        push_failed += 1
+
                         app.logger.exception(
                             "Push failed. Plan=%s",
                             plan_id
                         )
 
             except Exception:
+
+                skipped += 1
+
                 app.logger.exception(
                     "Plan notification error. Plan=%s",
                     plan.get("_id")
                 )
 
-        app.logger.info(
-            "Personal Plan job finished: checked=%s reminders=%s "
-            "email_sent=%s push_sent=%s",
-            checked,
-            reminders_found,
-            email_sent,
-            push_sent
-        )
+        # ---------------------------------------------
+        # FINAL SUMMARY
+        # ---------------------------------------------
 
-        return {
+        result = {
             "checked": checked,
             "reminders_found": reminders_found,
             "email_sent": email_sent,
-            "push_sent": push_sent
+            "email_failed": email_failed,
+            "push_sent": push_sent,
+            "push_failed": push_failed,
+            "skipped": skipped
         }
+
+        app.logger.info(
+            "Personal Plan job finished: %s",
+            json.dumps(result)
+        )
+
+        return result
