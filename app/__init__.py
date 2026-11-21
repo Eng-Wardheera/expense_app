@@ -100,13 +100,22 @@ def create_app():
     app.config['PROPAGATE_EXCEPTIONS'] = False
 
      # Configure Flask to use Gmail's SMTP server
-    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-    app.config['MAIL_PORT'] = 587  # TLS port
-    app.config['MAIL_USERNAME'] = 'liilove668@gmail.com'  # Your Gmail address
-    app.config['MAIL_PASSWORD'] = 'dvml ylyo ivek xrab'  # Your Gmail password or App password
-    app.config['MAIL_USE_TLS'] = True
-    app.config['MAIL_USE_SSL'] = False
-   
+    app.config.update(
+        MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
+        MAIL_PORT=int(os.getenv("MAIL_PORT", "587")),
+        MAIL_USE_TLS=os.getenv("MAIL_USE_TLS", "True").lower() == "true",
+        MAIL_USE_SSL=os.getenv("MAIL_USE_SSL", "False").lower() == "true",
+
+        MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+        MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+
+        MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER")
+            or os.getenv("MAIL_USERNAME"),
+
+        PUBLIC_BASE_URL=os.getenv("APP_BASE_URL", "").rstrip("/"),
+    )
+
+    mail.init_app(app)
 
   
 
@@ -202,6 +211,15 @@ def create_app():
 
     app.register_blueprint(create_personal_plan_blueprint(mongo))
 
+    from app.plan_notifications import (
+        create_plan_notifications_blueprint,
+        send_due_plan_notifications
+    )
+
+    app.register_blueprint(
+        create_plan_notifications_blueprint(mongo)
+    )
+
     scheduler.init_app(app)
 
     scheduler.add_job(
@@ -211,6 +229,19 @@ def create_app():
         minutes=1,
         replace_existing=True
     )
+
+    # Personal Plan Push Notifications
+    scheduler.add_job(
+        id="personal_plan_push_reminders",
+        func=send_due_plan_notifications,
+        args=[app, mongo],
+        trigger="interval",
+        minutes=1,
+        replace_existing=True,
+        max_instances=1,
+        coalesce=True
+    )
+
 
     scheduler.start()
 
