@@ -1,0 +1,100 @@
+<div class="pp-push-card" id="ppPushCard">
+  <div class="pp-push-copy">
+    <strong><i class="fas fa-bell"></i> Deadline Notifications</strong>
+    <span id="ppPushStatus" aria-live="polite">Daarayaadda browser notifications...</span>
+  </div>
+  <button type="button" class="pp-push-btn" id="ppEnablePush">Enable Notifications</button>
+</div>
+
+<style>
+.pp-push-card{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 17px;margin:0 0 18px;border:1px solid #dce6f5;border-radius:15px;background:linear-gradient(115deg,#f7faff,#fff);}
+.pp-push-copy{display:flex;flex-direction:column;gap:5px;min-width:0}.pp-push-copy strong{color:#06245f;font-size:14px}.pp-push-copy span{font-size:12px;color:#64748b}.pp-push-btn{border:0;border-radius:10px;background:#06245f;color:#fff;padding:10px 15px;font-weight:700;cursor:pointer;white-space:nowrap}.pp-push-btn:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:600px){.pp-push-card{align-items:flex-start;flex-direction:column}.pp-push-btn{width:100%}}
+</style>
+
+<script>
+(function () {
+  const button = document.getElementById('ppEnablePush');
+  const status = document.getElementById('ppPushStatus');
+  if (!button || !status) return;
+
+  const publicKeyUrl = {{ url_for('plan_notifications.public_key')|tojson }};
+  const subscribeUrl = {{ url_for('plan_notifications.subscribe')|tojson }};
+  const statusUrl = {{ url_for('plan_notifications.status')|tojson }};
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = window.atob(base64);
+    return Uint8Array.from([...raw].map(ch => ch.charCodeAt(0)));
+  }
+
+  async function refreshStatus() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+      status.textContent = 'Browser-kan ma taageerayo Web Push Notifications.';
+      button.disabled = true;
+      return;
+    }
+    try {
+      const response = await fetch(statusUrl, { credentials: 'same-origin' });
+      const data = await response.json();
+      if (!data.supported) {
+        status.textContent = 'VAPID keys lama dejin server-ka.';
+        return;
+      }
+      if (data.enabled) {
+        status.textContent = 'Notifications waa shaqaynayaan. Waxaad heli doontaa deadline reminders.';
+        button.textContent = 'Notifications Enabled';
+      } else if (Notification.permission === 'denied') {
+        status.textContent = 'Notifications waa la diiday. Ka beddel browser site settings.';
+      } else {
+        status.textContent = 'Daar si aad u hesho digniinaha deadline-ka.';
+      }
+    } catch (error) {
+      status.textContent = 'Xaaladda notifications lama hubin karin.';
+    }
+  }
+
+  button.addEventListener('click', async function () {
+    button.disabled = true;
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        throw new Error('Browser-kan ma taageerayo Web Push.');
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') throw new Error('Fadlan oggolow browser notifications.');
+
+      const keyResponse = await fetch(publicKeyUrl, { credentials: 'same-origin' });
+      if (!keyResponse.ok) throw new Error('VAPID public key lama helin. Hubi server configuration.');
+      const keyData = await keyResponse.json();
+
+      const registration = await navigator.serviceWorker.register('/static/service-worker.js');
+      await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+      if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(keyData.publicKey)
+        });
+      }
+
+      const response = await fetch(subscribeUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Subscription waa fashilmay.');
+      status.textContent = 'Waa la hawlgeliyey! Waxaad heli doontaa digniinaha qorshayaashaada.';
+      button.textContent = 'Notifications Enabled';
+    } catch (error) {
+      status.textContent = error.message || 'Cilad ayaa dhacday.';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  refreshStatus();
+})();
+</script>
