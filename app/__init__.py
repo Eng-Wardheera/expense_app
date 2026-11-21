@@ -198,6 +198,9 @@ def create_app():
     # existing setup...
     from app.routes import update_personal_timeline_durations
 
+    from app.personal_plan import create_personal_plan_blueprint
+
+    app.register_blueprint(create_personal_plan_blueprint(mongo))
 
     scheduler.init_app(app)
 
