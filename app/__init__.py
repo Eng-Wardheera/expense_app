@@ -1,299 +1,342 @@
-from datetime import datetime
 
 import os
 import traceback
-from flask import Flask, flash, redirect, render_template, url_for
+from datetime import datetime
+
+import pytz
+import cloudinary
+from dotenv import load_dotenv
+from flask import Flask, flash, redirect, render_template, url_for, request
 from flask_cors import CORS
 from flask_login import LoginManager, current_user
 from authlib.integrations.flask_client import OAuth
-import pytz
-from dotenv import load_dotenv
-from app.tracker import init_tracker
+
 from app.extensions import mongo, mail
-from datetime import datetime
-import cloudinary
-import cloudinary.uploader
-from flask_apscheduler import APScheduler
+from app.tracker import init_tracker
 
 
+load_dotenv()
 
-scheduler = APScheduler()
-
-
-
-# Extensions - single instance only!
+# --------------------------------------------------
+# Global configuration
+# --------------------------------------------------
 
 login_manager = LoginManager()
+oauth = OAuth()
 
- # Enable CSRF globally
+google = None
+github = None
 
-# Global Variables: 1
-# Upload config & model
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-
-# Global Variables: 2
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg"}
 UPLOAD_FOLDER = "static/backend/uploads"
-
-
-MAX_RETRIES = 5  # try 5 times to get a unique journey_code
-
- # ----- Timezone -----
-  
-# Google OAuth
-
-
-oauth = OAuth()  # global instance
-google = None    # placeholder
-githup = None
+MAX_RETRIES = 5
 
 EAT = pytz.timezone("Africa/Nairobi")
 
+
 def now_eat():
-    """Return current datetime in Nairobi timezone"""
     return datetime.now(EAT)
 
-# Load environment variables from .env file
-load_dotenv()
 
+# --------------------------------------------------
+# Cloudinary configuration
+# --------------------------------------------------
 
 cloudinary.config(
-    cloud_name="dzhairplt",
-    api_key="597738172555213",
-    api_secret="x4UXHFVqzH4Oq_MeBV4VGYoZHns"
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
 )
 
-#-------------------------------------------------------------
-# Function: 29 create_app()
-# Ujeeddo: Diyaarinta Flask App iyadoo la isku xiro configs, extensions, 
-# filters, blueprints, errors, iyo security
-#-------------------------------------------------------------
+
+# --------------------------------------------------
+# Create Flask application
+# --------------------------------------------------
+
 def create_app():
+
     app = Flask(
         __name__,
         template_folder="../templates",
         static_folder="../static"
     )
 
-   
+    # --------------------------------------------------
+    # Security
+    # --------------------------------------------------
 
+    secret_key = os.getenv("SECRET_KEY")
 
-   
-   # Secure Secret Key (ONLY ONCE)
-    app.config["SECRET_KEY"] = os.getenv(
-        "SECRET_KEY",
-        "XWt7819618552904Sm32Mxx2102dklF"
-    )
-    
-    # Configuration
-   
+    if not secret_key:
+        raise RuntimeError("SECRET_KEY environment variable is missing")
+
+    app.config["SECRET_KEY"] = secret_key
+
+    app.config["DEBUG"] = False
+    app.config["PROPAGATE_EXCEPTIONS"] = False
+
+    # --------------------------------------------------
+    # MongoDB
+    # --------------------------------------------------
+
     mongo_uri = os.getenv("MONGO_URI")
 
     if not mongo_uri:
-        raise Exception("MONGO_URI not found")
+        raise RuntimeError("MONGO_URI environment variable is missing")
 
     app.config["MONGO_URI"] = mongo_uri
-
-
     app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-    # create_app() dhexdiisa
-    app.config['DEBUG'] = False
-    app.config['PROPAGATE_EXCEPTIONS'] = False
 
-     # Configure Flask to use Gmail's SMTP server
+    mongo.init_app(app)
+
+    # --------------------------------------------------
+    # Flask Mail
+    # Initialize only once
+    # --------------------------------------------------
+
     app.config.update(
         MAIL_SERVER=os.getenv("MAIL_SERVER", "smtp.gmail.com"),
         MAIL_PORT=int(os.getenv("MAIL_PORT", "587")),
         MAIL_USE_TLS=os.getenv("MAIL_USE_TLS", "True").lower() == "true",
         MAIL_USE_SSL=os.getenv("MAIL_USE_SSL", "False").lower() == "true",
-
         MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
         MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
-
-        MAIL_DEFAULT_SENDER=os.getenv("MAIL_DEFAULT_SENDER")
-            or os.getenv("MAIL_USERNAME"),
-
-        PUBLIC_BASE_URL=os.getenv("APP_BASE_URL", "").rstrip("/"),
+        MAIL_DEFAULT_SENDER=(
+            os.getenv("MAIL_DEFAULT_SENDER")
+            or os.getenv("MAIL_USERNAME")
+        ),
+        PUBLIC_BASE_URL=os.getenv("APP_BASE_URL", "").rstrip("/")
     )
 
     mail.init_app(app)
 
-  
+    # --------------------------------------------------
+    # CORS
+    # --------------------------------------------------
 
-  
-    # Enable CORS for your frontend origin
-     # Ka akhri port environment
     port = int(os.getenv("PORT", 7000))
-    frontend_origin = os.getenv("FRONTEND_ORIGIN", f"http://127.0.0.1:{port}")
 
-    # Dynamic CORS origin
-    CORS(app, resources={r"/*": {"origins": frontend_origin}})
+    frontend_origin = os.getenv(
+        "FRONTEND_ORIGIN",
+        f"http://127.0.0.1:{port}"
+    )
 
-    # OAuth init
-    # OAuth init
-    oauth.init_app(app)
-    global google
-    google = oauth.register(
-        name='google',
-         client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
-        client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-        server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-        client_kwargs={
-            'scope': 'openid email profile'
+    CORS(
+        app,
+        resources={
+            r"/*": {
+                "origins": frontend_origin
+            }
         }
     )
 
-    # OAuth setup
+    # --------------------------------------------------
+    # OAuth
+    # --------------------------------------------------
+
     oauth.init_app(app)
-    global github
-    github = oauth.register(
-        name='github',
-        client_id=os.getenv("GITHUB_CLIENT_ID"),
-        client_secret=os.getenv("GITHUB_CLIENT_SECRET"),
-        access_token_url='https://github.com/login/oauth/access_token',
-        authorize_url='https://github.com/login/oauth/authorize',
-        api_base_url='https://api.github.com/',
-        client_kwargs={'scope': 'user:email'},
+
+    global google, github
+
+    google = oauth.register(
+        name="google",
+        client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
+        client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
+        server_metadata_url=(
+            "https://accounts.google.com/"
+            ".well-known/openid-configuration"
+        ),
+        client_kwargs={
+            "scope": "openid email profile"
+        }
     )
 
-  
+    github = oauth.register(
+        name="github",
+        client_id=os.getenv("GITHUB_CLIENT_ID"),
+        client_secret=os.getenv("GITHUB_CLIENT_SECRET"),
+        access_token_url="https://github.com/login/oauth/access_token",
+        authorize_url="https://github.com/login/oauth/authorize",
+        api_base_url="https://api.github.com/",
+        client_kwargs={
+            "scope": "user:email"
+        }
+    )
 
-  
-    @app.template_filter('getattr')
+    # --------------------------------------------------
+    # Tracker
+    # --------------------------------------------------
+
+    init_tracker(app, mongo)
+
+    # --------------------------------------------------
+    # Login Manager
+    # --------------------------------------------------
+
+    login_manager.init_app(app)
+    login_manager.login_view = "main.login"
+
+    # --------------------------------------------------
+    # Template filters
+    # --------------------------------------------------
+
+    @app.template_filter("getattr")
     def getattr_filter(obj, name):
         return getattr(obj, name, None)
 
-    # Import and register your routes (assuming routes.py)
-    init_tracker(app, mongo)
-
- 
-    # Initialize extensions
-    mongo.init_app(app)
-    mail.init_app(app)  # Make sure you call init_app on the mail object
-    login_manager.init_app(app)
-    login_manager.login_view = 'main.login'
-
-    # Register blueprints
-   
-    @app.context_processor
-    def inject_year():
-        return dict(current_year=datetime.now().year)
-
-    # 27 Filter: Format datetime for input[type="datetime-local"]
-    @app.template_filter('datetimeformat_input')
+    @app.template_filter("datetimeformat_input")
     def datetimeformat_input(value):
         if not value:
-            return ''
-        return value.strftime('%Y-%m-%dT%H:%M')
+            return ""
 
+        return value.strftime("%Y-%m-%dT%H:%M")
 
-    # 28 Example: in filters.py (Jinja filter)
-    @app.template_filter('datetimeformat_input_dateOnly')
+    @app.template_filter("datetimeformat_input_dateOnly")
     def datetimeformat_input_dateOnly(value):
-        return value.strftime('%Y-%m-%d')  # only date
+        if not value:
+            return ""
 
+        return value.strftime("%Y-%m-%d")
 
-    # Import models and blueprints
+    @app.template_filter("time_since")
+    def time_since_filter(seconds):
 
+        seconds = int(seconds or 0)
 
+        intervals = (
+            ("month", 2592000),
+            ("week", 604800),
+            ("day", 86400),
+            ("hour", 3600),
+            ("minute", 60),
+            ("second", 1),
+        )
 
-  
-    from .routes import bp 
+        for name, count in intervals:
+            value = seconds // count
+
+            if value:
+                return (
+                    f"{value} {name}"
+                    f"{'s' if value > 1 else ''} ago"
+                )
+
+        return "just now"
+
+    # --------------------------------------------------
+    # Context processors
+    # --------------------------------------------------
+
+    @app.context_processor
+    def inject_year():
+        return {
+            "current_year": datetime.now().year
+        }
+
+    @app.context_processor
+    def inject_settings():
+        settings = mongo.db.settings.find_one()
+
+        return {
+            "settings": settings
+        }
+
+    # --------------------------------------------------
+    # Register main blueprint
+    # --------------------------------------------------
+
+    from app.routes import bp
+
+    app.register_blueprint(bp)
+
+    # --------------------------------------------------
+    # User model
+    # --------------------------------------------------
+
     from app.modal import User
 
-    
-    app.register_blueprint(bp) # ,url_prefix='/main'
-    
+    @login_manager.user_loader
+    def load_user(user_id):
 
-    # existing setup...
-    from app.routes import update_personal_timeline_durations
+        from bson.objectid import ObjectId
+        from bson.errors import InvalidId
+
+        try:
+            user_data = mongo.db.users.find_one({
+                "_id": ObjectId(user_id)
+            })
+
+            if user_data:
+                return User(user_data)
+
+        except (InvalidId, TypeError, ValueError):
+            return None
+
+        return None
+
+    # --------------------------------------------------
+    # Personal Timeline
+    # --------------------------------------------------
 
     from app.personal_plan import create_personal_plan_blueprint
 
-    app.register_blueprint(create_personal_plan_blueprint(mongo))
+    app.register_blueprint(
+        create_personal_plan_blueprint(mongo)
+    )
+
+    # --------------------------------------------------
+    # Personal Plan Notifications
+    # --------------------------------------------------
 
     from app.plan_notifications import (
-        create_plan_notifications_blueprint,
-        send_due_plan_notifications
+        create_plan_notifications_blueprint
     )
 
     app.register_blueprint(
         create_plan_notifications_blueprint(mongo)
     )
 
-    scheduler.init_app(app)
-
-    scheduler.add_job(
-        id="personal_timeline_duration_updater",
-        func=update_personal_timeline_durations,
-        trigger="interval",
-        minutes=1,
-        replace_existing=True
-    )
-
-    # Personal Plan Push Notifications
-    scheduler.add_job(
-        id="personal_plan_push_reminders",
-        func=send_due_plan_notifications,
-        args=[app, mongo],
-        trigger="interval",
-        minutes=1,
-        replace_existing=True,
-        max_instances=1,
-        coalesce=True
-    )
-
-
-    scheduler.start()
-
-
-    # 4. Start yearly-rate scheduler LAST
-    from app.yearly_rate_scheduler import init_yearly_rate_scheduler
-
-    init_yearly_rate_scheduler(app)
-
-    # Oggolow dhammaan domains ama ku xadid domain gaar ah:
-  
+    # --------------------------------------------------
+    # 404 Error Handler
+    # --------------------------------------------------
 
     @app.errorhandler(404)
     def not_found_error(error):
+
         site_settings = mongo.db.settings.find_one()
+
         return render_template(
             "backend/errors/auth-404-creative.html",
             settings=site_settings
         ), 404
 
+    # --------------------------------------------------
+    # 500 Error Handler
+    # --------------------------------------------------
 
-    # ✅ Add template filter to app
-    @app.template_filter('time_since')
-    def time_since_filter(seconds):
-        """Convert seconds to human-readable time like '5 minutes ago'."""
-        seconds = int(seconds)
-        intervals = (
-            ('month', 2592000),  # 30*24*60*60
-            ('week', 604800),    # 7*24*60*60
-            ('day', 86400),
-            ('hour', 3600),
-            ('minute', 60),
-            ('second', 1),
-        )
-
-        for name, count in intervals:
-            value = seconds // count
-            if value:
-                return f"{value} {name}{'s' if value > 1 else ''} ago"
-        return "just now"
-    
-    # 30 Custom 500 handler
     @app.errorhandler(500)
     def internal_error(error):
-        from flask import request
 
-        current_time = datetime.now(EAT).strftime("%Y-%m-%d %H:%M:%S")
+        current_time = datetime.now(EAT).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        )
+
         request_url = request.url
-        user_info = current_user.username if current_user.is_authenticated else "Guest"
+
+        user_info = (
+            current_user.username
+            if current_user.is_authenticated
+            else "Guest"
+        )
 
         error_message = str(error)
-        error_trace = traceback.format_exc() if app.debug else None
+
+        error_trace = (
+            traceback.format_exc()
+            if app.debug
+            else None
+        )
 
         site_settings = mongo.db.settings.find_one()
 
@@ -308,31 +351,17 @@ def create_app():
             debug=app.debug
         ), 500
 
- 
+    # --------------------------------------------------
+    # Unauthorized Handler
+    # --------------------------------------------------
 
     @login_manager.unauthorized_handler
     def unauthorized():
+
         flash("Fadlan marka hore soo gal nidaamka.")
-        return redirect(url_for('main.login')) # 'login' waa magaca function-ka login-kaaga
 
-    @app.context_processor
-    def inject_settings():
-        return dict(settings=mongo.db.settings.find_one())
+        return redirect(
+            url_for("main.login")
+        )
 
-    # 31 Login user loader
-    @login_manager.user_loader
-    def load_user(user_id):
-        from bson.objectid import ObjectId
-        # 1. Xogta ka soo hel database-ka
-        user_data = mongo.db.users.find_one({"_id": ObjectId(user_id)})
-        
-        # 2. Haddi xogtu jirto, u beddel Object ka hor inta aadan return-garayn
-        if user_data:
-            return User(user_data) # <--- Halkan waa inuu ahaadaa User class object
-        
-        return None # Haddii kale return None
-
-
-   
-    
     return app
